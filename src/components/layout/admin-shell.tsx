@@ -1,0 +1,122 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { createClient } from '@/lib/supabase-browser';
+import { cn } from '@/lib/utils';
+import {
+  LayoutDashboard, Users, Server, Globe, CreditCard, ScrollText,
+  Activity, LogOut, Menu, X, ArrowLeft, Tag,
+} from 'lucide-react';
+import { useState } from 'react';
+
+const nav = [
+  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { name: 'Customers', href: '/admin/customers', icon: Users },
+  { name: 'Services', href: '/admin/services', icon: Server },
+  { name: 'Domains', href: '/admin/domains', icon: Globe },
+  { name: 'Billing', href: '/admin/billing', icon: CreditCard },
+  { name: 'Plans', href: '/admin/plans', icon: Tag },
+  { name: 'Logs', href: '/admin/logs', icon: ScrollText },
+];
+
+export function AdminShell({
+  user, email, children,
+}: {
+  user: any; email: string; children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = '/auth/login';
+  }
+
+  const isActive = (href: string) =>
+    href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
+
+  const Sidebar = () => (
+    <div className="flex flex-col h-full bg-admin-950">
+      <div className="p-5 border-b border-admin-800">
+        <Link href="/admin" className="text-lg font-bold text-white tracking-tight">
+          Envosta <span className="text-admin-400 text-xs font-medium ml-1">Staff</span>
+        </Link>
+      </div>
+
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+        {nav.map(item => (
+          <Link key={item.href} href={item.href}
+            onClick={() => setMobileOpen(false)}
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+              isActive(item.href)
+                ? 'bg-admin-800 text-white'
+                : 'text-admin-300 hover:bg-admin-900 hover:text-white'
+            )}>
+            <item.icon className="w-[18px] h-[18px] shrink-0" />
+            {item.name}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="p-3 border-t border-admin-800">
+        <Link href="/dashboard"
+          onClick={() => setMobileOpen(false)}
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-admin-400 hover:text-white hover:bg-admin-900 transition-colors mb-2">
+          <ArrowLeft className="w-4 h-4" />
+          Customer view
+        </Link>
+
+        <div className="flex items-center gap-3 px-3 py-2">
+          <div className="w-8 h-8 rounded-full bg-admin-800 text-admin-300 flex items-center justify-center text-xs font-semibold">
+            {(user?.full_name?.[0] || email[0] || '?').toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white truncate">{user?.full_name || 'Admin'}</p>
+            <p className="text-xs text-admin-400 truncate">{email}</p>
+          </div>
+          <button onClick={handleSignOut} className="p-1.5 rounded-md text-admin-500 hover:text-admin-300 hover:bg-admin-800"
+            title="Sign out">
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Desktop sidebar */}
+      <aside className="fixed inset-y-0 left-0 w-60 hidden lg:flex flex-col z-30">
+        <Sidebar />
+      </aside>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <div className="fixed inset-0 bg-black/30" onClick={() => setMobileOpen(false)} />
+          <aside className="fixed inset-y-0 left-0 w-60 z-50 shadow-xl">
+            <Sidebar />
+          </aside>
+        </div>
+      )}
+
+      {/* Main area */}
+      <div className="lg:pl-60">
+        {/* Mobile header */}
+        <header className="lg:hidden sticky top-0 z-20 bg-admin-950 px-4 h-14 flex items-center gap-3">
+          <button onClick={() => setMobileOpen(true)} className="p-1.5 -ml-1.5 rounded-md text-admin-300 hover:bg-admin-800">
+            <Menu className="w-5 h-5" />
+          </button>
+          <span className="font-bold text-white">Envosta <span className="text-admin-400 text-xs font-medium ml-1">Staff</span></span>
+        </header>
+
+        <main className="p-6 lg:p-8 max-w-7xl">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
