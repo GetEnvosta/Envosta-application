@@ -2,6 +2,17 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+  const host = request.headers.get('host') ?? '';
+
+  // On envosta.com (marketing site), serve static index.html — skip all app logic
+  if (host === 'envosta.com' || host === 'www.envosta.com') {
+    // Rewrite root to the static HTML file
+    if (request.nextUrl.pathname === '/') {
+      return NextResponse.rewrite(new URL('/index.html', request.url));
+    }
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -52,5 +63,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/admin/:path*', '/auth/:path*'],
+  matcher: ['/', '/dashboard/:path*', '/admin/:path*', '/auth/:path*'],
 };
