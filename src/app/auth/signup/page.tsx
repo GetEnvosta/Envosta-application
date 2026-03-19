@@ -38,9 +38,12 @@ export default function SignupPage() {
             </div>
             <h2 className="text-lg font-semibold text-gray-900">Check your email</h2>
             <p className="text-sm text-gray-500 mt-2">
-              We sent a confirmation link to <span className="font-medium text-gray-700">{email}</span>.
-              Click the link to activate your account.
+              If this email isn&apos;t already registered, you&apos;ll receive a confirmation link at <span className="font-medium text-gray-700">{email}</span>. Check your inbox and spam folder.
             </p>
+          </div>
+          <div className="mt-6 flex flex-col gap-2">
+            <a href="/auth/login" className="btn-primary w-full">Go to sign in</a>
+            <button onClick={() => setSuccess(false)} className="btn-ghost w-full">Try a different email</button>
           </div>
         </div>
       </div>

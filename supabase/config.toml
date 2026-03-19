@@ -1,6 +1,3 @@
-[project]
-id = "YOUR_SUPABASE_PROJECT_REF"
-
 [api]
 enabled = true
 port = 54321
@@ -12,8 +9,8 @@ major_version = 15
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["https://my.envosta.com"]
+site_url = "https://envosta-application.vercel.app"
+additional_redirect_urls = ["https://envosta-application.vercel.app/auth/callback"]
 
 [auth.email]
 enable_signup = true

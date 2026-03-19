@@ -1,4 +1,4 @@
-import { supabaseAdmin, supabaseForUser, stripeRequest, cors, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, getStripe, cors, json, error, log } from "../_shared/deps.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -6,11 +6,15 @@ Deno.serve(async (req) => {
   try {
     const userSb = supabaseForUser(req);
     const { data: { user }, error: authErr } = await userSb.auth.getUser();
-    if (authErr || !user) return error("Unauthorized", 401);
+    if (authErr || !user) {
+      console.error("Auth error:", authErr?.message);
+      return error("Unauthorized", 401);
+    }
 
     const { priceId } = await req.json();
     if (!priceId) return error("priceId is required");
 
+    const stripe = getStripe();
     const sb = supabaseAdmin();
 
     // Get or create Stripe customer
@@ -18,9 +22,9 @@ Deno.serve(async (req) => {
       .select("*").eq("user_id", user.id).single();
 
     if (!customer) {
-      const sc = await stripeRequest("/customers", {
+      const sc = await stripe.customers.create({
         email: user.email ?? "",
-        "metadata[supabase_user_id]": user.id,
+        metadata: { supabase_user_id: user.id },
       });
       const { data: newCust } = await sb.from("customers").insert({
         user_id: user.id, stripe_customer_id: sc.id, billing_email: user.email,
@@ -28,22 +32,23 @@ Deno.serve(async (req) => {
       customer = newCust;
     }
 
-    // Create Stripe Checkout Session
-    const session = await stripeRequest("/checkout/sessions", {
+    // Create Checkout Session
+    const session = await stripe.checkout.sessions.create({
       customer: customer!.stripe_customer_id,
       mode: "subscription",
-      "line_items[0][price]": priceId,
-      "line_items[0][quantity]": "1",
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: "https://my.envosta.com/dashboard?checkout=success",
       cancel_url: "https://my.envosta.com/dashboard?checkout=cancelled",
-      "subscription_data[metadata][supabase_user_id]": user.id,
+      subscription_data: {
+        metadata: { supabase_user_id: user.id },
+      },
     });
 
     await log({ userId: user.id, action: "stripe.checkout.created", message: session.id });
     return json({ url: session.url, sessionId: session.id });
 
   } catch (e) {
-    await log({ level: "error", action: "stripe.checkout.error", message: String(e) });
+    console.error("Checkout error:", e);
     return error(String(e), 500);
   }
 });
