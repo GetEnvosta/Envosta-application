@@ -14,6 +14,26 @@ export default function NewDomainPage() {
   const [error, setError] = useState('');
   const router = useRouter();
 
+  async function callFunction(body: any) {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setError('Please log in first'); return null; }
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        },
+        body: JSON.stringify(body),
+      }
+    );
+    return res.json();
+  }
+
   async function checkAvailability(e: React.FormEvent) {
     e.preventDefault();
     if (!domain.includes('.')) { setError('Enter a full domain like example.com'); return; }
@@ -21,24 +41,18 @@ export default function NewDomainPage() {
     setError('');
     setAvailable(null);
 
-    const supabase = createClient();
-    const { data, error: err } = await supabase.functions.invoke('register-domain', {
-      body: { action: 'check', domainName: domain.toLowerCase().trim() },
-    });
+    const data = await callFunction({ action: 'check', domainName: domain.toLowerCase().trim() });
     setChecking(false);
-    if (err || data?.error) { setError(data?.error ?? err?.message ?? 'Check failed'); return; }
+    if (!data || data.error) { setError(data?.error ?? 'Check failed'); return; }
     setAvailable(data.available);
   }
 
   async function handleRegister() {
     setRegistering(true);
     setError('');
-    const supabase = createClient();
-    const { data, error: err } = await supabase.functions.invoke('register-domain', {
-      body: { action: 'register', domainName: domain.toLowerCase().trim(), years: 1 },
-    });
-    if (err || data?.error) {
-      setError(data?.error ?? err?.message ?? 'Registration failed');
+    const data = await callFunction({ action: 'register', domainName: domain.toLowerCase().trim(), years: 1 });
+    if (!data || data.error) {
+      setError(data?.error ?? 'Registration failed');
       setRegistering(false);
       return;
     }

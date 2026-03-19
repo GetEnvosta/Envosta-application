@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
+import Stripe from "https://esm.sh/stripe@14?target=denonext";
 
 export const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 export const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -6,9 +7,6 @@ export const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
 export const STRIPE_WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
 export const WPCLOUD_API_KEY = Deno.env.get("WPCLOUD_API_KEY") ?? "";
 export const WPCLOUD_API_URL = Deno.env.get("WPCLOUD_API_URL") || "https://public-api.wordpress.com/wpcloud/v2";
-export const ENOM_API_URL = Deno.env.get("ENOM_API_URL") || "https://resellertest.enom.com/interface.asp";
-export const ENOM_UID = Deno.env.get("ENOM_UID") ?? "";
-export const ENOM_PW = Deno.env.get("ENOM_PW") ?? "";
 
 export function supabaseAdmin() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -17,33 +15,19 @@ export function supabaseAdmin() {
 }
 
 export function supabaseForUser(req: Request) {
-  const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
+  const authHeader = req.headers.get("Authorization") ?? "";
   return createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
-    global: { headers: { Authorization: `Bearer ${token}` } },
+    global: { headers: { Authorization: authHeader } },
     auth: { persistSession: false },
   });
 }
 
-export async function stripeRequest(path: string, params: Record<string, string>) {
-  const res = await fetch(`https://api.stripe.com/v1${path}`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${STRIPE_SECRET_KEY}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams(params).toString(),
-  });
-  return res.json();
+export function getStripe() {
+  return new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2024-11-20" });
 }
 
-export async function stripeGet(path: string) {
-  const res = await fetch(`https://api.stripe.com/v1${path}`, {
-    method: "GET",
-    headers: {
-      "Authorization": `Bearer ${STRIPE_SECRET_KEY}`,
-    },
-  });
-  return res.json();
+export function getCryptoProvider() {
+  return Stripe.createSubtleCryptoProvider();
 }
 
 export const cors = {
@@ -68,7 +52,9 @@ export async function log(p: {
       action: p.action, message: p.message, request_payload: p.req,
       response_payload: p.res, ip_address: p.ip, user_agent: p.ua, duration_ms: p.ms,
     });
-  } catch {
-    /* logging should never crash the caller */
+  } catch (e) {
+    console.error("Log write failed:", e);
   }
 }
+
+export { Stripe };
