@@ -10,11 +10,32 @@ export function CheckoutButton({ priceId, className }: { priceId: string; classN
   async function handleCheckout() {
     setLoading(true);
     const supabase = createClient();
-    const { data, error } = await supabase.functions.invoke('stripe-checkout', {
-      body: { priceId },
-    });
-    if (error || !data?.url) {
-      alert(data?.error ?? error?.message ?? 'Checkout failed');
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      alert('Please log in first');
+      setLoading(false);
+      return;
+    }
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/stripe-checkout`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        },
+        body: JSON.stringify({ priceId }),
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok || !data?.url) {
+      alert(data?.error ?? 'Checkout failed');
       setLoading(false);
       return;
     }
