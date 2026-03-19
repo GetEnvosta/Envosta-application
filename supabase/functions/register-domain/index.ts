@@ -5,8 +5,10 @@ const OPENSRS_API_KEY = Deno.env.get("OPENSRS_API_KEY") ?? "";
 const OPENSRS_HOST = Deno.env.get("OPENSRS_HOST") ?? "horizon.opensrs.net";
 
 async function md5(input: string): Promise<string> {
+  // Deno's crypto.subtle doesn't support MD5, so we use the Deno std library
+  const mod = await import("https://deno.land/std@0.210.0/crypto/mod.ts");
   const data = new TextEncoder().encode(input);
-  const hash = await crypto.subtle.digest("MD5", data);
+  const hash = await mod.crypto.subtle.digest("MD5", data);
   return Array.from(new Uint8Array(hash))
     .map(b => b.toString(16).padStart(2, "0"))
     .join("");
@@ -57,8 +59,8 @@ function buildRegisterXml(domain: string, years: number, email: string): string 
             <item key="reg_type">new</item>
             <item key="period">${years}</item>
             <item key="handle">process</item>
-            <item key="reg_username">envosta_${Date.now()}</item>
-            <item key="reg_password">Env0st@${Date.now()}</item>
+            <item key="reg_username">env${Date.now().toString().slice(-8)}</item>
+            <item key="reg_password">Env0sta${Date.now().toString().slice(-8)}</item>
             <item key="custom_tech_contact">0</item>
             <item key="custom_nameservers">0</item>
             <item key="f_whois_privacy">1</item>
@@ -201,7 +203,8 @@ Deno.serve(async (req) => {
     const parsed = parseResponse(responseXml);
     const ms = Date.now() - t0;
 
-    console.log("OpenSRS register:", parsed.responseCode, parsed.responseText);
+    console.log("OpenSRS register raw:", responseXml);
+    console.log("OpenSRS register parsed:", parsed.responseCode, parsed.responseText);
 
     if (!parsed.isSuccess) {
       await sb.from("domains").update({
