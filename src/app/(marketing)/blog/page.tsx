@@ -132,17 +132,9 @@ nav .c{display:flex;align-items:center;height:72px}
 .pg-btn:hover,.pg-btn.active{background:var(--gold);color:#fff;border-color:var(--gold)}
 .pg-ellipsis{color:var(--t3);font-size:.82rem;padding:0 4px}
 
-/* Footer */
-footer{border-top:1px solid var(--bdr);padding:64px 0 32px}
-.fg-f{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1fr;gap:40px;margin-bottom:0}
-.fbr .logo{margin-bottom:16px;display:inline-flex;white-space:nowrap;flex-shrink:0}.fbr p{font-size:.82rem;color:var(--t2);line-height:1.7;max-width:280px;font-weight:300}
-.fcol h5{font-size:.7rem;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--t1);margin-bottom:14px}.fcol ul{list-style:none}.fcol li{margin-bottom:9px}.fcol a{color:var(--t2);text-decoration:none;font-size:.82rem;transition:color .2s}.fcol a:hover{color:#fff}
-.social-icon{width:32px;height:32px;border-radius:8px;background:var(--card);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--t3);text-decoration:none;font-size:.75rem;transition:all .2s}
-.social-icon:hover{border-color:var(--bdr2);color:var(--t1)}
-
 /* Responsive */
-@media(max-width:1024px){.post-grid{grid-template-columns:repeat(3,1fr);gap:14px}.feat-post{grid-template-columns:1fr}.fg-f{grid-template-columns:1fr 1fr}}
-@media(max-width:768px){.nl,.gh{display:none}.ham{display:flex}.post-grid{grid-template-columns:1fr}.feat-post{grid-template-columns:1fr}.feat-img{min-height:200px}.feat-body{padding:28px 24px}.fg-f{grid-template-columns:1fr}.cta-box{padding:40px 24px}.nl-form{flex-direction:column}.blog-hero{padding:120px 0 48px}}
+@media(max-width:1024px){.post-grid{grid-template-columns:repeat(3,1fr);gap:14px}.feat-post{grid-template-columns:1fr}}
+@media(max-width:768px){.nl,.gh{display:none}.ham{display:flex}.post-grid{grid-template-columns:1fr}.feat-post{grid-template-columns:1fr}.feat-img{min-height:200px}.feat-body{padding:28px 24px}.cta-box{padding:40px 24px}.nl-form{flex-direction:column}.blog-hero{padding:120px 0 48px}}
       `}</style>
 
       {/* NAV */}
@@ -407,84 +399,6 @@ footer{border-top:1px solid var(--bdr);padding:64px 0 32px}
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer>
-        <div className="c">
-          <div className="fg-f">
-            <div className="fbr">
-              <a href="/" className="logo" style={{ marginBottom: '16px' }}>
-                <div className="logo-mark">
-                  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5 3h22v5H11v5h13v5H11v5h16v5H5z" fill="currentColor" />
-                  </svg>
-                </div>
-                <div className="logo-text">Env<span>o</span>sta</div>
-              </a>
-              <p style={{ maxWidth: '280px' }}>Managed WordPress hosting that starts with a consultation. Enterprise infrastructure, expert support, and hands-on onboarding — all in one place.</p>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-                <a href="#" className="social-icon" aria-label="Twitter">&#120143;</a>
-                <a href="#" className="social-icon" aria-label="LinkedIn">in</a>
-                <a href="#" className="social-icon" aria-label="Facebook">f</a>
-                <a href="#" className="social-icon" aria-label="YouTube">&#9654;</a>
-              </div>
-            </div>
-            <div className="fcol">
-              <h5>Hosting</h5>
-              <ul>
-                <li><a href="https://envosta.com/pricing">Managed WordPress</a></li>
-                <li><a href="https://envosta.com/pricing">WooCommerce Hosting</a></li>
-                <li><a href="https://envosta.com/features/">Enterprise Hosting</a></li>
-                <li><a href="https://envosta.com/pricing">Plans &amp; Pricing</a></li>
-                <li><a href="#">Domain Names</a></li>
-                <li><a href="#">Free Migration</a></li>
-              </ul>
-            </div>
-            <div className="fcol">
-              <h5>Features</h5>
-              <ul>
-                <li><a href="https://envosta.com/features/">Onboarding &amp; Setup</a></li>
-                <li><a href="https://envosta.com/features/">SEO Tools</a></li>
-                <li><a href="https://envosta.com/features/">Speed &amp; Performance</a></li>
-                <li><a href="https://envosta.com/features/">Security &amp; SSL</a></li>
-                <li><a href="https://envosta.com/features/">Daily Backups</a></li>
-                <li><a href="https://envosta.com/features/">Global CDN</a></li>
-              </ul>
-            </div>
-            <div className="fcol">
-              <h5>Resources</h5>
-              <ul>
-                <li><a href="https://envosta.com/resources">Knowledge Base</a></li>
-                <li><a href="https://envosta.com/resources">Blog</a></li>
-                <li><a href="https://envosta.com/resources">Guides &amp; Tutorials</a></li>
-                <li><a href="#">Developer Docs</a></li>
-                <li><a href="#">System Status</a></li>
-                <li><a href="#">Changelog</a></li>
-              </ul>
-            </div>
-            <div className="fcol">
-              <h5>Company</h5>
-              <ul>
-                <li><a href="#">About Envosta</a></li>
-                <li><a href="https://envosta.com/support">Contact Us</a></li>
-                <li><a href="https://envosta.com/support">Support Center</a></li>
-                <li><a href="#">Careers</a></li>
-                <li><a href="#">Partners &amp; Affiliates</a></li>
-                <li><a href="#">Brand Assets</a></li>
-              </ul>
-            </div>
-          </div>
-          <div style={{ borderTop: '1px solid var(--bdr)', marginTop: '48px', paddingTop: '32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: '16px' }}>
-            <p style={{ fontSize: '.75rem', color: 'var(--t3)' }}>&copy; 2025 Envosta Inc. All rights reserved.</p>
-            <div style={{ display: 'flex', gap: '24px' }}>
-              <a href="#" style={{ fontSize: '.75rem', color: 'var(--t3)', textDecoration: 'none', transition: 'color .2s' }}>Privacy Policy</a>
-              <a href="#" style={{ fontSize: '.75rem', color: 'var(--t3)', textDecoration: 'none', transition: 'color .2s' }}>Terms of Service</a>
-              <a href="#" style={{ fontSize: '.75rem', color: 'var(--t3)', textDecoration: 'none', transition: 'color .2s' }}>Cookie Policy</a>
-              <a href="#" style={{ fontSize: '.75rem', color: 'var(--t3)', textDecoration: 'none', transition: 'color .2s' }}>GDPR</a>
-              <a href="#" style={{ fontSize: '.75rem', color: 'var(--t3)', textDecoration: 'none', transition: 'color .2s' }}>Sitemap</a>
-            </div>
-          </div>
-        </div>
-      </footer>
     </>
   );
 }

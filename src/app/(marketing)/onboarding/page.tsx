@@ -78,11 +78,6 @@ export default function OnboardingPage() {
     };
   }, []);
 
-  function toggleFaq(e: React.MouseEvent<HTMLDivElement>) {
-    const item = e.currentTarget.parentElement;
-    if (item) item.classList.toggle('open');
-  }
-
   return (
     <>
       <style jsx global>{`
@@ -245,9 +240,6 @@ export default function OnboardingPage() {
         <div className="c">
           <h1>Your onboarding <em>timeline</em></h1>
           <p>No guesswork, no waiting around. From the moment you sign up, we handle everything — setup, security, optimization — tailored to the plan you choose. Your site is live and performing in days, not weeks.</p>
-          <div className="hero-btns">
-            <Link href="/pricing" className="bp lg">Take Next Step</Link>
-          </div>
         </div>
       </section>
 
@@ -432,97 +424,13 @@ export default function OnboardingPage() {
         </div>
       </section>
 
-      {/* ═══ FAQ ═══ */}
-      <section className="faq rv">
-        <div className="c">
-          <div className="faq-header">
-            <h2>Questions about onboarding</h2>
-            <p>Common questions from new clients about what to expect during setup.</p>
-          </div>
-          <div className="faq-list">
+      {/* ═══ PRICING CTA ═══ */}
+      <div className="rv" style={{ textAlign: 'center', padding: '80px 0' }}>
+        <Link href="/pricing" className="bp lg">View Plans &amp; Pricing</Link>
+      </div>
 
-            <div className="faq-item">
-              <div className="faq-q" onClick={toggleFaq}>
-                <h4>How long does the entire onboarding take?</h4>
-                <svg className="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-              </div>
-              <div className="faq-a"><p>Most clients are fully live within 3–5 business days. If you have an existing site that needs migration, we typically complete the full process in under a week with zero downtime.</p></div>
-            </div>
-
-            <div className="faq-item">
-              <div className="faq-q" onClick={toggleFaq}>
-                <h4>What do I need to provide to get started?</h4>
-                <svg className="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-              </div>
-              <div className="faq-a"><p>Just your domain registrar login (or we can help you register a new domain) and access to your current hosting if you&apos;re migrating. We handle everything else from there.</p></div>
-            </div>
-
-            <div className="faq-item">
-              <div className="faq-q" onClick={toggleFaq}>
-                <h4>Will my site go down during migration?</h4>
-                <svg className="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-              </div>
-              <div className="faq-a"><p>No. We migrate to a staging environment first, verify everything works, then switch DNS. Your live site stays up the entire time and the transition is seamless.</p></div>
-            </div>
-
-            <div className="faq-item">
-              <div className="faq-q" onClick={toggleFaq}>
-                <h4>Do I need to know anything technical?</h4>
-                <svg className="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-              </div>
-              <div className="faq-a"><p>Not at all. We handle all the technical setup. During the walkthrough, we&apos;ll show you how to manage your content in WordPress — it&apos;s straightforward, and we&apos;re always a message away if you get stuck.</p></div>
-            </div>
-
-            <div className="faq-item">
-              <div className="faq-q" onClick={toggleFaq}>
-                <h4>What happens after I&apos;m live?</h4>
-                <svg className="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-              </div>
-              <div className="faq-a"><p>We don&apos;t disappear. Your hosting is actively managed — we handle updates, monitor uptime, run backups, and provide ongoing support. You&apos;ll also receive regular performance reports so you always know how your site is doing.</p></div>
-            </div>
-
-            <div className="faq-item">
-              <div className="faq-q" onClick={toggleFaq}>
-                <h4>Can I upgrade my plan later?</h4>
-                <svg className="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-              </div>
-              <div className="faq-a"><p>Absolutely. You can upgrade or downgrade at any time. Upgrades are prorated so you only pay the difference. Downgrades take effect at your next billing cycle.</p></div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ CTA ═══ */}
-      <section className="cta-banner rv">
-        <div className="c">
-          <div className="cta-inner">
-            <h2>Ready to get started?</h2>
-            <p>Pick a plan, book your kickoff call, and we&apos;ll have your site live within the week. No contracts, no surprises.</p>
-            <div className="hero-btns">
-              <Link href="/pricing" className="bp lg">Take Next Step</Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* FAQ removed per request */}
+      {/* CTA removed per request */}
     </>
   );
 }

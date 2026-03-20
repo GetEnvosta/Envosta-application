@@ -270,8 +270,8 @@ export default function MethodPage() {
         </section>
       </div>
 
-      {/* ZONE B - CTA */}
-      <div className="zone-b">
+      {/* CTA — dark theme */}
+      <div className="zone-a" style={{ marginTop: 0, borderRadius: 0, borderTop: 'none', paddingTop: 0 }}>
         <section className="cta-section">
           <div className="c">
             <span className="sh-tag rv">Ready to Start?</span>
