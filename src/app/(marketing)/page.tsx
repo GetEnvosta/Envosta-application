@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ScrollReveal } from '@/components/marketing/scroll-reveal';
 import { TestimonialCarousel } from '@/components/marketing/homepage/testimonial-carousel';
@@ -11,12 +13,17 @@ import { StarField } from '@/components/marketing/homepage/star-field';
 import { FaqAccordion } from '@/components/marketing/homepage/faq-accordion';
 
 export const metadata: Metadata = {
-  title: 'Envosta — WordPress Hosting Made Simple',
+  title: 'Envosta \u2014 WordPress Hosting Made Simple',
   description: 'Enterprise-grade WordPress hosting powered by WP.cloud. Personal onboarding, custom themes, and hands-on support.',
   alternates: { canonical: 'https://envosta.com' },
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  // If accessed from the app domain, redirect to dashboard
+  const host = (await headers()).get('host') ?? '';
+  if (host.startsWith('my.') || host.startsWith('app.') || host.includes('localhost')) {
+    redirect('/dashboard');
+  }
   return (
     <>
       <ScrollReveal />
