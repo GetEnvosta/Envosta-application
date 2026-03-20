@@ -4,10 +4,11 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 const navLinks = [
+  { label: 'Studio', href: '/studio', accent: true },
   { label: 'Features', href: '/features' },
-  { label: 'Studio', href: '/studio' },
-  { label: 'Plans & Pricing', href: '/pricing' },
+  { label: 'Blog', href: '/blog' },
   { label: 'Support', href: '/support' },
+  { label: 'Plans & Pricing', href: '/pricing' },
 ];
 
 function LogoSvg() {
@@ -42,7 +43,14 @@ export function MarketingNav() {
           <ul className="nl">
             {navLinks.map(link => (
               <li key={link.href}>
-                <Link href={link.href}>{link.label}</Link>
+                {'accent' in link && link.accent ? (
+                  <Link href={link.href} className="nav-studio">
+                    <span className="nav-studio-icon">&#9670;</span>
+                    {link.label}
+                  </Link>
+                ) : (
+                  <Link href={link.href}>{link.label}</Link>
+                )}
               </li>
             ))}
           </ul>
@@ -66,7 +74,9 @@ export function MarketingNav() {
 
       <div className={`mn${mobileOpen ? ' open' : ''}`}>
         {navLinks.map(link => (
-          <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}>
+          <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
+            className={'accent' in link && link.accent ? 'nav-studio-mobile' : undefined}>
+            {'accent' in link && link.accent && <span className="nav-studio-icon">&#9670;</span>}
             {link.label}
           </Link>
         ))}
