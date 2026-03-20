@@ -92,7 +92,7 @@ export function GutenbergAnimation() {
       const ib = $('ib');
       if (ib) ib.innerHTML = '';
       $('liveToast')?.classList.remove('visible');
-      container.querySelectorAll('.doc-item,.blk-item').forEach((x) => x.classList.remove('selected'));
+      container?.querySelectorAll('.doc-item,.blk-item').forEach((x) => x.classList.remove('selected'));
 
       // Reset badge to draft
       const badge = $('badge');
