@@ -89,7 +89,7 @@ export default function MethodPage() {
         .method-step:nth-child(6){background:linear-gradient(135deg,rgba(252,129,129,.04),var(--card));border-color:rgba(252,129,129,.1)}
         .method-step:nth-child(7){background:linear-gradient(135deg,rgba(56,178,172,.04),var(--card));border-color:rgba(56,178,172,.1)}
         .step-letter{display:flex;align-items:center;justify-content:center;border-right:1px solid var(--bdr);position:relative}
-        .step-letter span{font-family:'Plus Jakarta Sans',sans-serif;font-size:2.4rem;font-weight:700;opacity:.15}
+        .step-letter span{font-family:'Inter',sans-serif;font-size:2.4rem;font-weight:700;opacity:.15}
         .method-step:nth-child(1) .step-letter span{color:#2563EB}
         .method-step:nth-child(2) .step-letter span{color:#34d399}
         .method-step:nth-child(3) .step-letter span{color:#9f7aea}
@@ -125,7 +125,7 @@ export default function MethodPage() {
 
         /* ── CTA ── */
         .cta-section{padding:100px 0;text-align:center}
-        .cta-section h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:500;letter-spacing:-.8px;line-height:1.15;margin-bottom:16px}
+        .cta-section h2{font-family:'Inter',sans-serif;font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:500;letter-spacing:-.8px;line-height:1.15;margin-bottom:16px}
         .cta-section p{color:var(--t2);font-size:.95rem;max-width:520px;margin:0 auto 32px;font-weight:300;line-height:1.7}
         .cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 

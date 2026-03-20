@@ -41,7 +41,7 @@ export default function BlogPage() {
       <style>{`
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:#040710;color:#d0d8e8;line-height:1.7;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',sans-serif;background:#040710;color:#d0d8e8;line-height:1.7;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 :root{--bg:#03060e;--bg2:#070c18;--card:#0b1220;--card2:#0f182a;--gold:#2563EB;--gold-dim:#2563EB10;--gold-bright:#3B82F6;--t1:#f5f7fb;--t2:#a3b1c9;--t3:#7889a3;--bdr:#101c2e;--bdr2:#182842;--grn:#22c55e;--r:12px}
 body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
 .c{max-width:1320px;margin:0 auto;padding:0 32px}
@@ -53,7 +53,7 @@ nav .c{display:flex;align-items:center;height:72px}
 .logo{display:inline-flex;align-items:center;gap:10px;text-decoration:none;white-space:nowrap;flex-shrink:0}
 .logo-mark{width:32px;height:32px;flex-shrink:0;color:#fff}
 .logo-mark svg{width:100%;height:100%;display:block}
-.logo-text{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.5rem;font-weight:500;color:#fff;letter-spacing:-.2px}
+.logo-text{font-family:'Inter',sans-serif;font-size:1.5rem;font-weight:500;color:#fff;letter-spacing:-.2px}
 .logo-text span{color:#fff}
 .nl{display:flex;align-items:center;gap:32px;list-style:none;margin-left:48px}.nl a{color:rgba(255,255,255,.7);text-decoration:none;font-size:.95rem;font-weight:400;transition:color .2s}.nl a:hover,.nl a.active{color:#fff}
 .nc{display:flex;align-items:center;gap:16px;margin-left:auto}.gh{color:rgba(255,255,255,.7);text-decoration:none;font-size:.95rem;font-weight:400}.gh:hover{color:#fff}

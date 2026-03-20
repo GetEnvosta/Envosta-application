@@ -40,6 +40,8 @@ export default function PricingPage() {
         .p-card-price .period{font-size:.82rem;color:var(--t3);font-weight:400}
         .p-card-desc{font-size:.82rem;color:var(--t3);margin-bottom:28px;line-height:1.7;font-weight:300}
         .p-card ul{list-style:none;margin-bottom:32px;flex:1}
+        .p-card li{display:flex;align-items:center;gap:10px;font-size:.88rem;color:var(--t2);font-weight:300;padding:6px 0}
+        .p-card li .ck{width:16px;height:16px;flex-shrink:0;color:var(--grn)}
         .p-card li{font-size:.84rem;color:var(--t2);padding:8px 0;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px;font-weight:300}
         .p-card li:last-child{border:none}
         .p-card .bp{width:100%;justify-content:center;padding:14px 24px;font-size:.88rem;margin-top:auto}
@@ -51,7 +53,7 @@ export default function PricingPage() {
         .studio-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(201,164,92,.1);border:1px solid rgba(201,164,92,.2);border-radius:100px;padding:6px 16px;font-size:.68rem;font-weight:600;color:#c9a45c;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:24px}
         .studio-badge-dot{width:6px;height:6px;border-radius:50%;background:#c9a45c;animation:sbpulse 2s ease-in-out infinite}
         @keyframes sbpulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(201,164,92,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(201,164,92,0)}}
-        .studio-left h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:500;letter-spacing:-.5px;line-height:1.15;margin-bottom:16px}
+        .studio-left h3{font-family:'Inter',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:500;letter-spacing:-.5px;line-height:1.15;margin-bottom:16px}
         .studio-left h3 span{background:linear-gradient(135deg,#c9a45c,#e6c46e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .studio-left>p{font-size:.92rem;color:var(--t2);line-height:1.75;font-weight:300;margin-bottom:32px;max-width:480px}
         .studio-price{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}

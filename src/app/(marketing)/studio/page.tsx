@@ -36,6 +36,9 @@ export default function StudioPage() {
   return (
     <>
       <style>{`
+        /* ── Studio CSS variables ── */
+        :root{--vip:#c9a45c;--vip-dim:rgba(201,164,92,.1);--vip-bright:#d4b06a}
+
         /* ── Scroll reveal ── */
         .rv{opacity:0;transform:translateY(30px);transition:opacity .7s,transform .7s}
         .rv.v{opacity:1;transform:none}
@@ -155,7 +158,7 @@ export default function StudioPage() {
         .plat-m:nth-child(3){background:linear-gradient(180deg,rgba(34,197,94,.15),#0f1a2e);border-color:rgba(34,197,94,.25)}
         .plat-m:nth-child(4){background:linear-gradient(180deg,rgba(159,122,234,.15),#0f1a2e);border-color:rgba(159,122,234,.25)}
         .plat-m:hover{transform:translateY(-3px)}
-        .plat-m strong{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(2.2rem,3.8vw,3.2rem);font-weight:600;display:block;margin-bottom:6px}
+        .plat-m strong{font-family:'Inter',sans-serif;font-size:clamp(2.2rem,3.8vw,3.2rem);font-weight:600;display:block;margin-bottom:6px}
         .plat-m:nth-child(1) strong{color:var(--vip)}
         .plat-m:nth-child(2) strong{color:var(--gold-bright)}
         .plat-m:nth-child(3) strong{color:var(--grn)}

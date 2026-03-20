@@ -21,7 +21,7 @@ export default function SupportPage() {
         /* ── Section headers ── */
         .sh{text-align:left;margin-bottom:56px}
         .sh-tag{display:inline-block;font-size:.72rem;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--gold);margin-bottom:10px}
-        .sh h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:500;letter-spacing:-1px;line-height:1.1}
+        .sh h2{font-family:'Inter',sans-serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:500;letter-spacing:-1px;line-height:1.1}
         .sh-desc{font-size:.95rem;color:var(--t2);line-height:1.75;font-weight:300;margin-top:16px;max-width:560px}
 
         /* ── Scroll reveal ── */
@@ -32,7 +32,7 @@ export default function SupportPage() {
         .hero-overlay{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(37,99,235,.15),transparent 65%);z-index:0}
         .hero .c{position:relative;z-index:2;text-align:center}
         .hero-text{max-width:720px;margin:0 auto}
-        .hero-text h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(2.6rem,5.5vw,4.2rem);font-weight:500;line-height:1.12;letter-spacing:-1.5px;margin-bottom:28px}
+        .hero-text h1{font-family:'Inter',sans-serif;font-size:clamp(2.6rem,5.5vw,4.2rem);font-weight:400;line-height:1.12;letter-spacing:-1.5px;margin-bottom:28px;background:linear-gradient(180deg,#fff 30%,rgba(255,255,255,.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .hero-text h1 em{font-style:normal;color:#fff;font-weight:500}
         .hero-text p{font-size:1.05rem;color:var(--t2);max-width:520px;margin-left:auto;margin-right:auto;line-height:1.8;font-weight:300}
 
@@ -67,7 +67,7 @@ export default function SupportPage() {
         .studio-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(201,164,92,.1);border:1px solid rgba(201,164,92,.2);border-radius:100px;padding:6px 16px;font-size:.68rem;font-weight:600;color:#c9a45c;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:24px}
         .studio-badge-dot{width:6px;height:6px;border-radius:50%;background:#c9a45c;animation:sbpulse 2s ease-in-out infinite}
         @keyframes sbpulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(201,164,92,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(201,164,92,0)}}
-        .studio-left h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:500;letter-spacing:-.5px;line-height:1.15;margin-bottom:16px}
+        .studio-left h3{font-family:'Inter',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:500;letter-spacing:-.5px;line-height:1.15;margin-bottom:16px}
         .studio-left h3 span{background:linear-gradient(135deg,#c9a45c,#e6c46e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .studio-left>p{font-size:.92rem;color:var(--t2);line-height:1.75;font-weight:300;margin-bottom:32px;max-width:480px}
         .studio-price{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}
@@ -124,7 +124,7 @@ export default function SupportPage() {
         /* ── Social Proof ── */
         .social-proof{padding:80px 0;text-align:center}
         .sp-stats{display:flex;align-items:center;justify-content:center;gap:40px;margin-bottom:64px}
-        .sp-stat strong{display:block;font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(1.8rem,3vw,2.6rem);font-weight:600;color:var(--t1);margin-bottom:4px}
+        .sp-stat strong{display:block;font-family:'Inter',sans-serif;font-size:clamp(1.8rem,3vw,2.6rem);font-weight:600;color:var(--t1);margin-bottom:4px}
         .sp-stat span{font-size:.8rem;color:var(--t2);font-weight:300}
         .sp-divider{width:1px;height:48px;background:var(--bdr2)}
         .sp-testimonials{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
