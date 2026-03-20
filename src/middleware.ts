@@ -4,12 +4,9 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function middleware(request: NextRequest) {
   const host = request.headers.get('host') ?? '';
 
-  // On envosta.com (marketing site), serve static index.html — skip all app logic
-  if (host === 'envosta.com' || host === 'www.envosta.com') {
-    // Rewrite root to the static HTML file
-    if (request.nextUrl.pathname === '/') {
-      return NextResponse.rewrite(new URL('/index.html', request.url));
-    }
+  // On envosta.com (marketing site), skip all auth logic — let Next.js serve marketing pages
+  const isMarketingSite = host === 'envosta.com' || host === 'www.envosta.com';
+  if (isMarketingSite) {
     return NextResponse.next();
   }
 
@@ -63,5 +60,20 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*', '/admin/:path*', '/auth/:path*'],
+  matcher: [
+    '/',
+    '/dashboard/:path*',
+    '/admin/:path*',
+    '/auth/:path*',
+    '/features/:path*',
+    '/pricing/:path*',
+    '/support/:path*',
+    '/studio/:path*',
+    '/blog/:path*',
+    '/onboarding/:path*',
+    '/method/:path*',
+    '/careers/:path*',
+    '/affiliate/:path*',
+    '/legal/:path*',
+  ],
 };
