@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-export default function TestimonialCarousel() {
+export function TestimonialCarousel() {
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

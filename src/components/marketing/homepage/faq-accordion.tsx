@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-export default function FaqAccordion() {
+export function FaqAccordion() {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

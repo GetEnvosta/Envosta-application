@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-export default function GlobeSection() {
+export function GlobeSection() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
 

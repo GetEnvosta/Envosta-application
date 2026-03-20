@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-export default function SerpAnimation() {
+export function SerpAnimation() {
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

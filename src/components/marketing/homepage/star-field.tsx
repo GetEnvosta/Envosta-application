@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-export default function StarField() {
+export function StarField() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

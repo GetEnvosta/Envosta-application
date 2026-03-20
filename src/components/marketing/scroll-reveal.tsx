@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-export default function ScrollReveal() {
+export function ScrollReveal() {
   useEffect(() => {
     const elements = document.querySelectorAll('.rv');
     const observers: IntersectionObserver[] = [];

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-export default function ArchitectureCards() {
+export function ArchitectureCards() {
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

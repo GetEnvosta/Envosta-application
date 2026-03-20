@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-export default function LighthouseScores() {
+export function LighthouseScores() {
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

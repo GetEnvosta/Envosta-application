@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-export default function GutenbergAnimation() {
+export function GutenbergAnimation() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
