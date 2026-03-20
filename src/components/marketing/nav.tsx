@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const navLinks = [
-  { label: 'Studio', href: '/studio', accent: true },
+  { label: 'Studio', href: '/studio', badge: 'Waitlisted' },
   { label: 'Features', href: '/features' },
   { label: 'Blog', href: '/blog' },
   { label: 'Support', href: '/support' },
@@ -30,6 +31,12 @@ function LogoSvg() {
 
 export function MarketingNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+
+  function isActive(href: string) {
+    if (href === '/') return pathname === '/';
+    return pathname.startsWith(href);
+  }
 
   return (
     <>
@@ -43,14 +50,15 @@ export function MarketingNav() {
           <ul className="nl">
             {navLinks.map(link => (
               <li key={link.href}>
-                {'accent' in link && link.accent ? (
-                  <Link href={link.href} className="nav-studio">
-                    <span className="nav-studio-icon">&#9670;</span>
-                    {link.label}
-                  </Link>
-                ) : (
-                  <Link href={link.href}>{link.label}</Link>
-                )}
+                <Link
+                  href={link.href}
+                  className={`nav-link${isActive(link.href) ? ' nav-active' : ''}`}
+                >
+                  {link.label}
+                  {'badge' in link && link.badge && (
+                    <span className="nav-badge">{link.badge}</span>
+                  )}
+                </Link>
               </li>
             ))}
           </ul>
@@ -74,10 +82,11 @@ export function MarketingNav() {
 
       <div className={`mn${mobileOpen ? ' open' : ''}`}>
         {navLinks.map(link => (
-          <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
-            className={'accent' in link && link.accent ? 'nav-studio-mobile' : undefined}>
-            {'accent' in link && link.accent && <span className="nav-studio-icon">&#9670;</span>}
+          <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}>
             {link.label}
+            {'badge' in link && link.badge && (
+              <span className="nav-badge">{link.badge}</span>
+            )}
           </Link>
         ))}
         <a href="https://my.envosta.com/auth/login" onClick={() => setMobileOpen(false)}>
