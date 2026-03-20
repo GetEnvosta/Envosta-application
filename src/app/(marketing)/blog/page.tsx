@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase-server';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Blog | WordPress Hosting Insights',
   description:
@@ -16,7 +18,7 @@ export default async function BlogPage() {
 
   const { data: posts } = await supabase
     .from('blog_posts')
-    .select('id, title, slug, excerpt, featured_image, published_at, tags, status')
+    .select('id, title, slug, excerpt, featured_image_url, published_at, tags, status')
     .eq('status', 'published')
     .order('published_at', { ascending: false });
 
@@ -122,8 +124,8 @@ export default async function BlogPage() {
                 <Link href={`/blog/${featuredPost.slug}`} className="feat-post">
                   <div className="feat-img">
                     <div className="feat-img-label">Featured</div>
-                    {featuredPost.featured_image && (
-                      <img src={featuredPost.featured_image} alt={featuredPost.title} />
+                    {featuredPost.featured_image_url && (
+                      <img src={featuredPost.featured_image_url} alt={featuredPost.title} />
                     )}
                   </div>
                   <div className="feat-body">
@@ -160,8 +162,8 @@ export default async function BlogPage() {
                         {post.tags && post.tags.length > 0 && (
                           <div className="post-cat-badge">{post.tags[0]}</div>
                         )}
-                        {post.featured_image && (
-                          <img src={post.featured_image} alt={post.title} />
+                        {post.featured_image_url && (
+                          <img src={post.featured_image_url} alt={post.title} />
                         )}
                       </div>
                       <div className="post-card-body">
