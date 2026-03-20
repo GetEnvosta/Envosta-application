@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Envosta – GDPR Compliance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:#040812;color:#d0d8e8;line-height:1.7;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+:root{--bg:#03060e;--bg2:#070c18;--card:#0b1220;--card2:#0f182a;--gold:#2563EB;--gold-dim:#2563EB10;--gold-bright:#3B82F6;--t1:#f5f7fb;--t2:#a3b1c9;--t3:#7889a3;--bdr:#101c2e;--bdr2:#182842;--grn:#22c55e;--r:12px}
+.c{max-width:1320px;margin:0 auto;padding:0 32px}
+section{position:relative;z-index:1}
+
+/* Nav */
+.site-nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(8,12,24,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr)}
+.site-nav .c{display:flex;align-items:center;height:72px}
+.logo{display:inline-flex;align-items:center;gap:10px;text-decoration:none;white-space:nowrap;flex-shrink:0}
+.logo-mark{width:32px;height:32px;flex-shrink:0;color:#fff;border-radius:5px}
+.logo-mark svg{width:100%;height:100%;display:block}
+.logo-text{font-family:'Inter',sans-serif;font-size:1.35rem;font-weight:300;color:#fff;letter-spacing:-.5px}
+.logo-text span{color:#fff;font-weight:400}
+.nl{display:flex;align-items:center;gap:32px;list-style:none;margin-left:48px}.nl a{color:rgba(255,255,255,.7);text-decoration:none;font-size:.95rem;font-weight:400;transition:color .2s}.nl a:hover{color:#fff}
+.nc{display:flex;align-items:center;gap:16px;margin-left:auto}.gh{color:rgba(255,255,255,.7);text-decoration:none;font-size:.95rem;font-weight:400}.gh:hover{color:#fff}
+.bp{display:inline-flex;align-items:center;padding:10px 22px;background:#fff;color:var(--bg);text-decoration:none;font-size:.84rem;font-weight:400;border-radius:100px;border:none;cursor:pointer;transition:all .2s}.bp:hover{background:rgba(255,255,255,.85)}
+.ham{display:none;flex-direction:column;gap:5px;cursor:pointer;background:0 0;border:none;padding:4px}.ham span{width:20px;height:1.5px;background:var(--t1);border-radius:2px}
+.mn{display:none;position:fixed;top:72px;left:0;right:0;background:var(--bg);border-bottom:1px solid var(--bdr);padding:16px 24px;z-index:999}.mn.open{display:block}.mn a{display:block;padding:12px 0;color:var(--t2);text-decoration:none;font-size:.95rem;border-bottom:1px solid var(--bdr)}.mn a:last-child{border:none}
+
+/* Page Hero — plain white document header */
+.page-hero{padding:120px 0 40px;position:relative;background:#fff}
+.page-hero .c{position:relative;z-index:1;max-width:844px;margin:0 auto}
+.page-hero h1{font-family:'Inter',sans-serif;font-size:1.8rem;font-weight:500;letter-spacing:-.5px;line-height:1.2;margin-bottom:8px;color:#111827}
+.page-hero p{font-size:.9rem;color:#1f2937;line-height:1.7;font-weight:300;margin-top:4px}
+.page-hero .meta{font-size:.78rem;color:#9ca3af;margin-top:10px;font-weight:400}
+.page-hero .divider{border:none;border-top:1px solid #e5e7eb;margin-top:32px}
+
+/* White content zone */
+.legal-zone{background:#fff;position:relative;z-index:1}
+
+/* Legal content */
+.legal-wrap{max-width:780px;padding:0 0 100px;margin:0 auto}
+.legal-content h2{font-family:'Inter',sans-serif;font-size:1.4rem;font-weight:500;margin-bottom:12px;padding-top:56px;scroll-margin-top:100px;color:#111827;line-height:1.25;letter-spacing:-.3px}
+.legal-content h2:first-of-type{padding-top:8px}
+.legal-content h3{font-family:'Inter',sans-serif;font-size:.92rem;font-weight:500;margin-bottom:8px;margin-top:24px;color:#111827}
+.legal-content p{color:#1f2937;font-size:.9rem;line-height:1.85;margin-bottom:14px;font-weight:300}
+.legal-content p strong{color:#111827;font-weight:500}
+.legal-content ul,.legal-content ol{margin:0 0 16px 20px}
+.legal-content li{color:#1f2937;font-size:.88rem;line-height:1.85;margin-bottom:6px;font-weight:300}
+.legal-content li::marker{color:#1f2937}
+.legal-content a{color:var(--gold);text-decoration:none;transition:color .2s}
+.legal-content a:hover{color:var(--gold-bright)}
+.legal-divider{border:none;border-top:1px solid #e5e7eb;margin:40px 0 0}
+
+/* GDPR Rights Cards */
+.gdpr-rights-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin:28px 0 16px}
+.gdpr-right-card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:14px;padding:24px 28px}
+.gdpr-right-card .icon{width:40px;height:40px;border-radius:10px;background:rgba(37,99,235,.08);display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:1.1rem}
+.gdpr-right-card h4{font-family:'Inter',sans-serif;font-size:.88rem;font-weight:500;color:#111827;margin-bottom:6px}
+.gdpr-right-card p{font-size:.82rem;color:#1f2937;line-height:1.7;margin-bottom:0;font-weight:300}
+
+/* GDPR Info Banner */
+.gdpr-banner{background:#f9fafb;border:1px solid #e5e7eb;border-radius:14px;padding:28px 32px;margin:28px 0 16px;display:flex;gap:20px;align-items:flex-start}
+.gdpr-banner .banner-icon{width:44px;height:44px;border-radius:12px;background:rgba(34,197,94,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.2rem}
+.gdpr-banner .banner-text h4{font-family:'Inter',sans-serif;font-size:.88rem;font-weight:500;color:#111827;margin-bottom:4px}
+.gdpr-banner .banner-text p{font-size:.82rem;color:#1f2937;line-height:1.7;margin-bottom:0;font-weight:300}
+
+/* Footer */
+footer{border-top:1px solid var(--bdr);padding:64px 0 32px}
+.fg-f{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1fr;gap:40px;margin-bottom:0;align-items:start}
+.fbr .logo{margin-bottom:16px;display:inline-flex;white-space:nowrap;flex-shrink:0}.fbr p{font-size:.82rem;color:var(--t2);line-height:1.7;max-width:280px;font-weight:300}
+.fcol h5{font-size:.7rem;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--t1);margin-bottom:14px}.fcol ul{list-style:none;padding:0;margin:0}.fcol li{margin-bottom:9px}.fcol a{color:var(--t2);text-decoration:none;font-size:.82rem;transition:color .2s}.fcol a:hover{color:#fff}
+.f-bottom{border-top:1px solid var(--bdr);margin-top:48px;padding-top:32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.f-bottom p{font-size:.75rem;color:var(--t3);margin:0}
+.f-links{display:flex;gap:24px;flex-wrap:wrap}
+.f-links a{font-size:.75rem;color:var(--t3);text-decoration:none;transition:color .2s}
+.f-links a:hover{color:#fff}
+
+/* Responsive */
+@media(max-width:1024px){
+  .fg-f{grid-template-columns:2fr 1fr 1fr!important;gap:32px}
+  .fbr{grid-column:1/-1}
+}
+@media(max-width:768px){
+  .nl,.gh{display:none}
+  .ham{display:flex}
+  .c{padding:0 20px}
+  .page-hero{padding:100px 0 32px}
+  .legal-wrap{padding:0 24px 80px}
+  .gdpr-rights-grid{grid-template-columns:1fr}
+  .gdpr-banner{flex-direction:column;gap:14px}
+  .fg-f{grid-template-columns:1fr 1fr!important;gap:32px}
+  .fbr{grid-column:1/-1}
+  .f-bottom{flex-direction:column;align-items:flex-start;gap:12px}
+  .f-links{gap:16px}
+}
+@media(max-width:480px){
+  .fg-f{grid-template-columns:1fr!important;gap:24px}
+  .f-links{flex-direction:column;gap:10px}
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="site-nav"><div class="c">
+<a href="index.html" class="logo"><div class="logo-mark"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs><mask id="nav-e"><rect width="64" height="64" rx="10" fill="white"/><rect x="19.2" y="17" width="25.6" height="5.4" fill="black"/><rect x="19.2" y="29.3" width="6.7" height="17.7" fill="black"/><rect x="25.5" y="29.3" width="16" height="5.4" fill="black"/><rect x="25.5" y="41.6" width="19.3" height="5.4" fill="black"/></mask></defs>
+<rect width="64" height="64" rx="10" fill="currentColor" mask="url(#nav-e)"/>
+</svg></div><div class="logo-text">Env<span>o</span>sta</div></a>
+<ul class="nl"><li><a href="https://envosta.com/features/">Features</a></li><li><a href="https://envosta.com/pricing">Plans &amp; Pricing</a></li><li><a href="https://envosta.com/resources">Resources</a></li><li><a href="https://envosta.com/support">Support</a></li></ul>
+<div class="nc"><a href="https://app.envosta.com/" class="gh">Log in</a><div class="block-button"><a href="https://envosta.com/pricing" class="bp">Get Started</a></div></div>
+<button class="ham" onclick="document.querySelector('.mn').classList.toggle('open')"><span></span><span></span><span></span></button>
+</div></nav>
+<div class="mn"><a href="https://envosta.com/features/">Features</a><a href="https://envosta.com/pricing">Plans &amp; Pricing</a><a href="https://envosta.com/resources">Resources</a><a href="https://envosta.com/support">Support</a></div>
+
+<!-- Page Hero -->
+<section class="page-hero"><div class="c">
+<h1>GDPR Compliance</h1>
+<p>How Envosta protects your data and upholds your rights under the General Data Protection Regulation.</p>
+<div class="meta">Last updated: January 15, 2026</div>
+<hr class="divider">
+</div></section>
+
+<!-- Legal Content -->
+<div class="legal-zone">
+<section class="legal-content"><div class="legal-wrap">
+
+<h2 id="overview">Overview &amp; Commitment</h2>
+<p>Envosta is committed to protecting the privacy and security of personal data for all users, including those in the European Economic Area (EEA), the United Kingdom, and Switzerland. We comply with the General Data Protection Regulation (EU) 2016/679 ("GDPR") and the UK GDPR.</p>
+<p>This page outlines how we meet our obligations as both a <strong>data controller</strong> (when we process your account and billing information) and a <strong>data processor</strong> (when we host and manage your WordPress sites and handle data on your behalf).</p>
+
+<div class="gdpr-banner">
+<div class="banner-icon">&#128274;</div>
+<div class="banner-text">
+<h4>Our Promise</h4>
+<p>We process personal data lawfully, fairly, and transparently. We collect only what is necessary, keep it accurate, and protect it with industry-leading security measures.</p>
+</div>
+</div>
+<hr class="legal-divider">
+
+<h2 id="scope">Scope &amp; Applicability</h2>
+<p>This GDPR compliance page applies to all personal data processed by Envosta in connection with our managed WordPress hosting services, including:</p>
+<ul>
+<li>Visitors to our website at envosta.com</li>
+<li>Customers who sign up for and use our hosting plans</li>
+<li>Contacts who reach out to our sales or support teams</li>
+<li>End users of websites hosted on the Envosta platform</li>
+</ul>
+<p>If you are an Envosta customer hosting a website that collects personal data from your own visitors, you act as the data controller for that data, and Envosta acts as the data processor. Our <a href="#dpa">Data Processing Agreement</a> governs that relationship.</p>
+<hr class="legal-divider">
+
+<h2 id="lawful-basis">Lawful Basis for Processing</h2>
+<p>Under GDPR, we must have a valid legal basis for processing your personal data. Depending on the context, we rely on one or more of the following:</p>
+<ul>
+<li><strong>Contractual Necessity (Article 6(1)(b)):</strong> Processing required to deliver the hosting services you have purchased, manage your account, and provide technical support.</li>
+<li><strong>Legitimate Interest (Article 6(1)(f)):</strong> Processing needed to maintain platform security, prevent fraud, improve our services, and communicate relevant product updates. We balance our interests against your rights and freedoms.</li>
+<li><strong>Consent (Article 6(1)(a)):</strong> When you opt in to receive marketing emails, participate in surveys, or enable optional analytics. You may withdraw consent at any time.</li>
+<li><strong>Legal Obligation (Article 6(1)(c)):</strong> Processing required to comply with applicable laws, such as tax regulations, anti-money laundering requirements, and law enforcement requests.</li>
+</ul>
+<hr class="legal-divider">
+
+<h2 id="data-collected">Data We Collect &amp; Process</h2>
+<p>We collect only the data necessary to provide our services. For a detailed breakdown of the specific data points, please refer to our <a href="privacy.html">Privacy Policy</a>. In summary:</p>
+
+<h3>As a Data Controller</h3>
+<ul>
+<li>Account details — name, email address, company name</li>
+<li>Billing information — processed securely via PCI-compliant payment providers</li>
+<li>Support communications — tickets, emails, and live chat transcripts</li>
+<li>Usage and analytics data — aggregated platform usage to improve our services</li>
+</ul>
+
+<h3>As a Data Processor</h3>
+<ul>
+<li>Website content and databases hosted on your Envosta server</li>
+<li>Visitor data collected by your WordPress site (e.g., form submissions, comments, WooCommerce orders)</li>
+<li>Server logs generated by traffic to your hosted sites</li>
+</ul>
+<p>We do not access, use, or share the data stored on your hosted sites unless explicitly instructed by you (for example, during a support request or migration).</p>
+<hr class="legal-divider">
+
+<h2 id="your-rights">Your Rights Under GDPR</h2>
+<p>If you are located in the EEA, UK, or Switzerland, the GDPR grants you the following rights over your personal data. You can exercise any of these by contacting us at <a href="mailto:privacy@envosta.com">privacy@envosta.com</a>.</p>
+
+<div class="gdpr-rights-grid">
+<div class="gdpr-right-card">
+<div class="icon">&#128196;</div>
+<h4>Right of Access</h4>
+<p>Request a copy of the personal data we hold about you and information about how it is processed.</p>
+</div>
+<div class="gdpr-right-card">
+<div class="icon">&#9998;</div>
+<h4>Right to Rectification</h4>
+<p>Request correction of inaccurate or incomplete personal data we hold about you.</p>
+</div>
+<div class="gdpr-right-card">
+<div class="icon">&#128465;</div>
+<h4>Right to Erasure</h4>
+<p>Request deletion of your personal data when it is no longer necessary or when you withdraw consent.</p>
+</div>
+<div class="gdpr-right-card">
+<div class="icon">&#9208;</div>
+<h4>Right to Restriction</h4>
+<p>Request that we limit the processing of your data in certain circumstances while issues are resolved.</p>
+</div>
+<div class="gdpr-right-card">
+<div class="icon">&#128230;</div>
+<h4>Right to Portability</h4>
+<p>Receive your data in a structured, machine-readable format and transfer it to another provider.</p>
+</div>
+<div class="gdpr-right-card">
+<div class="icon">&#9995;</div>
+<h4>Right to Object</h4>
+<p>Object to processing based on legitimate interests, including profiling and direct marketing.</p>
+</div>
+</div>
+
+<p>We respond to all data subject requests within <strong>30 days</strong>. If we need more time due to the complexity of the request, we will notify you within the initial 30-day period and may extend by up to two additional months as permitted under GDPR.</p>
+<p>To verify your identity and protect against unauthorized requests, we may ask you to confirm your account details before processing your request.</p>
+<hr class="legal-divider">
+
+<h2 id="data-protection">Data Protection Measures</h2>
+<p>We implement comprehensive technical and organizational measures to protect personal data against unauthorized access, loss, alteration, or destruction:</p>
+
+<h3>Technical Measures</h3>
+<ul>
+<li><strong>Encryption:</strong> All data in transit is encrypted using TLS 1.3. Data at rest is encrypted using AES-256.</li>
+<li><strong>Infrastructure:</strong> Our servers are hosted in SOC 2 Type II certified data centers in the EU and US.</li>
+<li><strong>Access Controls:</strong> Role-based access with multi-factor authentication for all internal systems.</li>
+<li><strong>Monitoring:</strong> 24/7 intrusion detection, DDoS mitigation, and real-time security monitoring.</li>
+<li><strong>Backups:</strong> Automated daily backups with encrypted offsite storage and tested disaster recovery procedures.</li>
+</ul>
+
+<h3>Organizational Measures</h3>
+<ul>
+<li>Regular data protection training for all employees and contractors</li>
+<li>Internal data protection policies and incident response procedures</li>
+<li>Periodic security audits and penetration testing by independent third parties</li>
+<li>Data minimization practices — we only collect and retain what is strictly necessary</li>
+</ul>
+<hr class="legal-divider">
+
+<h2 id="international-transfers">International Data Transfers</h2>
+<p>Envosta operates data centers in the European Union and the United States. When personal data is transferred outside the EEA, we ensure that appropriate safeguards are in place as required by GDPR Chapter V:</p>
+<ul>
+<li><strong>Standard Contractual Clauses (SCCs):</strong> We use the European Commission's approved SCCs for transfers to countries without an adequacy decision.</li>
+<li><strong>EU-U.S. Data Privacy Framework:</strong> Where applicable, we rely on the EU-U.S. Data Privacy Framework for transfers to certified U.S. organizations.</li>
+<li><strong>Data residency options:</strong> Customers on Business and Enterprise plans can choose to keep all data within EU-based data centers exclusively.</li>
+</ul>
+<p>You can request information about the specific safeguards applied to transfers of your data by contacting <a href="mailto:privacy@envosta.com">privacy@envosta.com</a>.</p>
+<hr class="legal-divider">
+
+<h2 id="sub-processors">Sub-Processors &amp; Third Parties</h2>
+<p>We use a limited number of sub-processors to help deliver our services. Each sub-processor is vetted for GDPR compliance and bound by a Data Processing Agreement. Key sub-processors include:</p>
+<ul>
+<li><strong>Cloud Infrastructure:</strong> Data center and server providers located in the EU and US</li>
+<li><strong>Payment Processing:</strong> PCI DSS Level 1 certified payment processors</li>
+<li><strong>CDN &amp; Performance:</strong> Content delivery network providers with global edge locations</li>
+<li><strong>Support Tools:</strong> Helpdesk and communication platforms for customer support</li>
+<li><strong>Analytics:</strong> Privacy-focused analytics tools for aggregated platform insights</li>
+</ul>
+<p>We maintain an up-to-date list of sub-processors. Customers who have signed a DPA will be notified at least <strong>30 days in advance</strong> of any new sub-processor being added, giving you the opportunity to object.</p>
+<hr class="legal-divider">
+
+<h2 id="data-retention">Data Retention &amp; Deletion</h2>
+<p>We retain personal data only for as long as it is necessary to fulfill the purposes for which it was collected:</p>
+<ul>
+<li><strong>Active accounts:</strong> Data is retained for the duration of your account and service agreement.</li>
+<li><strong>After account closure:</strong> Core account data is deleted within 90 days. Backups containing account data are purged within 180 days.</li>
+<li><strong>Billing records:</strong> Retained for up to 7 years as required by tax and financial regulations.</li>
+<li><strong>Support tickets:</strong> Retained for 2 years after resolution for quality assurance purposes, then deleted.</li>
+<li><strong>Server logs:</strong> Automatically rotated and deleted after 90 days.</li>
+</ul>
+<p>If you request erasure of your data under Article 17, we will delete your personal data within 30 days, except where retention is required by law or for the establishment, exercise, or defense of legal claims.</p>
+<hr class="legal-divider">
+
+<h2 id="breach-notification">Data Breach Notification</h2>
+<p>In the event of a personal data breach, Envosta follows a strict incident response protocol in line with GDPR Articles 33 and 34:</p>
+<ul>
+<li><strong>Supervisory Authority:</strong> We will notify the relevant supervisory authority within <strong>72 hours</strong> of becoming aware of a breach that is likely to result in a risk to the rights and freedoms of individuals.</li>
+<li><strong>Affected Individuals:</strong> If a breach is likely to result in a <strong>high risk</strong> to your rights and freedoms, we will notify you directly without undue delay.</li>
+<li><strong>Customers (as processor):</strong> If a breach affects data we process on your behalf, we will notify you within <strong>48 hours</strong> so you can fulfill your own controller obligations.</li>
+</ul>
+<p>All breach notifications will include the nature of the breach, the categories of data affected, the likely consequences, and the measures taken or proposed to address the incident.</p>
+<hr class="legal-divider">
+
+<h2 id="dpo">Data Protection Officer</h2>
+<p>Envosta has appointed a Data Protection Officer (DPO) to oversee our GDPR compliance program. You can contact our DPO for any questions or concerns about how we handle personal data:</p>
+<ul>
+<li><strong>Email:</strong> <a href="mailto:dpo@envosta.com">dpo@envosta.com</a></li>
+<li><strong>Mail:</strong> Data Protection Officer, Envosta Inc., 123 Hosting Lane, Suite 400, San Francisco, CA 94105</li>
+</ul>
+<p>Our DPO is responsible for monitoring compliance, conducting Data Protection Impact Assessments (DPIAs) where required, and serving as the point of contact for supervisory authorities.</p>
+<hr class="legal-divider">
+
+<h2 id="complaints">Complaints &amp; Supervisory Authority</h2>
+<p>If you believe that our processing of your personal data violates the GDPR, you have the right to lodge a complaint with a supervisory authority. You may contact:</p>
+<ul>
+<li>The supervisory authority in the EU member state of your habitual residence, place of work, or place of the alleged infringement</li>
+<li>The <strong>Irish Data Protection Commission (DPC)</strong>, which serves as our lead supervisory authority in the EU</li>
+<li>The <strong>UK Information Commissioner's Office (ICO)</strong> if you are based in the United Kingdom</li>
+</ul>
+<p>Before filing a complaint, we encourage you to contact us first at <a href="mailto:dpo@envosta.com">dpo@envosta.com</a> so we can address your concerns directly and resolve any issues promptly.</p>
+<hr class="legal-divider">
+
+<h2 id="dpa">Data Processing Agreement</h2>
+<p>If you are an Envosta customer and require a Data Processing Agreement (DPA) for GDPR compliance, we provide a pre-signed DPA that covers:</p>
+<ul>
+<li>The nature and purpose of data processing</li>
+<li>Categories of personal data and data subjects</li>
+<li>Obligations and rights of the controller and processor</li>
+<li>Sub-processor management and notification procedures</li>
+<li>Data security obligations and breach notification commitments</li>
+<li>Data return and deletion upon termination of services</li>
+<li>Standard Contractual Clauses (SCCs) as an annex for international transfers</li>
+</ul>
+
+<div class="gdpr-banner">
+<div class="banner-icon">&#128221;</div>
+<div class="banner-text">
+<h4>Request a DPA</h4>
+<p>To obtain a signed copy of our Data Processing Agreement, contact us at <a href="mailto:privacy@envosta.com">privacy@envosta.com</a> or through your account dashboard under Settings &rarr; Legal Documents.</p>
+</div>
+</div>
+<hr class="legal-divider">
+
+<h2 id="updates">Updates to This Page</h2>
+<p>We may update this GDPR compliance page from time to time to reflect changes in our practices, our sub-processor list, or applicable regulations. When material changes are made, we will notify affected customers by email and post a notice on our website at least 30 days before the changes take effect.</p>
+<p>We encourage you to review this page periodically. For any questions about updates, please contact <a href="mailto:dpo@envosta.com">dpo@envosta.com</a>.</p>
+
+</div></section>
+</div>
+
+<!-- Footer -->
+<footer><div class="c">
+<div class="fg-f">
+<div class="fbr"><a href="index.html" class="logo" style="margin-bottom:16px"><div class="logo-mark"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs><mask id="ftr-e"><rect width="64" height="64" rx="10" fill="white"/><rect x="19.2" y="17" width="25.6" height="5.4" fill="black"/><rect x="19.2" y="29.3" width="6.7" height="17.7" fill="black"/><rect x="25.5" y="29.3" width="16" height="5.4" fill="black"/><rect x="25.5" y="41.6" width="19.3" height="5.4" fill="black"/></mask></defs>
+<rect width="64" height="64" rx="10" fill="currentColor" mask="url(#ftr-e)"/>
+</svg></div><div class="logo-text">Env<span>o</span>sta</div></a><p style="max-width:280px">Hosting that starts with a consultation. Enterprise infrastructure, expert support, and hands-on onboarding.</p>
+<div style="display:flex;gap:12px;margin-top:20px">
+<a href="#" style="width:32px;height:32px;border-radius:8px;background:var(--card);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--t3);text-decoration:none;font-size:.75rem;transition:all .2s" aria-label="Twitter">𝕏</a>
+<a href="#" style="width:32px;height:32px;border-radius:8px;background:var(--card);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--t3);text-decoration:none;font-size:.75rem;transition:all .2s" aria-label="LinkedIn">in</a>
+<a href="#" style="width:32px;height:32px;border-radius:8px;background:var(--card);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--t3);text-decoration:none;font-size:.75rem;transition:all .2s" aria-label="Facebook">f</a>
+<a href="#" style="width:32px;height:32px;border-radius:8px;background:var(--card);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--t3);text-decoration:none;font-size:.75rem;transition:all .2s" aria-label="YouTube">▶</a>
+</div>
+</div>
+<div class="fcol"><h5>Hosting</h5><ul><li><a href="https://envosta.com/pricing">WordPress Hosting</a></li><li><a href="https://envosta.com/pricing">WooCommerce Hosting</a></li><li><a href="https://envosta.com/features/">Enterprise Hosting</a></li><li><a href="https://envosta.com/pricing">Plans &amp; Pricing</a></li><li><a href="#">Domain Names</a></li><li><a href="#">Free Migration</a></li></ul></div>
+<div class="fcol"><h5>Features</h5><ul><li><a href="https://envosta.com/features/">Onboarding &amp; Setup</a></li><li><a href="https://envosta.com/features/">SEO Tools</a></li><li><a href="https://envosta.com/features/">Speed &amp; Performance</a></li><li><a href="https://envosta.com/features/">Security &amp; SSL</a></li><li><a href="https://envosta.com/features/">Daily Backups</a></li><li><a href="https://envosta.com/features/">Global CDN</a></li></ul></div>
+<div class="fcol"><h5>Resources</h5><ul><li><a href="https://envosta.com/resources">Knowledge Base</a></li><li><a href="https://envosta.com/resources">Blog</a></li><li><a href="https://envosta.com/resources">Guides &amp; Tutorials</a></li><li><a href="#">Developer Docs</a></li><li><a href="#">System Status</a></li><li><a href="#">Changelog</a></li></ul></div>
+<div class="fcol"><h5>Company</h5><ul><li><a href="#">About Envosta</a></li><li><a href="https://envosta.com/support">Contact Us</a></li><li><a href="https://envosta.com/support">Support Center</a></li><li><a href="#">Careers</a></li><li><a href="#">Partners &amp; Affiliates</a></li><li><a href="#">Brand Assets</a></li></ul></div>
+</div>
+<div class="f-bottom">
+<p>&copy; 2025 Envosta Inc. All rights reserved.</p>
+<div class="f-links"><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms of Service</a><a href="#">Cookie Policy</a><a href="gdpr.html">GDPR</a><a href="#">Sitemap</a></div>
+</div>
+</div></footer>
+
+<script>
+document.querySelectorAll('.mn a').forEach(l=>l.addEventListener('click',()=>document.querySelector('.mn').classList.remove('open')));
+</script>
+</body>
+</html>

@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Envosta – Partner Program</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#040710;color:#d0d8e8;line-height:1.7;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+:root{--bg:#03060e;--bg2:#070c18;--card:#0b1220;--card2:#0f182a;--gold:#2563EB;--gold-dim:#2563EB10;--gold-bright:#3B82F6;--t1:#f5f7fb;--t2:#a3b1c9;--t3:#7889a3;--bdr:#101c2e;--bdr2:#182842;--grn:#22c55e;--r:12px}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+.c{max-width:1320px;margin:0 auto;padding:0 32px}
+section{position:relative;z-index:1}
+
+/* ── Nav ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(8,12,24,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr)}
+nav .c{display:flex;align-items:center;height:72px}
+.logo{display:inline-flex;align-items:center;gap:10px;text-decoration:none;white-space:nowrap;flex-shrink:0}
+.logo-mark{width:32px;height:32px;flex-shrink:0;color:#fff}.logo-mark svg{width:100%;height:100%;display:block}
+.logo-text{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.5rem;font-weight:500;color:#fff;letter-spacing:-.2px}.logo-text span{color:#fff}
+.nl{display:flex;align-items:center;gap:32px;list-style:none;margin-left:48px}.nl a{color:rgba(255,255,255,.7);text-decoration:none;font-size:.95rem;font-weight:400;transition:color .2s}.nl a:hover,.nl a.active{color:#fff}
+.nc{display:flex;align-items:center;gap:16px;margin-left:auto}.gh{color:rgba(255,255,255,.7);text-decoration:none;font-size:.95rem;font-weight:400}.gh:hover{color:#fff}
+.bp{display:inline-flex;align-items:center;padding:10px 22px;background:#fff;color:var(--bg);text-decoration:none;font-size:.84rem;font-weight:500;border-radius:100px;border:none;cursor:pointer;transition:all .2s}.bp:hover{background:rgba(255,255,255,.85)}.bp.lg{padding:16px 32px;font-size:.92rem}
+.bp.ghost{background:0 0;color:var(--t2);border:1px solid var(--bdr2)}.bp.ghost:hover{border-color:var(--t3);color:var(--t1)}
+.bp.blue{background:var(--gold);color:#fff}.bp.blue:hover{background:var(--gold-bright)}
+.ham{display:none;flex-direction:column;gap:5px;cursor:pointer;background:0 0;border:none;padding:4px}.ham span{width:20px;height:1.5px;background:var(--t1);border-radius:2px}
+.mn{display:none;position:fixed;top:72px;left:0;right:0;background:var(--bg);border-bottom:1px solid var(--bdr);padding:16px 24px;z-index:999}.mn.open{display:block}.mn a{display:block;padding:12px 0;color:var(--t2);text-decoration:none;font-size:.95rem;border-bottom:1px solid var(--bdr)}.mn a:last-child{border:none}
+
+/* ── Scroll reveal ── */
+.rv{opacity:0;transform:translateY(30px);transition:opacity .7s,transform .7s}.rv.v{opacity:1;transform:none}
+
+/* ── Shared check SVG ── */
+.ck{width:16px;height:16px;flex-shrink:0;color:var(--grn)}
+
+/* ═══════════════════════════════════
+   HERO
+═══════════════════════════════════ */
+.aff-hero{padding:160px 0 80px;text-align:center;position:relative;overflow:hidden}
+.aff-hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 65%);pointer-events:none}
+.aff-hero .c{position:relative;z-index:1}
+.aff-hero h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:500;letter-spacing:-1.5px;line-height:1.12;margin-bottom:20px}
+.aff-hero h1 em{font-style:normal;color:#fff;font-weight:500}
+.aff-hero p{font-size:1.05rem;color:var(--t2);max-width:560px;margin:0 auto 44px;line-height:1.8;font-weight:300}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* ═══════════════════════════════════
+   STATS BAR
+═══════════════════════════════════ */
+.stats-bar{padding:0 0 80px}
+.stats-bar .c{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.stat-item{text-align:center;padding:32px 20px;background:var(--card);border:1px solid var(--bdr);border-radius:16px}
+.stat-item strong{display:block;font-size:clamp(1.8rem,3vw,2.6rem);font-weight:600;letter-spacing:-1px;line-height:1;margin-bottom:6px}
+.stat-item strong em{font-style:normal;color:var(--gold-bright);font-weight:600}
+.stat-item span{font-size:.82rem;color:var(--t2);font-weight:300}
+
+/* ═══════════════════════════════════
+   PARTNER TRACKS
+═══════════════════════════════════ */
+.tracks{padding:0 0 100px}
+.tracks-header{text-align:center;margin-bottom:56px}
+.tracks-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
+.tracks-header p{font-size:.95rem;color:var(--t2);font-weight:300;max-width:560px;margin:0 auto;line-height:1.75}
+
+.tracks-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.track-card{background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:48px 40px;position:relative;transition:transform .3s,border-color .3s;display:flex;flex-direction:column}
+.track-card:hover{transform:translateY(-4px);border-color:var(--bdr2)}
+.track-card.featured{border-color:var(--gold);background:linear-gradient(180deg,rgba(37,99,235,.06),var(--card) 50%)}
+.track-card.featured::before{content:'Hiring Now';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#fff;font-size:.68rem;font-weight:600;padding:4px 16px;border-radius:100px;letter-spacing:.5px;text-transform:uppercase}
+.track-icon{width:56px;height:56px;border-radius:14px;background:rgba(37,99,235,.1);display:flex;align-items:center;justify-content:center;margin-bottom:24px;color:var(--gold)}
+.track-icon svg{width:28px;height:28px}
+.track-card h3{font-size:1.3rem;font-weight:500;letter-spacing:-.3px;margin-bottom:8px}
+.track-card .track-sub{font-size:.82rem;color:var(--t3);font-weight:300;margin-bottom:24px;line-height:1.7}
+.track-card .commission-highlight{background:var(--card2);border:1px solid var(--bdr);border-radius:12px;padding:20px 24px;margin-bottom:24px;text-align:center}
+.commission-highlight .rate{font-size:2.2rem;font-weight:600;color:var(--t1);letter-spacing:-1px;line-height:1}
+.commission-highlight .rate em{font-style:normal;color:var(--gold-bright)}
+.commission-highlight .rate-desc{font-size:.78rem;color:var(--t3);margin-top:6px;font-weight:300}
+.track-card ul{list-style:none;margin-bottom:32px;flex:1}
+.track-card li{font-size:.84rem;color:var(--t2);padding:8px 0;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px;font-weight:300}
+.track-card li:last-child{border:none}
+.track-card .bp{width:100%;justify-content:center;padding:14px 24px;font-size:.88rem;margin-top:auto}
+
+/* ═══════════════════════════════════
+   HOW IT WORKS
+═══════════════════════════════════ */
+.how-it-works{padding:0 0 100px}
+.how-header{text-align:center;margin-bottom:56px}
+.how-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
+.how-header p{font-size:.95rem;color:var(--t2);font-weight:300;max-width:520px;margin:0 auto;line-height:1.75}
+
+.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.step-card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:32px 24px;position:relative;transition:border-color .3s}
+.step-card:hover{border-color:var(--bdr2)}
+.step-num{width:36px;height:36px;border-radius:10px;background:rgba(37,99,235,.1);display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:.82rem;font-weight:600;color:var(--gold)}
+.step-card h4{font-size:.88rem;font-weight:500;margin-bottom:6px}
+.step-card p{font-size:.82rem;color:var(--t2);line-height:1.7;font-weight:300}
+
+/* ═══════════════════════════════════
+   COMMISSION TABLE
+═══════════════════════════════════ */
+.tiers{padding:0 0 100px}
+.tiers-header{text-align:center;margin-bottom:56px}
+.tiers-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
+.tiers-header p{font-size:.95rem;color:var(--t2);font-weight:300;max-width:560px;margin:0 auto;line-height:1.75}
+
+.tier-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--bdr);border-radius:16px;overflow:hidden}
+.tier-table thead{background:var(--card2)}
+.tier-table th{padding:16px 24px;text-align:left;font-size:.72rem;font-weight:500;text-transform:uppercase;letter-spacing:2px;color:var(--t3);border-bottom:1px solid var(--bdr)}
+.tier-table td{padding:16px 24px;font-size:.88rem;color:var(--t2);border-bottom:1px solid var(--bdr);font-weight:300}
+.tier-table tr:last-child td{border-bottom:none}
+.tier-badge{display:inline-block;padding:3px 10px;border-radius:100px;font-size:.68rem;font-weight:600;letter-spacing:.5px}
+.tier-badge.bronze{background:rgba(205,127,50,.12);color:#cd7f32}
+.tier-badge.silver{background:rgba(192,192,192,.12);color:#c0c0c0}
+.tier-badge.gold{background:rgba(37,99,235,.12);color:var(--gold-bright)}
+.tier-badge.platinum{background:rgba(34,197,94,.12);color:#22c55e}
+
+/* ═══════════════════════════════════
+   SALES PARTNERS — D2D section
+═══════════════════════════════════ */
+.d2d{padding:0 0 100px}
+.d2d-inner{background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:48px;overflow:hidden}
+.d2d-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+.d2d-text h2{font-size:clamp(1.6rem,3vw,2.2rem);font-weight:500;letter-spacing:-.5px;line-height:1.15;margin-bottom:16px}
+.d2d-text p{font-size:.88rem;color:var(--t2);line-height:1.7;font-weight:300;margin-bottom:24px}
+.d2d-features{display:flex;flex-direction:column;gap:12px}
+.d2d-feat{display:flex;align-items:flex-start;gap:12px}
+.d2d-feat .feat-dot{width:28px;height:28px;border-radius:8px;background:rgba(34,197,94,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.d2d-feat .feat-dot svg{width:14px;height:14px;color:var(--grn)}
+.d2d-feat h5{font-size:.84rem;font-weight:500;margin-bottom:2px}
+.d2d-feat p{font-size:.78rem;color:var(--t3);font-weight:300;margin:0}
+
+/* D2D dashboard illustration */
+.d2d-dash{background:var(--card2);border:1px solid var(--bdr);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:16px}
+.d2d-dash-header{display:flex;align-items:center;justify-content:space-between}
+.d2d-dash-header h5{font-size:.78rem;font-weight:500;color:var(--t1)}
+.d2d-dash-header .live-dot{display:flex;align-items:center;gap:6px;font-size:.68rem;color:var(--grn);font-weight:400}
+.d2d-dash-header .live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--grn);animation:dotPulse 2s ease-in-out infinite}
+.dash-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dash-stat{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:14px 12px;text-align:center}
+.dash-stat strong{display:block;font-size:1.1rem;font-weight:600;color:var(--t1);margin-bottom:2px}
+.dash-stat span{font-size:.66rem;color:var(--t3);font-weight:300;text-transform:uppercase;letter-spacing:1px}
+.dash-activity{display:flex;flex-direction:column;gap:8px}
+.dash-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--card);border:1px solid var(--bdr);border-radius:8px}
+.dash-row .status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dash-row .status-dot.active{background:var(--grn)}
+.dash-row .status-dot.pending{background:#f59e0b}
+.dash-row span{font-size:.72rem;color:var(--t2);font-weight:300}
+.dash-row .amount{margin-left:auto;font-size:.72rem;font-weight:500;color:var(--grn)}
+.dash-row .amount.pen{color:#f59e0b}
+@keyframes dotPulse{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}
+
+/* ═══════════════════════════════════
+   PERKS GRID
+═══════════════════════════════════ */
+.perks{padding:0 0 100px}
+.perks-header{text-align:center;margin-bottom:56px}
+.perks-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
+.perks-header p{font-size:.95rem;color:var(--t2);font-weight:300;max-width:520px;margin:0 auto;line-height:1.75}
+
+.perks-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.perk-card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:28px 24px;transition:border-color .3s}
+.perk-card:hover{border-color:var(--bdr2)}
+.perk-icon{width:40px;height:40px;border-radius:10px;background:rgba(37,99,235,.1);display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:var(--gold)}
+.perk-icon svg{width:20px;height:20px}
+.perk-card h4{font-size:.88rem;font-weight:500;margin-bottom:6px}
+.perk-card p{font-size:.82rem;color:var(--t2);line-height:1.7;font-weight:300}
+
+/* ═══════════════════════════════════
+   FAQ
+═══════════════════════════════════ */
+.faq-section{padding:0 0 100px}
+.faq-header{text-align:center;margin-bottom:56px}
+.faq-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
+.faq-header p{font-size:.95rem;color:var(--t2);font-weight:300;max-width:520px;margin:0 auto;line-height:1.75}
+.faq-grid{max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
+.faq-item{background:var(--card);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;transition:border-color .3s}
+.faq-item:hover{border-color:var(--bdr2)}
+.faq-q{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;cursor:pointer;gap:16px}
+.faq-q h4{font-size:.88rem;font-weight:500;line-height:1.4}
+.faq-icon{width:20px;height:20px;flex-shrink:0;color:var(--t3);transition:transform .3s}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .3s}
+.faq-a p{padding:0 24px 20px;font-size:.84rem;color:var(--t2);line-height:1.7;font-weight:300}
+.faq-item.open .faq-a{max-height:300px}
+.faq-item.open .faq-icon{transform:rotate(45deg)}
+
+/* ═══════════════════════════════════
+   CTA
+═══════════════════════════════════ */
+.cta{padding:0 0 100px}
+.cta-box{background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:64px 48px;text-align:center;position:relative;overflow:hidden}
+.cta-box::before{content:'';position:absolute;top:-50%;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(37,99,235,.1),transparent 65%);pointer-events:none}
+.cta-box h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:16px;position:relative}
+.cta-box p{font-size:.95rem;color:var(--t2);font-weight:300;max-width:480px;margin:0 auto 32px;line-height:1.75;position:relative}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;position:relative}
+
+/* ═══════════════════════════════════
+   FOOTER
+═══════════════════════════════════ */
+footer{border-top:1px solid var(--bdr);padding:48px 0 24px}
+.fg-f{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1fr;gap:40px;margin-bottom:0}
+.fbr .logo{margin-bottom:10px;display:inline-flex}.fbr p{font-size:.82rem;color:var(--t2);line-height:1.6;max-width:240px;font-weight:300}
+.fcol h5{font-size:.66rem;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--t1);margin-bottom:12px}.fcol ul{list-style:none}.fcol li{margin-bottom:7px}.fcol a{color:var(--t2);text-decoration:none;font-size:.82rem;transition:color .2s}.fcol a:hover{color:#fff}
+.social-icon{width:32px;height:32px;border-radius:8px;background:var(--card);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--t3);text-decoration:none;font-size:.75rem;transition:all .2s}
+.social-icon:hover{border-color:var(--bdr2);color:var(--t1)}
+
+/* ═══════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════ */
+@media(max-width:1024px){.tracks-grid{grid-template-columns:1fr 1fr}.steps-grid{grid-template-columns:repeat(2,1fr)}.perks-grid{grid-template-columns:repeat(2,1fr)}.stats-bar .c{grid-template-columns:repeat(2,1fr)}.d2d-grid{grid-template-columns:1fr}.fg-f{grid-template-columns:1fr 1fr}.tier-table{font-size:.82rem}}
+@media(max-width:768px){.nl,.gh{display:none}.ham{display:flex}.tracks-grid{grid-template-columns:1fr}.steps-grid{grid-template-columns:1fr}.perks-grid{grid-template-columns:1fr}.stats-bar .c{grid-template-columns:1fr}.d2d-grid{grid-template-columns:1fr}.d2d-inner{padding:32px 24px}.track-card{padding:36px 28px}.fg-f{grid-template-columns:1fr}.cta-box{padding:40px 24px}.cta-btns{flex-direction:column;align-items:center}.tier-table th,.tier-table td{padding:12px 14px;font-size:.78rem}}
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav><div class="c">
+<a href="index.html" class="logo"><div class="logo-mark"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 3h22v5H11v5h13v5H11v5h16v5H5z" fill="currentColor"/>
+</svg></div><div class="logo-text">Env<span>o</span>sta</div></a>
+<ul class="nl"><li><a href="https://envosta.com/features/">Features</a></li><li><a href="https://envosta.com/pricing">Plans & Pricing</a></li><li><a href="https://envosta.com/resources">Resources</a></li><li><a href="https://envosta.com/support">Support</a></li></ul>
+<div class="nc"><a href="https://app.envosta.com/" class="gh">Log in</a><div class="block-button"><a href="https://envosta.com/pricing" class="bp">Get Started</a></div></div>
+<button class="ham" onclick="document.querySelector('.mn').classList.toggle('open')"><span></span><span></span><span></span></button>
+</div></nav>
+<div class="mn"><a href="https://envosta.com/features/">Features</a><a href="https://envosta.com/pricing">Plans & Pricing</a><a href="https://envosta.com/resources">Resources</a><a href="https://envosta.com/support">Support</a></div>
+
+<!-- ═══ HERO ═══ -->
+<section class="aff-hero">
+<div class="c">
+<h1 class="rv">Get paid for every customer you <em>bring in</em></h1>
+<p class="rv">Earn a flat commission on every sale you close — whether you're sending clients from your agency or signing customers up door to door.</p>
+<div class="hero-btns rv">
+<a href="#tracks" class="bp blue lg">Apply as Agency Partner</a>
+<a href="#tracks" class="bp ghost lg">Apply as Sales Partner</a>
+</div>
+</div>
+</section>
+
+<!-- ═══ STATS BAR ═══ -->
+<section class="stats-bar rv"><div class="c">
+<div class="stat-item">
+<strong>Flat <em>$</em></strong>
+<span>Per-Sale Commission</span>
+</div>
+<div class="stat-item">
+<strong>90<em>-day</em></strong>
+<span>Cookie Duration</span>
+</div>
+<div class="stat-item">
+<strong>$0</strong>
+<span>Cost to Join</span>
+</div>
+<div class="stat-item">
+<strong>Weekly</strong>
+<span>Sales Rep Payouts</span>
+</div>
+</div></section>
+
+<!-- ═══ TWO PARTNER TRACKS ═══ -->
+<section class="tracks rv" id="tracks"><div class="c">
+<div class="tracks-header">
+<h2>Two ways to partner with Envosta</h2>
+<p>Whether you refer clients from your agency or close deals face to face, there's a track built for how you work.</p>
+</div>
+
+<div class="tracks-grid">
+
+<!-- Track 1: Agency Partner -->
+<div class="track-card">
+<div class="track-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+<h3>Agency Partner</h3>
+<p class="track-sub">For web agencies, freelancers, consultants, and anyone who sends clients our way. Share your unique referral link and earn a flat commission on every signup that converts.</p>
+<div class="commission-highlight">
+<div class="rate">Flat <em>$</em> per sale</div>
+<div class="rate-desc">One-time commission paid on every converted referral</div>
+</div>
+<ul>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Unique referral link and partner dashboard</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>90-day cookie attribution window</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Real-time click and conversion tracking</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Marketing assets and banners provided</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Monthly payouts via PayPal or bank transfer</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Volume bonuses at higher tiers</li>
+</ul>
+<a href="#" class="bp ghost">Apply as Agency Partner</a>
+</div>
+
+<!-- Track 2: Sales Partner -->
+<div class="track-card featured">
+<div class="track-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+<h3>Sales Partner</h3>
+<p class="track-sub">For our door-to-door reps and field sales team. Get your own rep code, close deals in person, and earn flat commissions plus performance bonuses on every sale.</p>
+<div class="commission-highlight">
+<div class="rate">Flat <em>$</em> + bonus</div>
+<div class="rate-desc">Per-sale commission + tiered performance bonuses</div>
+</div>
+<ul>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Personal rep code for in-person attribution</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Sales dashboard with pipeline view</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Tiered bonuses at 10, 25, and 50+ sales</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Printed leave-behinds and sales collateral</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Weekly payouts for confirmed sales</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Team lead opportunities for top closers</li>
+</ul>
+<a href="#" class="bp blue">Join the Sales Team</a>
+</div>
+
+</div>
+</div></section>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section class="how-it-works rv"><div class="c">
+<div class="how-header">
+<h2>How it works</h2>
+<p>From application to your first payout — here's the process.</p>
+</div>
+
+<div class="steps-grid">
+<div class="step-card">
+<div class="step-num">01</div>
+<h4>Apply in 2 minutes</h4>
+<p>Fill out a quick application and tell us which track fits. We review every submission and respond within 48 hours.</p>
+</div>
+<div class="step-card">
+<div class="step-num">02</div>
+<h4>Get your tools</h4>
+<p>Receive your referral link or rep code, access to the partner dashboard, and any sales materials you need.</p>
+</div>
+<div class="step-card">
+<div class="step-num">03</div>
+<h4>Send customers our way</h4>
+<p>Refer clients through your link, hand out your rep code, or close deals face to face — whatever fits your workflow.</p>
+</div>
+<div class="step-card">
+<div class="step-num">04</div>
+<h4>Get paid</h4>
+<p>Earn a flat commission on every converted sale. Track everything in real time and collect payouts on schedule.</p>
+</div>
+</div>
+</div></section>
+
+<!-- ═══ COMMISSION TIERS ═══ -->
+<section class="tiers rv"><div class="c">
+<div class="tiers-header">
+<h2>Volume tiers</h2>
+<p>Close more deals, earn more per sale. Hit volume milestones to unlock higher flat-rate commissions and cash bonuses.</p>
+</div>
+
+<table class="tier-table">
+<thead>
+<tr>
+<th>Tier</th>
+<th>Total Sales</th>
+<th>Commission Per Sale</th>
+<th>Bonus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="tier-badge bronze">Bronze</span></td>
+<td>1 – 10</td>
+<td>Base flat rate</td>
+<td>—</td>
+</tr>
+<tr>
+<td><span class="tier-badge silver">Silver</span></td>
+<td>11 – 25</td>
+<td>Increased flat rate</td>
+<td>$100 milestone bonus</td>
+</tr>
+<tr>
+<td><span class="tier-badge gold">Gold</span></td>
+<td>26 – 50</td>
+<td>Higher flat rate</td>
+<td>$300 milestone bonus</td>
+</tr>
+<tr>
+<td><span class="tier-badge platinum">Platinum</span></td>
+<td>51+</td>
+<td>Top flat rate</td>
+<td>$500 bonus + custom deal</td>
+</tr>
+</tbody>
+</table>
+
+</div></section>
+
+<!-- ═══ SALES PARTNER D2D SECTION ═══ -->
+<section class="d2d rv" id="sales-section"><div class="c">
+<div class="d2d-inner">
+<div class="d2d-grid">
+<div class="d2d-text">
+<h2>Built for field sales teams, not just agencies</h2>
+<p>Our partner platform supports door-to-door reps and local sales teams with the tools they need to close deals and get paid fast. No laptop required — just your rep code and a conversation.</p>
+<div class="d2d-features">
+<div class="d2d-feat">
+<div class="feat-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+<div><h5>Personal rep codes</h5><p>Each team member gets a unique code. The customer enters it at checkout and the sale is attributed to you instantly.</p></div>
+</div>
+<div class="d2d-feat">
+<div class="feat-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+<div><h5>Real-time sales tracking</h5><p>See every conversion the moment it happens. Managers get a team-wide view with leaderboards and territory stats.</p></div>
+</div>
+<div class="d2d-feat">
+<div class="feat-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+<div><h5>Weekly payouts</h5><p>Sales partners get paid weekly for confirmed deals. No 30-day hold — you close it, you earn it.</p></div>
+</div>
+<div class="d2d-feat">
+<div class="feat-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+<div><h5>Team management</h5><p>Assign reps to territories, track performance by region, and promote top closers to team lead positions.</p></div>
+</div>
+</div>
+</div>
+
+<!-- Dashboard illustration -->
+<div class="d2d-dash">
+<div class="d2d-dash-header">
+<h5>Sales Dashboard</h5>
+<div class="live-dot">Live</div>
+</div>
+<div class="dash-stats">
+<div class="dash-stat"><strong>14</strong><span>Closed</span></div>
+<div class="dash-stat"><strong>$840</strong><span>Earned</span></div>
+<div class="dash-stat"><strong>3</strong><span>Pending</span></div>
+</div>
+<div class="dash-activity">
+<div class="dash-row"><div class="status-dot active"></div><span>Growth plan — J. Rivera</span><span class="amount">+$60</span></div>
+<div class="dash-row"><div class="status-dot active"></div><span>Performance plan — M. Chen</span><span class="amount">+$120</span></div>
+<div class="dash-row"><div class="status-dot pending"></div><span>Minimum plan — K. Brooks</span><span class="amount pen">Pending</span></div>
+<div class="dash-row"><div class="status-dot active"></div><span>Growth plan — T. Okafor</span><span class="amount">+$60</span></div>
+</div>
+</div>
+
+</div>
+</div>
+</div></section>
+
+<!-- ═══ PERKS GRID ═══ -->
+<section class="perks rv"><div class="c">
+<div class="perks-header">
+<h2>Everything you get as a partner</h2>
+<p>Agency or sales — every partner gets the same tools and support from day one.</p>
+</div>
+
+<div class="perks-grid">
+
+<div class="perk-card">
+<div class="perk-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div>
+<h4>Partner Dashboard</h4>
+<p>Track clicks, conversions, commissions, and payout history — all in real time from a single dashboard.</p>
+</div>
+
+<div class="perk-card">
+<div class="perk-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+<h4>Sales Collateral</h4>
+<p>Pre-built banners, one-pagers, email templates, and printed leave-behinds you can hand out in the field.</p>
+</div>
+
+<div class="perk-card">
+<div class="perk-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
+<h4>90-Day Cookie</h4>
+<p>If someone clicks your link today and signs up three months from now, you still get full credit for the sale.</p>
+</div>
+
+<div class="perk-card">
+<div class="perk-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+<h4>Fast Payouts</h4>
+<p>Agency partners are paid monthly. Sales partners are paid weekly. No long holds or complicated thresholds.</p>
+</div>
+
+<div class="perk-card">
+<div class="perk-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+<h4>Dedicated Support</h4>
+<p>High-volume partners and team leads get a dedicated partner manager for strategy, materials, and scaling.</p>
+</div>
+
+<div class="perk-card">
+<div class="perk-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+<h4>Performance Bonuses</h4>
+<p>Hit sales milestones to unlock cash bonuses, higher per-sale rates, and exclusive partner rewards.</p>
+</div>
+
+</div>
+</div></section>
+
+<!-- ═══ FAQ ═══ -->
+<section class="faq-section rv"><div class="c">
+<div class="faq-header">
+<h2>Partner program FAQ</h2>
+<p>Common questions from agency partners and sales reps.</p>
+</div>
+
+<div class="faq-grid">
+
+<div class="faq-item open">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>How much do I earn per sale?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>You earn a flat dollar amount for every sale that converts. The exact payout depends on which hosting plan the customer signs up for and your current volume tier. Higher-value plans and higher tiers mean a bigger payout per sale.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>When and how do I get paid?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>Agency partners are paid monthly via PayPal or direct bank transfer. Sales partners are paid weekly for confirmed deals. There is a $50 minimum payout threshold.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>What's the difference between agency and sales partners?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>Agency partners refer customers online using a unique link. Sales partners close deals in person using a rep code — typically as part of our door-to-door team. Sales partners get weekly payouts, printed collateral, and territory management tools.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>How does the rep code work for door-to-door sales?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>Each sales partner gets a unique code. When a prospect signs up on our website and enters the code at checkout, the sale is automatically attributed to you. No special link needed — just the code.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>Is there a cost to join?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>No. The partner program is completely free to join. There are no fees, no minimums, and no commitments for either track.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>Do I need to be an Envosta customer?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>No, you don't need an active hosting plan to refer others. That said, many of our best partners use Envosta themselves — it helps when you can speak from experience.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>What marketing materials do you provide?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>We provide web banners, email templates, social media copy, comparison guides, and printed one-pagers and business cards for field reps. Everything is available in your partner dashboard.</p></div>
+</div>
+
+</div>
+</div></section>
+
+<!-- ═══ CTA ═══ -->
+<section class="cta rv"><div class="c">
+<div class="cta-box">
+<h2>Ready to start earning?</h2>
+<p>Apply today and get your partner dashboard, referral link or rep code, and sales tools within 48 hours.</p>
+<div class="cta-btns">
+<a href="#tracks" class="bp blue lg">Apply as Agency Partner</a>
+<a href="#tracks" class="bp ghost lg">Apply as Sales Partner</a>
+</div>
+</div>
+</div></section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer><div class="c">
+<div class="fg-f">
+<div class="fbr"><a href="index.html" class="logo" style="margin-bottom:16px"><div class="logo-mark"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 3h22v5H11v5h13v5H11v5h16v5H5z" fill="currentColor"/>
+</svg></div><div class="logo-text">Env<span>o</span>sta</div></a><p style="max-width:280px">Managed WordPress hosting that starts with a consultation. Enterprise infrastructure, expert support, and hands-on onboarding — all in one place.</p>
+<div style="display:flex;gap:12px;margin-top:20px">
+<a href="#" class="social-icon" aria-label="Twitter">𝕏</a>
+<a href="#" class="social-icon" aria-label="LinkedIn">in</a>
+<a href="#" class="social-icon" aria-label="Facebook">f</a>
+<a href="#" class="social-icon" aria-label="YouTube">▶</a>
+</div>
+</div>
+<div class="fcol"><h5>Hosting</h5><ul><li><a href="https://envosta.com/pricing">Managed WordPress</a></li><li><a href="https://envosta.com/pricing">WooCommerce Hosting</a></li><li><a href="https://envosta.com/features/">Enterprise Hosting</a></li><li><a href="https://envosta.com/pricing">Plans & Pricing</a></li><li><a href="#">Domain Names</a></li><li><a href="#">Free Migration</a></li></ul></div>
+<div class="fcol"><h5>Features</h5><ul><li><a href="https://envosta.com/features/">Onboarding & Setup</a></li><li><a href="https://envosta.com/features/">SEO Tools</a></li><li><a href="https://envosta.com/features/">Speed & Performance</a></li><li><a href="https://envosta.com/features/">Security & SSL</a></li><li><a href="https://envosta.com/features/">Daily Backups</a></li><li><a href="https://envosta.com/features/">Global CDN</a></li></ul></div>
+<div class="fcol"><h5>Resources</h5><ul><li><a href="https://envosta.com/resources">Knowledge Base</a></li><li><a href="https://envosta.com/resources">Blog</a></li><li><a href="https://envosta.com/resources">Guides & Tutorials</a></li><li><a href="#">Developer Docs</a></li><li><a href="#">System Status</a></li><li><a href="#">Changelog</a></li></ul></div>
+<div class="fcol"><h5>Company</h5><ul><li><a href="#">About Envosta</a></li><li><a href="https://envosta.com/support">Contact Us</a></li><li><a href="https://envosta.com/support">Support Center</a></li><li><a href="#">Careers</a></li><li><a href="https://envosta.com/affiliate">Partners & Affiliates</a></li><li><a href="#">Brand Assets</a></li></ul></div>
+</div>
+<div style="border-top:1px solid var(--bdr);margin-top:48px;padding-top:32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+<p style="font-size:.75rem;color:var(--t3)">&copy; 2025 Envosta Inc. All rights reserved.</p>
+<div style="display:flex;gap:24px"><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none;transition:color .2s">Privacy Policy</a><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none;transition:color .2s">Terms of Service</a><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none;transition:color .2s">Cookie Policy</a><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none;transition:color .2s">GDPR</a><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none;transition:color .2s">Sitemap</a></div>
+</div>
+</div></footer>
+
+<script>
+// Scroll reveal
+document.querySelectorAll('.rv').forEach(el=>{new IntersectionObserver(e=>{if(e[0].isIntersecting)e[0].target.classList.add('v')},{threshold:.05}).observe(el)});
+// Mobile nav close
+document.querySelectorAll('.mn a').forEach(l=>l.addEventListener('click',()=>document.querySelector('.mn').classList.remove('open')));
+</script>
+
+</body>
+</html>

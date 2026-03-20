@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Envosta – Plans & Pricing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#040710;color:#e8ecf4;line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+:root{--bg:#03060e;--bg2:#070c18;--card:#0b1220;--card2:#0f182a;--gold:#2563EB;--gold-dim:#2563EB10;--gold-bright:#3B82F6;--t1:#e8ecf4;--t2:#6a7a94;--t3:#3d4d64;--bdr:#101c2e;--bdr2:#182842;--grn:#22c55e;--r:12px}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+.c{max-width:1320px;margin:0 auto;padding:0 32px}
+section{position:relative;z-index:1}
+
+/* ── Nav ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(8,12,24,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr)}
+nav .c{display:flex;align-items:center;height:72px}
+.logo{display:inline-flex;align-items:center;gap:10px;text-decoration:none;white-space:nowrap;flex-shrink:0}
+.logo-mark{width:32px;height:32px;flex-shrink:0;color:#fff}
+.logo-mark svg{width:100%;height:100%;display:block}
+.logo-text{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.5rem;font-weight:500;color:#fff;letter-spacing:-.2px}
+.logo-text span{color:#fff}
+.nl{display:flex;align-items:center;gap:32px;list-style:none;margin-left:48px}.nl a{color:rgba(255,255,255,.7);text-decoration:none;font-size:.95rem;font-weight:400;transition:color .2s}.nl a:hover,.nl a.active{color:#fff}
+.nc{display:flex;align-items:center;gap:16px;margin-left:auto}.gh{color:rgba(255,255,255,.7);text-decoration:none;font-size:.95rem;font-weight:400}.gh:hover{color:#fff}
+.bp{display:inline-flex;align-items:center;padding:10px 22px;background:#fff;color:var(--bg);text-decoration:none;font-size:.84rem;font-weight:500;border-radius:100px;border:none;cursor:pointer;transition:all .2s}.bp:hover{background:rgba(255,255,255,.85)}.bp.lg{padding:16px 32px;font-size:.92rem}
+.bp.ghost{background:0 0;color:var(--t2);border:1px solid var(--bdr2)}.bp.ghost:hover{border-color:var(--t3);color:var(--t1)}
+.bp.blue{background:var(--gold);color:#fff}.bp.blue:hover{background:var(--gold-bright)}
+.ham{display:none;flex-direction:column;gap:5px;cursor:pointer;background:0 0;border:none;padding:4px}.ham span{width:20px;height:1.5px;background:var(--t1);border-radius:2px}
+.mn{display:none;position:fixed;top:72px;left:0;right:0;background:var(--bg);border-bottom:1px solid var(--bdr);padding:16px 24px;z-index:999}.mn.open{display:block}.mn a{display:block;padding:12px 0;color:var(--t2);text-decoration:none;font-size:.95rem;border-bottom:1px solid var(--bdr)}.mn a:last-child{border:none}
+
+/* ── Section headers ── */
+.sh{text-align:left;margin-bottom:56px}
+.sh-tag{display:inline-block;font-size:.72rem;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--gold);margin-bottom:10px}
+.sh h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:500;letter-spacing:-1px;line-height:1.1}
+.sh-desc{font-size:.92rem;color:var(--t3);line-height:1.7;font-weight:300;margin-top:16px;max-width:560px}
+
+/* ── Scroll reveal ── */
+.rv{opacity:0;transform:translateY(20px);transition:opacity .6s,transform .6s}.rv.v{opacity:1;transform:none}
+
+/* ── Shared check SVG ── */
+.ck{width:16px;height:16px;flex-shrink:0;color:var(--grn)}
+
+/* ═══════════════════════════════════
+   PRICING HERO
+═══════════════════════════════════ */
+.pricing-hero{padding:160px 0 80px;text-align:center;position:relative;overflow:hidden}
+.pricing-hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 65%);pointer-events:none}
+.pricing-hero .c{position:relative;z-index:1}
+.pricing-hero h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:500;letter-spacing:-1.5px;line-height:1.12;margin-bottom:20px}
+.pricing-hero h1 em{font-style:normal;color:#fff;font-weight:500}
+.pricing-hero p{font-size:1.05rem;color:var(--t3);max-width:520px;margin:0 auto 44px;line-height:1.7;font-weight:300}
+
+/* ── Billing Toggle ── */
+.toggle-wrap{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:10px}
+.toggle-label{font-size:.88rem;color:var(--t2);font-weight:400;transition:color .2s}
+.toggle-label.active{color:var(--t1);font-weight:500}
+.toggle{width:52px;height:28px;background:var(--card2);border:1px solid var(--bdr2);border-radius:100px;cursor:pointer;position:relative;transition:background .3s}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .3s}
+.toggle.on{background:var(--gold);border-color:var(--gold)}.toggle.on::after{transform:translateX(24px)}
+.save-badge{display:inline-block;background:rgba(34,197,94,.12);color:#22c55e;font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:100px;margin-left:4px}
+
+/* ═══════════════════════════════════
+   PRICING CARDS — always 3 columns on tablet+
+═══════════════════════════════════ */
+.pricing-grid{padding:0 0 100px}
+.pricing-grid .c{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.p-card{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:40px 32px;position:relative;transition:transform .3s,border-color .3s;display:flex;flex-direction:column}
+.p-card:hover{transform:translateY(-4px);border-color:var(--bdr2)}
+.p-card.featured{border-color:var(--gold);background:linear-gradient(180deg,rgba(37,99,235,.06),var(--card) 50%)}
+.p-card.featured::before{content:'Most Popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#fff;font-size:.68rem;font-weight:600;padding:4px 16px;border-radius:100px;letter-spacing:.5px;text-transform:uppercase}
+.p-card-name{font-size:.72rem;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--gold);margin-bottom:10px}
+.p-card-price{display:flex;align-items:baseline;gap:4px;margin-bottom:6px}
+.p-card-price .currency{font-size:1.2rem;font-weight:500;color:var(--t2)}
+.p-card-price .amount{font-size:3rem;font-weight:600;letter-spacing:-1px;line-height:1}
+.p-card-price .period{font-size:.82rem;color:var(--t3);font-weight:400}
+.p-card-desc{font-size:.82rem;color:var(--t3);margin-bottom:28px;line-height:1.7;font-weight:300}
+.p-card ul{list-style:none;margin-bottom:32px;flex:1}
+.p-card li{font-size:.84rem;color:var(--t2);padding:8px 0;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px;font-weight:300}
+.p-card li:last-child{border:none}
+.p-card .bp{width:100%;justify-content:center;padding:14px 24px;font-size:.88rem;margin-top:auto}
+
+/* ═══════════════════════════════════
+   STUDIO PLAN
+═══════════════════════════════════ */
+.studio{padding:0 0 100px}
+.studio-card{background:linear-gradient(180deg,rgba(201,164,92,.04),rgba(255,255,255,.01));border:1px solid rgba(201,164,92,.15);border-radius:24px;padding:64px 56px;position:relative;overflow:hidden;display:grid;grid-template-columns:1.2fr 1fr;gap:56px;align-items:center}
+.studio-card::before{content:'';position:absolute;top:-40%;right:-20%;width:500px;height:500px;background:radial-gradient(circle,rgba(201,164,92,.08),transparent 60%);pointer-events:none}
+.studio-card::after{content:'';position:absolute;bottom:-30%;left:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(37,99,235,.06),transparent 60%);pointer-events:none}
+.studio-left{position:relative;z-index:1}
+.studio-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(201,164,92,.1);border:1px solid rgba(201,164,92,.2);border-radius:100px;padding:6px 16px;font-size:.68rem;font-weight:600;color:#c9a45c;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:24px}
+.studio-badge-dot{width:6px;height:6px;border-radius:50%;background:#c9a45c;animation:sbpulse 2s ease-in-out infinite}
+@keyframes sbpulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(201,164,92,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(201,164,92,0)}}
+.studio-left h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:500;letter-spacing:-.5px;line-height:1.15;margin-bottom:16px}
+.studio-left h3 span{background:linear-gradient(135deg,#c9a45c,#e6c46e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.studio-left>p{font-size:.92rem;color:var(--t2);line-height:1.75;font-weight:300;margin-bottom:32px;max-width:480px}
+.studio-price{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}
+.studio-price strong{font-size:2rem;font-weight:600;background:linear-gradient(135deg,#c9a45c,#e6c46e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.studio-price span{font-size:.82rem;color:var(--t3);font-weight:300}
+.studio-price-note{font-size:.76rem;color:var(--t3);font-weight:300;margin-bottom:32px}
+.studio-cta{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.studio-cta .bp{background:linear-gradient(135deg,#c9a45c,#b8943f);color:#0a0e1a;font-weight:600;pointer-events:none;opacity:.7}
+.studio-cta .waitlist-note{font-size:.76rem;color:#c9a45c;font-weight:500}
+.studio-right{position:relative;z-index:1}
+.studio-features{display:flex;flex-direction:column;gap:14px}
+.studio-feat{display:flex;align-items:flex-start;gap:14px;padding:16px 20px;background:rgba(201,164,92,.04);border:1px solid rgba(201,164,92,.08);border-radius:14px;transition:border-color .3s}
+.studio-feat:hover{border-color:rgba(201,164,92,.18)}
+.studio-feat-icon{width:36px;height:36px;border-radius:10px;background:rgba(201,164,92,.1);border:1px solid rgba(201,164,92,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#c9a45c}
+.studio-feat-icon svg{width:18px;height:18px}
+.studio-feat-text h4{font-size:.86rem;font-weight:500;color:var(--t1);margin-bottom:2px}
+.studio-feat-text p{font-size:.76rem;color:var(--t3);line-height:1.5;font-weight:300}
+.studio-limit{margin-top:20px;font-size:.76rem;color:var(--t3);font-weight:300}
+.studio-limit strong{color:#c9a45c;font-weight:500}
+
+/* ═══════════════════════════════════
+   ALL PLANS INCLUDE
+═══════════════════════════════════ */
+.all-plans{padding:0 0 100px}
+.all-plans-header{text-align:center;margin-bottom:56px}
+.all-plans-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
+.all-plans-header p{font-size:.92rem;color:var(--t3);font-weight:300;max-width:520px;margin:0 auto;line-height:1.7}
+.all-plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.ap-card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:28px 24px;transition:border-color .3s}
+.ap-card:hover{border-color:var(--bdr2)}
+.ap-icon{width:40px;height:40px;border-radius:10px;background:rgba(37,99,235,.1);display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:var(--gold)}
+.ap-icon svg{width:20px;height:20px}
+.ap-card h4{font-size:.88rem;font-weight:500;margin-bottom:6px}
+.ap-card p{font-size:.76rem;color:var(--t3);line-height:1.6;font-weight:300}
+
+/* ═══════════════════════════════════
+   FEATURE COMPARISON
+═══════════════════════════════════ */
+.compare{padding:0 0 100px}
+.compare-header{text-align:center;margin-bottom:56px}
+.compare-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
+.compare-header p{font-size:.92rem;color:var(--t3);font-weight:300;max-width:480px;margin:0 auto;line-height:1.7}
+.compare-table{width:100%;border-collapse:collapse}
+.compare-table thead th{padding:16px 20px;font-size:.72rem;font-weight:500;text-transform:uppercase;letter-spacing:2px;color:var(--t2);text-align:center;border-bottom:1px solid var(--bdr)}
+.compare-table thead th:first-child{text-align:left;color:var(--t3)}
+.compare-table thead th.feat{color:var(--gold)}
+.compare-table tbody td{padding:14px 20px;font-size:.84rem;color:var(--t2);border-bottom:1px solid var(--bdr);text-align:center;font-weight:300;line-height:1.7}
+.compare-table tbody td:first-child{text-align:left;color:var(--t1);font-weight:400}
+.compare-table tbody tr:hover{background:rgba(37,99,235,.03)}
+.compare-table .check{color:var(--grn);font-size:1rem}
+.compare-table .dash{color:var(--t3)}
+
+/* ═══════════════════════════════════
+   ADD-ONS
+═══════════════════════════════════ */
+.addons{padding:0 0 100px}
+.addons-header{text-align:center;margin-bottom:56px}
+.addons-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
+.addons-header p{font-size:.92rem;color:var(--t3);font-weight:300;max-width:480px;margin:0 auto;line-height:1.7}
+.addons-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.addon-card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:28px 24px;transition:border-color .3s}
+.addon-card:hover{border-color:var(--bdr2)}
+.addon-icon{width:40px;height:40px;border-radius:10px;background:rgba(37,99,235,.1);display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:var(--gold)}
+.addon-icon svg{width:20px;height:20px}
+.addon-card h4{font-size:.92rem;font-weight:500;margin-bottom:6px}
+.addon-card p{font-size:.78rem;color:var(--t3);line-height:1.6;font-weight:300;margin-bottom:12px}
+.addon-price{font-size:.82rem;color:var(--gold);font-weight:500}
+
+/* ═══════════════════════════════════
+   FAQ
+═══════════════════════════════════ */
+.faq{padding:0 0 100px}
+.faq-header{text-align:center;margin-bottom:56px}
+.faq-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
+.faq-header p{font-size:.95rem;color:var(--t2);font-weight:300;line-height:1.75}
+.faq-list{max-width:720px;margin:0 auto}
+.faq-item{border-bottom:1px solid var(--bdr)}
+.faq-q{display:flex;align-items:center;justify-content:space-between;padding:20px 0;cursor:pointer;gap:16px}
+.faq-q h4{font-size:.92rem;font-weight:400;color:var(--t1);transition:color .2s}
+.faq-q:hover h4{color:#fff}
+.faq-icon{width:24px;height:24px;flex-shrink:0;color:var(--t3);transition:transform .3s,color .3s}
+.faq-item.open .faq-icon{transform:rotate(45deg);color:var(--gold)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .4s ease}
+.faq-item.open .faq-a{max-height:300px;padding-bottom:20px}
+.faq-a p{font-size:.84rem;color:var(--t2);line-height:1.7;font-weight:300}
+
+/* ═══════════════════════════════════
+   FOOTER
+═══════════════════════════════════ */
+footer{border-top:1px solid var(--bdr);padding:48px 0 24px}
+.fg-f{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1fr;gap:40px;margin-bottom:0}
+.fbr .logo{margin-bottom:10px;display:inline-block}
+.fbr p{font-size:.76rem;color:var(--t3);line-height:1.6;max-width:240px;font-weight:300}
+.fcol h5{font-size:.66rem;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--t2);margin-bottom:12px}.fcol ul{list-style:none}.fcol li{margin-bottom:7px}.fcol a{color:var(--t3);text-decoration:none;font-size:.78rem;transition:color .2s}.fcol a:hover{color:var(--t1)}
+
+/* ═══════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════ */
+@media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(3,1fr);gap:14px}.p-card{padding:32px 20px}.p-card-price .amount{font-size:2.4rem}.studio-card{grid-template-columns:1fr;gap:40px}.all-plans-grid{grid-template-columns:repeat(3,1fr)}.fg-f{grid-template-columns:1fr 1fr}.compare-table{font-size:.8rem}}
+@media(max-width:768px){.nl,.gh{display:none}.ham{display:flex}.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:40px 32px}.p-card-price .amount{font-size:3rem}.studio-card{padding:40px 28px}.all-plans-grid{grid-template-columns:1fr}.fg-f{grid-template-columns:1fr}.compare-table thead th,.compare-table tbody td{padding:10px 8px;font-size:.72rem}}
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav><div class="c">
+<a href="index.html" class="logo"><div class="logo-mark"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 3h22v5H11v5h13v5H11v5h16v5H5z" fill="currentColor"/>
+</svg></div><div class="logo-text">Env<span>o</span>sta</div></a>
+<ul class="nl"><li><a href="https://envosta.com/features/">Features</a></li><li><a href="https://envosta.com/pricing" class="active">Plans & Pricing</a></li><li><a href="https://envosta.com/resources">Resources</a></li><li><a href="https://envosta.com/support">Support</a></li></ul>
+<div class="nc"><a href="https://app.envosta.com/" class="gh">Log in</a><div class="block-button"><a href="https://envosta.com/pricing" class="bp">Get Started</a></div></div>
+<button class="ham" onclick="document.querySelector('.mn').classList.toggle('open')"><span></span><span></span><span></span></button>
+</div></nav>
+<div class="mn"><a href="https://envosta.com/features/">Features</a><a href="https://envosta.com/pricing">Plans & Pricing</a><a href="https://envosta.com/resources">Resources</a><a href="https://envosta.com/support">Support</a></div>
+
+<!-- ═══ PRICING HERO ═══ -->
+<section class="pricing-hero">
+<div class="c">
+<h1 class="rv">Simple, transparent <em>pricing</em></h1>
+<p class="rv">Every plan starts with a personal consultation. Pick the foundation that fits — we'll help you build from there.</p>
+<div class="toggle-wrap rv">
+<span class="toggle-label active" id="lbl-monthly">Monthly</span>
+<div class="toggle" id="billing-toggle" onclick="toggleBilling()"></div>
+<span class="toggle-label" id="lbl-annual">Annual</span>
+<span class="save-badge">2 months free</span>
+</div>
+</div>
+</section>
+
+<!-- ═══ PRICING CARDS ═══ -->
+<section class="pricing-grid rv"><div class="c">
+
+<!-- Minimum -->
+<div class="p-card">
+<div class="p-card-name">Minimum</div>
+<div class="p-card-price">
+<span class="currency">$</span>
+<span class="amount price-val" data-monthly="50" data-annual="42">50</span>
+<span class="period">/mo</span>
+</div>
+<p class="p-card-desc">Everything you need to launch a fast, secure WordPress site with hands-on support.</p>
+<ul>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>10 GB SSD storage</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>50 GB bandwidth</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Staging environment</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Daily backups</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Personal onboarding</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Email support</li>
+</ul>
+<a href="https://envosta.com/pricing" class="bp ghost">Get Started</a>
+</div>
+
+<!-- Growth (Featured) -->
+<div class="p-card featured">
+<div class="p-card-name">Growth</div>
+<div class="p-card-price">
+<span class="currency">$</span>
+<span class="amount price-val" data-monthly="129" data-annual="108">129</span>
+<span class="period">/mo</span>
+</div>
+<p class="p-card-desc">For growing businesses that need more storage, staging, and hands-on support.</p>
+<ul>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>30 GB SSD storage</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>200 GB bandwidth</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Staging environment</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Daily backups</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Personal onboarding</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Email support</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>SEO audit &amp; setup</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>WooCommerce setup</li>
+</ul>
+<a href="https://envosta.com/pricing" class="bp blue">Get Started</a>
+</div>
+
+<!-- Performance -->
+<div class="p-card">
+<div class="p-card-name">Performance</div>
+<div class="p-card-price">
+<span class="currency">$</span>
+<span class="amount price-val" data-monthly="350" data-annual="292">350</span>
+<span class="period">/mo</span>
+</div>
+<p class="p-card-desc">For enterprises that need maximum resources, priority support, and a dedicated team.</p>
+<ul>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>100 GB SSD storage</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Unlimited bandwidth</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Staging environment</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Daily backups</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Personal onboarding</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Priority support</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>SEO audit &amp; setup</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>WooCommerce setup</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Custom theme included</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Dedicated account manager</li>
+</ul>
+<a href="https://envosta.com/pricing" class="bp ghost">Get Started</a>
+</div>
+
+</div></section>
+
+<!-- ═══ STUDIO PLAN ═══ -->
+<section class="studio rv"><div class="c">
+<div class="sh">
+<div class="sh-tag">Envosta Studio</div>
+<h2>Need a team, not just a host?</h2>
+<p class="sh-desc">For businesses that want dedicated WordPress experts handling design, development, and ongoing optimization alongside their hosting.</p>
+</div>
+<div class="studio-card">
+<div class="studio-left">
+<div class="studio-badge"><div class="studio-badge-dot"></div>Waitlist Full</div>
+<h3>Envosta <span>Studio</span></h3>
+<p>A dedicated WordPress team assigned to your business. Strategy calls, same-day fixes, proactive monitoring, and a direct line to senior engineers who actually know your site inside and out. No tickets. No queues. No runaround.</p>
+<div class="studio-price"><strong>$3,250</strong><span>/month to start</span></div>
+<p class="studio-price-note">Custom pricing based on scope. Billed monthly, cancel anytime.</p>
+<div class="studio-cta">
+<a href="#" class="bp">Join the Waitlist</a>
+<span class="waitlist-note">Currently at capacity</span>
+</div>
+</div>
+<div class="studio-right">
+<div class="studio-features">
+<div class="studio-feat">
+<div class="studio-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg></div>
+<div class="studio-feat-text"><h4>Dedicated Account Lead</h4><p>A named senior engineer who knows your stack, your goals, and your site history.</p></div>
+</div>
+<div class="studio-feat">
+<div class="studio-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></div>
+<div class="studio-feat-text"><h4>Same-Day Response</h4><p>Critical issues resolved within hours, not days. Direct Slack or phone access.</p></div>
+</div>
+<div class="studio-feat">
+<div class="studio-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6"/></svg></div>
+<div class="studio-feat-text"><h4>Proactive Monitoring</h4><p>We catch problems before you do. Uptime, performance, and security — watched 24/7.</p></div>
+</div>
+<div class="studio-feat">
+<div class="studio-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg></div>
+<div class="studio-feat-text"><h4>Monthly Strategy Calls</h4><p>Recurring sessions to review performance, plan updates, and align on priorities.</p></div>
+</div>
+</div>
+<div class="studio-limit">We intentionally keep capacity <strong>limited</strong> to maintain the quality our clients expect. Currently full.</div>
+</div>
+</div>
+</div></section>
+
+<!-- ═══ ALL PLANS INCLUDE ═══ -->
+<section class="all-plans rv"><div class="c">
+<div class="all-plans-header">
+<h2>Included with every plan</h2>
+<p>No matter which plan you choose, you get the essentials that make Envosta different — right out of the box.</p>
+</div>
+<div class="all-plans-grid">
+
+<div class="ap-card">
+<div class="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+<h4>Free SSL Certificate</h4>
+<p>Every site gets a free SSL certificate, auto-renewed and configured for you.</p>
+</div>
+
+<div class="ap-card">
+<div class="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/></svg></div>
+<h4>Global CDN</h4>
+<p>Content delivered from edge locations around the world for lightning-fast load times.</p>
+</div>
+
+<div class="ap-card">
+<div class="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+<h4>Personal Onboarding</h4>
+<p>A one-on-one consultation to set up your site, configure your environment, and launch with confidence.</p>
+</div>
+
+<div class="ap-card">
+<div class="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+<h4>Free Site Migration</h4>
+<p>Our team handles your entire migration — files, database, DNS — with zero downtime.</p>
+</div>
+
+<div class="ap-card">
+<div class="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+<h4>WordPress Auto-Updates</h4>
+<p>Core, plugin, and theme updates handled automatically so your site stays secure.</p>
+</div>
+
+<div class="ap-card">
+<div class="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+<h4>99.9% Uptime SLA</h4>
+<p>Enterprise-grade infrastructure with guaranteed uptime across all plans.</p>
+</div>
+
+<div class="ap-card">
+<div class="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+<h4>Performance Monitoring</h4>
+<p>Real-time site speed and uptime monitoring with alerts built into your dashboard.</p>
+</div>
+
+<div class="ap-card">
+<div class="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+<h4>Daily Backups</h4>
+<p>Automatic daily backups with one-click restore, so your site is always protected and recoverable.</p>
+</div>
+
+<div class="ap-card">
+<div class="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/><line x1="1" y1="1" x2="23" y2="23" stroke-linecap="round"/></svg></div>
+<h4>WHOIS Privacy</h4>
+<p>Your personal information stays hidden on every domain — included free with all plans.</p>
+</div>
+
+</div>
+</div></section>
+
+<!-- ═══ FEATURE COMPARISON ═══ -->
+<section class="compare rv"><div class="c">
+<div class="compare-header">
+<h2>Compare every feature</h2>
+<p>A side-by-side breakdown so you can pick the plan that works best for your needs.</p>
+</div>
+<table class="compare-table">
+<thead>
+<tr>
+<th>Feature</th>
+<th>Minimum</th>
+<th class="feat">Growth</th>
+<th>Performance</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>WordPress sites</td><td>1</td><td>1</td><td>1</td></tr>
+<tr><td>SSD storage</td><td>10 GB</td><td>30 GB</td><td>100 GB</td></tr>
+<tr><td>Bandwidth</td><td>50 GB</td><td>200 GB</td><td>Unlimited</td></tr>
+<tr><td>Free SSL certificate</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>Global CDN</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>Staging environment</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>Daily backups</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>Web application firewall</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>DDoS protection</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>Personal onboarding</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>SEO audit &amp; setup</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>WooCommerce setup</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+<tr><td>Custom theme included</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+<tr><td>Dedicated account manager</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+<tr><td>Support</td><td>Email</td><td>Email</td><td>Priority</td></tr>
+<tr><td>Uptime SLA</td><td>99.99%</td><td>99.99%</td><td>99.99%</td></tr>
+</tbody>
+</table>
+</div></section>
+
+<!-- ═══ FAQ ═══ -->
+<section class="faq rv"><div class="c">
+<div class="faq-header">
+<h2>Frequently asked questions</h2>
+<p>Everything you need to know about our plans, billing, and support.</p>
+</div>
+<div class="faq-list">
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>Can I switch plans after signing up?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>Absolutely. You can upgrade or downgrade at any time. When upgrading, the price difference is prorated. When downgrading, the new rate applies at your next billing cycle.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>How does the annual billing work?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>When you choose annual billing, you get 2 months completely free. You pay for 10 months upfront and get 12 months of service. You can switch between monthly and annual at any time.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>What does the personal onboarding include?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>We walk through your goals, configure your hosting environment, install WordPress, set up your domain and SSL, and make sure everything is optimized before you go live.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>Do you handle WordPress migrations?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>Yes. Our team will migrate your existing WordPress site for free with any plan. We handle everything — files, database, DNS configuration — with zero downtime.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>Is my site backed up automatically?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>Yes. Every plan includes automatic daily backups with one-click restore. Backups are stored securely off-site so you can recover your site at any time.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>What kind of support can I expect?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>Minimum and Growth plans include email support with a typical response time under 4 hours. The Performance plan includes priority support with faster response times and a dedicated account manager.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>Do you offer custom or enterprise plans?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>Absolutely. If none of our standard plans fit your needs, reach out and we'll put together a custom solution with the exact resources and support you require.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>Can I cancel at any time?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>Yes. There are no long-term contracts. Monthly plans can be cancelled anytime. Annual plans are covered by our 14-day money-back guarantee.</p></div>
+</div>
+
+</div>
+</div></section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer><div class="c">
+<div class="fg-f">
+<div class="fbr"><a href="index.html" class="logo" style="margin-bottom:16px"><div class="logo-mark"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 3h22v5H11v5h13v5H11v5h16v5H5z" fill="currentColor"/>
+</svg></div><div class="logo-text">Env<span>o</span>sta</div></a><p style="max-width:280px">Managed WordPress hosting that starts with a consultation. Enterprise infrastructure, expert support, and hands-on onboarding — all in one place.</p>
+<div style="display:flex;gap:12px;margin-top:20px">
+<a href="#" style="width:32px;height:32px;border-radius:8px;background:var(--card);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--t3);text-decoration:none;font-size:.75rem;transition:all .2s" aria-label="Twitter">𝕏</a>
+<a href="#" style="width:32px;height:32px;border-radius:8px;background:var(--card);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--t3);text-decoration:none;font-size:.75rem;transition:all .2s" aria-label="LinkedIn">in</a>
+<a href="#" style="width:32px;height:32px;border-radius:8px;background:var(--card);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--t3);text-decoration:none;font-size:.75rem;transition:all .2s" aria-label="Facebook">f</a>
+<a href="#" style="width:32px;height:32px;border-radius:8px;background:var(--card);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--t3);text-decoration:none;font-size:.75rem;transition:all .2s" aria-label="YouTube">▶</a>
+</div>
+</div>
+<div class="fcol"><h5>Hosting</h5><ul><li><a href="https://envosta.com/pricing">Managed WordPress</a></li><li><a href="https://envosta.com/pricing">WooCommerce Hosting</a></li><li><a href="https://envosta.com/features/">Enterprise Hosting</a></li><li><a href="https://envosta.com/pricing">Plans & Pricing</a></li><li><a href="#">Domain Names</a></li><li><a href="#">Free Migration</a></li></ul></div>
+<div class="fcol"><h5>Features</h5><ul><li><a href="https://envosta.com/features/">Onboarding & Setup</a></li><li><a href="https://envosta.com/features/">SEO Tools</a></li><li><a href="https://envosta.com/features/">Speed & Performance</a></li><li><a href="https://envosta.com/features/">Security & SSL</a></li><li><a href="https://envosta.com/features/">Daily Backups</a></li><li><a href="https://envosta.com/features/">Global CDN</a></li></ul></div>
+<div class="fcol"><h5>Resources</h5><ul><li><a href="https://envosta.com/resources">Knowledge Base</a></li><li><a href="https://envosta.com/resources">Blog</a></li><li><a href="https://envosta.com/resources">Guides & Tutorials</a></li><li><a href="#">Developer Docs</a></li><li><a href="#">System Status</a></li><li><a href="#">Changelog</a></li></ul></div>
+<div class="fcol"><h5>Company</h5><ul><li><a href="#">About Envosta</a></li><li><a href="https://envosta.com/support">Contact Us</a></li><li><a href="https://envosta.com/support">Support Center</a></li><li><a href="#">Careers</a></li><li><a href="#">Partners & Affiliates</a></li><li><a href="#">Brand Assets</a></li></ul></div>
+</div>
+<div style="border-top:1px solid var(--bdr);margin-top:48px;padding-top:32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+<p style="font-size:.75rem;color:var(--t3)">&copy; 2025 Envosta Inc. All rights reserved.</p>
+<div style="display:flex;gap:24px"><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none;transition:color .2s">Privacy Policy</a><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none;transition:color .2s">Terms of Service</a><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none;transition:color .2s">Cookie Policy</a><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none;transition:color .2s">GDPR</a><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none;transition:color .2s">Sitemap</a></div>
+</div>
+</div></footer>
+
+<script>
+// Scroll reveal
+document.querySelectorAll('.rv').forEach(el=>{new IntersectionObserver(e=>{if(e[0].isIntersecting)e[0].target.classList.add('v')},{threshold:.05}).observe(el)});
+// Mobile nav close
+document.querySelectorAll('.mn a').forEach(l=>l.addEventListener('click',()=>document.querySelector('.mn').classList.remove('open')));
+
+// Billing toggle — annual = 2 months free (pay 10, get 12)
+let annual=false;
+function toggleBilling(){
+  annual=!annual;
+  document.getElementById('billing-toggle').classList.toggle('on',annual);
+  document.getElementById('lbl-monthly').classList.toggle('active',!annual);
+  document.getElementById('lbl-annual').classList.toggle('active',annual);
+  document.querySelectorAll('.price-val').forEach(el=>{
+    el.textContent=annual?el.dataset.annual:el.dataset.monthly;
+  });
+}
+</script>
+</body>
+</html>

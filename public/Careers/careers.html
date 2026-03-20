@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Envosta – Careers | Join Our Team</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#040710;color:#d0d8e8;line-height:1.7;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+:root{--bg:#03060e;--bg2:#070c18;--card:#0b1220;--card2:#0f182a;--gold:#2563EB;--gold-dim:#2563EB10;--gold-bright:#3B82F6;--t1:#f5f7fb;--t2:#a3b1c9;--t3:#7889a3;--bdr:#101c2e;--bdr2:#182842;--grn:#22c55e;--r:12px}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+.c{max-width:1320px;margin:0 auto;padding:0 32px}
+section{position:relative;z-index:1}
+
+/* ── Nav (from features) ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(8,12,24,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr)}
+nav .c{display:flex;align-items:center;height:72px}
+.logo{display:inline-flex;align-items:center;gap:10px;text-decoration:none;white-space:nowrap;flex-shrink:0}
+.logo-mark{width:32px;height:32px;flex-shrink:0;color:#fff}.logo-mark svg{width:100%;height:100%;display:block}
+.logo-text{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.5rem;font-weight:500;color:#fff;letter-spacing:-.2px}.logo-text span{color:#fff}
+.nl{display:flex;align-items:center;gap:32px;list-style:none;margin-left:48px}.nl a{color:rgba(255,255,255,.7);text-decoration:none;font-size:.95rem;font-weight:400;transition:color .2s}.nl a:hover,.nl a.active{color:#fff}
+.nc{display:flex;align-items:center;gap:16px;margin-left:auto}.gh{color:rgba(255,255,255,.7);text-decoration:none;font-size:.95rem;font-weight:400}.gh:hover{color:#fff}
+.bp{display:inline-flex;align-items:center;padding:10px 22px;background:#fff;color:var(--bg);text-decoration:none;font-size:.84rem;font-weight:500;border-radius:100px;border:none;cursor:pointer;transition:all .2s}.bp:hover{background:rgba(255,255,255,.85)}.bp.lg{padding:16px 32px;font-size:.92rem}
+.bp.ghost{background:0 0;color:var(--t2);border:1px solid var(--bdr2)}.bp.ghost:hover{border-color:var(--t3);color:var(--t1)}
+.bp.blue{background:var(--gold);color:#fff}.bp.blue:hover{background:var(--gold-bright)}
+.ham{display:none;flex-direction:column;gap:5px;cursor:pointer;background:0 0;border:none;padding:4px}.ham span{width:20px;height:1.5px;background:var(--t1);border-radius:2px}
+.mn{display:none;position:fixed;top:72px;left:0;right:0;background:var(--bg);border-bottom:1px solid var(--bdr);padding:16px 24px;z-index:999}.mn.open{display:block}.mn a{display:block;padding:12px 0;color:var(--t2);text-decoration:none;font-size:.95rem;border-bottom:1px solid var(--bdr)}.mn a:last-child{border:none}
+
+/* ── Scroll reveal (from features) ── */
+.rv{opacity:0;transform:translateY(30px);transition:opacity .7s,transform .7s}.rv.v{opacity:1;transform:none}
+.ck{width:16px;height:16px;flex-shrink:0;color:var(--grn)}
+
+/* ── Section headers (from features) ── */
+.sh{text-align:left;margin-bottom:56px}
+.sh-tag{display:inline-block;font-size:.72rem;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--gold);margin-bottom:10px}
+.sh h2{font-size:clamp(2rem,4vw,3.2rem);font-weight:500;letter-spacing:-1px;line-height:1.1}
+.sh-desc{font-size:.95rem;color:var(--t2);line-height:1.75;font-weight:300;margin-top:16px;max-width:560px}
+.sh-center{text-align:center}.sh-center .sh-desc{margin:16px auto 0}
+
+/* ═══ HERO (matches feat-hero) ═══ */
+.careers-hero{padding:160px 0 80px;text-align:center;position:relative;overflow:hidden}
+.careers-hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 65%);pointer-events:none}
+.careers-hero .c{position:relative;z-index:1}
+.careers-hero h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:500;letter-spacing:-1.5px;line-height:1.12;margin-bottom:20px}
+.careers-hero p{font-size:1.05rem;color:var(--t2);max-width:560px;margin:0 auto;line-height:1.8;font-weight:300}
+
+/* ═══ PROCESS (matches fg6 grid from features) ═══ */
+.process{padding:0 0 80px}
+.process-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.proc-card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:28px;transition:border-color .3s,transform .3s}
+.proc-card:hover{border-color:var(--bdr2);transform:translateY(-2px)}
+.proc-card .ic{width:40px;height:40px;border-radius:10px;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:.82rem;font-weight:700;color:var(--gold-bright)}
+.proc-card h4{font-size:.92rem;font-weight:500;margin-bottom:6px}
+.proc-card p{font-size:.8rem;color:var(--t2);font-weight:300;line-height:1.7}
+
+/* ═══ OPEN ROLES ═══ */
+.roles{padding:0 0 80px}
+.roles-bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.dept-pills{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.dp{padding:6px 18px;background:var(--card);border:1px solid var(--bdr);border-radius:100px;font-size:.78rem;color:var(--t2);font-weight:400;cursor:pointer;transition:all .2s;text-decoration:none}
+.dp:hover{border-color:var(--bdr2);color:var(--t1)}
+.dp.on{background:var(--gold);color:#fff;border-color:var(--gold)}
+.roles-list{display:flex;flex-direction:column;gap:8px}
+.role-row{display:grid;grid-template-columns:1fr auto auto auto;gap:20px;align-items:center;padding:20px 28px;border-radius:14px;border:1px solid var(--bdr);background:var(--card);transition:all .25s;text-decoration:none;color:inherit;cursor:pointer}
+.role-row:hover{border-color:var(--bdr2);transform:translateY(-2px)}
+.role-row.picked{border-color:var(--gold)}
+.rr-name{font-size:.92rem;font-weight:500;color:var(--t1)}
+.rr-dept{font-size:.7rem;padding:4px 12px;border-radius:100px;background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.2);color:var(--gold-bright);font-weight:400}
+.rr-loc{font-size:.76rem;color:var(--t3);font-weight:300}
+.rr-arrow{color:var(--t3);font-size:.88rem;transition:transform .2s,color .2s}
+.role-row:hover .rr-arrow,.role-row.picked .rr-arrow{color:var(--gold);transform:translateX(3px)}
+.roles-empty{text-align:center;padding:40px;color:var(--t3);font-size:.84rem;font-weight:300;display:none}
+.roles-empty a{color:var(--gold);text-decoration:none}
+
+/* ═══ WHY ENVOSTA (single mega-feat card from features) ═══ */
+.why{padding:0 0 80px}
+.why-card{background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:48px;overflow:hidden}
+.why-inner{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+.why-text h3{font-size:1.6rem;font-weight:500;letter-spacing:-.5px;margin-bottom:16px}
+.why-text>p{font-size:.88rem;color:var(--t2);line-height:1.7;font-weight:300;margin-bottom:24px}
+.why-list{display:flex;flex-direction:column;gap:12px}
+.why-item{display:flex;align-items:flex-start;gap:12px;font-size:.84rem;color:var(--t2);font-weight:300;line-height:1.6}
+.why-item strong{color:var(--t1);font-weight:500}
+.why-stats{display:flex;flex-direction:column;gap:12px}
+.ws{background:var(--card2);border:1px solid var(--bdr);border-radius:var(--r);padding:20px 24px;display:flex;align-items:center;gap:16px;transition:border-color .3s}
+.ws:hover{border-color:var(--gold)}
+.ws .ws-ic{width:40px;height:40px;border-radius:10px;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.ws .ws-txt{display:flex;flex-direction:column}
+.ws .ws-lbl{font-size:.72rem;color:var(--t3);font-weight:300}
+.ws .ws-val{font-size:.92rem;font-weight:500;color:var(--t1)}
+
+/* ═══ APPLICATION FORM (matches support form-section) ═══ */
+.apply{padding:0 0 100px}
+.apply-header{text-align:center;margin-bottom:56px}
+.apply-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
+.apply-header p{font-size:.92rem;color:var(--t3);font-weight:300;max-width:480px;margin:0 auto}
+.form-wrap{max-width:640px;margin:0 auto;background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:48px 40px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.fg{display:flex;flex-direction:column;gap:6px}
+.fg.w{grid-column:1/-1}
+.fg label{font-size:.76rem;font-weight:500;color:var(--t2)}
+.fg label .req{color:var(--gold-bright);margin-left:2px}
+.fg input,.fg select,.fg textarea{background:var(--bg);border:1px solid var(--bdr2);border-radius:10px;padding:12px 16px;color:var(--t1);font-size:.88rem;font-family:inherit;outline:none;transition:border-color .3s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--gold)}
+.fg input::placeholder,.fg textarea::placeholder{color:var(--t3)}
+.fg select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236a7a94' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;cursor:pointer}
+.fg select option{background:var(--bg);color:var(--t1)}
+.fg textarea{resize:vertical;min-height:120px}
+.uz{position:relative;border:1px dashed var(--bdr2);border-radius:10px;padding:24px 16px;text-align:center;transition:all .3s;background:var(--bg);cursor:pointer}
+.uz:hover,.uz.over{border-color:var(--gold);background:rgba(37,99,235,.04)}
+.uz input{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2}
+.uz-ic{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:var(--gold-dim);margin:0 auto 12px;color:var(--gold)}
+.uz-ic svg{width:20px;height:20px}
+.uz-txt{font-size:.82rem;color:var(--t2);font-weight:300}
+.uz-txt strong{color:var(--gold-bright);font-weight:500}
+.uz-hint{font-size:.7rem;color:var(--t3);margin-top:4px;font-weight:300}
+.fa{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:var(--card2);border:1px solid var(--bdr);border-radius:8px;font-size:.78rem;color:var(--t2)}
+.fa .fa-x{margin-left:auto;color:var(--t3);cursor:pointer;background:none;border:none;font-size:.88rem;padding:0 4px;font-family:inherit;transition:color .2s}.fa .fa-x:hover{color:#ef4444}
+.form-submit{text-align:center;margin-top:24px}
+.form-submit .bp{padding:14px 48px;font-size:.92rem}
+.form-note{text-align:center;margin-top:12px;font-size:.72rem;color:var(--t3);font-weight:300}
+.form-note a{color:var(--gold);text-decoration:none}
+.form-ok{display:none;text-align:center;padding:48px 24px}
+.form-ok .fok-ic{width:56px;height:56px;border-radius:50%;background:rgba(34,197,94,.12);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+.form-ok .fok-ic svg{width:28px;height:28px;color:var(--grn)}
+.form-ok h3{font-size:1.2rem;font-weight:500;margin-bottom:8px}
+.form-ok p{font-size:.88rem;color:var(--t2);font-weight:300;max-width:380px;margin:0 auto;line-height:1.7}
+
+/* ── Footer (from features) ── */
+footer{padding:80px 0 40px;border-top:1px solid var(--bdr);margin-top:40px}
+.fg-f{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1fr;gap:40px}
+.fbr .logo{margin-bottom:10px;display:inline-flex;white-space:nowrap;flex-shrink:0}.fbr p{font-size:.82rem;color:var(--t2);line-height:1.7;max-width:240px;font-weight:300}
+.fcol h5{font-size:.66rem;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--t1);margin-bottom:12px}.fcol ul{list-style:none}.fcol li{margin-bottom:7px}.fcol a{color:var(--t2);text-decoration:none;font-size:.82rem;transition:color .2s}.fcol a:hover{color:#fff}
+.social-icon{width:32px;height:32px;border-radius:8px;background:var(--card);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--t3);text-decoration:none;font-size:.75rem;transition:all .2s}.social-icon:hover{border-color:var(--bdr2);color:var(--t1)}
+
+/* ── Responsive ── */
+@media(max-width:1024px){.process-grid{grid-template-columns:1fr 1fr}.why-inner{grid-template-columns:1fr}.fg-f{grid-template-columns:1fr 1fr}.form-wrap{padding:36px 28px}}
+@media(max-width:768px){.nl,.gh{display:none}.ham{display:flex}.process-grid{grid-template-columns:1fr 1fr}.fg-f{grid-template-columns:1fr}.careers-hero{padding:140px 0 60px}.form-wrap{padding:28px 20px}.form-row{grid-template-columns:1fr}.role-row{grid-template-columns:1fr;gap:8px}.rr-dept,.rr-loc,.rr-arrow{justify-self:start}.roles-bar{flex-direction:column;align-items:flex-start}.dept-pills{margin-left:0}.why-card{padding:32px 24px}}
+@media(max-width:480px){.process-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ═══ Nav ═══ -->
+<nav><div class="c">
+<a href="index.html" class="logo"><div class="logo-mark"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 3h22v5H11v5h13v5H11v5h16v5H5z" fill="currentColor"/></svg></div><div class="logo-text">Env<span>o</span>sta</div></a>
+<ul class="nl"><li><a href="https://envosta.com/features/">Features</a></li><li><a href="https://envosta.com/pricing">Plans &amp; Pricing</a></li><li><a href="https://envosta.com/resources">Resources</a></li><li><a href="https://envosta.com/support">Support</a></li></ul>
+<div class="nc"><a href="https://app.envosta.com/" class="gh">Log in</a><div class="block-button"><a href="https://envosta.com/pricing" class="bp">Get Started</a></div></div>
+<button class="ham" onclick="document.querySelector('.mn').classList.toggle('open')"><span></span><span></span><span></span></button>
+</div></nav>
+<div class="mn"><a href="https://envosta.com/features/">Features</a><a href="https://envosta.com/pricing">Plans &amp; Pricing</a><a href="https://envosta.com/resources">Resources</a><a href="https://envosta.com/support">Support</a></div>
+
+<!-- ═══ HERO ═══ -->
+<section class="careers-hero">
+<div class="c">
+<h1 class="rv">Join Envosta, we're hiring</h1>
+<p class="rv">We're growing our team across engineering, design, support, and marketing. Explore open roles below and find where you fit.</p>
+</div>
+</section>
+
+<!-- ═══ PROCESS ═══ -->
+<section class="process"><div class="c">
+<div class="process-grid">
+<div class="proc-card rv"><div class="ic">01</div><h4>Application</h4><p>Send your resume and a short note about why Envosta interests you.</p></div>
+<div class="proc-card rv"><div class="ic">02</div><h4>Intro Call</h4><p>A casual 30-minute video chat to learn more about each other.</p></div>
+<div class="proc-card rv"><div class="ic">03</div><h4>Work Sample</h4><p>A short, paid take-home exercise. Most take 2–3 hours.</p></div>
+<div class="proc-card rv"><div class="ic">04</div><h4>Team Chat &amp; Offer</h4><p>Meet the team. If it's a fit, we move quickly to an offer.</p></div>
+</div>
+</div></section>
+
+<!-- ═══ OPEN ROLES ═══ -->
+<section class="roles" id="positions"><div class="c">
+<div class="sh rv"><span class="sh-tag">Open Positions</span><h2>Find your role</h2></div>
+<div class="roles-bar rv">
+<div class="dept-pills">
+<a href="#" class="dp on" data-dept="all">All</a>
+<a href="#" class="dp" data-dept="engineering">Engineering</a>
+<a href="#" class="dp" data-dept="design">Design</a>
+<a href="#" class="dp" data-dept="support">Support</a>
+<a href="#" class="dp" data-dept="marketing">Marketing</a>
+</div>
+</div>
+<div class="roles-list">
+<a class="role-row rv" data-dept="engineering"><span class="rr-name">Senior Backend Engineer</span><span class="rr-dept">Engineering</span><span class="rr-loc">Remote</span><span class="rr-arrow">→</span></a>
+<a class="role-row rv" data-dept="engineering"><span class="rr-name">Full-Stack Developer</span><span class="rr-dept">Engineering</span><span class="rr-loc">Remote</span><span class="rr-arrow">→</span></a>
+<a class="role-row rv" data-dept="design"><span class="rr-name">Product Designer</span><span class="rr-dept">Design</span><span class="rr-loc">Remote</span><span class="rr-arrow">→</span></a>
+<a class="role-row rv" data-dept="support"><span class="rr-name">WordPress Support Specialist</span><span class="rr-dept">Support</span><span class="rr-loc">Remote</span><span class="rr-arrow">→</span></a>
+<a class="role-row rv" data-dept="marketing"><span class="rr-name">Content &amp; SEO Lead</span><span class="rr-dept">Marketing</span><span class="rr-loc">Remote</span><span class="rr-arrow">→</span></a>
+<a class="role-row rv" data-dept="engineering"><span class="rr-name">DevOps / Site Reliability Engineer</span><span class="rr-dept">Engineering</span><span class="rr-loc">Remote</span><span class="rr-arrow">→</span></a>
+</div>
+<div class="roles-empty rv">No roles in this department right now. <a href="#apply">Apply anyway</a>.</div>
+</div></section>
+
+<!-- ═══ WHY ENVOSTA (single mega-feat card) ═══ -->
+<section class="why"><div class="c">
+<div class="sh rv"><span class="sh-tag">Benefits</span><h2>Why work at Envosta</h2></div>
+<div class="why-card rv">
+<div class="why-inner">
+<div class="why-text">
+<h3>Built for people who do their best work with freedom</h3>
+<p>We keep the team small so everyone has impact. In return, we offer the flexibility, tools, and support to do exceptional work.</p>
+<div class="why-list">
+<div class="why-item"><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Competitive salary</strong> — benchmarked against top-tier remote companies</span></div>
+<div class="why-item"><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Flexible hours</strong> — async-first with core overlap windows</span></div>
+<div class="why-item"><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Home office budget</strong> — $2,000 setup allowance for gear and workspace</span></div>
+<div class="why-item"><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Generous PTO</strong> — 25 days paid time off plus local holidays</span></div>
+<div class="why-item"><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Learning stipend</strong> — annual budget for courses, books, and conferences</span></div>
+<div class="why-item"><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span><strong>Health &amp; wellness</strong> — comprehensive benefits for you and your family</span></div>
+</div>
+</div>
+<div class="why-stats">
+<div class="ws"><div class="ws-ic">🌐</div><div class="ws-txt"><span class="ws-lbl">Team Distribution</span><span class="ws-val">Fully Remote, Global</span></div></div>
+<div class="ws"><div class="ws-ic">👥</div><div class="ws-txt"><span class="ws-lbl">Team Size</span><span class="ws-val">Small &amp; Focused</span></div></div>
+<div class="ws"><div class="ws-ic">🚀</div><div class="ws-txt"><span class="ws-lbl">Ship Frequency</span><span class="ws-val">Weekly Deploys</span></div></div>
+<div class="ws"><div class="ws-ic">💬</div><div class="ws-txt"><span class="ws-lbl">Communication</span><span class="ws-val">Async-First</span></div></div>
+<div class="ws"><div class="ws-ic">🎓</div><div class="ws-txt"><span class="ws-lbl">Learning Budget</span><span class="ws-val">$1,500 / year</span></div></div>
+</div>
+</div>
+</div>
+</div></section>
+
+<!-- ═══ APPLICATION FORM (matches support form-section) ═══ -->
+<section class="apply rv" id="apply"><div class="c">
+<div class="apply-header">
+<h2>Submit your application</h2>
+<p>We respond to every application within 5 business days. No cover letter needed, just be yourself.</p>
+</div>
+<div class="form-wrap" id="form-wrap">
+<div id="application-form">
+<div class="form-row">
+<div class="fg"><label>First Name <span class="req">*</span></label><input type="text" placeholder="Jane" required id="f-first"></div>
+<div class="fg"><label>Last Name <span class="req">*</span></label><input type="text" placeholder="Doe" required id="f-last"></div>
+</div>
+<div class="form-row">
+<div class="fg"><label>Email <span class="req">*</span></label><input type="email" placeholder="jane@company.com" required id="f-email"></div>
+<div class="fg"><label>Phone</label><input type="tel" placeholder="+1 (555) 000-0000" id="f-phone"></div>
+</div>
+<div class="form-row">
+<div class="fg"><label>Location <span class="req">*</span></label><input type="text" placeholder="City, Country" required id="f-location"></div>
+<div class="fg"><label>Role <span class="req">*</span></label><select required id="f-role"><option value="" disabled selected>Select a role…</option><option>Senior Backend Engineer</option><option>Full-Stack Developer</option><option>Product Designer</option><option>WordPress Support Specialist</option><option>Content &amp; SEO Lead</option><option>DevOps / Site Reliability Engineer</option><option>General Application</option></select></div>
+</div>
+<div class="form-row">
+<div class="fg w"><label>Resume / CV <span class="req">*</span></label>
+<div class="uz" id="uz">
+<input type="file" accept=".pdf,.doc,.docx" id="f-resume">
+<div class="uz-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+<div class="uz-txt"><strong>Click to upload</strong> or drag and drop</div>
+<div class="uz-hint">PDF, DOC, or DOCX — max 10 MB</div>
+</div>
+<div class="fa" id="fa" style="display:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="flex-shrink:0;color:var(--gold)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span id="fa-name"></span><button class="fa-x" id="fa-rm">✕</button></div>
+</div>
+</div>
+<div class="form-row">
+<div class="fg w"><label>Portfolio / LinkedIn</label><input type="url" placeholder="https://linkedin.com/in/yourname" id="f-portfolio"></div>
+</div>
+<div class="form-row">
+<div class="fg w"><label>Why Envosta? <span class="req">*</span></label><textarea placeholder="Tell us why you're interested and what you'd bring to the team." required id="f-why"></textarea></div>
+</div>
+<div class="form-submit"><button class="bp blue lg" id="submit-btn" type="button">Submit Application</button></div>
+<div class="form-note">By submitting you agree to our <a href="#">Privacy Policy</a>.</div>
+</div>
+<div class="form-ok" id="form-ok"><div class="fok-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><h3>Application submitted</h3><p>Thanks for your interest in Envosta. We'll get back to you within 5 business days.</p></div>
+</div>
+</div></section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer><div class="c">
+<div class="fg-f">
+<div class="fbr"><a href="index.html" class="logo" style="margin-bottom:16px"><div class="logo-mark"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 3h22v5H11v5h13v5H11v5h16v5H5z" fill="currentColor"/></svg></div><div class="logo-text">Env<span>o</span>sta</div></a><p style="max-width:280px">Managed WordPress hosting that starts with a consultation. Enterprise infrastructure, expert support, and hands-on onboarding — all in one place.</p>
+<div style="display:flex;gap:12px;margin-top:20px"><a href="#" class="social-icon" aria-label="Twitter">𝕏</a><a href="#" class="social-icon" aria-label="LinkedIn">in</a><a href="#" class="social-icon" aria-label="Facebook">f</a><a href="#" class="social-icon" aria-label="YouTube">▶</a></div></div>
+<div class="fcol"><h5>Hosting</h5><ul><li><a href="https://envosta.com/pricing">Managed WordPress</a></li><li><a href="https://envosta.com/pricing">WooCommerce Hosting</a></li><li><a href="https://envosta.com/features/">Enterprise Hosting</a></li><li><a href="https://envosta.com/pricing">Plans &amp; Pricing</a></li><li><a href="#">Domain Names</a></li><li><a href="#">Free Migration</a></li></ul></div>
+<div class="fcol"><h5>Features</h5><ul><li><a href="https://envosta.com/features/">Onboarding &amp; Setup</a></li><li><a href="https://envosta.com/features/">SEO Tools</a></li><li><a href="https://envosta.com/features/">Speed &amp; Performance</a></li><li><a href="https://envosta.com/features/">Security &amp; SSL</a></li><li><a href="https://envosta.com/features/">Daily Backups</a></li><li><a href="https://envosta.com/features/">Global CDN</a></li></ul></div>
+<div class="fcol"><h5>Resources</h5><ul><li><a href="https://envosta.com/resources">Knowledge Base</a></li><li><a href="https://envosta.com/resources">Blog</a></li><li><a href="https://envosta.com/resources">Guides &amp; Tutorials</a></li><li><a href="#">Developer Docs</a></li><li><a href="#">System Status</a></li><li><a href="#">Changelog</a></li></ul></div>
+<div class="fcol"><h5>Company</h5><ul><li><a href="#">About Envosta</a></li><li><a href="https://envosta.com/support">Contact Us</a></li><li><a href="https://envosta.com/support">Support Center</a></li><li><a href="careers.html">Careers</a></li><li><a href="#">Partners &amp; Affiliates</a></li><li><a href="#">Brand Assets</a></li></ul></div>
+</div>
+<div style="border-top:1px solid var(--bdr);margin-top:48px;padding-top:32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+<p style="font-size:.75rem;color:var(--t3)">&copy; 2025 Envosta Inc. All rights reserved.</p>
+<div style="display:flex;gap:24px"><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none">Privacy Policy</a><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none">Terms of Service</a><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none">Cookie Policy</a><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none">GDPR</a><a href="#" style="font-size:.75rem;color:var(--t3);text-decoration:none">Sitemap</a></div>
+</div>
+</div></footer>
+
+<script>
+document.querySelectorAll('.rv').forEach(el=>{new IntersectionObserver(e=>{if(e[0].isIntersecting)e[0].target.classList.add('v')},{threshold:.05}).observe(el)});
+document.querySelectorAll('.mn a').forEach(l=>l.addEventListener('click',()=>document.querySelector('.mn').classList.remove('open')));
+document.querySelectorAll('.dp').forEach(btn=>{btn.addEventListener('click',function(e){e.preventDefault();document.querySelectorAll('.dp').forEach(b=>b.classList.remove('on'));this.classList.add('on');var d=this.getAttribute('data-dept'),v=0;document.querySelectorAll('.role-row').forEach(function(c){if(d==='all'||c.getAttribute('data-dept')===d){c.style.display='';v++}else{c.style.display='none'}});document.querySelector('.roles-empty').style.display=v===0?'block':'none'})});
+document.querySelectorAll('.role-row').forEach(function(row){row.addEventListener('click',function(e){e.preventDefault();document.querySelectorAll('.role-row').forEach(r=>r.classList.remove('picked'));this.classList.add('picked');var t=this.querySelector('.rr-name').textContent.trim(),s=document.getElementById('f-role');if(s){for(var i=0;i<s.options.length;i++){if(s.options[i].textContent.trim()===t){s.selectedIndex=i;break}}}document.getElementById('apply').scrollIntoView({behavior:'smooth',block:'start'})})});
+(function(){var fi=document.getElementById('f-resume'),uz=document.getElementById('uz'),fa=document.getElementById('fa'),ft=document.getElementById('fa-name'),fr=document.getElementById('fa-rm');if(!fi)return;fi.addEventListener('change',function(){if(this.files&&this.files[0])sh(this.files[0])});['dragenter','dragover'].forEach(e=>{uz.addEventListener(e,ev=>{ev.preventDefault();ev.stopPropagation();uz.classList.add('over')})});['dragleave','drop'].forEach(e=>{uz.addEventListener(e,ev=>{ev.preventDefault();ev.stopPropagation();uz.classList.remove('over')})});uz.addEventListener('drop',e=>{if(e.dataTransfer.files&&e.dataTransfer.files[0]){fi.files=e.dataTransfer.files;sh(e.dataTransfer.files[0])}});function sh(f){ft.textContent=f.name+' ('+(f.size/1048576).toFixed(1)+' MB)';fa.style.display='flex';uz.style.display='none'}fr.addEventListener('click',e=>{e.preventDefault();fi.value='';fa.style.display='none';uz.style.display=''})})();
+(function(){var btn=document.getElementById('submit-btn');if(!btn)return;var rq=['f-first','f-last','f-email','f-location','f-role','f-why'],ec='#ef4444';btn.addEventListener('click',function(){var ok=true;document.querySelectorAll('#application-form input,#application-form select,#application-form textarea').forEach(el=>{el.style.borderColor=''});rq.forEach(id=>{var el=document.getElementById(id);if(!el)return;if(!el.value.trim()){el.style.borderColor=ec;ok=false}});var em=document.getElementById('f-email');if(em&&em.value&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.value.trim())){em.style.borderColor=ec;ok=false}var fe=document.getElementById('f-resume'),u=document.getElementById('uz');if(fe&&(!fe.files||!fe.files[0])){if(u)u.style.borderColor=ec;ok=false}else{if(u)u.style.borderColor=''}if(!ok){var f=document.querySelector('[style*="'+ec+'"]');if(f)f.scrollIntoView({behavior:'smooth',block:'center'});return}btn.textContent='Submitting…';btn.style.opacity='.6';btn.style.pointerEvents='none';setTimeout(()=>{document.getElementById('application-form').style.display='none';document.getElementById('form-ok').style.display='block';document.getElementById('form-wrap').scrollIntoView({behavior:'smooth',block:'center'})},1200)})})();
+</script>
+</body>
+</html>

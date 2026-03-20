@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Envosta – Your Onboarding Journey</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#040710;color:#d0d8e8;line-height:1.7;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+:root{--bg:#03060e;--bg2:#070c18;--card:#0b1220;--card2:#0f182a;--gold:#2563EB;--gold-dim:#2563EB10;--gold-bright:#3B82F6;--t1:#f5f7fb;--t2:#a3b1c9;--t3:#7889a3;--bdr:#101c2e;--bdr2:#182842;--grn:#22c55e;--r:12px}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+.c{max-width:1320px;margin:0 auto;padding:0 24px}
+section{position:relative;z-index:1}
+
+/* ── Nav ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(8,12,24,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr)}
+nav .c{display:flex;align-items:center;height:72px}
+.logo{display:inline-flex;align-items:center;gap:10px;text-decoration:none;white-space:nowrap;flex-shrink:0}
+.logo-mark{width:32px;height:32px;flex-shrink:0;color:#fff}.logo-mark svg{width:100%;height:100%;display:block}
+.logo-text{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.5rem;font-weight:500;color:#fff;letter-spacing:-.2px}.logo-text span{color:#fff}
+.nl{display:flex;align-items:center;gap:32px;list-style:none;margin-left:48px}.nl a{color:rgba(255,255,255,.7);text-decoration:none;font-size:.95rem;font-weight:400;transition:color .2s}.nl a:hover,.nl a.active{color:#fff}
+.nc{display:flex;align-items:center;gap:16px;margin-left:auto}.gh{color:rgba(255,255,255,.7);text-decoration:none;font-size:.95rem;font-weight:400}.gh:hover{color:#fff}
+.bp{display:inline-flex;align-items:center;padding:10px 22px;background:#fff;color:var(--bg);text-decoration:none;font-size:.84rem;font-weight:500;border-radius:100px;border:none;cursor:pointer;transition:all .2s}.bp:hover{background:rgba(255,255,255,.85)}.bp.lg{padding:16px 32px;font-size:.92rem}
+.bp.ghost{background:0 0;color:var(--t2);border:1px solid var(--bdr2)}.bp.ghost:hover{border-color:var(--t3);color:var(--t1)}
+.ham{display:none;flex-direction:column;gap:5px;cursor:pointer;background:0 0;border:none;padding:4px}.ham span{width:20px;height:1.5px;background:var(--t1);border-radius:2px}
+.mn{display:none;position:fixed;top:72px;left:0;right:0;background:var(--bg);border-bottom:1px solid var(--bdr);padding:16px 24px;z-index:999}.mn.open{display:block}.mn a{display:block;padding:12px 0;color:var(--t2);text-decoration:none;font-size:.95rem;border-bottom:1px solid var(--bdr)}.mn a:last-child{border:none}
+
+/* ── Scroll reveal ── */
+.rv{opacity:0;transform:translateY(30px);transition:opacity .7s,transform .7s}.rv.v{opacity:1;transform:none}
+
+/* ── Shared check SVG ── */
+.ck{width:16px;height:16px;flex-shrink:0;color:var(--grn)}
+
+/* ═══════════════════════════════════
+   HERO
+═══════════════════════════════════ */
+.ob-hero{padding:160px 0 60px;text-align:center;position:relative;overflow:hidden}
+.ob-hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 65%);pointer-events:none}
+.ob-hero .c{position:relative;z-index:1}
+.ob-hero h1{font-size:clamp(1.8rem,5vw,3.8rem);font-weight:500;letter-spacing:-1.5px;line-height:1.12;margin-bottom:20px}
+.ob-hero h1 em{font-style:italic;color:var(--gold-bright)}
+.ob-hero p{font-size:clamp(.88rem,2.5vw,1.05rem);color:var(--t2);max-width:580px;margin:0 auto 36px;line-height:1.8;font-weight:300}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* ═══════════════════════════════════
+   TIMELINE — centered spine, wide cards
+═══════════════════════════════════ */
+.timeline{padding:20px 0 80px}
+.tl-track{position:relative;max-width:740px;margin:0 auto;display:flex;flex-direction:column;align-items:center}
+
+/* center spine */
+.tl-track::before{
+  content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;
+  transform:translateX(-50%);
+  background:linear-gradient(180deg,var(--gold),var(--bdr2) 15%,var(--bdr2) 85%,var(--grn));
+  border-radius:2px;z-index:0;
+}
+
+/* step wrapper */
+.tl-step{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:100%}
+
+/* numbered dot */
+.tl-dot{
+  width:48px;height:48px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.88rem;font-weight:600;color:var(--t3);
+  background:var(--bg2);border:2px solid var(--bdr2);
+  flex-shrink:0;transition:all .5s;
+}
+.tl-step.active .tl-dot{
+  border-color:var(--gold);background:rgba(37,99,235,.18);
+  color:#fff;box-shadow:0 0 24px rgba(37,99,235,.25);
+}
+
+/* wire from dot to card */
+.tl-wire{width:2px;height:20px;background:var(--bdr2);flex-shrink:0}
+
+/* ── Card — spacious, readable ── */
+.tl-card{
+  width:100%;
+  background:var(--card);border:1px solid var(--bdr);border-radius:16px;
+  padding:36px 32px;transition:border-color .3s,transform .3s;
+}
+.tl-card:hover{border-color:var(--bdr2);transform:translateY(-2px)}
+
+.tl-card-top{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.tl-card-icon{
+  width:44px;height:44px;border-radius:12px;
+  background:rgba(37,99,235,.1);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--gold);flex-shrink:0;
+}
+.tl-card-icon svg{width:22px;height:22px}
+.tl-card-meta{flex:1;min-width:0}
+.tl-card h3{font-size:1.1rem;font-weight:500;letter-spacing:-.3px;line-height:1.3}
+.tl-card .tl-time{display:inline-block;font-size:.72rem;color:var(--gold);font-weight:500;margin-top:3px}
+.tl-card p{font-size:.86rem;color:var(--t2);line-height:1.75;font-weight:300;margin-bottom:20px}
+
+/* checklist */
+.tl-card ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+.tl-card li{
+  font-size:.84rem;color:var(--t2);
+  display:flex;align-items:flex-start;gap:10px;
+  font-weight:300;line-height:1.6;
+}
+.tl-card li .ck{margin-top:3px}
+
+/* plan tags */
+.plan-tag{
+  display:inline-flex;align-items:center;
+  padding:2px 8px;border-radius:100px;
+  font-size:.58rem;font-weight:600;letter-spacing:.5px;
+  text-transform:uppercase;white-space:nowrap;
+  margin-left:6px;vertical-align:middle;
+}
+.plan-tag.growth{background:rgba(37,99,235,.12);color:var(--gold-bright);border:1px solid rgba(37,99,235,.2)}
+.plan-tag.perf{background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.2)}
+
+/* tail connector after card */
+.tl-tail{width:2px;height:32px;background:var(--bdr2);flex-shrink:0}
+.tl-step:last-child .tl-tail{display:none}
+
+/* final step — green accent */
+.tl-step.final .tl-dot{border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.12);color:#22c55e}
+.tl-step.final.active .tl-dot{box-shadow:0 0 20px rgba(34,197,94,.25)}
+.tl-step.final .tl-card{border-color:rgba(34,197,94,.2);background:linear-gradient(180deg,rgba(34,197,94,.04),var(--card) 50%)}
+.tl-step.final .tl-card-icon{background:rgba(34,197,94,.1);color:#22c55e}
+.tl-step.final .tl-time{color:#22c55e}
+
+/* ═══════════════════════════════════
+   FAQ
+═══════════════════════════════════ */
+.faq{padding:0 0 80px}
+.faq-header{text-align:center;margin-bottom:48px}
+.faq-header h2{font-size:clamp(1.4rem,3.5vw,2.4rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:12px}
+.faq-header p{font-size:.9rem;color:var(--t2);font-weight:300;max-width:480px;margin:0 auto;line-height:1.75}
+.faq-list{max-width:740px;margin:0 auto}
+.faq-item{border-bottom:1px solid var(--bdr);overflow:hidden}
+.faq-q{display:flex;align-items:center;justify-content:space-between;padding:20px 0;cursor:pointer;gap:16px}
+.faq-q h4{font-size:.9rem;font-weight:400;color:var(--t1);line-height:1.5}
+.faq-icon{width:20px;height:20px;flex-shrink:0;color:var(--t3);transition:transform .3s,color .3s}
+.faq-item.open .faq-icon{transform:rotate(45deg);color:var(--gold)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .3s}
+.faq-item.open .faq-a{max-height:200px;padding:0 0 20px}
+.faq-a p{font-size:.84rem;color:var(--t3);line-height:1.7;font-weight:300}
+
+/* ═══════════════════════════════════
+   CTA BANNER
+═══════════════════════════════════ */
+.cta-banner{padding:0 0 80px}
+.cta-inner{
+  background:var(--card);border:1px solid var(--bdr);border-radius:20px;
+  padding:56px 32px;text-align:center;position:relative;overflow:hidden;
+  max-width:740px;margin:0 auto;
+}
+.cta-inner::before{content:'';position:absolute;top:-50%;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(37,99,235,.1),transparent 65%);pointer-events:none}
+.cta-inner h2{font-size:clamp(1.4rem,3.5vw,2.4rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:12px;position:relative;z-index:1}
+.cta-inner p{font-size:.9rem;color:var(--t2);max-width:480px;margin:0 auto 28px;line-height:1.75;font-weight:300;position:relative;z-index:1}
+.cta-inner .hero-btns{position:relative;z-index:1}
+
+/* ── Footer ── */
+footer{border-top:1px solid var(--bdr);padding:64px 0 32px}
+.fg-f{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1fr;gap:40px;margin-bottom:0}
+.fbr .logo{margin-bottom:16px;display:inline-flex;white-space:nowrap;flex-shrink:0}.fbr p{font-size:.82rem;color:var(--t2);line-height:1.7;max-width:280px;font-weight:300}
+.fcol h5{font-size:.7rem;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--t1);margin-bottom:14px}.fcol ul{list-style:none}.fcol li{margin-bottom:9px}.fcol a{color:var(--t2);text-decoration:none;font-size:.82rem;transition:color .2s}.fcol a:hover{color:#fff}
+.social-icon{width:32px;height:32px;border-radius:8px;background:var(--card2);border:1px solid var(--bdr);display:inline-flex;align-items:center;justify-content:center;text-decoration:none;color:var(--t3);font-size:.7rem;transition:all .2s}
+.social-icon:hover{border-color:var(--bdr2);color:var(--t1)}
+
+/* ═══════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════ */
+@media(max-width:1024px){
+  .fg-f{grid-template-columns:1fr 1fr}
+}
+@media(max-width:768px){
+  .nl,.gh{display:none}
+  .ham{display:flex}
+  .ob-hero{padding:120px 0 44px}
+  .tl-card{padding:28px 24px}
+  .tl-card h3{font-size:1rem}
+  .tl-dot{width:42px;height:42px;font-size:.82rem}
+  .fg-f{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .c{padding:0 16px}
+  .ob-hero{padding:110px 0 36px}
+  .tl-card{padding:24px 20px;border-radius:14px}
+  .tl-card h3{font-size:.95rem}
+  .tl-card p{font-size:.82rem}
+  .tl-card li{font-size:.8rem}
+  .tl-dot{width:38px;height:38px;font-size:.76rem}
+  .tl-tail{height:24px}
+  .faq-q h4{font-size:.84rem}
+  .cta-inner{padding:36px 18px;border-radius:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav><div class="c">
+<a href="index.html" class="logo"><div class="logo-mark"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 3h22v5H11v5h13v5H11v5h16v5H5z" fill="currentColor"/>
+</svg></div><div class="logo-text">Env<span>o</span>sta</div></a>
+<ul class="nl">
+<li><a href="features.html">Features</a></li>
+<li><a href="pricing.html">Pricing</a></li>
+<li><a href="blog.html">Blog</a></li>
+<li><a href="support.html">Support</a></li>
+</ul>
+<div class="nc">
+<a href="support.html" class="gh">Contact</a>
+<a href="pricing.html" class="bp">Get Started</a>
+</div>
+<button class="ham" onclick="document.querySelector('.mn').classList.toggle('open')"><span></span><span></span><span></span></button>
+</div></nav>
+<div class="mn">
+<a href="features.html">Features</a>
+<a href="pricing.html">Pricing</a>
+<a href="blog.html">Blog</a>
+<a href="support.html">Support</a>
+<a href="support.html">Contact</a>
+</div>
+
+<!-- ═══ HERO ═══ -->
+<section class="ob-hero"><div class="c">
+<h1>Your onboarding <em>timeline</em></h1>
+<p>No guesswork, no waiting around. From the moment you sign up, we handle everything — setup, security, optimization — tailored to the plan you choose. Your site is live and performing in days, not weeks.</p>
+<div class="hero-btns">
+<a href="pricing.html" class="bp lg">Take Next Step</a>
+</div>
+</div></section>
+
+<!-- ═══ TIMELINE ═══ -->
+<section class="timeline rv"><div class="c">
+<div class="tl-track">
+
+<!-- Step 1 -->
+<div class="tl-step active">
+<div class="tl-dot">1</div>
+<div class="tl-wire"></div>
+<div class="tl-card">
+<div class="tl-card-top">
+<div class="tl-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
+<div class="tl-card-meta">
+<h3>Sign Up and Kickoff Call</h3>
+<span class="tl-time">Day 1</span>
+</div>
+</div>
+<p>You pick a plan and we schedule a short kickoff call. We'll talk through your goals, your current site (if you have one), and exactly what you need from your hosting.</p>
+<ul>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Choose your plan (Minimum, Growth, or Performance)</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>15-minute kickoff call to understand your goals</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Share logins for any existing site or domain registrar</li>
+</ul>
+</div>
+<div class="tl-tail"></div>
+</div>
+
+<!-- Step 2 -->
+<div class="tl-step">
+<div class="tl-dot">2</div>
+<div class="tl-wire"></div>
+<div class="tl-card">
+<div class="tl-card-top">
+<div class="tl-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+<div class="tl-card-meta">
+<h3>Environment Setup and Migration</h3>
+<span class="tl-time">Days 1–2</span>
+</div>
+</div>
+<p>We spin up your server, configure your hosting environment, and install WordPress. If you have an existing site, we migrate everything — files, database, emails — with zero downtime.</p>
+<ul>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Dedicated server provisioned and hardened</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>WordPress installed with best-practice configuration</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Full site migration (if applicable) — free with every plan</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Staging environment ready for testing</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>WooCommerce installed and configured <span class="plan-tag growth">Growth+</span></li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Custom theme designed and installed <span class="plan-tag perf">Performance</span></li>
+</ul>
+</div>
+<div class="tl-tail"></div>
+</div>
+
+<!-- Step 3 -->
+<div class="tl-step">
+<div class="tl-dot">3</div>
+<div class="tl-wire"></div>
+<div class="tl-card">
+<div class="tl-card-top">
+<div class="tl-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+<div class="tl-card-meta">
+<h3>Security, SSL and Domain Configuration</h3>
+<span class="tl-time">Day 2</span>
+</div>
+</div>
+<p>We configure your domain, point DNS, install your SSL certificate, and lock down your site with enterprise-grade security — firewall, malware scanning, and brute-force protection.</p>
+<ul>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Domain DNS pointed to your new server</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Free SSL certificate installed and enforced</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Web application firewall activated</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Automated daily backups configured</li>
+</ul>
+</div>
+<div class="tl-tail"></div>
+</div>
+
+<!-- Step 4 -->
+<div class="tl-step">
+<div class="tl-dot">4</div>
+<div class="tl-wire"></div>
+<div class="tl-card">
+<div class="tl-card-top">
+<div class="tl-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+<div class="tl-card-meta">
+<h3>Performance Optimization</h3>
+<span class="tl-time">Days 2–3</span>
+</div>
+</div>
+<p>We fine-tune everything for speed. Caching layers, CDN configuration, image optimization, and database tuning — your site loads fast from day one.</p>
+<ul>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Server-level and page caching enabled</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Global CDN activated for static assets</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Image compression and lazy loading</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Database optimization and cleanup</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Full SEO audit with technical recommendations <span class="plan-tag growth">Growth+</span></li>
+</ul>
+</div>
+<div class="tl-tail"></div>
+</div>
+
+<!-- Step 5 -->
+<div class="tl-step">
+<div class="tl-dot">5</div>
+<div class="tl-wire"></div>
+<div class="tl-card">
+<div class="tl-card-top">
+<div class="tl-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+<div class="tl-card-meta">
+<h3>Walkthrough and Handoff</h3>
+<span class="tl-time">Day 3–4</span>
+</div>
+</div>
+<p>Once everything is set up, we do a live walkthrough. We'll show you your dashboard, how to manage content, and where to find us when you need help. Then we hand over the keys.</p>
+<ul>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Live screen-share walkthrough of your site</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>WordPress admin tour and content editing basics</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Support channels and escalation paths explained</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Admin credentials and documentation delivered</li>
+</ul>
+</div>
+<div class="tl-tail"></div>
+</div>
+
+<!-- Step 6 -->
+<div class="tl-step final">
+<div class="tl-dot">6</div>
+<div class="tl-wire"></div>
+<div class="tl-card">
+<div class="tl-card-top">
+<div class="tl-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+<div class="tl-card-meta">
+<h3>You're Live — Ongoing Support Begins</h3>
+<span class="tl-time">Day 4–5</span>
+</div>
+</div>
+<p>Your site is live and fully operational. From here, our team monitors your hosting 24/7, handles updates, and is available whenever you need us. You focus on running your business.</p>
+<ul>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>24/7 uptime monitoring active</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Ongoing managed updates (core, plugins, themes)</li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Email support (all plans) with priority response <span class="plan-tag perf">Performance</span></li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Dedicated account manager <span class="plan-tag perf">Performance</span></li>
+<li><svg class="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Monthly performance and security reports</li>
+</ul>
+</div>
+<div class="tl-tail"></div>
+</div>
+
+</div>
+</div></section>
+
+<!-- ═══ FAQ ═══ -->
+<section class="faq rv"><div class="c">
+<div class="faq-header">
+<h2>Questions about onboarding</h2>
+<p>Common questions from new clients about what to expect during setup.</p>
+</div>
+<div class="faq-list">
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>How long does the entire onboarding take?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>Most clients are fully live within 3–5 business days. If you have an existing site that needs migration, we typically complete the full process in under a week with zero downtime.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>What do I need to provide to get started?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>Just your domain registrar login (or we can help you register a new domain) and access to your current hosting if you're migrating. We handle everything else from there.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>Will my site go down during migration?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>No. We migrate to a staging environment first, verify everything works, then switch DNS. Your live site stays up the entire time and the transition is seamless.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>Do I need to know anything technical?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>Not at all. We handle all the technical setup. During the walkthrough, we'll show you how to manage your content in WordPress — it's straightforward, and we're always a message away if you get stuck.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>What happens after I'm live?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>We don't disappear. Your hosting is actively managed — we handle updates, monitor uptime, run backups, and provide ongoing support. You'll also receive regular performance reports so you always know how your site is doing.</p></div>
+</div>
+
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+<h4>Can I upgrade my plan later?</h4>
+<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</div>
+<div class="faq-a"><p>Absolutely. You can upgrade or downgrade at any time. Upgrades are prorated so you only pay the difference. Downgrades take effect at your next billing cycle.</p></div>
+</div>
+
+</div>
+</div></section>
+
+<!-- ═══ CTA ═══ -->
+<section class="cta-banner rv"><div class="c">
+<div class="cta-inner">
+<h2>Ready to get started?</h2>
+<p>Pick a plan, book your kickoff call, and we'll have your site live within the week. No contracts, no surprises.</p>
+<div class="hero-btns">
+<a href="pricing.html" class="bp lg">Take Next Step</a>
+</div>
+</div>
+</div></section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer><div class="c">
+<div class="fg-f">
+<div class="fbr"><a href="index.html" class="logo" style="margin-bottom:16px"><div class="logo-mark"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 3h22v5H11v5h13v5H11v5h16v5H5z" fill="currentColor"/>
+</svg></div><div class="logo-text">Env<span>o</span>sta</div></a><p style="max-width:280px">Managed WordPress hosting that starts with a consultation. Enterprise infrastructure, expert support, and hands-on onboarding — all in one place.</p>
+<div style="display:flex;gap:12px;margin-top:20px">
+<a href="#" class="social-icon" aria-label="Twitter">𝕏</a>
+<a href="#" class="social-icon" aria-label="LinkedIn">in</a>
+<a href="#" class="social-icon" aria-label="Facebook">f</a>
+<a href="#" class="social-icon" aria-label="YouTube">▶</a>
+</div>
+</div>
+<div class="fcol"><h5>Hosting</h5><ul><li><a href="pricing.html">Managed WordPress</a></li><li><a href="pricing.html">WooCommerce Hosting</a></li><li><a href="features.html">Enterprise Hosting</a></li><li><a href="pricing.html">Plans & Pricing</a></li><li><a href="#">Domain Names</a></li><li><a href="#">Free Migration</a></li></ul></div>
+<div class="fcol"><h5>Features</h5><ul><li><a href="features.html">Onboarding & Setup</a></li><li><a href="features.html">SEO Tools</a></li><li><a href="features.html">Speed & Performance</a></li><li><a href="features.html">Security & SSL</a></li><li><a href="features.html">Daily Backups</a></li><li><a href="features.html">Global CDN</a></li></ul></div>
+<div class="fcol"><h5>Resources</h5><ul><li><a href="#">Knowledge Base</a></li><li><a href="blog.html">Blog</a></li><li><a href="#">Guides & Tutorials</a></li><li><a href="#">Developer Docs</a></li><li><a href="#">System Status</a></li><li><a href="#">Changelog</a></li></ul></div>
+<div class="fcol"><h5>Company</h5><ul><li><a href="#">About Envosta</a></li><li><a href="support.html">Contact Us</a></li><li><a href="support.html">Support Center</a></li><li><a href="#">Careers</a></li><li><a href="#">Partners & Affiliates</a></li><li><a href="#">Brand Assets</a></li></ul></div>
+</div>
+<div style="border-top:1px solid var(--bdr);margin-top:48px;padding-top:32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+<p style="font-size:.75rem;color:var(--t2)">&copy; 2025 Envosta Inc. All rights reserved.</p>
+<div style="display:flex;gap:24px;flex-wrap:wrap"><a href="privacy.html" style="font-size:.75rem;color:var(--t2);text-decoration:none;transition:color .2s">Privacy Policy</a><a href="terms.html" style="font-size:.75rem;color:var(--t2);text-decoration:none;transition:color .2s">Terms of Service</a><a href="#" style="font-size:.75rem;color:var(--t2);text-decoration:none;transition:color .2s">Cookie Policy</a><a href="#" style="font-size:.75rem;color:var(--t2);text-decoration:none;transition:color .2s">GDPR</a><a href="#" style="font-size:.75rem;color:var(--t2);text-decoration:none;transition:color .2s">Sitemap</a></div>
+</div>
+</div></footer>
+
+<script>
+// Scroll reveal
+document.querySelectorAll('.rv').forEach(el=>{new IntersectionObserver(e=>{if(e[0].isIntersecting)e[0].target.classList.add('v')},{threshold:.05}).observe(el)});
+// Mobile nav
+document.querySelectorAll('.mn a').forEach(l=>l.addEventListener('click',()=>document.querySelector('.mn').classList.remove('open')));
+// Activate timeline steps on scroll
+document.querySelectorAll('.tl-step').forEach(step=>{
+  new IntersectionObserver(e=>{
+    if(e[0].isIntersecting) step.classList.add('active');
+  },{threshold:.2}).observe(step);
+});
+</script>
+
+</body>
+</html>
