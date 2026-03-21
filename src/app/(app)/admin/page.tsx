@@ -1,36 +1,31 @@
-import { createClient } from '@/lib/supabase-server';
+import { getDashboardCounts, getRecentCustomers, getRecentActivity } from '@/services/admin';
+import { getAllActiveSubscriptions } from '@/services/subscriptions';
 import { formatCents, formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { Users, Server, Globe, DollarSign, Plus, ArrowRight } from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
 
 export default async function AdminDashboardPage() {
-  const supabase = await createClient();
-
   const [
-    { count: customersCount },
-    { count: servicesCount },
-    { count: domainsCount },
-    { data: recentUsers },
-    { data: recentLogs },
-    { data: activeSubscriptions },
+    { customersCount, servicesCount, domainsCount },
+    recentUsers,
+    recentLogs,
+    activeSubscriptions,
   ] = await Promise.all([
-    supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'customer'),
-    supabase.from('services').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-    supabase.from('domains').select('id', { count: 'exact', head: true }).eq('status', 'registered'),
-    supabase.from('users').select('*').eq('role', 'customer').order('created_at', { ascending: false }).limit(10),
-    supabase.from('logs').select('*, users(full_name, email)').order('created_at', { ascending: false }).limit(10),
-    supabase.from('subscriptions').select('*, plans(price_monthly)').eq('status', 'active'),
+    getDashboardCounts(),
+    getRecentCustomers(10),
+    getRecentActivity(10),
+    getAllActiveSubscriptions(),
   ]);
 
-  const mrr = (activeSubscriptions ?? []).reduce(
+  const mrr = activeSubscriptions.reduce(
     (sum: number, sub: any) => sum + (sub.plans?.price_monthly ?? 0), 0
   );
 
   const stats = [
-    { label: 'Total customers', value: customersCount ?? 0, icon: Users },
-    { label: 'Active services', value: servicesCount ?? 0, icon: Server },
-    { label: 'Active domains', value: domainsCount ?? 0, icon: Globe },
+    { label: 'Total customers', value: customersCount, icon: Users },
+    { label: 'Active services', value: servicesCount, icon: Server },
+    { label: 'Active domains', value: domainsCount, icon: Globe },
     { label: 'Monthly revenue', value: formatCents(mrr), icon: DollarSign, sub: 'MRR' },
   ];
 

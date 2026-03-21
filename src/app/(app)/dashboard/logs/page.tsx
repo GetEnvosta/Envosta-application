@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase-server';
+import { getUserLogs } from '@/services/admin';
 import { formatDateTime } from '@/lib/utils';
 
 const levelStyles: Record<string, string> = {
@@ -9,9 +9,7 @@ const levelStyles: Record<string, string> = {
 };
 
 export default async function LogsPage() {
-  const supabase = await createClient();
-  const { data: logs } = await supabase
-    .from('logs').select('*').order('created_at', { ascending: false }).limit(50);
+  const logs = await getUserLogs(50);
 
   return (
     <div>

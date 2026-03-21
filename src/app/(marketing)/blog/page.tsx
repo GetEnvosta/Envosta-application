@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase-server';
+import { getPublishedPosts } from '@/services/blog';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,13 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogPage() {
-  const supabase = await createClient();
-
-  const { data: posts } = await supabase
-    .from('blog_posts')
-    .select('id, title, slug, excerpt, featured_image_url, published_at, tags, status')
-    .eq('status', 'published')
-    .order('published_at', { ascending: false });
+  const posts = await getPublishedPosts();
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {

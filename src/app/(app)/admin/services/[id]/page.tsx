@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase-server';
+import { getServiceDetailById, getServiceDomains, getServiceLogs } from '@/services/sites';
 import { formatDate, formatDateTime, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -18,13 +18,8 @@ export default async function ServiceDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
 
-  const { data: service } = await supabase
-    .from('services')
-    .select('*, users(id, full_name, email, company_name), plans(name, slug)')
-    .eq('id', id)
-    .single();
+  const service = await getServiceDetailById(id);
 
   if (!service) {
     return (
@@ -43,18 +38,9 @@ export default async function ServiceDetailPage({
     );
   }
 
-  const [{ data: domains }, { data: logs }] = await Promise.all([
-    supabase
-      .from('domains')
-      .select('*')
-      .eq('service_id', service.id)
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('logs')
-      .select('*')
-      .eq('service_id', service.id)
-      .order('created_at', { ascending: false })
-      .limit(20),
+  const [domains, logs] = await Promise.all([
+    getServiceDomains(service.id),
+    getServiceLogs(service.id, 20),
   ]);
 
   const owner = service.users as any;
@@ -92,7 +78,7 @@ export default async function ServiceDetailPage({
           <div className="flex items-center gap-2 text-gray-600">
             <Server className="w-4 h-4 text-gray-400" />
             <span className="text-gray-500">Plan:</span>{' '}
-            {(service.plans as any)?.name ?? '—'}
+            {(service.plans as any)?.name ?? '\u2014'}
           </div>
           {service.region && (
             <div className="flex items-center gap-2 text-gray-600">
@@ -156,7 +142,7 @@ export default async function ServiceDetailPage({
               </Link>
               <p className="text-xs text-gray-500">
                 {owner.email}
-                {owner.company_name ? ` — ${owner.company_name}` : ''}
+                {owner.company_name ? ` \u2014 ${owner.company_name}` : ''}
               </p>
             </div>
             <User className="w-4 h-4 text-gray-400" />
@@ -169,10 +155,10 @@ export default async function ServiceDetailPage({
         <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
           <Globe className="w-4 h-4 text-gray-400" />
           <h2 className="text-sm font-semibold text-gray-900">
-            Domains ({domains?.length ?? 0})
+            Domains ({domains.length})
           </h2>
         </div>
-        {!domains || domains.length === 0 ? (
+        {domains.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-400">
             No domains linked to this service.
           </div>
@@ -218,7 +204,7 @@ export default async function ServiceDetailPage({
           <h2 className="text-sm font-semibold text-gray-900">Recent logs</h2>
         </div>
         <div className="divide-y divide-gray-100">
-          {!logs || logs.length === 0 ? (
+          {logs.length === 0 ? (
             <div className="p-8 text-center text-sm text-gray-400">
               No logs recorded.
             </div>

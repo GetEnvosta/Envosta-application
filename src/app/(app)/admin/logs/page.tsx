@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase-server';
+import { getAdminLogs } from '@/services/admin';
 import { formatDateTime } from '@/lib/utils';
 import { ScrollText, Search } from 'lucide-react';
 
@@ -20,23 +20,7 @@ export default async function LogsPage({
   const levelFilter = params.level ?? '';
   const search = params.q ?? '';
 
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('logs')
-    .select('*, users(full_name, email)')
-    .order('created_at', { ascending: false })
-    .limit(50);
-
-  if (levelFilter) {
-    query = query.eq('level', levelFilter);
-  }
-
-  if (search) {
-    query = query.or(`action.ilike.%${search}%,message.ilike.%${search}%`);
-  }
-
-  const { data: logs } = await query;
+  const logs = await getAdminLogs({ level: levelFilter, q: search }, 50);
 
   return (
     <div>
@@ -118,8 +102,8 @@ export default async function LogsPage({
                       <span className={levelBadge[log.level] ?? 'badge-gray'}>{log.level}</span>
                     </td>
                     <td className="px-5 py-3.5 font-medium text-gray-900">{log.action}</td>
-                    <td className="px-5 py-3.5 text-gray-500" title={message}>{truncated || '—'}</td>
-                    <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap">{log.ip_address ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-gray-500" title={message}>{truncated || '\u2014'}</td>
+                    <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap">{log.ip_address ?? '\u2014'}</td>
                   </tr>
                 );
               })}

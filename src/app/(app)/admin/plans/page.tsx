@@ -1,14 +1,9 @@
-import { createClient } from '@/lib/supabase-server';
+import { getAllPlans } from '@/services/plans';
 import { formatCents } from '@/lib/utils';
 import { EditPlanForm } from './edit-plan-form';
 
 export default async function AdminPlansPage() {
-  const supabase = await createClient();
-
-  const { data: plans } = await supabase
-    .from('plans')
-    .select('*')
-    .order('sort_order', { ascending: true });
+  const plans = await getAllPlans();
 
   return (
     <div>
@@ -34,7 +29,7 @@ export default async function AdminPlansPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {(!plans || plans.length === 0) ? (
+              {plans.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-sm text-gray-400">No plans found.</td>
                 </tr>
@@ -60,7 +55,7 @@ export default async function AdminPlansPage() {
       </div>
 
       {/* Edit forms */}
-      {plans && plans.length > 0 && (
+      {plans.length > 0 && (
         <div className="space-y-4">
           {plans.map((plan: any) => (
             <EditPlanForm key={plan.id} plan={plan} />

@@ -1,15 +1,13 @@
-import { createClient } from '@/lib/supabase-server';
+import { getUserDomains } from '@/services/domains';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { Globe } from 'lucide-react';
 import { DomainSearchEmpty } from './domain-search-empty';
 
 export default async function DomainsPage() {
-  const supabase = await createClient();
-  const { data: domains } = await supabase
-    .from('domains').select('*').order('created_at', { ascending: false });
+  const domains = await getUserDomains();
 
-  const count = domains?.length ?? 0;
+  const count = domains.length;
 
   return (
     <div>
@@ -34,7 +32,7 @@ export default async function DomainsPage() {
         </div>
       ) : (
         <div className="grid gap-4">
-          {domains!.map((d: any) => (
+          {domains.map((d: any) => (
             <div key={d.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">

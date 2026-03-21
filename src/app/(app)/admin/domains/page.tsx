@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase-server';
+import { getAllDomains } from '@/services/domains';
 import { formatDate, statusColor } from '@/lib/utils';
 import { Globe, Search } from 'lucide-react';
 
@@ -13,23 +13,7 @@ export default async function DomainsPage({
   const statusFilter = params.status ?? '';
   const search = params.q ?? '';
 
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('domains')
-    .select('*, users(full_name, email)')
-    .order('created_at', { ascending: false })
-    .limit(50);
-
-  if (statusFilter) {
-    query = query.eq('status', statusFilter);
-  }
-
-  if (search) {
-    query = query.ilike('domain_name', `%${search}%`);
-  }
-
-  const { data: domains } = await query;
+  const domains = await getAllDomains({ q: search, status: statusFilter });
 
   return (
     <div>
@@ -82,7 +66,7 @@ export default async function DomainsPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {(!domains || domains.length === 0) ? (
+              {domains.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-12 text-center">
                     <Globe className="w-8 h-8 text-gray-300 mx-auto mb-2" />
@@ -93,7 +77,7 @@ export default async function DomainsPage({
                 <tr key={d.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-3.5 font-medium text-gray-900">{d.domain_name}</td>
                   <td className="px-5 py-3.5 text-gray-500">
-                    {(d.users as any)?.email ?? '—'}
+                    {(d.users as any)?.email ?? '\u2014'}
                   </td>
                   <td className="px-5 py-3.5">
                     <span className={statusColor(d.status)}>{d.status.replace('_', ' ')}</span>

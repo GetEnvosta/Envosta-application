@@ -1,26 +1,17 @@
-import { createClient } from '@/lib/supabase-server';
+import { getUserSitesWithSubscriptions } from '@/services/sites';
+import { getUserSubscriptions } from '@/services/subscriptions';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { ExternalLink, Globe, Loader2, Plus, Server } from 'lucide-react';
 
 export default async function SitesPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const [{ data: services }, { data: subscriptions }] = await Promise.all([
-    supabase
-      .from('services')
-      .select('*, plans(name, slug), subscriptions(id, status, current_period_end, plans(name))')
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('subscriptions')
-      .select('*, plans(name, slug)')
-      .in('status', ['active', 'trialing'])
-      .order('created_at', { ascending: false }),
+  const [services, subscriptions] = await Promise.all([
+    getUserSitesWithSubscriptions(),
+    getUserSubscriptions(),
   ]);
 
-  const allSubscriptions = subscriptions ?? [];
-  const allServices = services ?? [];
+  const allSubscriptions = subscriptions;
+  const allServices = services;
   const hasSubscription = allSubscriptions.length > 0;
   const hasSites = allServices.length > 0;
   const hasProvisioningSite = allServices.some(s => s.status === 'provisioning');

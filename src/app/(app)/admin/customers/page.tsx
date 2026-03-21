@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase-server';
+import { getAllCustomers } from '@/services/admin';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { Search, Users } from 'lucide-react';
@@ -9,19 +9,7 @@ export default async function CustomersPage({
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
   const { q } = await searchParams;
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('users')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(50);
-
-  if (q) {
-    query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
-  }
-
-  const { data: users } = await query;
+  const users = await getAllCustomers(q);
 
   return (
     <div>
@@ -94,7 +82,7 @@ export default async function CustomersPage({
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">{u.email}</td>
                     <td className="px-5 py-3.5 text-gray-600">
-                      {u.company_name || '—'}
+                      {u.company_name || '\u2014'}
                     </td>
                     <td className="px-5 py-3.5">
                       <span className={u.role === 'admin' ? 'badge-indigo' : 'badge-gray'}>

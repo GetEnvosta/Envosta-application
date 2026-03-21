@@ -1,15 +1,10 @@
-import { createClient } from '@/lib/supabase-server';
+import { getAllPosts } from '@/services/blog';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { FileText, Plus } from 'lucide-react';
 
 export default async function BlogPostsPage() {
-  const supabase = await createClient();
-
-  const { data: posts } = await supabase
-    .from('blog_posts')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const posts = await getAllPosts();
 
   return (
     <div>

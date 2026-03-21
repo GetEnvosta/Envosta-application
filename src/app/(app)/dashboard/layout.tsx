@@ -1,17 +1,12 @@
-import { createClient } from '@/lib/supabase-server';
+import { getCurrentUser, getUserProfile } from '@/services/auth';
 import { redirect } from 'next/navigation';
 import { DashboardShell } from '@/components/layout/dashboard-shell';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect('/auth/login');
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('id, full_name, email, avatar_url, role')
-    .eq('id', user.id)
-    .single();
+  const profile = await getUserProfile(user.id);
 
   return (
     <DashboardShell

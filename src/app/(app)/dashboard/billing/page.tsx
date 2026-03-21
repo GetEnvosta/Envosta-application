@@ -1,4 +1,8 @@
-import { createClient } from '@/lib/supabase-server';
+import { getCurrentUser } from '@/services/auth';
+import { getUserSubscriptionsWithDetails } from '@/services/subscriptions';
+import { getUserServicesBasic } from '@/services/sites';
+import { getUserInvoices, getCustomerInfo } from '@/services/billing';
+import { getActivePlans } from '@/services/plans';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
 import { CheckoutButton } from '@/components/billing/checkout-button';
 import { Check, CreditCard, ExternalLink, Plus, Server, Shield } from 'lucide-react';
@@ -13,48 +17,26 @@ import Link from 'next/link';
 /*  Page                                                              */
 /* ------------------------------------------------------------------ */
 export default async function BillingPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   /* Fetch ALL subscriptions (with nested plan + customer), services,
      invoices, and the customer row for payment-method info. */
   const [
-    { data: subscriptions },
-    { data: services },
-    { data: invoices },
-    { data: customer },
-    { data: dbPlans },
+    subscriptions,
+    services,
+    invoices,
+    customer,
+    dbPlans,
   ] = await Promise.all([
-    supabase
-      .from('subscriptions')
-      .select('*, plans(name, slug, price_monthly, features), customers(stripe_customer_id)')
-      .in('status', ['active', 'trialing'])
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('services')
-      .select('id, label, subscription_id')
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('invoices')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20),
-    supabase
-      .from('customers')
-      .select('*')
-      .eq('user_id', user?.id ?? '')
-      .maybeSingle(),
-    supabase
-      .from('plans')
-      .select('*')
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true }),
+    getUserSubscriptionsWithDetails(),
+    getUserServicesBasic(),
+    getUserInvoices(20),
+    getCustomerInfo(user?.id ?? ''),
+    getActivePlans(),
   ]);
 
-  const allSubscriptions = subscriptions ?? [];
-  const allServices = services ?? [];
+  const allSubscriptions = subscriptions;
+  const allServices = services;
   const hasSubscriptions = allSubscriptions.length > 0;
 
   // Build a map of subscription_id -> service for quick lookup
@@ -164,7 +146,7 @@ export default async function BillingPage() {
                 Add Another Site
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {(dbPlans ?? []).map((p: any) => (
+                {dbPlans.map((p: any) => (
                   <div
                     key={p.slug}
                     className={`card p-6 flex flex-col ${
@@ -213,7 +195,7 @@ export default async function BillingPage() {
         ) : (
           /* ---- No subscription: show plan cards ---- */
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {(dbPlans ?? []).map((p: any) => (
+            {dbPlans.map((p: any) => (
               <div
                 key={p.slug}
                 className={`card p-6 flex flex-col ${

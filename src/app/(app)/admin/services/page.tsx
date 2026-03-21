@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase-server';
+import { getAllServices } from '@/services/sites';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { Search, Server } from 'lucide-react';
@@ -19,23 +19,7 @@ export default async function ServicesPage({
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
   const { q, status } = await searchParams;
-  const supabase = await createClient();
-
-  let query = supabase
-    .from('services')
-    .select('*, users(full_name, email), plans(name)')
-    .order('created_at', { ascending: false })
-    .limit(50);
-
-  if (status) {
-    query = query.eq('status', status);
-  }
-
-  if (q) {
-    query = query.or(`label.ilike.%${q}%,users.email.ilike.%${q}%`);
-  }
-
-  const { data: services } = await query;
+  const services = await getAllServices({ q, status });
 
   return (
     <div>
@@ -130,13 +114,13 @@ export default async function ServicesPage({
                       </Link>
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">
-                      {(s.users as any)?.email ?? '—'}
+                      {(s.users as any)?.email ?? '\u2014'}
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">
-                      {(s.plans as any)?.name ?? '—'}
+                      {(s.plans as any)?.name ?? '\u2014'}
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">
-                      {s.region ?? '—'}
+                      {s.region ?? '\u2014'}
                     </td>
                     <td className="px-5 py-3.5">
                       <span className={statusColor(s.status)}>{s.status}</span>

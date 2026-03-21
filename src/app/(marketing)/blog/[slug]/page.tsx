@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase-server';
+import { getPostBySlug, getPostMetaBySlug, getRelatedPosts } from '@/services/blog';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,14 +11,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const supabase = await createClient();
-
-  const { data: post } = await supabase
-    .from('blog_posts')
-    .select('title, excerpt, meta_title, meta_description, featured_image_url, slug')
-    .eq('slug', slug)
-    .eq('status', 'published')
-    .single();
+  const post = await getPostMetaBySlug(slug);
 
   if (!post) {
     return { title: 'Post Not Found' };
@@ -53,27 +46,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BlogPostPage({ params }: PageProps) {
   const { slug } = await params;
-  const supabase = await createClient();
 
-  const { data: post } = await supabase
-    .from('blog_posts')
-    .select('*')
-    .eq('slug', slug)
-    .eq('status', 'published')
-    .single();
+  const [post, relatedPosts] = await Promise.all([
+    getPostBySlug(slug),
+    getRelatedPosts(slug, 3),
+  ]);
 
   if (!post) {
     notFound();
   }
-
-  // Fetch 3 related posts (exclude current, newest first)
-  const { data: relatedPosts } = await supabase
-    .from('blog_posts')
-    .select('title, slug, excerpt, featured_image_url, tags, published_at')
-    .eq('status', 'published')
-    .neq('slug', slug)
-    .order('published_at', { ascending: false })
-    .limit(3);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -252,7 +233,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* ═══ POST HERO ═══ */}
+      {/* POST HERO */}
       <section className="post-hero">
         <div className="c">
           <div className="post-hero-inner">
@@ -310,7 +291,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* ═══ ARTICLE CONTENT (3-column layout) ═══ */}
+      {/* ARTICLE CONTENT (3-column layout) */}
       <section className="post-content-wrap">
         <div className="c">
           <div className="post-layout">
@@ -388,7 +369,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* ═══ RELATED POSTS ═══ */}
+      {/* RELATED POSTS */}
       {relatedPosts && relatedPosts.length > 0 && (
         <section className="related-section">
           <div className="c">
@@ -430,7 +411,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         </section>
       )}
 
-      {/* ═══ NEWSLETTER CTA ═══ */}
+      {/* NEWSLETTER CTA */}
       <section className="cta-section">
         <div className="c">
           <div className="cta-box">

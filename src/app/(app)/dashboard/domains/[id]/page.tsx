@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase-server';
+import { getCurrentUser } from '@/services/auth';
+import { getDomainById } from '@/services/domains';
+import { getUserServicesList } from '@/services/sites';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { ArrowLeft, Globe, ExternalLink } from 'lucide-react';
@@ -8,28 +10,18 @@ import { ConnectedSiteSwitcher } from '@/components/domains/connected-site-switc
 
 export default async function DomainDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect('/login');
 
-  const [{ data: domain }, { data: services }] = await Promise.all([
-    supabase
-      .from('domains')
-      .select('*')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single(),
-    supabase
-      .from('services')
-      .select('id, label')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false }),
+  const [domain, services] = await Promise.all([
+    getDomainById(id, user.id),
+    getUserServicesList(user.id),
   ]);
 
   if (!domain) redirect('/dashboard/domains');
 
   // Find the service linked to this domain
-  const connectedService = services?.find((s: any) => s.id === domain.service_id) ?? null;
+  const connectedService = services.find((s: any) => s.id === domain.service_id) ?? null;
 
   return (
     <div>

@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase-server';
+import { getCurrentUser } from '@/services/auth';
+import { getSiteById } from '@/services/sites';
+import { getUserDomainsForSite } from '@/services/domains';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -25,22 +27,13 @@ export default async function SiteDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) notFound();
 
-  const [{ data: site }, { data: domains }] = await Promise.all([
-    supabase
-      .from('services')
-      .select('*, plans(name, slug)')
-      .eq('id', id)
-      .single(),
-    supabase
-      .from('domains')
-      .select('id, domain_name, service_id')
-      .eq('user_id', user.id)
-      .order('domain_name', { ascending: true }),
+  const [site, domains] = await Promise.all([
+    getSiteById(id),
+    getUserDomainsForSite(user.id),
   ]);
 
   if (!site) notFound();

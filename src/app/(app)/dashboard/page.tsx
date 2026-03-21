@@ -1,30 +1,28 @@
-import { createClient } from '@/lib/supabase-server';
+import { getCurrentUser } from '@/services/auth';
+import { getUserDashboardCounts, getRecentUserServices, getRecentUserDomains } from '@/services/admin';
+import { getActiveSubscription } from '@/services/subscriptions';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { Server, Globe, CreditCard, Plus } from 'lucide-react';
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const [
-    { count: sitesCount },
-    { count: domainsCount },
-    { data: services },
-    { data: domains },
-    { data: subscription },
+    { sitesCount, domainsCount },
+    services,
+    domains,
+    subscription,
   ] = await Promise.all([
-    supabase.from('services').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
-    supabase.from('domains').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
-    supabase.from('services').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(5),
-    supabase.from('domains').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(5),
-    supabase.from('subscriptions').select('*, plans(name, slug)')
-      .eq('status', 'active').limit(1).maybeSingle(),
+    getUserDashboardCounts(user!.id),
+    getRecentUserServices(user!.id, 5),
+    getRecentUserDomains(user!.id, 5),
+    getActiveSubscription(),
   ]);
 
   const stats = [
-    { label: 'Active sites', value: sitesCount ?? 0, icon: Server, href: '/dashboard/sites' },
-    { label: 'Domains', value: domainsCount ?? 0, icon: Globe, href: '/dashboard/domains' },
+    { label: 'Active sites', value: sitesCount, icon: Server, href: '/dashboard/sites' },
+    { label: 'Domains', value: domainsCount, icon: Globe, href: '/dashboard/domains' },
     { label: 'Current plan', value: (subscription as any)?.plans?.name ?? 'Free', icon: CreditCard, href: '/dashboard/billing' },
   ];
 

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase-server';
+import { getCustomerById, getCustomerRelatedData } from '@/services/admin';
 import { cn, formatDate, formatDateTime, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import {
@@ -19,13 +19,8 @@ export default async function CustomerDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
 
-  const { data: user } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', id)
-    .single();
+  const user = await getCustomerById(id);
 
   if (!user) {
     return (
@@ -44,34 +39,7 @@ export default async function CustomerDetailPage({
     );
   }
 
-  const [
-    { data: services },
-    { data: domains },
-    { data: subscriptions },
-    { data: logs },
-  ] = await Promise.all([
-    supabase
-      .from('services')
-      .select('*, plans(name)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('domains')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('subscriptions')
-      .select('*, plans(name, price_monthly)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('logs')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20),
-  ]);
+  const { services, domains, subscriptions, logs } = await getCustomerRelatedData(user.id);
 
   return (
     <div>
@@ -136,10 +104,10 @@ export default async function CustomerDetailPage({
           <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
             <Server className="w-4 h-4 text-gray-400" />
             <h2 className="text-sm font-semibold text-gray-900">
-              Services ({services?.length ?? 0})
+              Services ({services.length})
             </h2>
           </div>
-          {!services || services.length === 0 ? (
+          {services.length === 0 ? (
             <div className="p-8 text-center text-sm text-gray-400">
               No services.
             </div>
@@ -171,7 +139,7 @@ export default async function CustomerDetailPage({
                         </Link>
                       </td>
                       <td className="px-5 py-3 text-gray-600">
-                        {(s.plans as any)?.name ?? '—'}
+                        {(s.plans as any)?.name ?? '\u2014'}
                       </td>
                       <td className="px-5 py-3">
                         <span className={statusColor(s.status)}>{s.status}</span>
@@ -189,10 +157,10 @@ export default async function CustomerDetailPage({
           <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
             <Globe className="w-4 h-4 text-gray-400" />
             <h2 className="text-sm font-semibold text-gray-900">
-              Domains ({domains?.length ?? 0})
+              Domains ({domains.length})
             </h2>
           </div>
-          {!domains || domains.length === 0 ? (
+          {domains.length === 0 ? (
             <div className="p-8 text-center text-sm text-gray-400">
               No domains.
             </div>
@@ -239,7 +207,7 @@ export default async function CustomerDetailPage({
           <h2 className="text-sm font-semibold text-gray-900">Recent activity</h2>
         </div>
         <div className="divide-y divide-gray-100">
-          {!logs || logs.length === 0 ? (
+          {logs.length === 0 ? (
             <div className="p-8 text-center text-sm text-gray-400">
               No activity recorded.
             </div>
