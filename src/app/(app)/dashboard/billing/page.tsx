@@ -7,53 +7,7 @@ import Link from 'next/link';
 /* ------------------------------------------------------------------ */
 /*  Static plan definitions (one site per plan)                       */
 /* ------------------------------------------------------------------ */
-const PLANS = [
-  {
-    slug: 'minimum',
-    name: 'Minimum',
-    price: 5000, // cents
-    features: [
-      '1 site',
-      '10GB storage',
-      'Daily backups',
-      'SSL certificate',
-      'Email support',
-    ],
-    highlighted: false,
-  },
-  {
-    slug: 'growth',
-    name: 'Growth',
-    price: 12900,
-    features: [
-      '1 site',
-      '25GB storage',
-      'Daily backups',
-      'SSL certificate',
-      'Staging environment',
-      'CDN included',
-      'Priority support',
-    ],
-    highlighted: true,
-  },
-  {
-    slug: 'performance',
-    name: 'Performance',
-    price: 35000,
-    features: [
-      '1 site',
-      '50GB storage',
-      'Daily backups',
-      'SSL certificate',
-      'Staging environment',
-      'CDN included',
-      'Web Application Firewall',
-      'Dedicated support',
-      'Performance optimization',
-    ],
-    highlighted: false,
-  },
-];
+// Plans are fetched from the database (dbPlans) to get real Stripe price IDs.
 
 /* ------------------------------------------------------------------ */
 /*  Page                                                              */
@@ -71,6 +25,7 @@ export default async function BillingPage() {
     { data: services },
     { data: invoices },
     { data: customer },
+    { data: dbPlans },
   ] = await Promise.all([
     supabase
       .from('subscriptions')
@@ -91,6 +46,11 @@ export default async function BillingPage() {
       .select('*')
       .eq('user_id', user?.id ?? '')
       .maybeSingle(),
+    supabase
+      .from('plans')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
   ]);
 
   const allSubscriptions = subscriptions ?? [];
@@ -204,16 +164,16 @@ export default async function BillingPage() {
                 Add Another Site
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {PLANS.map((p) => (
+                {(dbPlans ?? []).map((p: any) => (
                   <div
                     key={p.slug}
                     className={`card p-6 flex flex-col ${
-                      p.highlighted
+                      p.slug === 'growth'
                         ? 'border-2 border-blue-500 shadow-md relative'
                         : ''
                     }`}
                   >
-                    {p.highlighted && (
+                    {p.slug === 'growth' && (
                       <span className="absolute -top-3 left-1/2 -translate-x-1/2 badge-blue text-xs px-3 py-0.5 rounded-full font-medium">
                         Most Popular
                       </span>
@@ -224,11 +184,11 @@ export default async function BillingPage() {
                       </h3>
                     </div>
                     <p className="text-3xl font-bold text-gray-900">
-                      {formatCents(p.price)}
+                      {formatCents(p.price_monthly)}
                       <span className="text-sm font-normal text-gray-500">/mo</span>
                     </p>
                     <ul className="mt-5 space-y-2.5 flex-1">
-                      {p.features.map((f, i) => (
+                      {(Array.isArray(p.features) ? p.features : []).map((f: string, i: number) => (
                         <li
                           key={i}
                           className="flex items-start gap-2 text-sm text-gray-600"
@@ -240,7 +200,7 @@ export default async function BillingPage() {
                     </ul>
                     <div className="mt-6">
                       <CheckoutButton
-                        priceId={p.slug}
+                        priceId={p.stripe_price_id_monthly}
                         className="w-full"
                         label="Add Site"
                       />
@@ -253,7 +213,7 @@ export default async function BillingPage() {
         ) : (
           /* ---- No subscription: show plan cards ---- */
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {PLANS.map((p) => (
+            {(dbPlans ?? []).map((p: any) => (
               <div
                 key={p.slug}
                 className={`card p-6 flex flex-col ${
@@ -262,7 +222,7 @@ export default async function BillingPage() {
                     : ''
                 }`}
               >
-                {p.highlighted && (
+                {p.slug === 'growth' && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 badge-blue text-xs px-3 py-0.5 rounded-full font-medium">
                     Most Popular
                   </span>
@@ -273,11 +233,11 @@ export default async function BillingPage() {
                   </h3>
                 </div>
                 <p className="text-3xl font-bold text-gray-900">
-                  {formatCents(p.price)}
+                  {formatCents(p.price_monthly)}
                   <span className="text-sm font-normal text-gray-500">/mo</span>
                 </p>
                 <ul className="mt-5 space-y-2.5 flex-1">
-                  {p.features.map((f, i) => (
+                  {(Array.isArray(p.features) ? p.features : []).map((f: string, i: number) => (
                     <li
                       key={i}
                       className="flex items-start gap-2 text-sm text-gray-600"
@@ -289,7 +249,7 @@ export default async function BillingPage() {
                 </ul>
                 <div className="mt-6">
                   <CheckoutButton
-                    priceId={p.slug}
+                    priceId={p.stripe_price_id_monthly}
                     className="w-full"
                     label="Choose Plan"
                   />
