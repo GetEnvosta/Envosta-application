@@ -59,7 +59,7 @@ export function supabaseForUser(req: Request) {
 }
 
 export function getStripe() {
-  return new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2024-11-20" });
+  return new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2023-10-16" });
 }
 
 export function getCryptoProvider() {
