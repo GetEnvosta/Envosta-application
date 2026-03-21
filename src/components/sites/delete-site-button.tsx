@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
 import { Loader2, Trash2 } from 'lucide-react';
-import { Modal } from '@/components/ui/modal';
+import Modal from '@/components/ui/modal';
 
 export function DeleteSiteButton({ serviceId, siteName, redirectTo = '/dashboard/sites' }: {
   serviceId: string;
