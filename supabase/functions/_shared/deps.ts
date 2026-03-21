@@ -19,16 +19,36 @@ export const WPCLOUD_CLIENT = Deno.env.get("WPCLOUD_CLIENT") ?? "envosta";
 export async function wpcloudPost(path: string, body?: Record<string, unknown>): Promise<{ ok: boolean; status: number; data: any }> {
   const url = `${WPCLOUD_PROXY_URL}${path}`;
   console.log("wpcloud POST:", url);
+  console.log("wpcloud body:", JSON.stringify(body));
+
+  // wp.cloud API uses application/x-www-form-urlencoded for most endpoints
+  const formBody = new URLSearchParams();
+  if (body) {
+    for (const [key, value] of Object.entries(body)) {
+      if (typeof value === "object" && value !== null) {
+        // Nested objects: flatten with bracket notation
+        for (const [subKey, subValue] of Object.entries(value as Record<string, unknown>)) {
+          formBody.append(`${key}[${subKey}]`, String(subValue));
+        }
+      } else {
+        formBody.append(key, String(value ?? ""));
+      }
+    }
+  }
+
   const res = await fetch(url, {
     method: "POST",
     headers: {
       "Auth": WPCLOUD_API_KEY,
       "X-Proxy-Secret": WPCLOUD_PROXY_SECRET,
-      "Content-Type": "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: formBody.toString(),
   });
-  const json = await res.json();
+  const rawText = await res.text();
+  console.log("wpcloud raw response:", res.status, rawText);
+  let json;
+  try { json = JSON.parse(rawText); } catch { json = { raw: rawText }; }
   return { ok: res.ok, status: res.status, data: json?.data ?? json };
 }
 
