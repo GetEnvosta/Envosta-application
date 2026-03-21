@@ -48,8 +48,9 @@ Deno.serve(async (req) => {
 
       console.log("Subscription upserted:", dbSub?.id, "status:", sub.status);
 
-      // Auto-create service record for NEW active subscriptions
-      if (event.type === "customer.subscription.created" && sub.status === "active" && dbSub) {
+      // Auto-create service record for active subscriptions (fires on both created and updated,
+      // because Stripe often sends "created" with status "incomplete" then "updated" with "active")
+      if (sub.status === "active" && dbSub) {
         const { data: existing } = await sb.from("services").select("id").eq("subscription_id", dbSub.id).maybeSingle();
         if (!existing) {
           const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.user_id).maybeSingle();
