@@ -1,78 +1,159 @@
 import { createClient } from '@/lib/supabase-server';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { Plus, ExternalLink, Server } from 'lucide-react';
+import { ExternalLink, Globe, Loader2, Server } from 'lucide-react';
 
 export default async function SitesPage() {
   const supabase = await createClient();
-  const { data: services } = await supabase
-    .from('services').select('*, plans(name)').order('created_at', { ascending: false });
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const [{ data: services }, { data: subscription }] = await Promise.all([
+    supabase
+      .from('services')
+      .select('*, plans(name, slug)')
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('subscriptions')
+      .select('*, plans(name, slug)')
+      .eq('status', 'active')
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const hasSubscription = !!subscription;
+  const hasSites = services && services.length > 0;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Sites</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage your WordPress hosting accounts</p>
-        </div>
-        <Link href="/dashboard/sites/new" className="btn-primary">
-          <Plus className="w-4 h-4" /> New site
-        </Link>
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold text-gray-900">Sites</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Manage your WordPress hosting accounts</p>
       </div>
 
-      {(!services || services.length === 0) ? (
+      {/* State A: No subscription */}
+      {!hasSubscription && !hasSites && (
         <div className="card p-12 text-center">
           <Server className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <h3 className="text-sm font-medium text-gray-900">No sites yet</h3>
-          <p className="text-sm text-gray-500 mt-1 mb-4">Create your first WordPress site to get started.</p>
-          <Link href="/dashboard/sites/new" className="btn-primary">Create site</Link>
+          <h3 className="text-base font-semibold text-gray-900">
+            You don&apos;t have a hosting plan yet.
+          </h3>
+          <p className="text-sm text-gray-500 mt-1.5 mb-5 max-w-sm mx-auto">
+            Choose a plan to get your WordPress site set up and running.
+          </p>
+          <Link href="/dashboard/billing" className="btn-primary">
+            View Plans
+          </Link>
         </div>
-      ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Site</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3 hidden sm:table-cell">Plan</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3 hidden md:table-cell">Region</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Status</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3 hidden md:table-cell">Created</th>
-                <th className="px-5 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {services.map((s: any) => (
-                <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-5 py-4">
-                    <p className="text-sm font-medium text-gray-900">{s.label}</p>
-                    {s.wp_cloud_url && (
-                      <p className="text-xs text-gray-500 mt-0.5">{s.wp_cloud_url}</p>
-                    )}
-                  </td>
-                  <td className="px-5 py-4 hidden sm:table-cell">
-                    <span className="text-sm text-gray-600">{(s as any).plans?.name ?? '—'}</span>
-                  </td>
-                  <td className="px-5 py-4 hidden md:table-cell">
-                    <span className="text-sm text-gray-600 font-mono">{s.server_region}</span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className={statusColor(s.status)}>{s.status}</span>
-                  </td>
-                  <td className="px-5 py-4 hidden md:table-cell">
-                    <span className="text-sm text-gray-500">{formatDate(s.created_at)}</span>
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    {s.wp_cloud_url && (
-                      <a href={s.wp_cloud_url} target="_blank" rel="noopener noreferrer"
-                        className="btn-ghost text-xs py-1.5 px-2.5">
-                        <ExternalLink className="w-3.5 h-3.5" /> Visit
+      )}
+
+      {/* State B: Subscription but no site */}
+      {hasSubscription && !hasSites && (
+        <div className="card p-8 text-center">
+          <div className="flex items-center justify-center mb-4">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 text-brand-600 animate-spin" />
+              </div>
+              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-amber-400 rounded-full border-2 border-white" />
+            </div>
+          </div>
+          <h3 className="text-base font-semibold text-gray-900">
+            Your site is being set up.
+          </h3>
+          <p className="text-sm text-gray-500 mt-1.5 max-w-md mx-auto">
+            We&apos;re preparing your WordPress site. This usually takes less than 24 hours.
+          </p>
+          <div className="mt-6 max-w-xs mx-auto">
+            <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full w-2/3 bg-brand-500 rounded-full animate-pulse" />
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Provisioning in progress...</p>
+          </div>
+        </div>
+      )}
+
+      {/* State C: Has sites */}
+      {hasSites && (
+        <div className="grid grid-cols-1 gap-4">
+          {services.map((site: any) => {
+            const planName = site.plans?.name ?? 'Unknown';
+            const status: string = site.status ?? 'provisioning';
+            const statusBadge =
+              status === 'active'
+                ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'
+                : status === 'provisioning'
+                  ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20'
+                  : status === 'suspended'
+                    ? 'bg-red-50 text-red-700 ring-1 ring-red-600/20'
+                    : 'bg-gray-100 text-gray-600 ring-1 ring-gray-500/20';
+
+            return (
+              <div key={site.id} className="card p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <h3 className="text-base font-semibold text-gray-900">
+                        {site.label}
+                      </h3>
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${statusBadge}`}
+                      >
+                        {status}
+                      </span>
+                      <span className="badge-indigo">{planName}</span>
+                    </div>
+                    {site.wp_cloud_url && (
+                      <a
+                        href={site.wp_cloud_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 mt-1.5"
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                        {site.wp_cloud_url.replace(/^https?:\/\//, '')}
                       </a>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {site.wp_cloud_url && (
+                      <>
+                        <a
+                          href={`${site.wp_cloud_url}/wp-admin`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-secondary text-sm py-2 px-3.5"
+                        >
+                          Open WP Admin
+                        </a>
+                        <a
+                          href={site.wp_cloud_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-secondary text-sm py-2 px-3.5"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          Visit Site
+                        </a>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+                  <p className="text-xs text-gray-500">
+                    Created {formatDate(site.created_at)}
+                  </p>
+                  <Link
+                    href={`/dashboard/sites/${site.id}`}
+                    className="text-sm font-medium text-brand-600 hover:text-brand-700"
+                  >
+                    Manage Site &rarr;
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

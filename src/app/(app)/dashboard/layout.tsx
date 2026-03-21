@@ -8,10 +8,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!user) redirect('/auth/login');
 
   const { data: profile } = await supabase
-    .from('users').select('*').eq('id', user.id).single();
+    .from('users')
+    .select('id, full_name, email, avatar_url, role')
+    .eq('id', user.id)
+    .single();
 
   return (
-    <DashboardShell user={profile} email={user.email ?? ''} role={profile?.role ?? 'customer'}>
+    <DashboardShell
+      user={{
+        full_name: profile?.full_name ?? null,
+        email: profile?.email ?? user.email ?? '',
+        avatar_url: profile?.avatar_url ?? null,
+        role: profile?.role ?? 'customer',
+      }}
+    >
       {children}
     </DashboardShell>
   );

@@ -62,3 +62,22 @@
     @apply btn text-admin-200 hover:bg-admin-800 hover:text-white;
   }
 }
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 0.15s ease-out;
+  }
+  .animate-scale-in {
+    animation: scale-in 0.15s ease-out;
+  }
+}

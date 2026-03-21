@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import { Loader2 } from 'lucide-react';
 
-export function CheckoutButton({ priceId, className }: { priceId: string; className?: string }) {
+export function CheckoutButton({ priceId, className, label = 'Upgrade' }: { priceId: string; className?: string; label?: string }) {
   const [loading, setLoading] = useState(false);
 
   async function handleCheckout() {
@@ -44,7 +44,7 @@ export function CheckoutButton({ priceId, className }: { priceId: string; classN
 
   return (
     <button onClick={handleCheckout} className={`btn-primary ${className ?? ''}`} disabled={loading}>
-      {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting…</> : 'Upgrade'}
+      {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Redirecting…</> : label}
     </button>
   );
 }

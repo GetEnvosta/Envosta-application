@@ -1,18 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase-browser';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Search, Loader2, Check, X } from 'lucide-react';
 import Link from 'next/link';
 
-export default function NewDomainPage() {
+export default function RegisterDomainPage() {
   const [domain, setDomain] = useState('');
   const [checking, setChecking] = useState(false);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [registering, setRegistering] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q) {
+      setDomain(q);
+    }
+  }, [searchParams]);
 
   async function callFunction(body: any) {
     const supabase = createClient();
@@ -66,10 +74,10 @@ export default function NewDomainPage() {
         <ArrowLeft className="w-4 h-4" /> Back to domains
       </Link>
 
-      <h1 className="text-xl font-semibold text-gray-900 mb-1">Register a domain</h1>
+      <h1 className="text-xl font-semibold text-gray-900 mb-1">Register a Domain</h1>
       <p className="text-sm text-gray-500 mb-6">Search for available domain names and register them instantly.</p>
 
-      <div className="card p-6 max-w-lg">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 max-w-lg">
         <form onSubmit={checkAvailability} className="space-y-4">
           {error && (
             <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>
@@ -78,9 +86,14 @@ export default function NewDomainPage() {
           <div>
             <label className="label">Domain name</label>
             <div className="flex gap-2">
-              <input type="text" className="input flex-1" value={domain}
+              <input
+                type="text"
+                className="input flex-1"
+                value={domain}
                 onChange={e => { setDomain(e.target.value); setAvailable(null); }}
-                placeholder="example.com" required />
+                placeholder="example.com"
+                required
+              />
               <button type="submit" className="btn-secondary shrink-0" disabled={checking}>
                 {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 Check
@@ -110,7 +123,7 @@ export default function NewDomainPage() {
             </div>
             {available && (
               <button onClick={handleRegister} className="btn-primary text-sm" disabled={registering}>
-                {registering ? <><Loader2 className="w-4 h-4 animate-spin" /> Registering…</> : 'Register'}
+                {registering ? <><Loader2 className="w-4 h-4 animate-spin" /> Registering...</> : 'Register'}
               </button>
             )}
           </div>
