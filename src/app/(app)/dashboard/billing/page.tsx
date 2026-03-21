@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase-server';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
 import { CheckoutButton } from '@/components/billing/checkout-button';
-import { Check, CreditCard, ExternalLink, Shield } from 'lucide-react';
+import { Check, CreditCard, ExternalLink, Plus, Server, Shield } from 'lucide-react';
+import Link from 'next/link';
 
 /* ------------------------------------------------------------------ */
 /*  Static plan definitions (one site per plan)                       */
@@ -63,19 +64,23 @@ export default async function BillingPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  /* Fetch subscription (with nested plan + customer), invoices, and
-     the customer row for payment‑method info. */
+  /* Fetch ALL subscriptions (with nested plan + customer), services,
+     invoices, and the customer row for payment-method info. */
   const [
-    { data: subscription },
+    { data: subscriptions },
+    { data: services },
     { data: invoices },
     { data: customer },
   ] = await Promise.all([
     supabase
       .from('subscriptions')
       .select('*, plans(name, slug, price_monthly, features), customers(stripe_customer_id)')
-      .eq('status', 'active')
-      .limit(1)
-      .maybeSingle(),
+      .in('status', ['active', 'trialing'])
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('services')
+      .select('id, label, subscription_id')
+      .order('created_at', { ascending: false }),
     supabase
       .from('invoices')
       .select('*')
@@ -88,9 +93,17 @@ export default async function BillingPage() {
       .maybeSingle(),
   ]);
 
-  const plan = (subscription as any)?.plans as
-    | { name: string; slug: string; price_monthly: number; features: string[] }
-    | null;
+  const allSubscriptions = subscriptions ?? [];
+  const allServices = services ?? [];
+  const hasSubscriptions = allSubscriptions.length > 0;
+
+  // Build a map of subscription_id -> service for quick lookup
+  const serviceBySubId = new Map<string, any>();
+  for (const svc of allServices) {
+    if (svc.subscription_id) {
+      serviceBySubId.set(svc.subscription_id, svc);
+    }
+  }
 
   /* Payment method info stored on customer row (populated by webhook) */
   const pmBrand: string | null = (customer as any)?.card_brand ?? null;
@@ -103,56 +116,140 @@ export default async function BillingPage() {
       <div>
         <h1 className="text-xl font-semibold text-gray-900 mb-1">Billing</h1>
         <p className="text-sm text-gray-500">
-          Manage your subscription, payment method, and view invoices
+          Manage your subscriptions, payment method, and view invoices
         </p>
       </div>
 
-      {/* ── Section 1: Current Plan ──────────────────────────────── */}
+      {/* -- Section 1: Subscriptions ---------------------------------- */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Current Plan</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-900">
+            {hasSubscriptions ? 'Your Subscriptions' : 'Choose a Plan'}
+          </h2>
+        </div>
 
-        {subscription && plan ? (
-          /* ---- Active subscription card ---- */
-          <div className="card p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-lg font-semibold text-gray-900">{plan.name}</p>
-                  <span className={statusColor((subscription as any).status)}>
-                    {(subscription as any).status}
-                  </span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {formatCents(plan.price_monthly)}
-                  <span className="text-sm font-normal text-gray-500">/mo</span>
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Next renewal {formatDate((subscription as any).current_period_end)}
-                </p>
-              </div>
+        {hasSubscriptions ? (
+          <>
+            {/* Active subscription cards */}
+            <div className="grid grid-cols-1 gap-4 mb-6">
+              {allSubscriptions.map((sub: any) => {
+                const plan = sub.plans as
+                  | { name: string; slug: string; price_monthly: number; features: string[] }
+                  | null;
+                const linkedService = serviceBySubId.get(sub.id);
 
-              <div className="flex flex-col sm:flex-row gap-2">
-                <button className="btn-secondary" disabled>
-                  Change Plan
-                </button>
-                <button className="btn-primary" disabled>
-                  Manage Subscription
-                </button>
-              </div>
+                return (
+                  <div key={sub.id} className="card p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-lg font-semibold text-gray-900">{plan?.name ?? 'Plan'}</p>
+                          <span className={statusColor(sub.status)}>
+                            {sub.status}
+                          </span>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">
+                          {formatCents(plan?.price_monthly ?? 0)}
+                          <span className="text-sm font-normal text-gray-500">/mo</span>
+                        </p>
+                        <div className="flex items-center gap-4 mt-1.5">
+                          <p className="text-xs text-gray-500">
+                            Next renewal {formatDate(sub.current_period_end)}
+                          </p>
+                          <span className="text-xs text-gray-300">|</span>
+                          {linkedService ? (
+                            <Link
+                              href={`/dashboard/sites/${linkedService.id}`}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
+                            >
+                              <Server className="w-3 h-3" />
+                              {linkedService.label}
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-gray-400">No site linked yet</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button className="btn-secondary" disabled>
+                          Change Plan
+                        </button>
+                        <button className="btn-primary" disabled>
+                          Manage Subscription
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Feature checkmarks */}
+                    {plan?.features && plan.features.length > 0 && (
+                      <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2">
+                        {plan.features.map((f: string, i: number) => (
+                          <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
+                            <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Feature checkmarks */}
-            {plan.features && plan.features.length > 0 && (
-              <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2">
-                {plan.features.map((f: string, i: number) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                    <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                    {f}
-                  </li>
+            {/* Add another site - plan picker */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-1.5">
+                <Plus className="w-4 h-4" />
+                Add Another Site
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {PLANS.map((p) => (
+                  <div
+                    key={p.slug}
+                    className={`card p-6 flex flex-col ${
+                      p.highlighted
+                        ? 'border-2 border-blue-500 shadow-md relative'
+                        : ''
+                    }`}
+                  >
+                    {p.highlighted && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 badge-blue text-xs px-3 py-0.5 rounded-full font-medium">
+                        Most Popular
+                      </span>
+                    )}
+                    <div className="mb-4">
+                      <h3 className="text-base font-semibold text-gray-900">
+                        {p.name}
+                      </h3>
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900">
+                      {formatCents(p.price)}
+                      <span className="text-sm font-normal text-gray-500">/mo</span>
+                    </p>
+                    <ul className="mt-5 space-y-2.5 flex-1">
+                      {p.features.map((f, i) => (
+                        <li
+                          key={i}
+                          className="flex items-start gap-2 text-sm text-gray-600"
+                        >
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-6">
+                      <CheckoutButton
+                        priceId={p.slug}
+                        className="w-full"
+                        label="Add Site"
+                      />
+                    </div>
+                  </div>
                 ))}
-              </ul>
-            )}
-          </div>
+              </div>
+            </div>
+          </>
         ) : (
           /* ---- No subscription: show plan cards ---- */
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -203,7 +300,7 @@ export default async function BillingPage() {
         )}
       </section>
 
-      {/* ── Section 2: Payment Method ────────────────────────────── */}
+      {/* -- Section 2: Payment Method --------------------------------- */}
       <section>
         <h2 className="text-sm font-semibold text-gray-900 mb-4">Payment Method</h2>
         <div className="card p-6">
@@ -243,7 +340,7 @@ export default async function BillingPage() {
         </div>
       </section>
 
-      {/* ── Section 3: Billing History ───────────────────────────── */}
+      {/* -- Section 3: Billing History -------------------------------- */}
       <section>
         <h2 className="text-sm font-semibold text-gray-900 mb-4">Billing History</h2>
 

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase-server';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { ExternalLink, Globe, Loader2, Server } from 'lucide-react';
+import { ExternalLink, Globe, Loader2, Plus, Server } from 'lucide-react';
 
 export default async function SitesPage() {
   const supabase = await createClient();
@@ -10,29 +10,41 @@ export default async function SitesPage() {
   const [{ data: services }, { data: subscriptions }] = await Promise.all([
     supabase
       .from('services')
-      .select('*, plans(name, slug)')
+      .select('*, plans(name, slug), subscriptions(id, status, current_period_end, plans(name))')
       .order('created_at', { ascending: false }),
     supabase
       .from('subscriptions')
       .select('*, plans(name, slug)')
       .in('status', ['active', 'trialing'])
-      .order('created_at', { ascending: false })
-      .limit(1),
+      .order('created_at', { ascending: false }),
   ]);
 
-  const subscription = subscriptions?.[0] ?? null;
-  const hasSubscription = !!subscription;
-  const hasSites = services && services.length > 0;
-  const hasProvisioningSite = services?.some(s => s.status === 'provisioning');
+  const allSubscriptions = subscriptions ?? [];
+  const allServices = services ?? [];
+  const hasSubscription = allSubscriptions.length > 0;
+  const hasSites = allServices.length > 0;
+  const hasProvisioningSite = allServices.some(s => s.status === 'provisioning');
+
+  // Find subscriptions that don't have a linked service
+  const linkedSubIds = new Set(allServices.map((s: any) => s.subscription_id).filter(Boolean));
+  const unlinkedSubscriptions = allSubscriptions.filter((sub: any) => !linkedSubIds.has(sub.id));
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Sites</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage your WordPress hosting accounts</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Sites</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Manage your WordPress hosting accounts</p>
+        </div>
+        {hasSubscription && (
+          <Link href="/dashboard/billing" className="btn-secondary text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
+            <Plus className="w-4 h-4" />
+            Add Another Site
+          </Link>
+        )}
       </div>
 
-      {/* State A: No subscription */}
+      {/* State A: No subscription at all */}
       {!hasSubscription && !hasSites && (
         <div className="card p-12 text-center">
           <Server className="w-10 h-10 text-gray-300 mx-auto mb-3" />
@@ -48,22 +60,9 @@ export default async function SitesPage() {
         </div>
       )}
 
-      {/* State B: Subscription but no site provisioned yet */}
-      {hasSubscription && !hasSites && !hasProvisioningSite && (
-        <div className="card p-12 text-center">
-          <Globe className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-gray-900">
-            Your plan is active — site setup coming soon.
-          </h3>
-          <p className="text-sm text-gray-500 mt-1.5 max-w-md mx-auto">
-            We&apos;re reviewing your account and will begin setting up your WordPress site shortly. You&apos;ll be notified when it&apos;s ready.
-          </p>
-        </div>
-      )}
-
-      {/* State B2: Site is actively provisioning */}
-      {hasProvisioningSite && (
-        <div className="card p-8 text-center">
+      {/* Provisioning sites */}
+      {allServices.filter((s: any) => s.status === 'provisioning').map((site: any) => (
+        <div key={site.id} className="card p-8 text-center mb-4">
           <div className="flex items-center justify-center mb-4">
             <div className="relative">
               <div className="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center">
@@ -73,11 +72,14 @@ export default async function SitesPage() {
             </div>
           </div>
           <h3 className="text-base font-semibold text-gray-900">
-            Your site is being set up.
+            {site.label} is being set up.
           </h3>
           <p className="text-sm text-gray-500 mt-1.5 max-w-md mx-auto">
             We&apos;re preparing your WordPress site. This usually takes less than 24 hours.
           </p>
+          {(site as any).subscriptions?.plans?.name && (
+            <p className="text-xs text-gray-400 mt-2">Plan: {(site as any).subscriptions.plans.name}</p>
+          )}
           <div className="mt-6 max-w-xs mx-auto">
             <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
               <div className="h-full w-2/3 bg-brand-500 rounded-full animate-pulse" />
@@ -85,22 +87,34 @@ export default async function SitesPage() {
             <p className="text-xs text-gray-400 mt-2">Provisioning in progress...</p>
           </div>
         </div>
-      )}
+      ))}
 
-      {/* State C: Has sites */}
-      {hasSites && (
+      {/* Subscriptions without linked sites */}
+      {unlinkedSubscriptions.map((sub: any) => (
+        <div key={sub.id} className="card p-8 text-center mb-4">
+          <Globe className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-gray-900">
+            Your {sub.plans?.name ?? 'hosting'} plan is active — site setup coming soon.
+          </h3>
+          <p className="text-sm text-gray-500 mt-1.5 max-w-md mx-auto">
+            We&apos;re reviewing your account and will begin setting up your WordPress site shortly. You&apos;ll be notified when it&apos;s ready.
+          </p>
+          <span className="inline-block mt-3 badge-indigo">{sub.plans?.name ?? 'Plan'}</span>
+        </div>
+      ))}
+
+      {/* Active / non-provisioning site cards */}
+      {allServices.filter((s: any) => s.status !== 'provisioning').length > 0 && (
         <div className="grid grid-cols-1 gap-4">
-          {services.map((site: any) => {
-            const planName = site.plans?.name ?? 'Unknown';
-            const status: string = site.status ?? 'provisioning';
+          {allServices.filter((s: any) => s.status !== 'provisioning').map((site: any) => {
+            const planName = site.plans?.name ?? (site as any).subscriptions?.plans?.name ?? 'Unknown';
+            const status: string = site.status ?? 'pending';
             const statusBadge =
               status === 'active'
                 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'
-                : status === 'provisioning'
-                  ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20'
-                  : status === 'suspended'
-                    ? 'bg-red-50 text-red-700 ring-1 ring-red-600/20'
-                    : 'bg-gray-100 text-gray-600 ring-1 ring-gray-500/20';
+                : status === 'suspended'
+                  ? 'bg-red-50 text-red-700 ring-1 ring-red-600/20'
+                  : 'bg-gray-100 text-gray-600 ring-1 ring-gray-500/20';
 
             return (
               <div key={site.id} className="card p-6">

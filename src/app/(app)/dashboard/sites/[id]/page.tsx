@@ -17,6 +17,7 @@ import {
   Layers,
   Lock,
 } from 'lucide-react';
+import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-switcher';
 
 export default async function SiteDetailPage({
   params,
@@ -29,13 +30,23 @@ export default async function SiteDetailPage({
 
   if (!user) notFound();
 
-  const { data: site } = await supabase
-    .from('services')
-    .select('*, plans(name, slug)')
-    .eq('id', id)
-    .single();
+  const [{ data: site }, { data: domains }] = await Promise.all([
+    supabase
+      .from('services')
+      .select('*, plans(name, slug)')
+      .eq('id', id)
+      .single(),
+    supabase
+      .from('domains')
+      .select('id, domain_name, service_id')
+      .eq('user_id', user.id)
+      .order('domain_name', { ascending: true }),
+  ]);
 
   if (!site) notFound();
+
+  // Find the domain currently connected to this site
+  const connectedDomain = (domains ?? []).find((d: any) => d.service_id === id) ?? null;
 
   const planName = (site as any).plans?.name ?? 'Unknown';
   const planSlug: string = (site as any).plans?.slug ?? '';
@@ -176,27 +187,16 @@ export default async function SiteDetailPage({
 
       {/* Connected Domain */}
       <div className="card p-6 mb-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
           <Globe className="w-4 h-4 text-gray-400" />
           Connected Domain
         </h2>
-        {site.wp_cloud_url ? (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-700 font-mono">
-              {site.wp_cloud_url.replace(/^https?:\/\//, '')}
-            </p>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">No domain connected</p>
-            <Link
-              href="/dashboard/domains"
-              className="text-sm font-medium text-brand-600 hover:text-brand-700"
-            >
-              Connect a domain &rarr;
-            </Link>
-          </div>
-        )}
+        <p className="text-sm text-gray-500 mb-4">Choose which domain is connected to this site.</p>
+        <ConnectedDomainSwitcher
+          siteId={id}
+          currentDomainId={connectedDomain?.id ?? null}
+          domains={domains ?? []}
+        />
       </div>
 
       {/* Backups */}

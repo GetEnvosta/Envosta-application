@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowLeft, Globe, ExternalLink } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { DnsManager } from './dns-manager';
+import { ConnectedSiteSwitcher } from '@/components/domains/connected-site-switcher';
 
 export default async function DomainDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,21 +12,24 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: domain } = await supabase
-    .from('domains')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single();
+  const [{ data: domain }, { data: services }] = await Promise.all([
+    supabase
+      .from('domains')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single(),
+    supabase
+      .from('services')
+      .select('id, label')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
+  ]);
 
   if (!domain) redirect('/dashboard/domains');
 
-  // Check for connected site
-  const { data: site } = await supabase
-    .from('sites')
-    .select('id, name')
-    .eq('domain_id', id)
-    .maybeSingle();
+  // Find the service linked to this domain
+  const connectedService = services?.find((s: any) => s.id === domain.service_id) ?? null;
 
   return (
     <div>
@@ -114,19 +118,12 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
       {/* Connected Site */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h2 className="text-sm font-semibold text-gray-900 mb-1">Connected Site</h2>
-        <p className="text-sm text-gray-500 mb-4">The website associated with this domain.</p>
-        {site ? (
-          <Link href={`/dashboard/sites/${site.id}`} className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700">
-            <ExternalLink className="w-4 h-4" />
-            {site.name}
-          </Link>
-        ) : (
-          <p className="text-sm text-gray-400">Not connected.{' '}
-            <Link href="/dashboard/sites" className="text-brand-600 hover:text-brand-700 font-medium">
-              Link a site
-            </Link>
-          </p>
-        )}
+        <p className="text-sm text-gray-500 mb-4">Choose which site this domain is connected to.</p>
+        <ConnectedSiteSwitcher
+          domainId={domain.id}
+          currentServiceId={domain.service_id}
+          services={services ?? []}
+        />
       </div>
     </div>
   );
