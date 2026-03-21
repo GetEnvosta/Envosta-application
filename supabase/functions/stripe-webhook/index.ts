@@ -1,116 +1,11 @@
-import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, wpcloudPost, WPCLOUD_CLIENT, json, error, log } from "../_shared/deps.ts";
-
-// Plan config for auto-provisioning
-const PLAN_CONFIG: Record<string, { storage: string; phpWorkers: number; phpMemory: number }> = {
-  minimum:     { storage: "25G",  phpWorkers: 4,  phpMemory: 512 },
-  growth:      { storage: "50G",  phpWorkers: 6,  phpMemory: 1024 },
-  performance: { storage: "200G", phpWorkers: 10, phpMemory: 2048 },
-};
-const DEFAULT_GEO = "dca";
-const DEFAULT_PHP = "8.4";
+import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, json, error, log } from "../_shared/deps.ts";
 
 /**
- * Auto-provision a WordPress site after successful subscription payment.
+ * Stripe webhook handler.
+ * Auto-provisioning: creates a service record with status "provisioning".
+ * The actual wp.cloud API call is triggered separately (admin action or cron)
+ * to avoid webhook timeouts.
  */
-async function autoProvisionSite(sb: ReturnType<typeof supabaseAdmin>, userId: string, subscriptionId: string, planId: string | null) {
-  try {
-    // Check if this subscription already has a site
-    const { data: existingSvc } = await sb.from("services")
-      .select("id").eq("subscription_id", subscriptionId).maybeSingle();
-    if (existingSvc) {
-      console.log("Site already exists for subscription:", subscriptionId);
-      return;
-    }
-
-    // Get plan details
-    let planSlug = "minimum";
-    if (planId) {
-      const { data: plan } = await sb.from("plans").select("slug").eq("id", planId).single();
-      if (plan) planSlug = plan.slug;
-    }
-
-    // Get user email for WP admin
-    const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", userId).single();
-    const adminEmail = userProfile?.email ?? "admin@envosta.com";
-    const siteName = userProfile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
-    const siteIdentifier = `envosta-${Date.now()}`;
-
-    // Create service record (provisioning)
-    const { data: svc, error: svcErr } = await sb.from("services").insert({
-      user_id: userId,
-      subscription_id: subscriptionId,
-      plan_id: planId,
-      type: "hosting",
-      label: `${siteName}-site`,
-      status: "provisioning",
-      server_region: DEFAULT_GEO,
-      php_version: DEFAULT_PHP,
-    }).select().single();
-
-    if (svcErr) {
-      console.error("Failed to create service record:", svcErr);
-      await log({ userId, level: "error", action: "hosting.auto_provision.db_error", message: svcErr.message });
-      return;
-    }
-
-    console.log("Auto-provisioning site for subscription:", subscriptionId, "service:", svc.id);
-
-    // Call wp.cloud via proxy
-    const config = PLAN_CONFIG[planSlug] ?? PLAN_CONFIG.minimum;
-    const wpBody = {
-      admin_email: adminEmail,
-      admin_user: "envosta_admin",
-      php_version: DEFAULT_PHP,
-      space_quota: config.storage,
-      geo_affinity: DEFAULT_GEO,
-      db_charset: "utf8mb4",
-      domain_name: `${siteName}.envosta.com`,
-      meta: {
-        default_php_conns: config.phpWorkers,
-        burst_php_conns: 1,
-        php_memory_limit: config.phpMemory,
-      },
-      persist_data: {
-        envosta_service_id: svc.id,
-        envosta_user_id: userId,
-        envosta_plan: planSlug,
-      },
-    };
-
-    const result = await wpcloudPost(`/wpcom/v2/atomic/site/${WPCLOUD_CLIENT}`, wpBody);
-
-    console.log("wp.cloud auto-provision response:", result.status, JSON.stringify(result.data));
-
-    if (!result.ok) {
-      await sb.from("services").update({
-        status: "failed",
-        metadata: { error: result.data, http_status: result.status, auto_provisioned: true },
-      }).eq("id", svc.id);
-      await log({ userId, serviceId: svc.id, level: "error", action: "hosting.auto_provision.failed", message: result.data?.message ?? `HTTP ${result.status}`, res: result.data });
-      return;
-    }
-
-    // Success
-    const wpSiteId = result.data?.atomic_site_id ?? result.data?.wpcom_blog_id ?? result.data?.job_id;
-    const wpDomain = result.data?.domain_name ?? wpBody.domain_name;
-    const wpUrl = wpDomain ? `https://${wpDomain}` : null;
-
-    await sb.from("services").update({
-      status: "active",
-      wp_cloud_site_id: String(wpSiteId ?? ""),
-      wp_cloud_url: wpUrl,
-      provisioned_at: new Date().toISOString(),
-      metadata: { wp_cloud_response: result.data, job_id: result.data?.job_id, auto_provisioned: true },
-    }).eq("id", svc.id);
-
-    await log({ userId, serviceId: svc.id, action: "hosting.auto_provision.success", message: wpDomain ?? svc.label });
-    console.log("Auto-provisioned site:", svc.id, wpDomain);
-
-  } catch (e) {
-    console.error("Auto-provision error:", e);
-    await log({ userId, level: "error", action: "hosting.auto_provision.error", message: String(e) });
-  }
-}
 
 Deno.serve(async (req) => {
   const stripe = getStripe();
@@ -184,9 +79,38 @@ Deno.serve(async (req) => {
           cancelled_at: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null,
         }, { onConflict: "stripe_subscription_id" }).select("id").single();
 
-        // Auto-provision site on NEW active subscription
+        // Auto-provision: create a service record immediately (fast DB insert),
+        // then trigger the actual wp.cloud provisioning asynchronously via Edge Function call.
         if (event.type === "customer.subscription.created" && sub.status === "active" && upsertedSub) {
-          await autoProvisionSite(sb, cust.user_id, upsertedSub.id, plan?.id ?? null);
+          try {
+            // Get user info for site label
+            const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.user_id).single();
+            const siteName = userProfile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
+            let planSlug = "minimum";
+            if (plan?.id) {
+              const { data: planData } = await sb.from("plans").select("slug").eq("id", plan.id).single();
+              if (planData) planSlug = planData.slug;
+            }
+
+            // Create service record (provisioning) — this is a fast DB insert
+            await sb.from("services").insert({
+              user_id: cust.user_id,
+              subscription_id: upsertedSub.id,
+              plan_id: plan?.id ?? null,
+              type: "hosting",
+              label: `${siteName}-site`,
+              status: "provisioning",
+              server_region: "dca",
+              php_version: "8.4",
+              metadata: { auto_provisioned: true, plan_slug: planSlug },
+            });
+
+            await log({ userId: cust.user_id, action: "hosting.auto_provision.queued", message: `${siteName}-site (${planSlug})` });
+            console.log("Service record created, provisioning will be triggered separately");
+          } catch (provErr) {
+            console.error("Failed to create service record:", provErr);
+            await log({ userId: cust.user_id, level: "error", action: "hosting.auto_provision.queue_failed", message: String(provErr) });
+          }
         }
         break;
       }
@@ -221,14 +145,32 @@ Deno.serve(async (req) => {
           paid_at: new Date().toISOString(),
         }, { onConflict: "stripe_invoice_id" });
 
-        // If this is the first invoice for a subscription, and auto-provision didn't fire
-        // on subscription.created (e.g., subscription started as incomplete), try now
+        // If this is the first invoice for a subscription that started as incomplete,
+        // create a service record now (same lightweight approach as subscription.created)
         if (inv.subscription) {
           const subStripeId = typeof inv.subscription === "string" ? inv.subscription : inv.subscription.id;
           const { data: dbSub } = await sb.from("subscriptions")
             .select("id, plan_id").eq("stripe_subscription_id", subStripeId).single();
           if (dbSub) {
-            await autoProvisionSite(sb, cust.user_id, dbSub.id, dbSub.plan_id);
+            // Check if service already exists for this subscription
+            const { data: existingSvc } = await sb.from("services")
+              .select("id").eq("subscription_id", dbSub.id).maybeSingle();
+            if (!existingSvc) {
+              const { data: userProfile } = await sb.from("users").select("full_name").eq("id", cust.user_id).single();
+              const siteName = userProfile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
+              let planSlug = "minimum";
+              if (dbSub.plan_id) {
+                const { data: planData } = await sb.from("plans").select("slug").eq("id", dbSub.plan_id).single();
+                if (planData) planSlug = planData.slug;
+              }
+              await sb.from("services").insert({
+                user_id: cust.user_id, subscription_id: dbSub.id, plan_id: dbSub.plan_id,
+                type: "hosting", label: `${siteName}-site`, status: "provisioning",
+                server_region: "dca", php_version: "8.4",
+                metadata: { auto_provisioned: true, plan_slug: planSlug },
+              });
+              await log({ userId: cust.user_id, action: "hosting.auto_provision.queued", message: `via invoice.paid` });
+            }
           }
         }
         break;
