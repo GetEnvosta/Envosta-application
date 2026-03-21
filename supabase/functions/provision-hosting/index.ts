@@ -111,14 +111,20 @@ Deno.serve(async (req) => {
       },
     };
 
-    // Determine the domain to use as identifier
+    // Determine the domain
     const siteDomain = domainName ?? `${siteName}.envosta.com`;
     wpBody.domain_name = siteDomain;
 
+    // Use demo_domain flag to let wp.cloud generate the domain
+    // instead of passing domain in URL path (dots cause routing issues)
+    wpBody.demo_domain = true;
+
     // Call wp.cloud Atomic API via proxy
-    // Endpoint: POST /create-site/{client}/{identifier}
-    // Using the domain as the identifier (the API accepts domains interchangeably with site IDs)
-    const result = await wpcloudPost(`/api/v1.0/create-site/${WPCLOUD_CLIENT}/${siteDomain}`, wpBody);
+    // POST /create-site/{client}/{identifier}
+    // Using a unique numeric-style identifier since domain-in-path has dot issues
+    const siteIdentifier = Date.now().toString();
+    console.log("Creating site with identifier:", siteIdentifier, "domain:", siteDomain);
+    const result = await wpcloudPost(`/api/v1.0/create-site/${WPCLOUD_CLIENT}/${siteIdentifier}`, wpBody);
     const ms = Date.now() - t0;
 
     console.log("wp.cloud provision result:", result.status, JSON.stringify(result.data));
