@@ -113,21 +113,27 @@ Deno.serve(async (req) => {
 
     // Determine the domain
     const siteDomain = domainName ?? `${siteName}.envosta.com`;
-    wpBody.domain_name = siteDomain;
-
-    // Use demo_domain flag to let wp.cloud generate the domain
-    // instead of passing domain in URL path (dots cause routing issues)
-    wpBody.demo_domain = true;
-
-    // Call wp.cloud Atomic API via proxy
-    // POST /create-site/{client}/{identifier}
-    // Using a unique numeric-style identifier since domain-in-path has dot issues
     const siteIdentifier = Date.now().toString();
-    console.log("Creating site with identifier:", siteIdentifier, "domain:", siteDomain);
-    const result = await wpcloudPost(`/api/v1.0/create-site/${WPCLOUD_CLIENT}/${siteIdentifier}`, wpBody);
-    const ms = Date.now() - t0;
 
-    console.log("wp.cloud provision result:", result.status, JSON.stringify(result.data));
+    // Try 1: Create with custom subdomain (e.g. customer.envosta.com)
+    wpBody.domain_name = siteDomain;
+    delete wpBody.demo_domain;
+
+    console.log("Attempt 1: Creating site with domain:", siteDomain);
+    let result = await wpcloudPost(`/api/v1.0/create-site/${WPCLOUD_CLIENT}/${siteIdentifier}`, wpBody);
+    console.log("Attempt 1 result:", result.status, JSON.stringify(result.data));
+
+    // If domain is rejected (e.g. TXT verification pending), fallback to demo domain
+    if (!result.ok && result.data?.message?.includes?.("Domain name already used")) {
+      console.log("Domain rejected, retrying with demo_domain...");
+      delete wpBody.domain_name;
+      wpBody.demo_domain = true;
+      const retryIdentifier = (Date.now() + 1).toString();
+      result = await wpcloudPost(`/api/v1.0/create-site/${WPCLOUD_CLIENT}/${retryIdentifier}`, wpBody);
+      console.log("Attempt 2 (demo) result:", result.status, JSON.stringify(result.data));
+    }
+
+    const ms = Date.now() - t0;
 
     if (!result.ok) {
       await sb.from("services").update({
