@@ -6,7 +6,8 @@ export const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY
 export const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
 export const STRIPE_WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
 export const WPCLOUD_API_KEY = Deno.env.get("WPCLOUD_API_KEY") ?? "";
-export const WPCLOUD_API_URL = Deno.env.get("WPCLOUD_API_URL") || "https://public-api.wordpress.com/wpcloud/v2";
+export const WPCLOUD_API_URL = Deno.env.get("WPCLOUD_API_URL") || "https://atomic-api.wordpress.com/api/v1.0";
+export const WPCLOUD_CLIENT = Deno.env.get("WPCLOUD_CLIENT") ?? "";
 
 export function supabaseAdmin() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {

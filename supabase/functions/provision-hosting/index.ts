@@ -1,4 +1,35 @@
-import { supabaseAdmin, supabaseForUser, WPCLOUD_API_URL, WPCLOUD_API_KEY, cors, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, WPCLOUD_API_URL, WPCLOUD_API_KEY, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
+
+/**
+ * Provision a WordPress site via the wp.cloud Atomic API.
+ *
+ * wp.cloud API: POST /create-site/{client}/{identifier}
+ * Auth: "Auth: API_KEY" header
+ * Docs: https://wp.cloud/docs/api/
+ */
+
+// Map our region names to wp.cloud geo_affinity codes
+const REGION_MAP: Record<string, string> = {
+  "us-east": "dca",
+  "us-east-1": "dca",
+  "us-west": "bur",
+  "us-west-1": "bur",
+  "us-central": "dfw",
+  "us-central-1": "dfw",
+  "eu-west": "ams",
+  "eu-west-1": "ams",
+  "ams": "ams",
+  "bur": "bur",
+  "dca": "dca",
+  "dfw": "dfw",
+};
+
+// Map plan slugs to storage quotas
+const PLAN_STORAGE: Record<string, string> = {
+  "minimum": "10G",
+  "growth": "25G",
+  "performance": "50G",
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -9,7 +40,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authErr } = await userSb.auth.getUser();
     if (authErr || !user) return error("Unauthorized", 401);
 
-    const { label, region, phpVersion, subscriptionId, planId } = await req.json();
+    const { label, region, phpVersion, subscriptionId, planId, domainName, adminEmail } = await req.json();
     if (!label) return error("label is required");
 
     const sb = supabaseAdmin();
@@ -18,60 +49,144 @@ Deno.serve(async (req) => {
     if (subscriptionId) {
       const { data: sub } = await sb.from("subscriptions")
         .select("status").eq("id", subscriptionId).single();
-      if (!sub || sub.status !== "active") return error("Subscription is not active", 403);
-    }
-
-    // Check plan limits
-    if (planId) {
-      const { data: plan } = await sb.from("plans").select("sites_allowed").eq("id", planId).single();
-      const { count } = await sb.from("services")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id).eq("type", "hosting").in("status", ["active", "provisioning", "pending"]);
-      if (plan && count !== null && count >= plan.sites_allowed) {
-        return error(`Plan limit reached: ${plan.sites_allowed} sites allowed`, 403);
+      if (!sub || !["active", "trialing"].includes(sub.status)) {
+        return error("Subscription is not active", 403);
       }
+      // Check no site already linked to this subscription
+      const { data: existingSvc } = await sb.from("services")
+        .select("id").eq("subscription_id", subscriptionId).maybeSingle();
+      if (existingSvc) return error("This subscription already has a site", 409);
     }
 
-    // Create service record
+    // Get plan details for storage quota
+    let planSlug = "minimum";
+    if (planId) {
+      const { data: plan } = await sb.from("plans").select("slug, disk_gb").eq("id", planId).single();
+      if (plan) planSlug = plan.slug;
+    }
+
+    // Generate a unique site identifier (wpcom blog id placeholder — wp.cloud assigns this)
+    const siteIdentifier = `envosta-${Date.now()}`;
+    const geoAffinity = REGION_MAP[region ?? "us-east-1"] ?? "dca";
+    const php = phpVersion ?? "8.4";
+    const storageQuota = PLAN_STORAGE[planSlug] ?? "10G";
+    const siteAdminEmail = adminEmail ?? user.email ?? "admin@envosta.com";
+
+    // Create service record in our DB first (status: provisioning)
     const { data: svc, error: svcErr } = await sb.from("services").insert({
-      user_id: user.id, subscription_id: subscriptionId, plan_id: planId,
-      type: "hosting", label, status: "provisioning",
-      server_region: region ?? "us-east-1", php_version: phpVersion ?? "8.2",
+      user_id: user.id,
+      subscription_id: subscriptionId ?? null,
+      plan_id: planId ?? null,
+      type: "hosting",
+      label,
+      status: "provisioning",
+      server_region: geoAffinity,
+      php_version: php,
     }).select().single();
     if (svcErr) return error(svcErr.message, 500);
 
-    // Call WP.cloud API
-    const wpRes = await fetch(`${WPCLOUD_API_URL}/sites`, {
+    // Call wp.cloud Atomic API to create the site
+    const createUrl = `${WPCLOUD_API_URL}/create-site/${WPCLOUD_CLIENT}/${siteIdentifier}`;
+    console.log("Creating site:", createUrl);
+
+    const wpBody: Record<string, unknown> = {
+      admin_email: siteAdminEmail,
+      admin_user: "envosta_admin",
+      php_version: php,
+      space_quota: storageQuota,
+      geo_affinity: geoAffinity,
+      db_charset: "utf8mb4",
+      persist_data: {
+        envosta_service_id: svc.id,
+        envosta_user_id: user.id,
+        envosta_plan: planSlug,
+      },
+      meta: {
+        privacy_model: "wp_uploads",
+      },
+    };
+
+    // Use domain if provided, otherwise generate a demo domain
+    if (domainName) {
+      wpBody.domain_name = domainName;
+    } else {
+      wpBody.demo_domain = true;
+    }
+
+    const wpRes = await fetch(createUrl, {
       method: "POST",
-      headers: { "Authorization": `Bearer ${WPCLOUD_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: label.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 50),
-        php_version: phpVersion ?? "8.2",
-        data_center: region ?? "us-east-1",
-        metadata: { envosta_service_id: svc.id, envosta_user_id: user.id },
-      }),
+      headers: {
+        "Auth": WPCLOUD_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(wpBody),
     });
+
     const wpData = await wpRes.json();
     const ms = Date.now() - t0;
 
+    console.log("wp.cloud response:", wpRes.status, JSON.stringify(wpData));
+
     if (!wpRes.ok) {
-      await sb.from("services").update({ status: "failed", metadata: { error: wpData } }).eq("id", svc.id);
-      await log({ userId: user.id, serviceId: svc.id, level: "error", action: "hosting.provision.failed", res: wpData, ms });
-      return error("Provisioning failed", 502);
+      // Update service status to failed
+      await sb.from("services").update({
+        status: "failed",
+        metadata: { error: wpData, http_status: wpRes.status },
+      }).eq("id", svc.id);
+
+      await log({
+        userId: user.id, serviceId: svc.id, level: "error",
+        action: "hosting.provision.failed",
+        message: wpData?.message ?? `HTTP ${wpRes.status}`,
+        req: wpBody, res: wpData, ms,
+      });
+
+      return error(`Provisioning failed: ${wpData?.message ?? "Unknown error"}`, 502);
     }
 
+    // Success — extract site info from wp.cloud response
+    const wpSiteId = wpData?.data?.atomic_site_id ?? wpData?.data?.wpcom_blog_id ?? wpData?.data?.job_id;
+    const wpDomainName = wpData?.data?.domain_name ?? domainName;
+    const wpUrl = wpDomainName ? `https://${wpDomainName}` : null;
+
+    // Update service record with wp.cloud data
     await sb.from("services").update({
       status: "active",
-      wp_cloud_site_id: wpData.id ?? wpData.site_id,
-      wp_cloud_url: wpData.url ?? wpData.site_url,
+      wp_cloud_site_id: String(wpSiteId ?? ""),
+      wp_cloud_url: wpUrl,
       provisioned_at: new Date().toISOString(),
-      metadata: wpData,
+      metadata: {
+        wp_cloud_response: wpData?.data,
+        job_id: wpData?.data?.job_id,
+      },
     }).eq("id", svc.id);
 
-    await log({ userId: user.id, serviceId: svc.id, action: "hosting.provision.success", message: wpData.url ?? label, ms });
-    return json({ serviceId: svc.id, siteId: wpData.id, url: wpData.url, status: "active" });
+    // If a domain was used, link it to the service
+    if (domainName) {
+      await sb.from("domains")
+        .update({ service_id: svc.id })
+        .eq("user_id", user.id)
+        .eq("domain_name", domainName);
+    }
+
+    await log({
+      userId: user.id, serviceId: svc.id,
+      action: "hosting.provision.success",
+      message: wpDomainName ?? label,
+      req: wpBody, res: wpData?.data, ms,
+    });
+
+    return json({
+      serviceId: svc.id,
+      siteId: wpSiteId,
+      url: wpUrl,
+      domainName: wpDomainName,
+      jobId: wpData?.data?.job_id,
+      status: "provisioning",
+    });
 
   } catch (e) {
+    console.error("Provision error:", e);
     await log({ level: "error", action: "hosting.provision.error", message: String(e) });
     return error(String(e), 500);
   }
