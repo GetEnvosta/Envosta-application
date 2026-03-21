@@ -45,10 +45,10 @@ export function ProvisionButton({ serviceId, label }: { serviceId: string; label
             'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
           },
           body: JSON.stringify({
+            serviceId: service.id,
             label: service.label,
             region: service.server_region ?? 'dca',
             phpVersion: service.php_version ?? '8.4',
-            subscriptionId: service.subscription_id,
             planId: service.plan_id,
             adminEmail: userEmail,
           }),
