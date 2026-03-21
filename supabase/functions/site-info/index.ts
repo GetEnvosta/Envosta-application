@@ -20,6 +20,14 @@ Deno.serve(async (req) => {
     const { action, siteId, domain } = await req.json();
 
     switch (action) {
+      // Get domain verification code for subdomain provisioning
+      case "domain-verification": {
+        if (!domain) return error("domain is required");
+        const result = await wpcloudGet(`/api/v1.0/get-domain-verification-code/${WPCLOUD_CLIENT}/${domain}`);
+        console.log("Domain verification result:", result.status, JSON.stringify(result.data));
+        return json(result.data);
+      }
+
       // Get available datacenters
       case "datacenters": {
         const result = await wpcloudGet(`/api/v1.0/get-available-datacenters/${WPCLOUD_CLIENT}`);
