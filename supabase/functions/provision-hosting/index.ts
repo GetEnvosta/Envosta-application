@@ -31,46 +31,64 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authErr } = await userSb.auth.getUser();
     if (authErr || !user) return error("Unauthorized", 401);
 
-    const { label, region, phpVersion, subscriptionId, planId, domainName, adminEmail } = await req.json();
-    if (!label) return error("label is required");
+    const { label, region, phpVersion, subscriptionId, planId, domainName, adminEmail, serviceId } = await req.json();
+    if (!label && !serviceId) return error("label or serviceId is required");
 
     const sb = supabaseAdmin();
+    let svc: any;
 
-    // Verify subscription is active
-    if (subscriptionId) {
-      const { data: sub } = await sb.from("subscriptions")
-        .select("status").eq("id", subscriptionId).single();
-      if (!sub || !["active", "trialing"].includes(sub.status)) {
-        return error("Subscription is not active", 403);
-      }
-      // Check no site already linked
+    // If an existing service ID is provided, use it (admin triggering provisioning for a queued service)
+    if (serviceId) {
       const { data: existingSvc } = await sb.from("services")
-        .select("id").eq("subscription_id", subscriptionId).maybeSingle();
-      if (existingSvc) return error("This subscription already has a site", 409);
+        .select("*").eq("id", serviceId).single();
+      if (!existingSvc) return error("Service not found", 404);
+      if (existingSvc.status === "active") return error("Service is already active", 409);
+      if (existingSvc.wp_cloud_site_id) return error("Service already has a wp.cloud site", 409);
+      svc = existingSvc;
+    } else {
+      // New provisioning: verify subscription and create service record
+      if (subscriptionId) {
+        const { data: sub } = await sb.from("subscriptions")
+          .select("status").eq("id", subscriptionId).single();
+        if (!sub || !["active", "trialing"].includes(sub.status)) {
+          return error("Subscription is not active", 403);
+        }
+        const { data: existingSvc } = await sb.from("services")
+          .select("id, status, wp_cloud_site_id").eq("subscription_id", subscriptionId).maybeSingle();
+        if (existingSvc?.wp_cloud_site_id) return error("This subscription already has a provisioned site", 409);
+        // If a service exists but isn't provisioned yet, use it
+        if (existingSvc) {
+          svc = existingSvc;
+        }
+      }
+
+      if (!svc) {
+        const geoAffinity = REGION_MAP[region ?? "us-east-1"] ?? "dca";
+        const { data: newSvc, error: svcErr } = await sb.from("services").insert({
+          user_id: user.id,
+          subscription_id: subscriptionId ?? null,
+          plan_id: planId ?? null,
+          type: "hosting",
+          label,
+          status: "provisioning",
+          server_region: geoAffinity,
+          php_version: phpVersion ?? "8.4",
+        }).select().single();
+        if (svcErr) return error(svcErr.message, 500);
+        svc = newSvc;
+      }
     }
 
     // Get plan config
     let planSlug = "minimum";
-    if (planId) {
-      const { data: plan } = await sb.from("plans").select("slug").eq("id", planId).single();
+    const effectivePlanId = planId ?? svc.plan_id;
+    if (effectivePlanId) {
+      const { data: plan } = await sb.from("plans").select("slug").eq("id", effectivePlanId).single();
       if (plan) planSlug = plan.slug;
     }
     const config = PLAN_CONFIG[planSlug] ?? PLAN_CONFIG.minimum;
-    const geoAffinity = REGION_MAP[region ?? "us-east-1"] ?? "dca";
-    const php = phpVersion ?? "8.4";
-
-    // Create service record (provisioning)
-    const { data: svc, error: svcErr } = await sb.from("services").insert({
-      user_id: user.id,
-      subscription_id: subscriptionId ?? null,
-      plan_id: planId ?? null,
-      type: "hosting",
-      label,
-      status: "provisioning",
-      server_region: geoAffinity,
-      php_version: php,
-    }).select().single();
-    if (svcErr) return error(svcErr.message, 500);
+    const geoAffinity = REGION_MAP[svc.server_region ?? region ?? "us-east-1"] ?? "dca";
+    const php = svc.php_version ?? phpVersion ?? "8.4";
 
     // Build wp.cloud request
     const siteName = label.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").slice(0, 50);

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase-server';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { Search, Server } from 'lucide-react';
+import { ProvisionButton } from './provision-button';
 
 const STATUSES = [
   'active',
@@ -100,12 +101,15 @@ export default async function ServicesPage({
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
                   Created
                 </th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {(!services || services.length === 0) ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center">
+                  <td colSpan={7} className="px-5 py-12 text-center">
                     <Server className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                     <p className="text-sm text-gray-400">
                       {q || status
@@ -139,6 +143,14 @@ export default async function ServicesPage({
                     </td>
                     <td className="px-5 py-3.5 text-gray-400 text-xs">
                       {formatDate(s.created_at)}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {s.status === 'provisioning' && (
+                        <ProvisionButton serviceId={s.id} label={s.label} />
+                      )}
+                      <Link href={`/admin/services/${s.id}`} className="text-xs text-admin-600 hover:text-admin-700 ml-2">
+                        View
+                      </Link>
                     </td>
                   </tr>
                 ))
