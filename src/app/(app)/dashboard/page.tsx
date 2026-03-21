@@ -35,8 +35,8 @@ export default async function DashboardPage() {
           <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-500 mt-0.5">Welcome back. Here&apos;s your hosting overview.</p>
         </div>
-        <Link href="/dashboard/sites/new" className="btn-primary">
-          <Plus className="w-4 h-4" /> New site
+        <Link href="/dashboard/billing" className="btn-primary">
+          <Plus className="w-4 h-4" /> Add site
         </Link>
       </div>
 
@@ -68,7 +68,7 @@ export default async function DashboardPage() {
             {(!services || services.length === 0) ? (
               <div className="p-8 text-center text-sm text-gray-400">
                 No sites yet.{' '}
-                <Link href="/dashboard/sites/new" className="text-brand-600 hover:underline">Create your first site</Link>
+                <Link href="/dashboard/billing" className="text-brand-600 hover:underline">Choose a plan to get started</Link>
               </div>
             ) : services.map((s: any) => (
               <div key={s.id} className="px-5 py-3.5 flex items-center justify-between">
@@ -91,7 +91,7 @@ export default async function DashboardPage() {
             {(!domains || domains.length === 0) ? (
               <div className="p-8 text-center text-sm text-gray-400">
                 No domains yet.{' '}
-                <Link href="/dashboard/domains/new" className="text-brand-600 hover:underline">Register one</Link>
+                <Link href="/dashboard/domains/register" className="text-brand-600 hover:underline">Register one</Link>
               </div>
             ) : domains.map((d: any) => (
               <div key={d.id} className="px-5 py-3.5 flex items-center justify-between">
