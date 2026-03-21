@@ -4,6 +4,7 @@ import { getUserDomainsForSite } from '@/services/domains';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { DeleteSiteButton } from '@/components/sites/delete-site-button';
 import {
   ArrowLeft,
   ExternalLink,
@@ -285,9 +286,7 @@ export default async function SiteDetailPage({
         <p className="text-sm text-gray-500 mb-4">
           Permanently delete this site and all its data. This action cannot be undone.
         </p>
-        <button className="btn-danger text-sm py-2 px-4" disabled>
-          Delete Site
-        </button>
+        <DeleteSiteButton serviceId={site.id} siteName={site.label} />
       </div>
     </div>
   );

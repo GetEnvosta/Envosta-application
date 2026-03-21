@@ -1,6 +1,7 @@
 import { getServiceDetailById, getServiceDomains, getServiceLogs } from '@/services/sites';
 import { formatDate, formatDateTime, statusColor } from '@/lib/utils';
 import Link from 'next/link';
+import { DeleteSiteButton } from '@/components/sites/delete-site-button';
 import {
   ArrowLeft,
   Clock,
@@ -226,6 +227,19 @@ export default async function ServiceDetailPage({
             ))
           )}
         </div>
+      </div>
+
+      {/* Danger Zone */}
+      <div className="rounded-xl border border-red-200 bg-white p-6">
+        <h2 className="text-sm font-semibold text-red-600 mb-1">Danger Zone</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Permanently delete this site from wp.cloud and remove all associated data.
+        </p>
+        <DeleteSiteButton
+          serviceId={service.id}
+          siteName={service.label}
+          redirectTo="/admin/services"
+        />
       </div>
     </div>
   );
