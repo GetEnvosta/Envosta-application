@@ -1,4 +1,114 @@
-import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, WPCLOUD_API_URL, WPCLOUD_API_KEY, WPCLOUD_CLIENT, json, error, log } from "../_shared/deps.ts";
+
+// Region and storage maps for auto-provisioning
+const PLAN_STORAGE: Record<string, string> = { minimum: "10G", growth: "25G", performance: "50G" };
+const DEFAULT_GEO = "dca";
+const DEFAULT_PHP = "8.4";
+
+/**
+ * Auto-provision a WordPress site after successful subscription payment.
+ */
+async function autoProvisionSite(sb: ReturnType<typeof supabaseAdmin>, userId: string, subscriptionId: string, planId: string | null) {
+  try {
+    // Check if this subscription already has a site
+    const { data: existingSvc } = await sb.from("services")
+      .select("id").eq("subscription_id", subscriptionId).maybeSingle();
+    if (existingSvc) {
+      console.log("Site already exists for subscription:", subscriptionId);
+      return;
+    }
+
+    // Get plan details
+    let planSlug = "minimum";
+    if (planId) {
+      const { data: plan } = await sb.from("plans").select("slug").eq("id", planId).single();
+      if (plan) planSlug = plan.slug;
+    }
+
+    // Get user email for WP admin
+    const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", userId).single();
+    const adminEmail = userProfile?.email ?? "admin@envosta.com";
+    const siteName = userProfile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
+    const siteIdentifier = `envosta-${Date.now()}`;
+
+    // Create service record (provisioning)
+    const { data: svc, error: svcErr } = await sb.from("services").insert({
+      user_id: userId,
+      subscription_id: subscriptionId,
+      plan_id: planId,
+      type: "hosting",
+      label: `${siteName}-site`,
+      status: "provisioning",
+      server_region: DEFAULT_GEO,
+      php_version: DEFAULT_PHP,
+    }).select().single();
+
+    if (svcErr) {
+      console.error("Failed to create service record:", svcErr);
+      await log({ userId, level: "error", action: "hosting.auto_provision.db_error", message: svcErr.message });
+      return;
+    }
+
+    console.log("Auto-provisioning site for subscription:", subscriptionId, "service:", svc.id);
+
+    // Call wp.cloud API
+    const storageQuota = PLAN_STORAGE[planSlug] ?? "10G";
+    const createUrl = `${WPCLOUD_API_URL}/create-site/${WPCLOUD_CLIENT}/${siteIdentifier}`;
+
+    const wpBody = {
+      admin_email: adminEmail,
+      admin_user: "envosta_admin",
+      php_version: DEFAULT_PHP,
+      space_quota: storageQuota,
+      geo_affinity: DEFAULT_GEO,
+      db_charset: "utf8mb4",
+      demo_domain: true,
+      persist_data: {
+        envosta_service_id: svc.id,
+        envosta_user_id: userId,
+        envosta_plan: planSlug,
+      },
+    };
+
+    const wpRes = await fetch(createUrl, {
+      method: "POST",
+      headers: { "Auth": WPCLOUD_API_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify(wpBody),
+    });
+    const wpData = await wpRes.json();
+
+    console.log("wp.cloud auto-provision response:", wpRes.status, JSON.stringify(wpData));
+
+    if (!wpRes.ok) {
+      await sb.from("services").update({
+        status: "failed",
+        metadata: { error: wpData, http_status: wpRes.status, auto_provisioned: true },
+      }).eq("id", svc.id);
+      await log({ userId, serviceId: svc.id, level: "error", action: "hosting.auto_provision.failed", message: wpData?.message ?? `HTTP ${wpRes.status}`, res: wpData });
+      return;
+    }
+
+    // Success
+    const wpSiteId = wpData?.data?.atomic_site_id ?? wpData?.data?.wpcom_blog_id ?? wpData?.data?.job_id;
+    const wpDomain = wpData?.data?.domain_name;
+    const wpUrl = wpDomain ? `https://${wpDomain}` : null;
+
+    await sb.from("services").update({
+      status: "active",
+      wp_cloud_site_id: String(wpSiteId ?? ""),
+      wp_cloud_url: wpUrl,
+      provisioned_at: new Date().toISOString(),
+      metadata: { wp_cloud_response: wpData?.data, job_id: wpData?.data?.job_id, auto_provisioned: true },
+    }).eq("id", svc.id);
+
+    await log({ userId, serviceId: svc.id, action: "hosting.auto_provision.success", message: wpDomain ?? svc.label });
+    console.log("Auto-provisioned site:", svc.id, wpDomain);
+
+  } catch (e) {
+    console.error("Auto-provision error:", e);
+    await log({ userId, level: "error", action: "hosting.auto_provision.error", message: String(e) });
+  }
+}
 
 Deno.serve(async (req) => {
   const stripe = getStripe();
@@ -57,7 +167,7 @@ Deno.serve(async (req) => {
         const { data: plan } = await sb.from("plans")
           .select("id").or(`stripe_price_id_monthly.eq.${priceId},stripe_price_id_yearly.eq.${priceId}`).single();
 
-        await sb.from("subscriptions").upsert({
+        const { data: upsertedSub } = await sb.from("subscriptions").upsert({
           customer_id: cust.id,
           plan_id: plan?.id ?? null,
           stripe_subscription_id: sub.id,
@@ -70,7 +180,12 @@ Deno.serve(async (req) => {
           trial_start: sub.trial_start ? new Date(sub.trial_start * 1000).toISOString() : null,
           trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
           cancelled_at: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null,
-        }, { onConflict: "stripe_subscription_id" });
+        }, { onConflict: "stripe_subscription_id" }).select("id").single();
+
+        // Auto-provision site on NEW active subscription
+        if (event.type === "customer.subscription.created" && sub.status === "active" && upsertedSub) {
+          await autoProvisionSite(sb, cust.user_id, upsertedSub.id, plan?.id ?? null);
+        }
         break;
       }
 
@@ -82,7 +197,41 @@ Deno.serve(async (req) => {
         break;
       }
 
-      case "invoice.paid":
+      case "invoice.paid": {
+        const inv = event.data.object;
+        const custStripeId = typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
+        const { data: cust } = await sb.from("customers")
+          .select("id,user_id").eq("stripe_customer_id", custStripeId).single();
+        if (!cust) break;
+
+        await sb.from("invoices").upsert({
+          customer_id: cust.id,
+          stripe_invoice_id: inv.id,
+          status: "paid",
+          amount_due: inv.amount_due ?? 0,
+          amount_paid: inv.amount_paid ?? 0,
+          currency: inv.currency ?? "usd",
+          description: inv.description ?? `Invoice ${inv.number ?? ""}`,
+          invoice_url: inv.hosted_invoice_url ?? null,
+          invoice_pdf: inv.invoice_pdf ?? null,
+          period_start: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
+          period_end: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
+          paid_at: new Date().toISOString(),
+        }, { onConflict: "stripe_invoice_id" });
+
+        // If this is the first invoice for a subscription, and auto-provision didn't fire
+        // on subscription.created (e.g., subscription started as incomplete), try now
+        if (inv.subscription) {
+          const subStripeId = typeof inv.subscription === "string" ? inv.subscription : inv.subscription.id;
+          const { data: dbSub } = await sb.from("subscriptions")
+            .select("id, plan_id").eq("stripe_subscription_id", subStripeId).single();
+          if (dbSub) {
+            await autoProvisionSite(sb, cust.user_id, dbSub.id, dbSub.plan_id);
+          }
+        }
+        break;
+      }
+
       case "invoice.payment_failed":
       case "invoice.created": {
         const inv = event.data.object;
@@ -103,7 +252,7 @@ Deno.serve(async (req) => {
           invoice_pdf: inv.invoice_pdf ?? null,
           period_start: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
           period_end: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
-          paid_at: inv.status === "paid" ? new Date().toISOString() : null,
+          paid_at: null,
         }, { onConflict: "stripe_invoice_id" });
         break;
       }
