@@ -149,9 +149,10 @@ Deno.serve(async (req) => {
       return error(`Provisioning failed: ${result.data?.message ?? "Unknown error"}`, 502);
     }
 
-    // Extract site info
-    const wpSiteId = result.data?.atomic_site_id ?? result.data?.wpcom_blog_id ?? result.data?.job_id;
-    const wpDomain = result.data?.domain_name ?? wpBody.domain_name;
+    // Extract site info (result.data is the full response, .data is nested wp.cloud data)
+    const wpResponse = result.data?.data ?? result.data;
+    const wpSiteId = wpResponse?.atomic_site_id ?? wpResponse?.wpcom_blog_id ?? wpResponse?.job_id;
+    const wpDomain = wpResponse?.domain_name ?? wpBody.domain_name;
     const wpUrl = wpDomain ? `https://${wpDomain}` : null;
 
     await sb.from("services").update({
@@ -159,7 +160,7 @@ Deno.serve(async (req) => {
       wp_cloud_site_id: String(wpSiteId ?? ""),
       wp_cloud_url: wpUrl,
       provisioned_at: new Date().toISOString(),
-      metadata: { wp_cloud_response: result.data, job_id: result.data?.job_id },
+      metadata: { wp_cloud_response: wpResponse, job_id: wpResponse?.job_id },
     }).eq("id", svc.id);
 
     // Link domain if provided

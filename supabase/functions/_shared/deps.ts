@@ -49,7 +49,8 @@ export async function wpcloudPost(path: string, body?: Record<string, unknown>):
   console.log("wpcloud raw response:", res.status, rawText);
   let json;
   try { json = JSON.parse(rawText); } catch { json = { raw: rawText }; }
-  return { ok: res.ok, status: res.status, data: json?.data ?? json };
+  // Return full response — keep message + data together
+  return { ok: res.ok, status: res.status, data: json };
 }
 
 export async function wpcloudGet(path: string): Promise<{ ok: boolean; status: number; data: any }> {

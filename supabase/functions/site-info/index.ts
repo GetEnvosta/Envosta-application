@@ -13,21 +13,22 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
+    const { action, siteId, domain } = await req.json();
+
+    // Domain verification doesn't need auth (one-time admin setup)
+    if (action === "domain-verification") {
+      if (!domain) return error("domain is required");
+      const result = await wpcloudGet(`/api/v1.0/get-domain-verification-code/${WPCLOUD_CLIENT}/${domain}`);
+      console.log("Domain verification result:", result.status, JSON.stringify(result.data));
+      return json(result.data);
+    }
+
+    // All other actions require auth
     const userSb = supabaseForUser(req);
     const { data: { user }, error: authErr } = await userSb.auth.getUser();
     if (authErr || !user) return error("Unauthorized", 401);
 
-    const { action, siteId, domain } = await req.json();
-
     switch (action) {
-      // Get domain verification code for subdomain provisioning
-      case "domain-verification": {
-        if (!domain) return error("domain is required");
-        const result = await wpcloudGet(`/api/v1.0/get-domain-verification-code/${WPCLOUD_CLIENT}/${domain}`);
-        console.log("Domain verification result:", result.status, JSON.stringify(result.data));
-        return json(result.data);
-      }
-
       // Get available datacenters
       case "datacenters": {
         const result = await wpcloudGet(`/api/v1.0/get-available-datacenters/${WPCLOUD_CLIENT}`);
