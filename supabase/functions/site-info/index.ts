@@ -1,31 +1,9 @@
-import { supabaseAdmin, supabaseForUser, WPCLOUD_API_URL, WPCLOUD_API_KEY, WPCLOUD_CLIENT, cors, json, error } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
 
 /**
- * Get site info from wp.cloud API.
+ * Site management actions via wp.cloud API (routed through static IP proxy).
  * Actions: ssl-info, datacenters, delete-site
  */
-
-async function wpCloudGet(path: string): Promise<{ ok: boolean; data: any; status: number }> {
-  const res = await fetch(`${WPCLOUD_API_URL}${path}`, {
-    method: "GET",
-    headers: { "Auth": WPCLOUD_API_KEY },
-  });
-  const data = await res.json();
-  return { ok: res.ok, data: data?.data ?? data, status: res.status };
-}
-
-async function wpCloudPost(path: string, body?: Record<string, unknown>): Promise<{ ok: boolean; data: any; status: number }> {
-  const res = await fetch(`${WPCLOUD_API_URL}${path}`, {
-    method: "POST",
-    headers: {
-      "Auth": WPCLOUD_API_KEY,
-      "Content-Type": "application/json",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json();
-  return { ok: res.ok, data: data?.data ?? data, status: res.status };
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -40,11 +18,10 @@ Deno.serve(async (req) => {
     switch (action) {
       // Get available datacenters
       case "datacenters": {
-        const result = await wpCloudGet(`/get-available-datacenters/${WPCLOUD_CLIENT}`);
-        if (!result.ok) return error("Failed to get datacenters", 502);
+        const result = await wpcloudGet(`/wpcom/v2/atomic/site/${WPCLOUD_CLIENT}/datacenters`);
         return json({
-          datacenters: result.data,
-          mapped: [
+          raw: result.data,
+          datacenters: [
             { code: "dca", label: "US East (Virginia)", available: true },
             { code: "bur", label: "US West (California)", available: true },
             { code: "dfw", label: "US Central (Texas)", available: true },
@@ -56,34 +33,46 @@ Deno.serve(async (req) => {
       // Get SSL certificate info for a domain
       case "ssl-info": {
         if (!domain) return error("domain is required");
-        const result = await wpCloudPost(`/ssl-info/${domain}`);
+        const result = await wpcloudPost(`/wpcom/v2/atomic/site/${WPCLOUD_CLIENT}/ssl-info`, { domain });
         if (!result.ok) return error("Failed to get SSL info", 502);
         return json(result.data);
       }
 
-      // Delete a site
+      // Delete a site via wp.cloud
       case "delete-site": {
         if (!siteId) return error("siteId is required");
 
-        // Verify user owns this site
         const sb = supabaseAdmin();
         const { data: svc } = await sb.from("services")
-          .select("id, wp_cloud_site_id, user_id")
+          .select("id, wp_cloud_site_id, wp_cloud_url, user_id")
           .eq("id", siteId).single();
 
         if (!svc || svc.user_id !== user.id) return error("Site not found", 404);
-        if (!svc.wp_cloud_site_id) return error("Site has no wp.cloud ID", 400);
 
-        const result = await wpCloudPost(`/delete-site/domain/${svc.wp_cloud_site_id}`);
-        console.log("Delete site result:", result.status, JSON.stringify(result.data));
+        // Call wp.cloud delete if we have a site ID
+        if (svc.wp_cloud_site_id) {
+          const result = await wpcloudPost(`/wpcom/v2/atomic/site/${WPCLOUD_CLIENT}/${svc.wp_cloud_site_id}/delete`);
+          console.log("Delete site result:", result.status, JSON.stringify(result.data));
+          await log({
+            userId: user.id, serviceId: svc.id,
+            action: "hosting.delete",
+            message: svc.wp_cloud_url ?? svc.wp_cloud_site_id,
+            res: result.data,
+          });
+        }
 
-        // Update service status regardless of wp.cloud result
+        // Update service status
         await sb.from("services").update({
           status: "cancelled",
-          metadata: { deleted_at: new Date().toISOString(), wp_cloud_response: result.data },
+          metadata: { deleted_at: new Date().toISOString() },
         }).eq("id", siteId);
 
-        return json({ deleted: true, jobId: result.data?.job_id });
+        // Unlink any connected domains
+        await sb.from("domains")
+          .update({ service_id: null })
+          .eq("service_id", siteId);
+
+        return json({ deleted: true });
       }
 
       default:

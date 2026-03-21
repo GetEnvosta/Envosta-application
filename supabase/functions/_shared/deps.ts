@@ -6,8 +6,43 @@ export const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY
 export const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
 export const STRIPE_WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
 export const WPCLOUD_API_KEY = Deno.env.get("WPCLOUD_API_KEY") ?? "";
-export const WPCLOUD_API_URL = Deno.env.get("WPCLOUD_API_URL") || "https://atomic-api.wordpress.com/api/v1.0";
-export const WPCLOUD_CLIENT = Deno.env.get("WPCLOUD_CLIENT") ?? "";
+export const WPCLOUD_PROXY_URL = Deno.env.get("WPCLOUD_PROXY_URL") ?? "";
+export const WPCLOUD_PROXY_SECRET = Deno.env.get("WPCLOUD_PROXY_SECRET") ?? "";
+export const WPCLOUD_CLIENT = Deno.env.get("WPCLOUD_CLIENT") ?? "envosta";
+
+/**
+ * Make a request to the wp.cloud Atomic API via the static IP proxy.
+ * The proxy forwards to public-api.wordpress.com with the same path/headers.
+ */
+export async function wpcloudPost(path: string, body?: Record<string, unknown>): Promise<{ ok: boolean; status: number; data: any }> {
+  const url = `${WPCLOUD_PROXY_URL}${path}`;
+  console.log("wpcloud POST:", url);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${WPCLOUD_API_KEY}`,
+      "X-Proxy-Secret": WPCLOUD_PROXY_SECRET,
+      "Content-Type": "application/json",
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const json = await res.json();
+  return { ok: res.ok, status: res.status, data: json?.data ?? json };
+}
+
+export async function wpcloudGet(path: string): Promise<{ ok: boolean; status: number; data: any }> {
+  const url = `${WPCLOUD_PROXY_URL}${path}`;
+  console.log("wpcloud GET:", url);
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${WPCLOUD_API_KEY}`,
+      "X-Proxy-Secret": WPCLOUD_PROXY_SECRET,
+    },
+  });
+  const json = await res.json();
+  return { ok: res.ok, status: res.status, data: json?.data ?? json };
+}
 
 export function supabaseAdmin() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {

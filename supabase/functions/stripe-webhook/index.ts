@@ -1,7 +1,11 @@
-import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, WPCLOUD_API_URL, WPCLOUD_API_KEY, WPCLOUD_CLIENT, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, wpcloudPost, WPCLOUD_CLIENT, json, error, log } from "../_shared/deps.ts";
 
-// Region and storage maps for auto-provisioning
-const PLAN_STORAGE: Record<string, string> = { minimum: "10G", growth: "25G", performance: "50G" };
+// Plan config for auto-provisioning
+const PLAN_CONFIG: Record<string, { storage: string; phpWorkers: number; phpMemory: number }> = {
+  minimum:     { storage: "25G",  phpWorkers: 4,  phpMemory: 512 },
+  growth:      { storage: "50G",  phpWorkers: 6,  phpMemory: 1024 },
+  performance: { storage: "200G", phpWorkers: 10, phpMemory: 2048 },
+};
 const DEFAULT_GEO = "dca";
 const DEFAULT_PHP = "8.4";
 
@@ -51,18 +55,21 @@ async function autoProvisionSite(sb: ReturnType<typeof supabaseAdmin>, userId: s
 
     console.log("Auto-provisioning site for subscription:", subscriptionId, "service:", svc.id);
 
-    // Call wp.cloud API
-    const storageQuota = PLAN_STORAGE[planSlug] ?? "10G";
-    const createUrl = `${WPCLOUD_API_URL}/create-site/${WPCLOUD_CLIENT}/${siteIdentifier}`;
-
+    // Call wp.cloud via proxy
+    const config = PLAN_CONFIG[planSlug] ?? PLAN_CONFIG.minimum;
     const wpBody = {
       admin_email: adminEmail,
       admin_user: "envosta_admin",
       php_version: DEFAULT_PHP,
-      space_quota: storageQuota,
+      space_quota: config.storage,
       geo_affinity: DEFAULT_GEO,
       db_charset: "utf8mb4",
-      demo_domain: true,
+      domain_name: `${siteName}.envosta.com`,
+      meta: {
+        default_php_conns: config.phpWorkers,
+        burst_php_conns: 1,
+        php_memory_limit: config.phpMemory,
+      },
       persist_data: {
         envosta_service_id: svc.id,
         envosta_user_id: userId,
@@ -70,27 +77,22 @@ async function autoProvisionSite(sb: ReturnType<typeof supabaseAdmin>, userId: s
       },
     };
 
-    const wpRes = await fetch(createUrl, {
-      method: "POST",
-      headers: { "Auth": WPCLOUD_API_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify(wpBody),
-    });
-    const wpData = await wpRes.json();
+    const result = await wpcloudPost(`/wpcom/v2/atomic/site/${WPCLOUD_CLIENT}`, wpBody);
 
-    console.log("wp.cloud auto-provision response:", wpRes.status, JSON.stringify(wpData));
+    console.log("wp.cloud auto-provision response:", result.status, JSON.stringify(result.data));
 
-    if (!wpRes.ok) {
+    if (!result.ok) {
       await sb.from("services").update({
         status: "failed",
-        metadata: { error: wpData, http_status: wpRes.status, auto_provisioned: true },
+        metadata: { error: result.data, http_status: result.status, auto_provisioned: true },
       }).eq("id", svc.id);
-      await log({ userId, serviceId: svc.id, level: "error", action: "hosting.auto_provision.failed", message: wpData?.message ?? `HTTP ${wpRes.status}`, res: wpData });
+      await log({ userId, serviceId: svc.id, level: "error", action: "hosting.auto_provision.failed", message: result.data?.message ?? `HTTP ${result.status}`, res: result.data });
       return;
     }
 
     // Success
-    const wpSiteId = wpData?.data?.atomic_site_id ?? wpData?.data?.wpcom_blog_id ?? wpData?.data?.job_id;
-    const wpDomain = wpData?.data?.domain_name;
+    const wpSiteId = result.data?.atomic_site_id ?? result.data?.wpcom_blog_id ?? result.data?.job_id;
+    const wpDomain = result.data?.domain_name ?? wpBody.domain_name;
     const wpUrl = wpDomain ? `https://${wpDomain}` : null;
 
     await sb.from("services").update({
@@ -98,7 +100,7 @@ async function autoProvisionSite(sb: ReturnType<typeof supabaseAdmin>, userId: s
       wp_cloud_site_id: String(wpSiteId ?? ""),
       wp_cloud_url: wpUrl,
       provisioned_at: new Date().toISOString(),
-      metadata: { wp_cloud_response: wpData?.data, job_id: wpData?.data?.job_id, auto_provisioned: true },
+      metadata: { wp_cloud_response: result.data, job_id: result.data?.job_id, auto_provisioned: true },
     }).eq("id", svc.id);
 
     await log({ userId, serviceId: svc.id, action: "hosting.auto_provision.success", message: wpDomain ?? svc.label });

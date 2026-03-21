@@ -1,34 +1,25 @@
-import { supabaseAdmin, supabaseForUser, WPCLOUD_API_URL, WPCLOUD_API_KEY, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, wpcloudPost, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
 
 /**
- * Provision a WordPress site via the wp.cloud Atomic API.
+ * Provision a WordPress site via wp.cloud Atomic API (routed through static IP proxy).
  *
- * wp.cloud API: POST /create-site/{client}/{identifier}
- * Auth: "Auth: API_KEY" header
- * Docs: https://wp.cloud/docs/api/
+ * API: POST /wpcom/v2/atomic/site/{client}
+ * Proxy adds static IP for wp.cloud IP whitelist.
  */
+
+// Map plan slugs to wp.cloud config
+const PLAN_CONFIG: Record<string, { storage: string; phpWorkers: number; phpMemory: number }> = {
+  minimum:     { storage: "25G",  phpWorkers: 4,  phpMemory: 512 },
+  growth:      { storage: "50G",  phpWorkers: 6,  phpMemory: 1024 },
+  performance: { storage: "200G", phpWorkers: 10, phpMemory: 2048 },
+};
 
 // Map our region names to wp.cloud geo_affinity codes
 const REGION_MAP: Record<string, string> = {
-  "us-east": "dca",
-  "us-east-1": "dca",
-  "us-west": "bur",
-  "us-west-1": "bur",
-  "us-central": "dfw",
-  "us-central-1": "dfw",
-  "eu-west": "ams",
-  "eu-west-1": "ams",
-  "ams": "ams",
-  "bur": "bur",
-  "dca": "dca",
-  "dfw": "dfw",
-};
-
-// Map plan slugs to storage quotas
-const PLAN_STORAGE: Record<string, string> = {
-  "minimum": "10G",
-  "growth": "25G",
-  "performance": "50G",
+  "us-east": "dca", "us-east-1": "dca", "dca": "dca",
+  "us-west": "bur", "us-west-1": "bur", "bur": "bur",
+  "us-central": "dfw", "us-central-1": "dfw", "dfw": "dfw",
+  "eu-west": "ams", "eu-west-1": "ams", "ams": "ams",
 };
 
 Deno.serve(async (req) => {
@@ -52,27 +43,23 @@ Deno.serve(async (req) => {
       if (!sub || !["active", "trialing"].includes(sub.status)) {
         return error("Subscription is not active", 403);
       }
-      // Check no site already linked to this subscription
+      // Check no site already linked
       const { data: existingSvc } = await sb.from("services")
         .select("id").eq("subscription_id", subscriptionId).maybeSingle();
       if (existingSvc) return error("This subscription already has a site", 409);
     }
 
-    // Get plan details for storage quota
+    // Get plan config
     let planSlug = "minimum";
     if (planId) {
-      const { data: plan } = await sb.from("plans").select("slug, disk_gb").eq("id", planId).single();
+      const { data: plan } = await sb.from("plans").select("slug").eq("id", planId).single();
       if (plan) planSlug = plan.slug;
     }
-
-    // Generate a unique site identifier (wpcom blog id placeholder — wp.cloud assigns this)
-    const siteIdentifier = `envosta-${Date.now()}`;
+    const config = PLAN_CONFIG[planSlug] ?? PLAN_CONFIG.minimum;
     const geoAffinity = REGION_MAP[region ?? "us-east-1"] ?? "dca";
     const php = phpVersion ?? "8.4";
-    const storageQuota = PLAN_STORAGE[planSlug] ?? "10G";
-    const siteAdminEmail = adminEmail ?? user.email ?? "admin@envosta.com";
 
-    // Create service record in our DB first (status: provisioning)
+    // Create service record (provisioning)
     const { data: svc, error: svcErr } = await sb.from("services").insert({
       user_id: user.id,
       subscription_id: subscriptionId ?? null,
@@ -85,83 +72,68 @@ Deno.serve(async (req) => {
     }).select().single();
     if (svcErr) return error(svcErr.message, 500);
 
-    // Call wp.cloud Atomic API to create the site
-    const createUrl = `${WPCLOUD_API_URL}/create-site/${WPCLOUD_CLIENT}/${siteIdentifier}`;
-    console.log("Creating site:", createUrl);
-
+    // Build wp.cloud request
+    const siteName = label.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").slice(0, 50);
     const wpBody: Record<string, unknown> = {
-      admin_email: siteAdminEmail,
+      admin_email: adminEmail ?? user.email ?? "admin@envosta.com",
       admin_user: "envosta_admin",
       php_version: php,
-      space_quota: storageQuota,
+      space_quota: config.storage,
       geo_affinity: geoAffinity,
       db_charset: "utf8mb4",
+      meta: {
+        default_php_conns: config.phpWorkers,
+        burst_php_conns: 1,
+        php_memory_limit: config.phpMemory,
+      },
       persist_data: {
         envosta_service_id: svc.id,
         envosta_user_id: user.id,
         envosta_plan: planSlug,
       },
-      meta: {
-        privacy_model: "wp_uploads",
-      },
     };
 
-    // Use domain if provided, otherwise generate a demo domain
     if (domainName) {
       wpBody.domain_name = domainName;
     } else {
-      wpBody.demo_domain = true;
+      // Use a subdomain pattern: sitename.envosta.com
+      wpBody.domain_name = `${siteName}.envosta.com`;
     }
 
-    const wpRes = await fetch(createUrl, {
-      method: "POST",
-      headers: {
-        "Auth": WPCLOUD_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(wpBody),
-    });
-
-    const wpData = await wpRes.json();
+    // Call wp.cloud via proxy
+    const result = await wpcloudPost(`/wpcom/v2/atomic/site/${WPCLOUD_CLIENT}`, wpBody);
     const ms = Date.now() - t0;
 
-    console.log("wp.cloud response:", wpRes.status, JSON.stringify(wpData));
+    console.log("wp.cloud provision result:", result.status, JSON.stringify(result.data));
 
-    if (!wpRes.ok) {
-      // Update service status to failed
+    if (!result.ok) {
       await sb.from("services").update({
         status: "failed",
-        metadata: { error: wpData, http_status: wpRes.status },
+        metadata: { error: result.data, http_status: result.status },
       }).eq("id", svc.id);
-
       await log({
         userId: user.id, serviceId: svc.id, level: "error",
         action: "hosting.provision.failed",
-        message: wpData?.message ?? `HTTP ${wpRes.status}`,
-        req: wpBody, res: wpData, ms,
+        message: result.data?.message ?? `HTTP ${result.status}`,
+        req: wpBody, res: result.data, ms,
       });
-
-      return error(`Provisioning failed: ${wpData?.message ?? "Unknown error"}`, 502);
+      return error(`Provisioning failed: ${result.data?.message ?? "Unknown error"}`, 502);
     }
 
-    // Success — extract site info from wp.cloud response
-    const wpSiteId = wpData?.data?.atomic_site_id ?? wpData?.data?.wpcom_blog_id ?? wpData?.data?.job_id;
-    const wpDomainName = wpData?.data?.domain_name ?? domainName;
-    const wpUrl = wpDomainName ? `https://${wpDomainName}` : null;
+    // Extract site info
+    const wpSiteId = result.data?.atomic_site_id ?? result.data?.wpcom_blog_id ?? result.data?.job_id;
+    const wpDomain = result.data?.domain_name ?? wpBody.domain_name;
+    const wpUrl = wpDomain ? `https://${wpDomain}` : null;
 
-    // Update service record with wp.cloud data
     await sb.from("services").update({
       status: "active",
       wp_cloud_site_id: String(wpSiteId ?? ""),
       wp_cloud_url: wpUrl,
       provisioned_at: new Date().toISOString(),
-      metadata: {
-        wp_cloud_response: wpData?.data,
-        job_id: wpData?.data?.job_id,
-      },
+      metadata: { wp_cloud_response: result.data, job_id: result.data?.job_id },
     }).eq("id", svc.id);
 
-    // If a domain was used, link it to the service
+    // Link domain if provided
     if (domainName) {
       await sb.from("domains")
         .update({ service_id: svc.id })
@@ -172,17 +144,16 @@ Deno.serve(async (req) => {
     await log({
       userId: user.id, serviceId: svc.id,
       action: "hosting.provision.success",
-      message: wpDomainName ?? label,
-      req: wpBody, res: wpData?.data, ms,
+      message: wpDomain ?? label, req: wpBody, res: result.data, ms,
     });
 
     return json({
       serviceId: svc.id,
       siteId: wpSiteId,
       url: wpUrl,
-      domainName: wpDomainName,
-      jobId: wpData?.data?.job_id,
-      status: "provisioning",
+      domain: wpDomain,
+      jobId: result.data?.job_id,
+      status: "active",
     });
 
   } catch (e) {
