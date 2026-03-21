@@ -111,15 +111,14 @@ Deno.serve(async (req) => {
       },
     };
 
-    if (domainName) {
-      wpBody.domain_name = domainName;
-    } else {
-      // Use a subdomain pattern: sitename.envosta.com
-      wpBody.domain_name = `${siteName}.envosta.com`;
-    }
+    // Determine the domain to use as identifier
+    const siteDomain = domainName ?? `${siteName}.envosta.com`;
+    wpBody.domain_name = siteDomain;
 
-    // Call wp.cloud via proxy
-    const result = await wpcloudPost(`/wpcom/v2/atomic/site/${WPCLOUD_CLIENT}`, wpBody);
+    // Call wp.cloud Atomic API via proxy
+    // Endpoint: POST /create-site/{client}/{identifier}
+    // Using the domain as the identifier (the API accepts domains interchangeably with site IDs)
+    const result = await wpcloudPost(`/api/v1.0/create-site/${WPCLOUD_CLIENT}/${siteDomain}`, wpBody);
     const ms = Date.now() - t0;
 
     console.log("wp.cloud provision result:", result.status, JSON.stringify(result.data));

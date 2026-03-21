@@ -12,7 +12,9 @@ export const WPCLOUD_CLIENT = Deno.env.get("WPCLOUD_CLIENT") ?? "envosta";
 
 /**
  * Make a request to the wp.cloud Atomic API via the static IP proxy.
- * The proxy forwards to public-api.wordpress.com with the same path/headers.
+ * The proxy forwards to atomic-api.wordpress.com with the same path/headers.
+ * Base API path: /api/v1.0/
+ * Auth header: Auth: API_KEY (proxy passes Authorization: Bearer as-is)
  */
 export async function wpcloudPost(path: string, body?: Record<string, unknown>): Promise<{ ok: boolean; status: number; data: any }> {
   const url = `${WPCLOUD_PROXY_URL}${path}`;
@@ -20,7 +22,7 @@ export async function wpcloudPost(path: string, body?: Record<string, unknown>):
   const res = await fetch(url, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${WPCLOUD_API_KEY}`,
+      "Auth": WPCLOUD_API_KEY,
       "X-Proxy-Secret": WPCLOUD_PROXY_SECRET,
       "Content-Type": "application/json",
     },
@@ -36,7 +38,7 @@ export async function wpcloudGet(path: string): Promise<{ ok: boolean; status: n
   const res = await fetch(url, {
     method: "GET",
     headers: {
-      "Authorization": `Bearer ${WPCLOUD_API_KEY}`,
+      "Auth": WPCLOUD_API_KEY,
       "X-Proxy-Secret": WPCLOUD_PROXY_SECRET,
     },
   });
