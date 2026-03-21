@@ -7,7 +7,7 @@ export default async function SitesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: services }, { data: subscription }] = await Promise.all([
+  const [{ data: services }, { data: subscriptions }] = await Promise.all([
     supabase
       .from('services')
       .select('*, plans(name, slug)')
@@ -15,13 +15,15 @@ export default async function SitesPage() {
     supabase
       .from('subscriptions')
       .select('*, plans(name, slug)')
-      .eq('status', 'active')
-      .limit(1)
-      .maybeSingle(),
+      .in('status', ['active', 'trialing'])
+      .order('created_at', { ascending: false })
+      .limit(1),
   ]);
 
+  const subscription = subscriptions?.[0] ?? null;
   const hasSubscription = !!subscription;
   const hasSites = services && services.length > 0;
+  const hasProvisioningSite = services?.some(s => s.status === 'provisioning');
 
   return (
     <div>
@@ -46,8 +48,21 @@ export default async function SitesPage() {
         </div>
       )}
 
-      {/* State B: Subscription but no site */}
-      {hasSubscription && !hasSites && (
+      {/* State B: Subscription but no site provisioned yet */}
+      {hasSubscription && !hasSites && !hasProvisioningSite && (
+        <div className="card p-12 text-center">
+          <Globe className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-gray-900">
+            Your plan is active — site setup coming soon.
+          </h3>
+          <p className="text-sm text-gray-500 mt-1.5 max-w-md mx-auto">
+            We&apos;re reviewing your account and will begin setting up your WordPress site shortly. You&apos;ll be notified when it&apos;s ready.
+          </p>
+        </div>
+      )}
+
+      {/* State B2: Site is actively provisioning */}
+      {hasProvisioningSite && (
         <div className="card p-8 text-center">
           <div className="flex items-center justify-center mb-4">
             <div className="relative">
