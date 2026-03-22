@@ -25,7 +25,6 @@ const nav = [
   { name: 'Billing',        href: '/dashboard/billing',        icon: CreditCard },
   { name: 'Business Email', href: '/dashboard/email',          icon: Mail },
   { name: 'Support',        href: '/dashboard/support',        icon: MessageCircle },
-  { name: 'Partners',       href: '/dashboard/partners',       icon: Users },
 ];
 
 function UserAvatar({ user, size = 32 }: { user: DashboardUser; size?: number }) {
@@ -148,24 +147,41 @@ export function DashboardShell({
     href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(href);
 
   const SidebarNav = () => (
-    <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-      {nav.map(item => (
+    <div className="flex flex-col flex-1">
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+        {nav.map(item => (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={() => setMobileOpen(false)}
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+              isActive(item.href)
+                ? 'bg-gray-100 text-gray-900 font-medium'
+                : 'text-gray-600 hover:bg-gray-50'
+            )}
+          >
+            <item.icon className="w-[18px] h-[18px] shrink-0" />
+            {item.name}
+          </Link>
+        ))}
+      </nav>
+      <div className="p-3 border-t border-gray-100">
         <Link
-          key={item.href}
-          href={item.href}
+          href="/dashboard/partners"
           onClick={() => setMobileOpen(false)}
           className={cn(
             'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
-            isActive(item.href)
+            isActive('/dashboard/partners')
               ? 'bg-gray-100 text-gray-900 font-medium'
               : 'text-gray-600 hover:bg-gray-50'
           )}
         >
-          <item.icon className="w-[18px] h-[18px] shrink-0" />
-          {item.name}
+          <Users className="w-[18px] h-[18px] shrink-0" />
+          Become a Partner
         </Link>
-      ))}
-    </nav>
+      </div>
+    </div>
   );
 
   return (
