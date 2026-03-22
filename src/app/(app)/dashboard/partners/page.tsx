@@ -1,248 +1,199 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle, Handshake, Building2, Gift } from 'lucide-react';
+import { CheckCircle, Handshake, Loader2 } from 'lucide-react';
 
-/* ------------------------------------------------------------------ */
-/*  Shared success state                                               */
-/* ------------------------------------------------------------------ */
-function SuccessState({ message, onReset }: { message: string; onReset: () => void }) {
-  return (
-    <div className="flex flex-col items-center text-center py-6">
-      <CheckCircle className="w-10 h-10 text-emerald-500 mb-3" />
-      <p className="text-sm font-medium text-gray-900 mb-1">{message}</p>
-      <button onClick={onReset} className="text-sm text-brand-600 font-medium hover:underline mt-2">
-        Submit Another
-      </button>
-    </div>
-  );
-}
+const PARTNER_TYPES = [
+  { value: 'sales', label: 'Sales Partner', description: 'Refer businesses to Envosta and earn recurring commissions on every customer you bring in.' },
+  { value: 'agency', label: 'Agency Partner', description: 'Build client sites on Envosta. Get priority support, bulk pricing, and a dedicated account manager.' },
+  { value: 'referral', label: 'Referral Program', description: 'Share Envosta with a friend and they get 6 months of free hosting. Simple as that.' },
+];
 
-/* ------------------------------------------------------------------ */
-/*  Sales Partner Card                                                 */
-/* ------------------------------------------------------------------ */
-function SalesPartnerCard() {
-  const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({
-    fullName: '', email: '', phone: '', company: '', referralPlan: '',
-  });
-
-  function set(field: string) {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitted(true);
-  }
-
-  function reset() {
-    setForm({ fullName: '', email: '', phone: '', company: '', referralPlan: '' });
-    setSubmitted(false);
-  }
-
-  return (
-    <div className="card p-6">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-brand-50 text-brand-600">
-          <Handshake className="w-5 h-5" />
-        </div>
-        <h2 className="text-base font-semibold text-gray-900">Sales Partner</h2>
-      </div>
-      <p className="text-sm text-gray-500 mb-5">
-        Refer businesses to Envosta and earn recurring commissions on every sale. Perfect for consultants, freelancers, and agencies.
-      </p>
-
-      {submitted ? (
-        <SuccessState message="Application submitted! We'll review within 48 hours." onReset={reset} />
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="label">Full Name</label>
-            <input type="text" className="input" required value={form.fullName} onChange={set('fullName')} />
-          </div>
-          <div>
-            <label className="label">Email</label>
-            <input type="email" className="input" required value={form.email} onChange={set('email')} />
-          </div>
-          <div>
-            <label className="label">Phone</label>
-            <input type="tel" className="input" required value={form.phone} onChange={set('phone')} />
-          </div>
-          <div>
-            <label className="label">Company Name <span className="text-gray-400 font-normal">(optional)</span></label>
-            <input type="text" className="input" value={form.company} onChange={set('company')} />
-          </div>
-          <div>
-            <label className="label">How do you plan to refer?</label>
-            <textarea className="input" rows={3} required value={form.referralPlan} onChange={set('referralPlan')} placeholder="Tell us about your audience or referral strategy..." />
-          </div>
-          <button type="submit" className="btn-primary">Submit Application</button>
-        </form>
-      )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Agency Partner Card                                                */
-/* ------------------------------------------------------------------ */
-function AgencyPartnerCard() {
-  const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({
-    fullName: '', email: '', phone: '', agencyName: '', website: '', siteCount: '',
-  });
-
-  function set(field: string) {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitted(true);
-  }
-
-  function reset() {
-    setForm({ fullName: '', email: '', phone: '', agencyName: '', website: '', siteCount: '' });
-    setSubmitted(false);
-  }
-
-  return (
-    <div className="card p-6">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-brand-50 text-brand-600">
-          <Building2 className="w-5 h-5" />
-        </div>
-        <h2 className="text-base font-semibold text-gray-900">Agency Partner</h2>
-      </div>
-      <p className="text-sm text-gray-500 mb-5">
-        Build client sites on the Envosta platform. Get priority support, co-marketing opportunities, and volume discounts.
-      </p>
-
-      {submitted ? (
-        <SuccessState message="Application submitted! We'll review within 48 hours." onReset={reset} />
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="label">Full Name</label>
-            <input type="text" className="input" required value={form.fullName} onChange={set('fullName')} />
-          </div>
-          <div>
-            <label className="label">Email</label>
-            <input type="email" className="input" required value={form.email} onChange={set('email')} />
-          </div>
-          <div>
-            <label className="label">Phone</label>
-            <input type="tel" className="input" required value={form.phone} onChange={set('phone')} />
-          </div>
-          <div>
-            <label className="label">Agency Name</label>
-            <input type="text" className="input" required value={form.agencyName} onChange={set('agencyName')} />
-          </div>
-          <div>
-            <label className="label">Website URL</label>
-            <input type="url" className="input" required value={form.website} onChange={set('website')} placeholder="https://" />
-          </div>
-          <div>
-            <label className="label">How many sites do you plan to build?</label>
-            <select className="input" required value={form.siteCount} onChange={set('siteCount')}>
-              <option value="" disabled>Select a range</option>
-              <option value="1-5">1 - 5</option>
-              <option value="6-20">6 - 20</option>
-              <option value="21-50">21 - 50</option>
-              <option value="50+">50+</option>
-            </select>
-          </div>
-          <button type="submit" className="btn-primary">Submit Application</button>
-        </form>
-      )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Referral Program Card                                              */
-/* ------------------------------------------------------------------ */
-function ReferralProgramCard() {
-  const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({
-    yourName: '', yourEmail: '', friendName: '', friendEmail: '', personalMessage: '',
-  });
-
-  function set(field: string) {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitted(true);
-  }
-
-  function reset() {
-    setForm({ yourName: '', yourEmail: '', friendName: '', friendEmail: '', personalMessage: '' });
-    setSubmitted(false);
-  }
-
-  return (
-    <div className="card p-6">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-brand-50 text-brand-600">
-          <Gift className="w-5 h-5" />
-        </div>
-        <h2 className="text-base font-semibold text-gray-900">Referral Program</h2>
-        <span className="badge-green">6 months free</span>
-      </div>
-      <p className="text-sm text-gray-500 mb-5">
-        Share Envosta with a friend and you both get 6 months free when they sign up. It is that simple.
-      </p>
-
-      {submitted ? (
-        <SuccessState message="Application submitted! We'll review within 48 hours." onReset={reset} />
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="label">Your Name</label>
-            <input type="text" className="input" required value={form.yourName} onChange={set('yourName')} />
-          </div>
-          <div>
-            <label className="label">Your Email</label>
-            <input type="email" className="input" required value={form.yourEmail} onChange={set('yourEmail')} />
-          </div>
-          <div>
-            <label className="label">Friend&apos;s Name</label>
-            <input type="text" className="input" required value={form.friendName} onChange={set('friendName')} />
-          </div>
-          <div>
-            <label className="label">Friend&apos;s Email</label>
-            <input type="email" className="input" required value={form.friendEmail} onChange={set('friendEmail')} />
-          </div>
-          <div>
-            <label className="label">Personal message <span className="text-gray-400 font-normal">(optional)</span></label>
-            <textarea className="input" rows={3} value={form.personalMessage} onChange={set('personalMessage')} placeholder="Add a note for your friend..." />
-          </div>
-          <button type="submit" className="btn-primary">Send Referral</button>
-        </form>
-      )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Page                                                               */
-/* ------------------------------------------------------------------ */
 export default function PartnersPage() {
+  const [type, setType] = useState('sales');
+  const [form, setForm] = useState({
+    fullName: '', email: '', phone: '', companyName: '', websiteUrl: '',
+    siteCount: '', message: '', friendName: '', friendEmail: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const selectedType = PARTNER_TYPES.find(t => t.value === type)!;
+
+  function handleChange(field: string, value: string) {
+    setForm(prev => ({ ...prev, [field]: value }));
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    // Placeholder — will connect to Edge Function later
+    setTimeout(() => {
+      setSubmitting(false);
+      setSubmitted(true);
+    }, 800);
+  }
+
+  function reset() {
+    setSubmitted(false);
+    setForm({ fullName: '', email: '', phone: '', companyName: '', websiteUrl: '', siteCount: '', message: '', friendName: '', friendEmail: '' });
+  }
+
+  if (submitted) {
+    return (
+      <div>
+        <div className="mb-6">
+          <h1 className="text-xl font-semibold text-gray-900">Partner with Envosta</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Join our partner program and grow with us.</p>
+        </div>
+        <div className="card p-12 text-center">
+          <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
+          <h3 className="text-base font-semibold text-gray-900 mb-1">Application Submitted!</h3>
+          <p className="text-sm text-gray-500 mb-4">We&apos;ll review your application and get back to you within 48 hours.</p>
+          <button onClick={reset} className="text-sm text-brand-600 font-medium hover:underline">
+            Submit Another Application
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <h1 className="text-xl font-semibold text-gray-900 mb-1">Partner with Envosta</h1>
-      <p className="text-sm text-gray-500 mb-8">Join our partner program and grow with us.</p>
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold text-gray-900">Partner with Envosta</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Join our partner program and grow with us.</p>
+      </div>
 
-      <div className="space-y-6 max-w-2xl">
-        <SalesPartnerCard />
-        <AgencyPartnerCard />
-        <ReferralProgramCard />
+      <div className="card p-6">
+        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
+          <div className="w-10 h-10 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center">
+            <Handshake className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Partner Application</h2>
+            <p className="text-xs text-gray-500">Choose a partner type and fill out the form below.</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Partner Type Selector */}
+          <div>
+            <label className="label">Partner Type</label>
+            <select
+              value={type}
+              onChange={e => setType(e.target.value)}
+              className="input"
+            >
+              {PARTNER_TYPES.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1.5">{selectedType.description}</p>
+            {type === 'referral' && (
+              <div className="mt-2 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-medium px-3 py-1 rounded-full">
+                🎁 Your friend gets 6 months free hosting
+              </div>
+            )}
+          </div>
+
+          {/* Common Fields */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="label">{type === 'referral' ? 'Your Name' : 'Full Name'}</label>
+              <input type="text" className="input" required value={form.fullName}
+                onChange={e => handleChange('fullName', e.target.value)} placeholder="Jane Smith" />
+            </div>
+            <div>
+              <label className="label">{type === 'referral' ? 'Your Email' : 'Email'}</label>
+              <input type="email" className="input" required value={form.email}
+                onChange={e => handleChange('email', e.target.value)} placeholder="you@company.com" />
+            </div>
+          </div>
+
+          {/* Sales & Agency: Phone */}
+          {(type === 'sales' || type === 'agency') && (
+            <div>
+              <label className="label">Phone Number</label>
+              <input type="tel" className="input" value={form.phone}
+                onChange={e => handleChange('phone', e.target.value)} placeholder="+1 (555) 123-4567" />
+            </div>
+          )}
+
+          {/* Sales: Company */}
+          {type === 'sales' && (
+            <>
+              <div>
+                <label className="label">Company Name <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input type="text" className="input" value={form.companyName}
+                  onChange={e => handleChange('companyName', e.target.value)} placeholder="Your Company" />
+              </div>
+              <div>
+                <label className="label">How do you plan to refer customers?</label>
+                <textarea className="input min-h-[80px]" value={form.message}
+                  onChange={e => handleChange('message', e.target.value)}
+                  placeholder="Tell us about your referral strategy..." />
+              </div>
+            </>
+          )}
+
+          {/* Agency: Extra fields */}
+          {type === 'agency' && (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Agency Name</label>
+                  <input type="text" className="input" required value={form.companyName}
+                    onChange={e => handleChange('companyName', e.target.value)} placeholder="Your Agency" />
+                </div>
+                <div>
+                  <label className="label">Website URL</label>
+                  <input type="url" className="input" value={form.websiteUrl}
+                    onChange={e => handleChange('websiteUrl', e.target.value)} placeholder="https://youragency.com" />
+                </div>
+              </div>
+              <div>
+                <label className="label">How many client sites do you manage?</label>
+                <select className="input" value={form.siteCount}
+                  onChange={e => handleChange('siteCount', e.target.value)}>
+                  <option value="">Select...</option>
+                  <option value="1-5">1–5</option>
+                  <option value="6-20">6–20</option>
+                  <option value="21-50">21–50</option>
+                  <option value="50+">50+</option>
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* Referral: Friend's info */}
+          {type === 'referral' && (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Friend&apos;s Name</label>
+                  <input type="text" className="input" required value={form.friendName}
+                    onChange={e => handleChange('friendName', e.target.value)} placeholder="Friend's name" />
+                </div>
+                <div>
+                  <label className="label">Friend&apos;s Email</label>
+                  <input type="email" className="input" required value={form.friendEmail}
+                    onChange={e => handleChange('friendEmail', e.target.value)} placeholder="friend@email.com" />
+                </div>
+              </div>
+              <div>
+                <label className="label">Personal message <span className="text-gray-400 font-normal">(optional)</span></label>
+                <textarea className="input min-h-[80px]" value={form.message}
+                  onChange={e => handleChange('message', e.target.value)}
+                  placeholder="Add a personal note to your friend..." />
+              </div>
+            </>
+          )}
+
+          <button type="submit" disabled={submitting} className="btn-primary inline-flex items-center gap-2">
+            {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : 'Submit Application'}
+          </button>
+        </form>
       </div>
     </div>
   );

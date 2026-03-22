@@ -173,8 +173,9 @@ export function DashboardShell({
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 hidden lg:flex flex-col z-30">
         <div className="p-5 border-b border-gray-200">
-          <Link href="/dashboard" className="text-lg font-bold text-gray-900 tracking-tight">
-            Envosta
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <img src="/assets/Logo/envosta-logo-mark-dark.svg" alt="Envosta" className="w-7 h-7" />
+            <span className="text-lg font-bold text-gray-900 tracking-tight">Envosta</span>
           </Link>
         </div>
         <SidebarNav />
@@ -189,9 +190,10 @@ export function DashboardShell({
               <Link
                 href="/dashboard"
                 onClick={() => setMobileOpen(false)}
-                className="text-lg font-bold text-gray-900 tracking-tight"
+                className="flex items-center gap-2.5"
               >
-                Envosta
+                <img src="/assets/Logo/envosta-logo-mark-dark.svg" alt="Envosta" className="w-7 h-7" />
+                <span className="text-lg font-bold text-gray-900 tracking-tight">Envosta</span>
               </Link>
               <button
                 onClick={() => setMobileOpen(false)}
@@ -216,7 +218,10 @@ export function DashboardShell({
             >
               <Menu className="w-5 h-5" />
             </button>
-            <span className="font-bold text-gray-900 lg:hidden">Envosta</span>
+            <div className="flex items-center gap-2 lg:hidden">
+              <img src="/assets/Logo/envosta-logo-mark-dark.svg" alt="Envosta" className="w-6 h-6" />
+              <span className="font-bold text-gray-900">Envosta</span>
+            </div>
           </div>
 
           <AvatarDropdown user={user} />

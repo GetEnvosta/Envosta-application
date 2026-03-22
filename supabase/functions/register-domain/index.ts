@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authErr } = await userSb.auth.getUser();
     if (authErr || !user) return error("Unauthorized", 401);
 
-    const { action, domainName, serviceId, years } = await req.json();
+    const { action, domainName, serviceId, years, nameservers } = await req.json();
     if (!domainName) return error("domainName is required");
 
     const sb = supabaseAdmin();
@@ -223,6 +223,71 @@ Deno.serve(async (req) => {
 
     await log({ userId: user.id, serviceId, action: "domain.register.success", message: domainName, ms });
     return json({ domainId: domain.id, domainName, status: "registered" });
+    }
+
+    // UPDATE NAMESERVERS
+    if (action === "update-nameservers") {
+      if (!nameservers || !Array.isArray(nameservers) || nameservers.length === 0) {
+        return error("nameservers array is required");
+      }
+      if (nameservers.length > 6) return error("Maximum 6 nameservers allowed");
+
+      // Build nameserver update XML
+      const nsItems = nameservers.map((ns: string, i: number) =>
+        `<item key="name">${ns}</item><item key="sortorder">${i + 1}</item>`
+      ).join("");
+
+      const nsListItems = nameservers.map((_: string, i: number) =>
+        `<item key="${i}"><dt_assoc><item key="name">${nameservers[i]}</item><item key="sortorder">${i + 1}</item></dt_assoc></item>`
+      ).join("");
+
+      const xml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
+<OPS_envelope>
+  <header><version>0.9</version></header>
+  <body>
+    <data_block>
+      <dt_assoc>
+        <item key="protocol">XCP</item>
+        <item key="object">DOMAIN</item>
+        <item key="action">ADVANCED_UPDATE_NAMESERVERS</item>
+        <item key="attributes">
+          <dt_assoc>
+            <item key="domain">${domainName}</item>
+            <item key="op_type">assign</item>
+            <item key="assign_ns">
+              <dt_array>${nsListItems}</dt_array>
+            </item>
+          </dt_assoc>
+        </item>
+      </dt_assoc>
+    </data_block>
+  </body>
+</OPS_envelope>`;
+
+      const responseXml = await opensrsRequest(xml);
+      const parsed = parseResponse(responseXml);
+      const ms = Date.now() - t0;
+
+      console.log("OpenSRS nameserver update:", parsed.responseCode, parsed.responseText);
+      console.log("OpenSRS raw:", responseXml.substring(0, 500));
+
+      if (!parsed.isSuccess) {
+        await log({ userId: user.id, level: "error", action: "domain.nameservers.failed", message: `${domainName}: ${parsed.responseText}`, ms });
+        return error(`Nameserver update failed: ${parsed.responseText}`, 502);
+      }
+
+      // Update nameservers in our database
+      await sb.from("domains")
+        .update({ nameservers: nameservers })
+        .eq("user_id", user.id)
+        .eq("domain_name", domainName);
+
+      await log({ userId: user.id, action: "domain.nameservers.updated", message: `${domainName}: ${nameservers.join(", ")}`, ms });
+      return json({ domainName, nameservers, success: true });
+    }
+
+    return error(`Unknown action: ${action}`, 400);
 
   } catch (e) {
     console.error("Domain error:", e);

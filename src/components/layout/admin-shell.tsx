@@ -41,8 +41,10 @@ export function AdminShell({
   const Sidebar = () => (
     <div className="flex flex-col h-full bg-admin-950">
       <div className="p-5 border-b border-admin-800">
-        <Link href="/admin" className="text-lg font-bold text-white tracking-tight">
-          Envosta <span className="text-admin-400 text-xs font-medium ml-1">Staff</span>
+        <Link href="/admin" className="flex items-center gap-2.5">
+          <img src="/assets/Logo/envosta-logo-mark.svg" alt="Envosta" className="w-7 h-7" />
+          <span className="text-lg font-bold text-white tracking-tight">Envosta</span>
+          <span className="text-admin-400 text-xs font-medium">Staff</span>
         </Link>
       </div>
 
@@ -111,7 +113,11 @@ export function AdminShell({
           <button onClick={() => setMobileOpen(true)} className="p-1.5 -ml-1.5 rounded-md text-admin-300 hover:bg-admin-800">
             <Menu className="w-5 h-5" />
           </button>
-          <span className="font-bold text-white">Envosta <span className="text-admin-400 text-xs font-medium ml-1">Staff</span></span>
+          <div className="flex items-center gap-2">
+            <img src="/assets/Logo/envosta-logo-mark.svg" alt="Envosta" className="w-6 h-6" />
+            <span className="font-bold text-white">Envosta</span>
+            <span className="text-admin-400 text-xs font-medium">Staff</span>
+          </div>
         </header>
 
         <main className="p-6 lg:p-8 max-w-7xl">

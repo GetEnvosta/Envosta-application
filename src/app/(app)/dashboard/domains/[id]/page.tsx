@@ -7,6 +7,7 @@ import { ArrowLeft, Globe, ExternalLink } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { DnsManager } from './dns-manager';
 import { ConnectedSiteSwitcher } from '@/components/domains/connected-site-switcher';
+import { NameserverManager } from '@/components/domains/nameserver-manager';
 
 export default async function DomainDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -77,17 +78,10 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
       </div>
 
       {/* Nameservers */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 className="text-sm font-semibold text-gray-900 mb-1">Nameservers</h2>
-        <p className="text-sm text-gray-500 mb-4">Your domain is pointed to the following nameservers.</p>
-        <div className="space-y-2">
-          {['ns1.envosta.com', 'ns2.envosta.com'].map((ns) => (
-            <div key={ns} className="flex items-center gap-3 rounded-lg bg-gray-50 border border-gray-200 px-4 py-2.5">
-              <span className="text-sm font-mono text-gray-700">{ns}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <NameserverManager
+        domainName={domain.domain_name}
+        currentNameservers={Array.isArray(domain.nameservers) ? domain.nameservers : []}
+      />
 
       {/* WHOIS Privacy */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
