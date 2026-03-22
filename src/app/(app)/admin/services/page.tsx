@@ -1,7 +1,7 @@
 import { getAllServices } from '@/services/sites';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { Search, Server, Settings } from 'lucide-react';
+import { Search, Server } from 'lucide-react';
 import { ProvisionButton } from './provision-button';
 
 const STATUSES = [
@@ -30,10 +30,6 @@ export default async function ServicesPage({
             Manage and monitor all provisioned services.
           </p>
         </div>
-        <Link href="/admin/plans" className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
-          <Settings className="w-4 h-4" />
-          Plan Settings
-        </Link>
       </div>
 
       {/* Search + Filter */}
