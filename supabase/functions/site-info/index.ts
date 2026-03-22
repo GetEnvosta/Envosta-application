@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
         return json(result.data);
       }
 
-      // Delete a site via wp.cloud + cancel subscription
+      // Customer soft-delete: cancel billing, hide from dashboard, keep site alive 30 days
       case "delete-site": {
         if (!siteId) return error("siteId is required");
 
@@ -95,19 +95,7 @@ Deno.serve(async (req) => {
         const isAdmin = profile?.role === "admin";
         if (!isAdmin && svc.user_id !== user.id) return error("Forbidden", 403);
 
-        // 1. Delete site on wp.cloud
-        if (svc.wp_cloud_site_id) {
-          const result = await wpcloudPost(`/api/v1.0/delete-site/${WPCLOUD_CLIENT}/${svc.wp_cloud_site_id}`);
-          console.log("Delete site result:", result.status, JSON.stringify(result.data));
-          await log({
-            userId: svc.user_id, serviceId: svc.id,
-            action: "hosting.delete",
-            message: svc.wp_cloud_url ?? svc.wp_cloud_site_id,
-            res: result.data,
-          });
-        }
-
-        // 2. Cancel the linked Stripe subscription
+        // 1. Cancel the linked Stripe subscription (stops billing)
         if (svc.subscription_id) {
           const { data: sub } = await sb.from("subscriptions")
             .select("stripe_subscription_id, status")
@@ -122,7 +110,6 @@ Deno.serve(async (req) => {
               console.error("Failed to cancel Stripe subscription:", stripeErr);
             }
 
-            // Update subscription status in DB
             await sb.from("subscriptions").update({
               status: "cancelled",
               cancelled_at: new Date().toISOString(),
@@ -130,19 +117,74 @@ Deno.serve(async (req) => {
           }
         }
 
-        // 3. Update service status
+        // 2. Soft-delete: mark as cancelled (hides from customer dashboard)
+        // wp.cloud site stays alive for 30-day recovery window
         await sb.from("services").update({
           status: "cancelled",
-          metadata: { deleted_at: new Date().toISOString() },
+          metadata: {
+            ...(svc as any).metadata,
+            soft_deleted_at: new Date().toISOString(),
+            soft_deleted_by: user.id,
+            recovery_deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          },
         }).eq("id", siteId);
 
-        // 4. Unlink any connected domains
+        // 3. Unlink domains (but don't delete them)
         await sb.from("domains")
           .update({ service_id: null })
           .eq("service_id", siteId);
 
-        console.log("Site fully deleted:", siteId);
-        return json({ deleted: true });
+        await log({
+          userId: svc.user_id, serviceId: svc.id,
+          action: "hosting.soft_delete",
+          message: `Site soft-deleted. wp.cloud site preserved until recovery deadline. ${svc.wp_cloud_url ?? ""}`,
+        });
+
+        console.log("Site soft-deleted:", siteId, "Recovery window: 30 days");
+        return json({ deleted: true, recoverable: true, recoveryDays: 30 });
+      }
+
+      // Admin-only: permanently destroy site on wp.cloud (no recovery)
+      case "hard-delete-site": {
+        if (!siteId) return error("siteId is required");
+
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("services")
+          .select("id, wp_cloud_site_id, wp_cloud_url, user_id")
+          .eq("id", siteId).single();
+
+        if (!svc) return error("Site not found", 404);
+
+        // Admin only
+        const { data: adminProfile } = await sb.from("users").select("role").eq("id", user.id).single();
+        if (adminProfile?.role !== "admin") return error("Admin access required", 403);
+
+        // Delete from wp.cloud
+        if (svc.wp_cloud_site_id) {
+          const result = await wpcloudPost(`/api/v1.0/delete-site/${WPCLOUD_CLIENT}/${svc.wp_cloud_site_id}`);
+          console.log("Hard delete wp.cloud result:", result.status, JSON.stringify(result.data));
+          await log({
+            userId: user.id, serviceId: svc.id,
+            action: "hosting.hard_delete",
+            message: `Permanently deleted from wp.cloud: ${svc.wp_cloud_url ?? svc.wp_cloud_site_id}`,
+            res: result.data,
+          });
+        }
+
+        // Update status
+        await sb.from("services").update({
+          status: "cancelled",
+          wp_cloud_site_id: null,
+          wp_cloud_url: null,
+          metadata: {
+            ...(svc as any).metadata,
+            hard_deleted_at: new Date().toISOString(),
+            hard_deleted_by: user.id,
+          },
+        }).eq("id", siteId);
+
+        console.log("Site permanently deleted:", siteId);
+        return json({ deleted: true, permanent: true });
       }
 
       // Get available PHP versions

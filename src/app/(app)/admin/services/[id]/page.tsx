@@ -256,6 +256,7 @@ export default async function ServiceDetailPage({
           serviceId={service.id}
           siteName={service.label}
           redirectTo="/admin/services"
+          isAdmin={true}
         />
       </div>
     </div>

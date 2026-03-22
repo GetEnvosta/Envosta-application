@@ -277,14 +277,14 @@ export default async function SiteDetailPage({
         </div>
       </div>
 
-      {/* Danger Zone */}
+      {/* Cancel Site */}
       <div className="rounded-xl border border-red-200 bg-white p-6">
         <h2 className="text-sm font-semibold text-red-600 mb-1 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4" />
-          Danger Zone
+          Cancel Site
         </h2>
         <p className="text-sm text-gray-500 mb-4">
-          Permanently delete this site and all its data. This action cannot be undone.
+          Cancel your subscription and remove this site from your dashboard. Your site data is preserved for 30 days — contact support to restore it.
         </p>
         <DeleteSiteButton serviceId={site.id} siteName={site.label} />
       </div>
