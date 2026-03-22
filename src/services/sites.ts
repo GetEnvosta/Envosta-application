@@ -10,6 +10,7 @@ export async function getUserSites(userId?: string) {
   let query = supabase
     .from('services')
     .select('*')
+    .not('status', 'eq', 'cancelled')
     .order('created_at', { ascending: false });
 
   if (userId) {

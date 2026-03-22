@@ -79,40 +79,69 @@ Deno.serve(async (req) => {
         return json(result.data);
       }
 
-      // Delete a site via wp.cloud
+      // Delete a site via wp.cloud + cancel subscription
       case "delete-site": {
         if (!siteId) return error("siteId is required");
 
         const sb = supabaseAdmin();
         const { data: svc } = await sb.from("services")
-          .select("id, wp_cloud_site_id, wp_cloud_url, user_id")
+          .select("id, wp_cloud_site_id, wp_cloud_url, user_id, subscription_id")
           .eq("id", siteId).single();
 
-        if (!svc || svc.user_id !== user.id) return error("Site not found", 404);
+        if (!svc) return error("Site not found", 404);
 
-        // Call wp.cloud delete if we have a site ID
+        // Check admin or owner
+        const { data: profile } = await sb.from("users").select("role").eq("id", user.id).single();
+        const isAdmin = profile?.role === "admin";
+        if (!isAdmin && svc.user_id !== user.id) return error("Forbidden", 403);
+
+        // 1. Delete site on wp.cloud
         if (svc.wp_cloud_site_id) {
           const result = await wpcloudPost(`/api/v1.0/delete-site/${WPCLOUD_CLIENT}/${svc.wp_cloud_site_id}`);
           console.log("Delete site result:", result.status, JSON.stringify(result.data));
           await log({
-            userId: user.id, serviceId: svc.id,
+            userId: svc.user_id, serviceId: svc.id,
             action: "hosting.delete",
             message: svc.wp_cloud_url ?? svc.wp_cloud_site_id,
             res: result.data,
           });
         }
 
-        // Update service status
+        // 2. Cancel the linked Stripe subscription
+        if (svc.subscription_id) {
+          const { data: sub } = await sb.from("subscriptions")
+            .select("stripe_subscription_id, status")
+            .eq("id", svc.subscription_id).single();
+
+          if (sub?.stripe_subscription_id && sub.status !== "cancelled") {
+            try {
+              const stripe = (await import("../_shared/deps.ts")).getStripe();
+              await stripe.subscriptions.cancel(sub.stripe_subscription_id);
+              console.log("Stripe subscription cancelled:", sub.stripe_subscription_id);
+            } catch (stripeErr) {
+              console.error("Failed to cancel Stripe subscription:", stripeErr);
+            }
+
+            // Update subscription status in DB
+            await sb.from("subscriptions").update({
+              status: "cancelled",
+              cancelled_at: new Date().toISOString(),
+            }).eq("id", svc.subscription_id);
+          }
+        }
+
+        // 3. Update service status
         await sb.from("services").update({
           status: "cancelled",
           metadata: { deleted_at: new Date().toISOString() },
         }).eq("id", siteId);
 
-        // Unlink any connected domains
+        // 4. Unlink any connected domains
         await sb.from("domains")
           .update({ service_id: null })
           .eq("service_id", siteId);
 
+        console.log("Site fully deleted:", siteId);
         return json({ deleted: true });
       }
 
