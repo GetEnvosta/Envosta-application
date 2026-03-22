@@ -1,7 +1,7 @@
 import { getUserDomains } from '@/services/domains';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { Globe } from 'lucide-react';
+import { Globe, Plus } from 'lucide-react';
 import { DomainSearchEmpty } from './domain-search-empty';
 
 export default async function DomainsPage() {
@@ -18,9 +18,15 @@ export default async function DomainsPage() {
             <span className="badge-blue">{count}</span>
           )}
         </div>
-        <Link href="/dashboard/domains/register" className="btn-primary">
-          Register New Domain
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard/domains/register" className="btn-primary text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
+            <Plus className="w-4 h-4" />
+            Register Domain
+          </Link>
+          <Link href="/dashboard/domains/register?transfer=true" className="btn-secondary text-sm py-2 px-3.5">
+            Transfer Domain
+          </Link>
+        </div>
       </div>
 
       {count === 0 ? (

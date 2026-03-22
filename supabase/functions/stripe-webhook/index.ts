@@ -55,6 +55,13 @@ Deno.serve(async (req) => {
         if (!existing) {
           const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.user_id).maybeSingle();
           const name = profile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
+          // Get onboarding type from plan
+          let onboardingType = "standard";
+          if (plan?.id) {
+            const { data: planData } = await sb.from("plans").select("onboarding_type").eq("id", plan.id).maybeSingle();
+            if (planData?.onboarding_type) onboardingType = planData.onboarding_type;
+          }
+
           const { data: svc, error: svcErr } = await sb.from("services").insert({
             user_id: cust.user_id,
             subscription_id: dbSub.id,
@@ -64,11 +71,36 @@ Deno.serve(async (req) => {
             status: "provisioning",
             server_region: "dca",
             php_version: "8.4",
+            onboarding_status: "not_started",
+            onboarding_type: onboardingType,
             metadata: { auto_provisioned: true, plan_slug: plan?.slug ?? "minimum" },
           }).select("id").single();
           console.log("Service created:", svc?.id, "err:", svcErr?.message);
         } else {
           console.log("Service already exists:", existing.id);
+        }
+      }
+    }
+
+    // Handle checkout.session.completed for one-time payments (studio requests, domain purchases)
+    else if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const metadata = session.metadata ?? {};
+
+      if (metadata.type === "studio_request") {
+        const userId = metadata.supabase_user_id;
+        if (userId) {
+          const { data: cust } = await sb.from("customers").select("id").eq("user_id", userId).maybeSingle();
+          await sb.from("studio_requests").insert({
+            user_id: userId,
+            customer_id: cust?.id ?? null,
+            stripe_payment_id: session.payment_intent ?? session.id,
+            subject: metadata.studio_subject ?? "Studio Request",
+            message: metadata.studio_message ?? "",
+            status: "paid",
+            amount_cad: session.amount_total ?? 25000,
+          });
+          console.log("Studio request created for user:", userId);
         }
       }
     }

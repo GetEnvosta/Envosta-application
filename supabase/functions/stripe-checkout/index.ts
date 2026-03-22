@@ -21,11 +21,83 @@ Deno.serve(async (req) => {
       return error("Unauthorized", 401);
     }
 
-    const { priceId, domainName, domainPriceCents, renewal } = await req.json();
-    if (!priceId && !domainName) return error("priceId or domainName is required");
+    const { priceId, domainName, domainPriceCents, renewal, customInvoice, targetCustomerId, amount, description, studioRequest, studioSubject, studioMessage } = await req.json();
 
     const stripe = getStripe();
     const sb = supabaseAdmin();
+
+    // ---- Studio Request ($250 one-time charge) ----
+    if (studioRequest) {
+      // Get or create customer
+      let { data: customer } = await sb.from("customers").select("*").eq("user_id", user.id).single();
+      if (!customer) {
+        const sc = await stripe.customers.create({ email: user.email ?? "", metadata: { supabase_user_id: user.id } });
+        const { data: newCust } = await sb.from("customers").insert({ user_id: user.id, stripe_customer_id: sc.id, billing_email: user.email }).select().single();
+        customer = newCust;
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        customer: customer!.stripe_customer_id,
+        mode: "payment",
+        line_items: [{
+          price_data: {
+            currency: "cad",
+            unit_amount: 25000, // $250 CAD
+            product_data: { name: "Studio Request" },
+          },
+          quantity: 1,
+        }],
+        success_url: `https://my.envosta.com/dashboard/support?studio=success`,
+        cancel_url: `https://my.envosta.com/dashboard/support?studio=cancelled`,
+        metadata: {
+          supabase_user_id: user.id,
+          type: "studio_request",
+          studio_subject: (studioSubject ?? "").slice(0, 200),
+          studio_message: (studioMessage ?? "").slice(0, 400),
+        },
+      });
+
+      console.log("Studio request checkout:", session.id);
+      await log({ userId: user.id, action: "stripe.studio_request.created", message: studioSubject ?? "Studio Request" });
+      return json({ url: session.url, sessionId: session.id });
+    }
+
+    // ---- Custom Invoice (admin sends one-time charge to a customer) ----
+    if (customInvoice && targetCustomerId && amount && description) {
+      // Verify caller is admin
+      const { data: profile } = await sb.from("users").select("role").eq("id", user.id).single();
+      if (profile?.role !== "admin") return error("Admin access required", 403);
+
+      // Create Stripe Invoice
+      const invoiceItem = await stripe.invoiceItems.create({
+        customer: targetCustomerId,
+        amount: amount,
+        currency: "cad",
+        description: description,
+      });
+
+      const invoice = await stripe.invoices.create({
+        customer: targetCustomerId,
+        auto_advance: true, // auto-finalize and send
+        collection_method: "send_invoice",
+        days_until_due: 14,
+      });
+
+      // Finalize and send
+      const finalized = await stripe.invoices.finalizeInvoice(invoice.id);
+      await stripe.invoices.sendInvoice(invoice.id);
+
+      console.log("Custom invoice created:", invoice.id, "amount:", amount, "to:", targetCustomerId);
+      await log({ userId: user.id, action: "stripe.custom_invoice.created", message: `${description} - $${(amount / 100).toFixed(2)} CAD to ${targetCustomerId}` });
+
+      return json({
+        invoiceId: invoice.id,
+        invoiceUrl: finalized.hosted_invoice_url,
+        status: finalized.status,
+      });
+    }
+
+    if (!priceId && !domainName) return error("priceId or domainName is required");
 
     // Get or create Stripe customer
     let { data: customer } = await sb.from("customers")
@@ -50,28 +122,43 @@ Deno.serve(async (req) => {
       line_items.push({ price: priceId, quantity: 1 });
     }
 
-    // Domain line item (one-time charge)
-    if (domainName && domainPriceCents) {
-      const label = renewal
-        ? `Domain Renewal: ${domainName} (1 year)`
-        : `Domain Registration: ${domainName} (1 year)`;
+    // Domain line item — use Stripe Price ID if available, otherwise dynamic price_data
+    if (domainName) {
+      const tld = domainName.split(".").pop()?.toLowerCase() ?? "";
+      const { data: tldPricing } = await sb.from("domain_pricing")
+        .select("stripe_price_id_yearly, registration_price_cad, renewal_price_cad")
+        .eq("tld", tld).maybeSingle();
 
-      line_items.push({
-        price_data: {
-          currency: "cad",
-          unit_amount: domainPriceCents,
-          product_data: { name: label },
-        },
-        quantity: 1,
-      });
+      if (tldPricing?.stripe_price_id_yearly) {
+        // Use the pre-created Stripe Price (yearly subscription for domain renewal)
+        line_items.push({ price: tldPricing.stripe_price_id_yearly, quantity: 1 });
+      } else {
+        // Fallback: dynamic one-time charge (for TLDs without Stripe Price set up yet)
+        const price = renewal
+          ? (tldPricing?.renewal_price_cad ?? domainPriceCents ?? 1500)
+          : (tldPricing?.registration_price_cad ?? domainPriceCents ?? 1500);
+        const label = renewal
+          ? `Domain Renewal: ${domainName} (1 year)`
+          : `Domain Registration: ${domainName} (1 year)`;
+
+        line_items.push({
+          price_data: {
+            currency: "cad",
+            unit_amount: price,
+            product_data: { name: label },
+          },
+          quantity: 1,
+        });
+      }
     }
 
     if (line_items.length === 0) return error("No line items to checkout");
 
     // Determine checkout mode
-    // If there's a subscription price, mode must be "subscription"
-    // If domain only (no priceId), mode is "payment"
-    const mode = priceId ? "subscription" : "payment";
+    // If any line item is a recurring/subscription price, mode must be "subscription"
+    // Domain-only with Stripe Price (yearly) is also a subscription
+    const hasRecurring = line_items.some((li: any) => li.price && !li.price_data);
+    const mode = (priceId || hasRecurring) ? "subscription" : "payment";
 
     // Build session params
     const sessionParams: any = {

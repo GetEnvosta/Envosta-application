@@ -1,6 +1,7 @@
 import { getAllDomains } from '@/services/domains';
 import { formatDate, statusColor } from '@/lib/utils';
-import { Globe, Search } from 'lucide-react';
+import { Globe, Search, DollarSign } from 'lucide-react';
+import Link from 'next/link';
 
 const STATUSES = ['available', 'registered', 'transferring', 'expired', 'pending_dns', 'failed'] as const;
 
@@ -22,6 +23,10 @@ export default async function DomainsPage({
           <h1 className="text-xl font-semibold text-gray-900">Domains</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage all registered domains across the platform.</p>
         </div>
+        <Link href="/admin/domains/pricing" className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
+          <DollarSign className="w-4 h-4" />
+          TLD Pricing
+        </Link>
       </div>
 
       {/* Filters */}

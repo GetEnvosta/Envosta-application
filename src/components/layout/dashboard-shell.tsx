@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase-browser';
 import { cn } from '@/lib/utils';
 import {
   Globe, Globe2, CreditCard, Mail, MessageCircle, Users,
-  LogOut, Menu, X, Settings, Shield, PlusCircle,
+  LogOut, Menu, X, Settings, Shield,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 

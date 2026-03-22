@@ -66,7 +66,7 @@ export function MarketingNav() {
           <div className="nc">
             <a href="https://my.envosta.com/auth/login" className="gh">Log in</a>
             <div className="block-button">
-              <Link href="/pricing" className="bp">Get Started</Link>
+              <Link href="/get-started" className="bp">Get Started</Link>
             </div>
           </div>
 

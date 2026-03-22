@@ -344,6 +344,45 @@ export default function PricingPage() {
         </table>
       </div></section>
 
+      {/* Studio Request Add-on */}
+      <section className="rv" style={{ padding: '80px 0' }}><div className="c">
+        <div style={{ maxWidth: 800, margin: '0 auto', background: 'linear-gradient(135deg, rgba(201,164,92,.06), rgba(37,99,235,.04))', border: '1px solid rgba(201,164,92,.15)', borderRadius: 24, padding: '48px 40px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, background: 'radial-gradient(circle, rgba(201,164,92,.1), transparent 70%)', pointerEvents: 'none' }} />
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 40 }}>
+            <div style={{ flex: 1, minWidth: 280, position: 'relative', zIndex: 1 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(201,164,92,.1)', border: '1px solid rgba(201,164,92,.2)', borderRadius: 100, padding: '5px 14px', fontSize: '.68rem', fontWeight: 600, color: '#c9a45c', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 16 }}>
+                Add-on
+              </div>
+              <h3 style={{ fontSize: 'clamp(1.4rem, 2.5vw, 1.8rem)', fontWeight: 500, letterSpacing: '-.5px', lineHeight: 1.15, marginBottom: 12, color: '#fff' }}>
+                Studio Request
+              </h3>
+              <p style={{ fontSize: '.9rem', color: 'var(--t2)', lineHeight: 1.75, fontWeight: 300, marginBottom: 20, maxWidth: 440 }}>
+                Need a design change, a new page, or a custom feature on your site? Submit a Studio Request and our team will handle it for you — no technical knowledge required.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+                {['Design Changes', 'New Pages', 'Plugin Setup', 'Custom Features', 'Content Updates'].map(tag => (
+                  <span key={tag} style={{ fontSize: '.72rem', padding: '4px 12px', borderRadius: 100, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.08)', color: 'var(--t2)' }}>{tag}</span>
+                ))}
+              </div>
+              <p style={{ fontSize: '.78rem', color: 'var(--t3)', fontWeight: 300 }}>
+                Available on all hosting plans. One request at a time, delivered within 3–5 business days.
+              </p>
+            </div>
+
+            <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+              <div style={{ fontSize: '2.4rem', fontWeight: 600, background: 'linear-gradient(135deg, #c9a45c, #e6c46e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 4 }}>
+                $250
+              </div>
+              <p style={{ fontSize: '.82rem', color: 'var(--t3)', fontWeight: 300, marginBottom: 20 }}>CAD per request</p>
+              <a href="/get-started" className="bp" style={{ background: 'linear-gradient(135deg, #c9a45c, #b8943f)', color: '#0a0e1a', fontWeight: 600 }}>
+                Learn More
+              </a>
+            </div>
+          </div>
+        </div>
+      </div></section>
+
       {/* FAQ */}
       <section className="faq rv"><div className="c">
         <div className="faq-header">

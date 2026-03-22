@@ -1,9 +1,10 @@
 import { getAllActiveSubscriptions } from '@/services/subscriptions';
-import { getAdminBillingStats, getAdminRecentInvoices } from '@/services/billing';
+import { getAdminBillingStats, getAdminRecentInvoices, getAllCustomersWithUsers } from '@/services/billing';
 import { getAllPlansByPrice } from '@/services/plans';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
 import { DollarSign, Receipt, AlertCircle } from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
+import { CreateInvoiceForm } from './create-invoice';
 
 export default async function BillingPage() {
   const [
@@ -11,11 +12,13 @@ export default async function BillingPage() {
     { paidInvoicesCount, outstandingInvoicesCount },
     plans,
     recentInvoices,
+    customers,
   ] = await Promise.all([
     getAllActiveSubscriptions(),
     getAdminBillingStats(),
     getAllPlansByPrice(),
     getAdminRecentInvoices(30),
+    getAllCustomersWithUsers(),
   ]);
 
   const mrr = activeSubscriptions.reduce(
@@ -115,6 +118,8 @@ export default async function BillingPage() {
           </table>
         </div>
       </div>
+      {/* Custom Invoice */}
+      <CreateInvoiceForm customers={customers as any} />
     </div>
   );
 }

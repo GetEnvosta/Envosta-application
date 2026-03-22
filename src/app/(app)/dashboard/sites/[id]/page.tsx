@@ -136,9 +136,11 @@ export default async function SiteDetailPage({
             <HardDrive className="w-4 h-4" />
             <span className="text-xs font-medium uppercase tracking-wider">Storage</span>
           </div>
-          <p className="text-sm font-semibold text-gray-900">3.2 GB of 10 GB</p>
+          <p className="text-sm font-semibold text-gray-900">
+            {((site.disk_usage_mb ?? 0) / 1024).toFixed(1)} GB of {(site.plans as any)?.storage_gb ?? (site.plans as any)?.disk_gb ?? 25} GB
+          </p>
           <div className="mt-2 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full w-[32%] bg-brand-500 rounded-full" />
+            <div className="h-full bg-brand-500 rounded-full" style={{ width: `${Math.min(100, ((site.disk_usage_mb ?? 0) / (((site.plans as any)?.storage_gb ?? 25) * 1024)) * 100)}%` }} />
           </div>
         </div>
 
@@ -147,7 +149,7 @@ export default async function SiteDetailPage({
             <Server className="w-4 h-4" />
             <span className="text-xs font-medium uppercase tracking-wider">PHP Version</span>
           </div>
-          <p className="text-sm font-semibold text-gray-900">8.2</p>
+          <p className="text-sm font-semibold text-gray-900">{site.php_version ?? '8.4'}</p>
         </div>
 
         <div className="card p-5">
@@ -155,7 +157,9 @@ export default async function SiteDetailPage({
             <MapPin className="w-4 h-4" />
             <span className="text-xs font-medium uppercase tracking-wider">Region</span>
           </div>
-          <p className="text-sm font-semibold text-gray-900">US East</p>
+          <p className="text-sm font-semibold text-gray-900">
+            {{ dca: 'US East', bur: 'US West', dfw: 'US Central', ams: 'EU West' }[site.server_region as string] ?? site.server_region ?? 'US East'}
+          </p>
         </div>
 
         <div className="card p-5">
@@ -178,6 +182,34 @@ export default async function SiteDetailPage({
           </span>
         </div>
       </div>
+
+      {/* Onboarding Status */}
+      {site.onboarding_status && site.onboarding_status !== 'completed' && (
+        <div className="card p-6 mb-4">
+          <h2 className="text-sm font-semibold text-gray-900 mb-3">Onboarding</h2>
+          <div className="flex items-center gap-6">
+            {['not_started', 'scheduled', 'in_progress', 'completed'].map((s, i) => {
+              const labels: Record<string, string> = { not_started: 'Not Started', scheduled: 'Call Scheduled', in_progress: 'In Progress', completed: 'Complete' };
+              const current = ['not_started', 'scheduled', 'in_progress', 'completed'].indexOf(site.onboarding_status ?? 'not_started');
+              const done = i <= current;
+              return (
+                <div key={s} className="flex items-center gap-2">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${done ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                    {i + 1}
+                  </div>
+                  <span className={`text-xs ${done ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>{labels[s]}</span>
+                  {i < 3 && <div className={`w-8 h-0.5 ${done && i < current ? 'bg-brand-600' : 'bg-gray-200'}`} />}
+                </div>
+              );
+            })}
+          </div>
+          {site.onboarding_call_date && (
+            <p className="text-xs text-gray-500 mt-3">
+              Onboarding call: {new Date(site.onboarding_call_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Connected Domain */}
       <div className="card p-6 mb-4">
@@ -246,7 +278,7 @@ export default async function SiteDetailPage({
                 Create a staging copy of your site to test changes safely.
               </p>
             </div>
-            <button className="btn-secondary text-sm py-2 px-4">Create Staging</button>
+            <button className="btn-secondary text-sm py-2 px-4 opacity-50 cursor-not-allowed" disabled title="Coming soon">Create Staging</button>
           </div>
         ) : (
           <div className="flex items-center justify-between mt-2">

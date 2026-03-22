@@ -57,3 +57,15 @@ export async function getAdminRecentInvoices(limit: number = 30) {
     .limit(limit);
   return data ?? [];
 }
+
+/**
+ * Admin: all customers with user info (for invoice dropdown).
+ */
+export async function getAllCustomersWithUsers() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('customers')
+    .select('id, user_id, stripe_customer_id, billing_email, users(full_name, email)')
+    .order('created_at', { ascending: false });
+  return data ?? [];
+}

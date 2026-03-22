@@ -3,6 +3,7 @@ import { formatDate, formatDateTime, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { DeleteSiteButton } from '@/components/sites/delete-site-button';
 import { ResourceControls } from '@/components/admin/resource-controls';
+import { OnboardingControls } from '@/components/admin/onboarding-controls';
 import {
   ArrowLeft,
   Clock,
@@ -229,6 +230,15 @@ export default async function ServiceDetailPage({
           )}
         </div>
       </div>
+
+      {/* Onboarding */}
+      <OnboardingControls
+        serviceId={service.id}
+        currentStatus={service.onboarding_status ?? 'not_started'}
+        currentType={service.onboarding_type ?? (service.plans as any)?.onboarding_type ?? 'standard'}
+        callDate={service.onboarding_call_date ?? null}
+        notes={service.onboarding_notes ?? null}
+      />
 
       {/* Resources */}
       {service.wp_cloud_site_id && (service.plans as any) && (

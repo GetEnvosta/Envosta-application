@@ -29,7 +29,7 @@ export default async function SitesPage() {
         </div>
         <Link href="/dashboard/add-site" className="btn-primary text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
           <Plus className="w-4 h-4" />
-          + Add a Site
+          Add a Site
         </Link>
       </div>
 
@@ -44,7 +44,7 @@ export default async function SitesPage() {
             Choose a plan to get your WordPress site set up and running.
           </p>
           <Link href="/dashboard/add-site" className="btn-primary">
-            + Add a Site
+            Add a Site
           </Link>
         </div>
       )}
@@ -119,6 +119,9 @@ export default async function SitesPage() {
                         {status}
                       </span>
                       <span className="badge-indigo">{planName}</span>
+                      {site.onboarding_status && site.onboarding_status !== 'completed' && (
+                        <span className="badge-yellow">Onboarding: {site.onboarding_status === 'not_started' ? 'Pending' : site.onboarding_status === 'scheduled' ? 'Call Scheduled' : 'In Progress'}</span>
+                      )}
                     </div>
                     {site.wp_cloud_url && (
                       <a

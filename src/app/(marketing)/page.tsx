@@ -46,7 +46,7 @@ export default async function HomePage() {
               <span className="hero-stagger">Built to grow with you.</span>
             </p>
             <div className="block-button">
-              <Link href="/pricing" className="bp lg">Start Your Website</Link>
+              <Link href="/get-started" className="bp lg">Start Your Website</Link>
             </div>
           </div>
         </div>
@@ -977,7 +977,7 @@ export default async function HomePage() {
             <h2 style={{ fontFamily: "'Inter',sans-serif", fontSize: 'clamp(2rem,4vw,3rem)', fontWeight: 400, letterSpacing: '-1px', lineHeight: 1.1, color: 'var(--t1)', marginBottom: '20px' }}>Ready for a website<br />that just works?</h2>
             <p style={{ fontSize: '1rem', color: 'var(--t2)', lineHeight: 1.8, fontWeight: 300, maxWidth: '480px', margin: '0 auto 36px' }}>Book your onboarding call. We&apos;ll learn your business, build your site, and hand you something you&apos;re proud of.</p>
             <div className="block-button">
-              <Link href="/pricing" className="bp lg">Get Started</Link>
+              <Link href="/get-started" className="bp lg">Get Started</Link>
             </div>
           </div>
         </div>

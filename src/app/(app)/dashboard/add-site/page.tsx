@@ -321,7 +321,26 @@ export default function AddSitePage() {
             Do you have a domain?
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            {/* Free subdomain */}
+            <button
+              onClick={() => {
+                setSelectedDomain(null);
+                setStep(3);
+              }}
+              className="bg-white rounded-xl shadow-sm border-2 border-emerald-200 p-6 text-left hover:border-emerald-400 transition-colors group"
+            >
+              <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-medium px-2.5 py-1 rounded-full mb-3">
+                Free
+              </div>
+              <p className="text-sm font-semibold text-gray-900">
+                Start with a free subdomain
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Get started instantly with yoursite.envosta.com — connect a custom domain anytime.
+              </p>
+            </button>
+
             {/* Already have a domain */}
             <button
               onClick={() => {
@@ -335,7 +354,7 @@ export default function AddSitePage() {
                 I already have a domain
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                You can connect it after checkout.
+                Connect or transfer your existing domain after checkout.
               </p>
             </button>
 

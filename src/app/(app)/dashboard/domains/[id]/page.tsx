@@ -73,9 +73,27 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
       </div>
 
       {/* DNS Management */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <DnsManager domainId={domain.id} domainName={domain.domain_name} />
-      </div>
+      {(() => {
+        const ns = Array.isArray(domain.nameservers) ? domain.nameservers : [];
+        const isDefault = ns.length === 0 || (ns.length === 2 && ns[0] === 'ns1.envosta.com' && ns[1] === 'ns2.envosta.com');
+        return isDefault ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <DnsManager domainId={domain.id} domainName={domain.domain_name} />
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 opacity-60">
+            <h2 className="text-sm font-semibold text-gray-900 mb-1">DNS Management</h2>
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 mt-3">
+              <p className="text-sm text-amber-800 font-medium">Custom nameservers detected</p>
+              <p className="text-sm text-amber-700 mt-1">
+                DNS records can only be managed when using Envosta&apos;s default nameservers
+                (<span className="font-mono text-xs">ns1.envosta.com</span>, <span className="font-mono text-xs">ns2.envosta.com</span>).
+                Switch back to our default nameservers to manage your DNS records here.
+              </p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Nameservers */}
       <NameserverManager

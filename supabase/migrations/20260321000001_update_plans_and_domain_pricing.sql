@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS public.domain_pricing (
     registration_price_cad INTEGER NOT NULL,
     renewal_price_cad INTEGER NOT NULL,
     transfer_price_cad INTEGER NOT NULL,
+    stripe_product_id TEXT,                     -- Stripe Product for this TLD (e.g. "Domain: .com")
+    stripe_price_id_yearly TEXT,                -- Stripe Price for yearly renewal subscription
     active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
@@ -110,12 +112,29 @@ CREATE POLICY domain_pricing_admin_all ON public.domain_pricing
 GRANT SELECT ON public.domain_pricing TO anon, authenticated;
 GRANT ALL ON public.domain_pricing TO authenticated;
 
--- Seed domain pricing (CAD cents)
+-- Seed domain pricing (CAD cents) — Top 20 TLDs for North America
+-- NOTE: Prices are placeholders. Update with actual retail markup over OpenSRS wholesale.
 INSERT INTO public.domain_pricing (tld, registration_price_cad, renewal_price_cad, transfer_price_cad) VALUES
-  ('com', 1500, 1500, 1500),
-  ('ca', 2000, 2000, 2000),
-  ('net', 1500, 1500, 1500),
-  ('org', 1500, 1500, 1500)
+  ('com',     1500, 1500, 1500),
+  ('ca',      2000, 2000, 2000),
+  ('net',     1500, 1500, 1500),
+  ('org',     1500, 1500, 1500),
+  ('co',      3500, 3500, 3500),
+  ('io',      5000, 5000, 5000),
+  ('dev',     2000, 2000, 2000),
+  ('app',     2500, 2500, 2500),
+  ('me',      2500, 2500, 2500),
+  ('info',    1500, 1500, 1500),
+  ('biz',     1500, 1500, 1500),
+  ('us',      1500, 1500, 1500),
+  ('store',   4000, 4000, 4000),
+  ('online',  3500, 3500, 3500),
+  ('tech',    4000, 4000, 4000),
+  ('site',    3500, 3500, 3500),
+  ('agency',  3000, 3000, 3000),
+  ('shop',    3500, 3500, 3500),
+  ('cloud',   2500, 2500, 2500),
+  ('design',  4000, 4000, 4000)
 ON CONFLICT (tld) DO UPDATE SET
   registration_price_cad = EXCLUDED.registration_price_cad,
   renewal_price_cad = EXCLUDED.renewal_price_cad,

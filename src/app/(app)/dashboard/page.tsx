@@ -66,7 +66,7 @@ export default async function DashboardPage() {
             {(!services || services.length === 0) ? (
               <div className="p-8 text-center text-sm text-gray-400">
                 No sites yet.{' '}
-                <Link href="/dashboard/add-site" className="text-brand-600 hover:underline">Choose a plan to get started</Link>
+                <Link href="/dashboard/add-site" className="text-brand-600 hover:underline">Add your first site</Link>
               </div>
             ) : services.map((s: any) => (
               <div key={s.id} className="px-5 py-3.5 flex items-center justify-between">

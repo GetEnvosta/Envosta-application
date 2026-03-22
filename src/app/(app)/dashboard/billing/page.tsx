@@ -43,7 +43,7 @@ export default async function BillingPage() {
                   )}
                 </div>
               </div>
-              <button className="btn-secondary" disabled>
+              <button className="btn-secondary opacity-50 cursor-not-allowed" disabled title="Stripe Customer Portal coming soon">
                 Manage Billing
               </button>
             </div>

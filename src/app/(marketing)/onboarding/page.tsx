@@ -426,7 +426,7 @@ export default function OnboardingPage() {
 
       {/* ═══ PRICING CTA ═══ */}
       <div className="rv" style={{ textAlign: 'center', padding: '80px 0' }}>
-        <Link href="/pricing" className="bp lg">View Plans &amp; Pricing</Link>
+        <Link href="/get-started" className="bp lg">Get Started</Link>
       </div>
 
       {/* FAQ removed per request */}
