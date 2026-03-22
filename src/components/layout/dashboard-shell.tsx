@@ -20,7 +20,6 @@ interface DashboardUser {
 
 const nav = [
   { name: 'Sites',          href: '/dashboard/sites',          icon: Globe },
-  { name: '+ Add a Site',   href: '/dashboard/add-site',       icon: PlusCircle },
   { name: 'Domains',        href: '/dashboard/domains',        icon: Globe2 },
   { name: 'Billing',        href: '/dashboard/billing',        icon: CreditCard },
   { name: 'Business Email', href: '/dashboard/email',          icon: Mail },

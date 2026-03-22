@@ -27,12 +27,10 @@ export default async function SitesPage() {
           <h1 className="text-xl font-semibold text-gray-900">Sites</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage your WordPress hosting accounts</p>
         </div>
-        {hasSubscription && (
-          <Link href="/dashboard/billing" className="btn-secondary text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
-            <Plus className="w-4 h-4" />
-            Add Another Site
-          </Link>
-        )}
+        <Link href="/dashboard/add-site" className="btn-primary text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
+          <Plus className="w-4 h-4" />
+          + Add a Site
+        </Link>
       </div>
 
       {/* State A: No subscription at all */}
@@ -45,8 +43,8 @@ export default async function SitesPage() {
           <p className="text-sm text-gray-500 mt-1.5 mb-5 max-w-sm mx-auto">
             Choose a plan to get your WordPress site set up and running.
           </p>
-          <Link href="/dashboard/billing" className="btn-primary">
-            View Plans
+          <Link href="/dashboard/add-site" className="btn-primary">
+            + Add a Site
           </Link>
         </div>
       )}
