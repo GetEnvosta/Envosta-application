@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase-browser';
 import { cn } from '@/lib/utils';
 import {
   Globe, Globe2, CreditCard, Mail, MessageCircle, Users,
-  LogOut, Menu, X, Settings, Shield,
+  LogOut, Menu, X, Settings, Shield, PlusCircle,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
@@ -20,9 +20,10 @@ interface DashboardUser {
 
 const nav = [
   { name: 'Sites',          href: '/dashboard/sites',          icon: Globe },
+  { name: '+ Add a Site',   href: '/dashboard/add-site',       icon: PlusCircle },
   { name: 'Domains',        href: '/dashboard/domains',        icon: Globe2 },
   { name: 'Billing',        href: '/dashboard/billing',        icon: CreditCard },
-  { name: 'Business Email', href: '/dashboard/email', icon: Mail },
+  { name: 'Business Email', href: '/dashboard/email',          icon: Mail },
   { name: 'Support',        href: '/dashboard/support',        icon: MessageCircle },
   { name: 'Partners',       href: '/dashboard/partners',       icon: Users },
 ];

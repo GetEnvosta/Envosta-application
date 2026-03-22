@@ -62,3 +62,30 @@ export async function getAllPlansByPrice() {
     .order('price_monthly', { ascending: true });
   return data ?? [];
 }
+
+/**
+ * Get all active domain TLD pricing.
+ */
+export async function getDomainPricing() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('domain_pricing')
+    .select('*')
+    .eq('active', true)
+    .order('tld', { ascending: true });
+  return data ?? [];
+}
+
+/**
+ * Get pricing for a specific TLD.
+ */
+export async function getTldPricing(tld: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('domain_pricing')
+    .select('*')
+    .eq('tld', tld.toLowerCase())
+    .eq('active', true)
+    .single();
+  return data;
+}

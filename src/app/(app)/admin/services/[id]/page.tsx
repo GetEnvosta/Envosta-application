@@ -2,6 +2,7 @@ import { getServiceDetailById, getServiceDomains, getServiceLogs } from '@/servi
 import { formatDate, formatDateTime, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { DeleteSiteButton } from '@/components/sites/delete-site-button';
+import { ResourceControls } from '@/components/admin/resource-controls';
 import {
   ArrowLeft,
   Clock,
@@ -228,6 +229,22 @@ export default async function ServiceDetailPage({
           )}
         </div>
       </div>
+
+      {/* Resources */}
+      {service.wp_cloud_site_id && (service.plans as any) && (
+        <div className="mb-6">
+          <ResourceControls
+            serviceId={service.id}
+            wpCloudSiteId={service.wp_cloud_site_id}
+            currentPlan={{
+              max_php_workers: (service.plans as any).max_php_workers ?? 2,
+              default_php_workers: (service.plans as any).default_php_workers ?? 2,
+              php_memory_mb: (service.plans as any).php_memory_mb ?? 512,
+              slug: (service.plans as any).slug ?? 'unknown',
+            }}
+          />
+        </div>
+      )}
 
       {/* Danger Zone */}
       <div className="rounded-xl border border-red-200 bg-white p-6">

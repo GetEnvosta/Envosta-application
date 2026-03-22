@@ -1,4 +1,4 @@
-import { supabaseAdmin, supabaseForUser, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, WPCLOUD_PROXY_URL, WPCLOUD_API_KEY, WPCLOUD_PROXY_SECRET, cors, json, error, log } from "../_shared/deps.ts";
 
 /**
  * Site management actions via wp.cloud Atomic API (routed through static IP proxy).
@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
-    const { action, siteId, domain } = await req.json();
+    const { action, siteId, domain, key, value } = await req.json();
 
     // Domain verification doesn't need auth (one-time admin setup)
     if (action === "domain-verification") {
@@ -120,6 +120,64 @@ Deno.serve(async (req) => {
       case "php-versions": {
         const result = await wpcloudGet(`/api/v1.0/get-php-versions/${WPCLOUD_CLIENT}/verbose`);
         return json(result.data);
+      }
+
+      // Update a site meta value (PHP workers, bursting, memory)
+      case "update-meta": {
+        if (!siteId) return error("siteId is required");
+        if (!key || value === undefined) return error("key and value are required");
+
+        const allowedKeys = ["default_php_conns", "burst_php_conns", "php_memory_limit"];
+        if (!allowedKeys.includes(key)) return error(`Invalid key: ${key}. Allowed: ${allowedKeys.join(", ")}`, 400);
+
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("services")
+          .select("id, wp_cloud_site_id, user_id")
+          .eq("id", siteId).single();
+        if (!svc) return error("Site not found", 404);
+        if (!svc.wp_cloud_site_id) return error("Site has no wp.cloud ID", 400);
+
+        // Check admin or owner
+        const userSbCheck = supabaseForUser(req);
+        const { data: { user: authUser } } = await userSbCheck.auth.getUser();
+        if (!authUser) return error("Unauthorized", 401);
+
+        const { data: profile } = await sb.from("users").select("role").eq("id", authUser.id).single();
+        const isAdmin = profile?.role === "admin";
+        if (!isAdmin && svc.user_id !== authUser.id) return error("Forbidden", 403);
+
+        // POST to wp.cloud: /api/v1.0/site-meta/{wp_cloud_site_id}/{key}/update
+        // Content-Type: application/x-www-form-urlencoded, body: value={value}
+        const url = `${WPCLOUD_PROXY_URL}/api/v1.0/site-meta/${svc.wp_cloud_site_id}/${key}/update`;
+        console.log("update-meta POST:", url, "value:", value);
+
+        const formBody = new URLSearchParams();
+        formBody.append("value", String(value));
+
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Auth": WPCLOUD_API_KEY,
+            "X-Proxy-Secret": WPCLOUD_PROXY_SECRET,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: formBody.toString(),
+        });
+
+        const rawText = await res.text();
+        console.log("update-meta response:", res.status, rawText);
+        let responseData;
+        try { responseData = JSON.parse(rawText); } catch { responseData = { raw: rawText }; }
+
+        await log({
+          userId: authUser.id, serviceId: svc.id,
+          action: `hosting.update-meta.${key}`,
+          message: `Set ${key}=${value}`,
+          res: responseData,
+        });
+
+        if (!res.ok) return error(`wp.cloud API error: ${res.status}`, 502);
+        return json(responseData);
       }
 
       default:

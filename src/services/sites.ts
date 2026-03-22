@@ -101,7 +101,7 @@ export async function getServiceDetailById(id: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('services')
-    .select('*, users(id, full_name, email, company_name), plans(name, slug)')
+    .select('*, users(id, full_name, email, company_name), plans(name, slug, max_php_workers, default_php_workers, php_memory_mb)')
     .eq('id', id)
     .single();
   return data;

@@ -7,20 +7,6 @@ import { supabaseAdmin, supabaseForUser, wpcloudPost, WPCLOUD_CLIENT, cors, json
  * Proxy adds static IP for wp.cloud IP whitelist.
  */
 
-// Map plan slugs to wp.cloud config
-const PLAN_CONFIG: Record<string, { storage: string; phpWorkers: number; phpMemory: number }> = {
-  minimum:     { storage: "25G",  phpWorkers: 4,  phpMemory: 512 },
-  growth:      { storage: "50G",  phpWorkers: 6,  phpMemory: 1024 },
-  performance: { storage: "200G", phpWorkers: 10, phpMemory: 2048 },
-};
-
-// Map our region names to wp.cloud geo_affinity codes
-const REGION_MAP: Record<string, string> = {
-  "us-east": "dca", "us-east-1": "dca", "dca": "dca",
-  "us-west": "bur", "us-west-1": "bur", "bur": "bur",
-  "us-central": "dfw", "us-central-1": "dfw", "dfw": "dfw",
-  "eu-west": "ams", "eu-west-1": "ams", "ams": "ams",
-};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -63,7 +49,7 @@ Deno.serve(async (req) => {
       }
 
       if (!svc) {
-        const geoAffinity = REGION_MAP[region ?? "us-east-1"] ?? "dca";
+        const geoAffinity = region ?? "dca";
         const { data: newSvc, error: svcErr } = await sb.from("services").insert({
           user_id: user.id,
           subscription_id: subscriptionId ?? null,
@@ -79,15 +65,26 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Get plan config
+    // Get plan config from database
+    let storageGb = 25;
+    let defaultWorkers = 2;
+    let phpMemory = 512;
     let planSlug = "minimum";
-    const effectivePlanId = planId ?? svc.plan_id;
-    if (effectivePlanId) {
-      const { data: plan } = await sb.from("plans").select("slug").eq("id", effectivePlanId).single();
-      if (plan) planSlug = plan.slug;
+
+    if (svc.plan_id) {
+      const { data: plan } = await sb.from("plans")
+        .select("slug, storage_gb, default_php_workers, php_memory_mb")
+        .eq("id", svc.plan_id)
+        .single();
+      if (plan) {
+        planSlug = plan.slug ?? "minimum";
+        storageGb = plan.storage_gb ?? 25;
+        defaultWorkers = plan.default_php_workers ?? 2;
+        phpMemory = plan.php_memory_mb ?? 512;
+      }
     }
-    const config = PLAN_CONFIG[planSlug] ?? PLAN_CONFIG.minimum;
-    const geoAffinity = REGION_MAP[svc.server_region ?? region ?? "us-east-1"] ?? "dca";
+
+    const geoAffinity = svc.server_region ?? "dca";
     const php = svc.php_version ?? phpVersion ?? "8.4";
 
     // Build wp.cloud request
@@ -96,13 +93,13 @@ Deno.serve(async (req) => {
       admin_email: adminEmail ?? user.email ?? "admin@envosta.com",
       admin_user: "envosta_admin",
       php_version: php,
-      space_quota: config.storage,
+      space_quota: `${storageGb}G`,
       geo_affinity: geoAffinity,
       db_charset: "utf8mb4",
       meta: {
-        default_php_conns: config.phpWorkers,
-        burst_php_conns: 1,
-        php_memory_limit: config.phpMemory,
+        default_php_conns: defaultWorkers,
+        burst_php_conns: 0,
+        php_memory_limit: phpMemory,
       },
       persist_data: {
         envosta_service_id: svc.id,
