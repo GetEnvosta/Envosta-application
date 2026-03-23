@@ -383,85 +383,38 @@ export function GetStartedFlow() {
           </div>
         )}
 
-        {/* ═══ STEP 2: Business intake form ═══ */}
+        {/* ═══ STEP 2: Create your account ═══ */}
         {step === 2 && (
-          <div>
+          <div style={{ textAlign: 'center' }}>
             <button onClick={() => setStep(1)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', marginBottom: 24, fontSize: '.85rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <ArrowLeft style={{ width: 14, height: 14 }} /> Back
             </button>
 
-            <h1 style={{ fontSize: 'clamp(1.6rem,3.5vw,2.2rem)', fontWeight: 400, letterSpacing: '-1px', marginBottom: 12, color: 'var(--t1)', textAlign: 'center' }}>
-              Tell us about your business
+            <h1 style={{ fontSize: 'clamp(1.6rem,3.5vw,2.2rem)', fontWeight: 400, letterSpacing: '-1px', marginBottom: 12, color: 'var(--t1)' }}>
+              Create your account
             </h1>
-            <p style={{ color: 'var(--t2)', marginBottom: 32, fontSize: '.95rem', textAlign: 'center' }}>
-              This helps us recommend the right plan and prepare for your onboarding.
+            <p style={{ color: 'var(--t2)', marginBottom: 32, fontSize: '.95rem' }}>
+              We&apos;ll use this to set up your hosting and onboarding.
             </p>
 
-            <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <div>
-                  <label style={{ fontSize: '.8rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Your Name *</label>
-                  <input type="text" value={answers.name} onChange={e => update('name', e.target.value)}
-                    placeholder="Jane Smith"
-                    style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)', borderRadius: 10, color: 'var(--t1)', fontSize: '.9rem' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '.8rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Email *</label>
-                  <input type="email" value={answers.email} onChange={e => update('email', e.target.value)}
-                    placeholder="jane@business.com"
-                    style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)', borderRadius: 10, color: 'var(--t1)', fontSize: '.9rem' }} />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <div>
-                  <label style={{ fontSize: '.8rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Business Name</label>
-                  <input type="text" value={answers.businessName} onChange={e => update('businessName', e.target.value)}
-                    placeholder="Your Business"
-                    style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)', borderRadius: 10, color: 'var(--t1)', fontSize: '.9rem' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '.8rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Industry</label>
-                  <input type="text" value={answers.industry} onChange={e => update('industry', e.target.value)}
-                    placeholder="e.g. Landscaping, Salon, Consulting"
-                    style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)', borderRadius: 10, color: 'var(--t1)', fontSize: '.9rem' }} />
-                </div>
-              </div>
-
-              {answers.situation === 'existing' && (
-                <div>
-                  <label style={{ fontSize: '.8rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Current Website URL</label>
-                  <input type="url" value={answers.website} onChange={e => update('website', e.target.value)}
-                    placeholder="https://yourbusiness.com"
-                    style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)', borderRadius: 10, color: 'var(--t1)', fontSize: '.9rem' }} />
-                </div>
-              )}
-
+            <div style={{ maxWidth: 420, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <label style={{ fontSize: '.8rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>What does your business need from a website?</label>
-                <select value={answers.size} onChange={e => update('size', e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)', borderRadius: 10, color: 'var(--t1)', fontSize: '.9rem' }}>
-                  <option value="">Select...</option>
-                  <option value="small">A simple business website (info, contact, portfolio)</option>
-                  <option value="medium">A growing site with blog, forms, or integrations</option>
-                  <option value="large">A high-traffic site needing performance &amp; security</option>
-                  <option value="ecommerce">An online store (WooCommerce / e-commerce)</option>
-                </select>
+                <label style={{ fontSize: '.8rem', color: 'var(--t2)', marginBottom: 6, display: 'block', textAlign: 'left' }}>Full Name *</label>
+                <input type="text" value={answers.name} onChange={e => update('name', e.target.value)}
+                  placeholder="Jane Smith"
+                  style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)', borderRadius: 10, color: 'var(--t1)', fontSize: '.9rem' }} />
               </div>
-
               <div>
-                <label style={{ fontSize: '.8rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>What are your goals?</label>
-                <textarea value={answers.goals} onChange={e => update('goals', e.target.value)}
-                  placeholder="Tell us what you're looking to achieve..."
-                  rows={3}
-                  style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)', borderRadius: 10, color: 'var(--t1)', fontSize: '.9rem', resize: 'vertical' }} />
+                <label style={{ fontSize: '.8rem', color: 'var(--t2)', marginBottom: 6, display: 'block', textAlign: 'left' }}>Email *</label>
+                <input type="email" value={answers.email} onChange={e => update('email', e.target.value)}
+                  placeholder="jane@business.com"
+                  style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)', borderRadius: 10, color: 'var(--t1)', fontSize: '.9rem' }} />
               </div>
-
               <div>
-                <label style={{ fontSize: '.8rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Phone Number <span style={{ color: 'var(--t3)' }}>(optional)</span></label>
+                <label style={{ fontSize: '.8rem', color: 'var(--t2)', marginBottom: 6, display: 'block', textAlign: 'left' }}>Phone <span style={{ color: 'var(--t3)' }}>(optional)</span></label>
                 <input type="tel" value={answers.phone} onChange={e => update('phone', e.target.value)}
                   placeholder="+1 (555) 123-4567"
-                  style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)', borderRadius: 10, color: 'var(--t1)', fontSize: '.9rem' }} />
+                  style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)', borderRadius: 10, color: 'var(--t1)', fontSize: '.9rem' }} />
               </div>
 
               <button
@@ -477,14 +430,18 @@ export function GetStartedFlow() {
                 style={{
                   padding: '14px 28px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
                   fontSize: '.9rem', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
-                  gap: 8, margin: '0 auto', opacity: (!answers.name || !answers.email || submitting) ? 0.5 : 1,
+                  gap: 8, margin: '8px auto 0', opacity: (!answers.name || !answers.email || submitting) ? 0.5 : 1,
                 }}
               >
-                {submitting ? 'Setting up your account...' : selectedPlan ? `Get Started with ${PLAN_DETAILS[selectedPlan].name}` : 'See My Recommendation'} {!submitting && <ArrowRight style={{ width: 16, height: 16 }} />}
+                {submitting ? 'Setting up your account...' : selectedPlan ? `Continue to Payment` : 'Choose a Plan'} {!submitting && <ArrowRight style={{ width: 16, height: 16 }} />}
               </button>
               {submitError && (
-                <p style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 12, textAlign: 'center' }}>{submitError}</p>
+                <p style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 12 }}>{submitError}</p>
               )}
+
+              <p style={{ fontSize: '.72rem', color: 'var(--t3)', marginTop: 4, lineHeight: 1.6 }}>
+                By continuing you agree to our <a href="/legal/terms" style={{ color: 'var(--t2)', textDecoration: 'underline' }}>Terms of Service</a> and <a href="/legal/privacy" style={{ color: 'var(--t2)', textDecoration: 'underline' }}>Privacy Policy</a>.
+              </p>
             </div>
           </div>
         )}
