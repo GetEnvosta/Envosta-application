@@ -436,13 +436,17 @@ export function GlobeSection() {
       ctx!.fillStyle = '#020408';
       ctx!.fill();
 
-      // Earth texture rendering
-      if (earthReady && earthPixels) {
+      // Earth texture rendering — cap resolution for performance
+      if (earthReady && earthPixels && earthPixels.length > 0) {
         const eD = earthPixels;
         const eW = earthTexW;
         const eH = earthTexH;
-        const d2 = Math.ceil(globeR * 2);
+        const maxRes = 400; // cap pixel rendering resolution
+        const rawD2 = Math.ceil(globeR * 2);
+        const d2 = Math.min(rawD2, maxRes);
+        const scale = rawD2 / d2;
         const imgData = ctx!.createImageData(d2, d2);
+        const sampleR = d2 / 2;
         const pix = imgData.data;
         const sdx2 = -0.55, sdy2 = -0.5, sdz2 = 0.67;
         const sln = Math.sqrt(sdx2 * sdx2 + sdy2 * sdy2 + sdz2 * sdz2);
@@ -451,10 +455,10 @@ export function GlobeSection() {
         const cT = Math.cos(tiltY), sT = Math.sin(tiltY);
 
         for (let py2 = 0; py2 < d2; py2++) {
-          const syN = (py2 - globeR) / globeR;
+          const syN = (py2 - sampleR) / sampleR;
           if (syN < -1 || syN > 1) continue;
           for (let px2 = 0; px2 < d2; px2++) {
-            const sxN = (px2 - globeR) / globeR;
+            const sxN = (px2 - sampleR) / sampleR;
             const r2 = sxN * sxN + syN * syN;
             if (r2 >= 1) continue;
             const szN = Math.sqrt(1 - r2);
@@ -491,7 +495,8 @@ export function GlobeSection() {
         ctx!.beginPath();
         ctx!.arc(cx, cy, globeR, 0, Math.PI * 2);
         ctx!.clip();
-        ctx!.drawImage(earthOC, cx - globeR, cy - globeR);
+        // Scale up if we rendered at lower resolution
+        ctx!.drawImage(earthOC, 0, 0, d2, d2, cx - globeR, cy - globeR, globeR * 2, globeR * 2);
         ctx!.restore();
       }
 
