@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 
-const OPENSRS_USERNAME = process.env.OPENSRS_USERNAME ?? '';
-const OPENSRS_API_KEY = process.env.OPENSRS_API_KEY ?? '';
-const OPENSRS_HOST = process.env.OPENSRS_HOST ?? 'horizon.opensrs.net';
+export const dynamic = 'force-dynamic';
+
+function getOpenSrsConfig() {
+  return {
+    username: process.env.OPENSRS_USERNAME ?? '',
+    apiKey: process.env.OPENSRS_API_KEY ?? '',
+    host: process.env.OPENSRS_HOST ?? 'horizon.opensrs.net',
+  };
+}
 
 async function md5(input: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -19,12 +25,13 @@ async function md5(input: string): Promise<string> {
   return createHash('md5').update(input).digest('hex');
 }
 
-async function opensrsSignature(xml: string): Promise<string> {
-  const step1 = await md5(xml + OPENSRS_API_KEY);
-  return md5(step1 + OPENSRS_API_KEY);
+async function opensrsSignature(xml: string, apiKey: string): Promise<string> {
+  const step1 = await md5(xml + apiKey);
+  return md5(step1 + apiKey);
 }
 
 export async function POST(req: Request) {
+  const { username: OPENSRS_USERNAME, apiKey: OPENSRS_API_KEY, host: OPENSRS_HOST } = getOpenSrsConfig();
   try {
     const { domain } = await req.json();
     if (!domain || typeof domain !== 'string') {
@@ -58,7 +65,7 @@ export async function POST(req: Request) {
   </body>
 </OPS_envelope>`;
 
-    const signature = await opensrsSignature(xml);
+    const signature = await opensrsSignature(xml, OPENSRS_API_KEY);
     const res = await fetch(`https://${OPENSRS_HOST}:55443`, {
       method: 'POST',
       headers: {
