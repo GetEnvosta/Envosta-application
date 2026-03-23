@@ -70,7 +70,26 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
   const publicSteps = ['Account', 'Plan', 'Domain', 'Checkout'];
   const dashboardSteps = ['Plan', 'Domain', 'Checkout'];
   const steps = mode === 'public' ? publicSteps : dashboardSteps;
-  const [step, setStep] = useState(1);
+  const [step, _setStep] = useState(1);
+
+  // Wrap setStep to push browser history so back button works between steps
+  function setStep(n: number) {
+    _setStep(n);
+    window.history.pushState({ step: n }, '', undefined);
+  }
+
+  // Listen for browser back/forward
+  useEffect(() => {
+    function onPopState(e: PopStateEvent) {
+      if (e.state?.step) {
+        _setStep(e.state.step);
+      }
+    }
+    // Set initial history state
+    window.history.replaceState({ step: 1 }, '', undefined);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   /* Fetch plans */
   useEffect(() => {
