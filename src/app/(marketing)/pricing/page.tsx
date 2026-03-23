@@ -209,7 +209,7 @@ export default function PricingPage() {
         </div>
         <div className="studio-card">
           <div className="studio-left">
-            <div className="studio-badge"><div className="studio-badge-dot"></div>Waitlist Full</div>
+            <div className="studio-badge"><div className="studio-badge-dot"></div>Currently Full</div>
             <h3>Envosta <span>Studio</span></h3>
             <p>A dedicated WordPress team assigned to your business. Strategy calls, same-day fixes, proactive monitoring, and a direct line to senior engineers who actually know your site inside and out. No tickets. No queues. No runaround.</p>
             <div className="studio-price"><strong>$3,250</strong><span>/month to start</span></div>

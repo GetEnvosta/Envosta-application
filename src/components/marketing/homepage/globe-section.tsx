@@ -76,7 +76,8 @@ export function GlobeSection() {
       h = canvas!.height = rect.height;
       cx = w / 2;
       cy = h / 2 - h * 0.12;
-      globeR = Math.min(w, h) * 0.38;
+      // On mobile, use width as primary sizing so globe fills the screen
+      globeR = w < 768 ? w * 0.42 : Math.min(w, h) * 0.38;
     }
     resize();
 
@@ -303,7 +304,9 @@ export function GlobeSection() {
       oc.height = earthTex.height;
       const octx = oc.getContext('2d')!;
       octx.drawImage(earthTex, 0, 0);
-      earthPixels = octx.getImageData(0, 0, oc.width, oc.height).data;
+      const imgData = octx.getImageData(0, 0, oc.width, oc.height);
+      // Copy pixel data so it survives garbage collection of the offscreen canvas
+      earthPixels = new Uint8ClampedArray(imgData.data);
       earthTexW = oc.width;
       earthTexH = oc.height;
       earthReady = true;

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const navLinks = [
-  { label: 'Studio', href: '/studio', badge: 'Waitlisted' },
+  { label: 'Studio', href: '/studio', badge: 'Currently Full' },
   { label: 'Features', href: '/features' },
   { label: 'Blog', href: '/blog' },
   { label: 'Support', href: '/support' },

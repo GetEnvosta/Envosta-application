@@ -26,6 +26,7 @@ export default function NewBlogPostPage() {
   const [excerpt, setExcerpt] = useState('');
   const [featuredImageUrl, setFeaturedImageUrl] = useState('');
   const [tags, setTags] = useState('');
+  const [category, setCategory] = useState('wordpress-news');
   const [metaTitle, setMetaTitle] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
   const [status, setStatus] = useState<'draft' | 'published'>('draft');
@@ -54,6 +55,7 @@ export default function NewBlogPostPage() {
       excerpt: excerpt || null,
       featured_image_url: featuredImageUrl || null,
       tags: tagsArray.length > 0 ? tagsArray : null,
+      category,
       meta_title: metaTitle || null,
       meta_description: metaDescription || null,
       status,
@@ -149,15 +151,25 @@ export default function NewBlogPostPage() {
           />
         </div>
 
-        <div>
-          <label className="label">Tags (comma-separated)</label>
-          <input
-            type="text"
-            className="input w-full"
-            value={tags}
-            onChange={e => setTags(e.target.value)}
-            placeholder="web hosting, tutorials, updates"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="label">Category</label>
+            <select className="input w-full" value={category} onChange={e => setCategory(e.target.value)}>
+              <option value="wordpress-news">WordPress News &amp; Tips</option>
+              <option value="website-design">Website Design</option>
+              <option value="business-growth">Business Growth</option>
+            </select>
+          </div>
+          <div>
+            <label className="label">Tags (comma-separated)</label>
+            <input
+              type="text"
+              className="input w-full"
+              value={tags}
+              onChange={e => setTags(e.target.value)}
+              placeholder="web hosting, tutorials, updates"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

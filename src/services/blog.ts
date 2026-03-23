@@ -3,13 +3,19 @@ import { createClient } from '@/lib/supabase-server';
 /**
  * All published blog posts ordered by published_at desc.
  */
-export async function getPublishedPosts() {
+export async function getPublishedPosts(category?: string) {
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from('blog_posts')
-    .select('id, title, slug, excerpt, featured_image_url, published_at, tags, status')
+    .select('id, title, slug, excerpt, featured_image_url, published_at, tags, category, status')
     .eq('status', 'published')
     .order('published_at', { ascending: false });
+
+  if (category && category !== 'all') {
+    query = query.eq('category', category);
+  }
+
+  const { data } = await query;
   return data ?? [];
 }
 

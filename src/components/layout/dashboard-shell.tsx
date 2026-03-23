@@ -23,8 +23,8 @@ const nav = [
   { name: 'Sites',          href: '/dashboard/sites',          icon: Globe },
   { name: 'Domains',        href: '/dashboard/domains',        icon: Globe2 },
   { name: 'Email',          href: '/dashboard/email',          icon: Mail },
-  { name: 'Billing',        href: '/dashboard/billing',        icon: CreditCard },
   { name: 'Tickets',        href: '/dashboard/tickets',        icon: MessageCircle },
+  { name: 'Billing',        href: '/dashboard/billing',        icon: CreditCard },
 ];
 
 function UserAvatar({ user, size = 32 }: { user: DashboardUser; size?: number }) {

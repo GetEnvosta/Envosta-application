@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { StudioWaitlistForm } from '@/components/marketing/studio-waitlist-form';
 
 export default function StudioPage() {
   useEffect(() => {
@@ -726,15 +727,19 @@ export default function StudioPage() {
       </section>
 
       {/* ═══ CTA ═══ */}
-      <section className="cta-section rv">
-        <div className="c">
-          <div className="cta-box">
-            <h2>Ready for the Studio experience?</h2>
-            <p>Schedule a consultation with our team. We&apos;ll learn about your site, your goals, and show you exactly how Studio can help.</p>
-            <div className="cta-btns">
-              <a href="https://envosta.com/support" className="bp vip lg">Schedule a Consultation</a>
-              <a href="https://envosta.com/pricing" className="bp ghost lg">View All Plans</a>
+      <section className="rv" style={{ padding: '80px 0 100px' }}>
+        <div className="c" style={{ maxWidth: 640, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(201,164,92,.08)', border: '1px solid rgba(201,164,92,.2)', borderRadius: 100, padding: '5px 14px', fontSize: '.68rem', fontWeight: 600, color: '#c9a45c', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 16 }}>
+              Currently Full
             </div>
+            <h2 style={{ fontSize: 'clamp(1.6rem,3vw,2.2rem)', fontWeight: 400, letterSpacing: '-1px', color: '#fff', marginBottom: 12 }}>Join the Studio waitlist</h2>
+            <p style={{ color: 'var(--t2)', fontSize: '.95rem', fontWeight: 300, lineHeight: 1.7 }}>
+              Tell us about your project and we&apos;ll reach out when a spot opens up. No commitment — just a conversation.
+            </p>
+          </div>
+          <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(201,164,92,.12)', borderRadius: 20, padding: '32px 28px' }}>
+            <StudioWaitlistForm />
           </div>
         </div>
       </section>
