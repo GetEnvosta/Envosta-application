@@ -49,10 +49,40 @@ export function GetStartedFlow() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [chosenPlan, setChosenPlan] = useState('');
+  const [domainChecking, setDomainChecking] = useState(false);
+  const [domainResult, setDomainResult] = useState<{ domain: string; available: boolean } | null>(null);
+  const [domainError, setDomainError] = useState('');
   const domainInputRef = useRef<HTMLInputElement>(null);
 
   function update(field: string, value: string) {
     setAnswers(prev => ({ ...prev, [field]: value }));
+  }
+
+  async function checkDomain() {
+    const raw = domainQuery.trim().toLowerCase();
+    if (!raw) return;
+    const domain = raw.includes('.') ? raw : `${raw}.com`;
+
+    setDomainChecking(true);
+    setDomainResult(null);
+    setDomainError('');
+
+    try {
+      const res = await fetch('/api/domain-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDomainResult({ domain, available: data.available });
+      } else {
+        setDomainError(data.error ?? 'Could not check availability');
+      }
+    } catch {
+      setDomainError('Connection error. Please try again.');
+    }
+    setDomainChecking(false);
   }
 
   function getRecommendation() {
@@ -203,7 +233,7 @@ export function GetStartedFlow() {
                 maxWidth: 560, margin: '0 auto', marginTop: 32,
                 opacity: showDomainSearch && answers.situation === 'new' ? 1 : 0,
                 transform: showDomainSearch && answers.situation === 'new' ? 'translateY(0)' : 'translateY(-12px)',
-                maxHeight: showDomainSearch && answers.situation === 'new' ? 300 : 0,
+                maxHeight: showDomainSearch && answers.situation === 'new' ? 400 : 0,
                 overflow: 'hidden',
                 transition: 'opacity .4s ease, transform .4s ease, max-height .4s ease',
               }}
@@ -216,8 +246,8 @@ export function GetStartedFlow() {
                   ref={domainInputRef}
                   type="text"
                   value={domainQuery}
-                  onChange={e => setDomainQuery(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && domainQuery.trim()) { update('domain', domainQuery.trim()); setStep(2); } }}
+                  onChange={e => { setDomainQuery(e.target.value); setDomainResult(null); setDomainError(''); }}
+                  onKeyDown={e => { if (e.key === 'Enter') checkDomain(); }}
                   placeholder="yourbusiness.com"
                   style={{
                     flex: 1, padding: '14px 20px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)',
@@ -228,16 +258,50 @@ export function GetStartedFlow() {
                   onBlur={e => (e.currentTarget.style.borderColor = 'var(--bdr2)')}
                 />
                 <button
-                  onClick={() => { if (domainQuery.trim()) { update('domain', domainQuery.trim()); setStep(2); } }}
+                  onClick={checkDomain}
+                  disabled={domainChecking || !domainQuery.trim()}
                   style={{
                     padding: '14px 24px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
                     fontSize: '.88rem', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-                    opacity: domainQuery.trim() ? 1 : 0.5,
+                    opacity: domainChecking || !domainQuery.trim() ? 0.5 : 1,
                   }}
                 >
-                  <Search style={{ width: 16, height: 16 }} /> Search
+                  <Search style={{ width: 16, height: 16 }} /> {domainChecking ? 'Checking...' : 'Search'}
                 </button>
               </div>
+
+              {/* Domain result */}
+              {domainResult && (
+                <div style={{
+                  marginTop: 16, padding: '14px 20px', borderRadius: 12,
+                  border: `1px solid ${domainResult.available ? 'rgba(34,197,94,.3)' : 'rgba(239,68,68,.2)'}`,
+                  background: domainResult.available ? 'rgba(34,197,94,.06)' : 'rgba(239,68,68,.04)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: domainResult.available ? '#22c55e' : '#ef4444' }} />
+                    <span style={{ fontWeight: 600, color: 'var(--t1)', fontSize: '.9rem' }}>{domainResult.domain}</span>
+                    <span style={{ color: domainResult.available ? '#22c55e' : 'var(--t3)', fontSize: '.82rem' }}>
+                      {domainResult.available ? 'is available' : 'is taken'}
+                    </span>
+                  </div>
+                  {domainResult.available && (
+                    <button
+                      onClick={() => { update('domain', domainResult.domain); setStep(2); }}
+                      style={{
+                        padding: '8px 18px', background: '#22c55e', color: '#fff', borderRadius: 100, border: 'none',
+                        fontSize: '.8rem', fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      Use this domain
+                    </button>
+                  )}
+                </div>
+              )}
+              {domainError && (
+                <p style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 12 }}>{domainError}</p>
+              )}
+
               <button
                 onClick={() => { update('domain', ''); setStep(2); }}
                 style={{
@@ -267,8 +331,14 @@ export function GetStartedFlow() {
                 <input
                   type="text"
                   value={domainQuery}
-                  onChange={e => setDomainQuery(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && domainQuery.trim()) { update('domain', domainQuery.trim()); setStep(2); } }}
+                  onChange={e => { setDomainQuery(e.target.value); setDomainError(''); }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && domainQuery.trim()) {
+                      const d = domainQuery.trim().toLowerCase();
+                      if (/^[a-z0-9.-]+\.[a-z]{2,}$/.test(d)) { update('domain', d); setStep(2); }
+                      else setDomainError('Please enter a valid domain (e.g. yourbusiness.com)');
+                    }
+                  }}
                   placeholder="yourbusiness.com"
                   style={{
                     flex: 1, padding: '14px 20px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)',
@@ -279,7 +349,12 @@ export function GetStartedFlow() {
                   onBlur={e => (e.currentTarget.style.borderColor = 'var(--bdr2)')}
                 />
                 <button
-                  onClick={() => { if (domainQuery.trim()) { update('domain', domainQuery.trim()); setStep(2); } }}
+                  onClick={() => {
+                    const d = domainQuery.trim().toLowerCase();
+                    if (!d) return;
+                    if (/^[a-z0-9.-]+\.[a-z]{2,}$/.test(d)) { update('domain', d); setStep(2); }
+                    else setDomainError('Please enter a valid domain (e.g. yourbusiness.com)');
+                  }}
                   style={{
                     padding: '14px 24px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
                     fontSize: '.88rem', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
@@ -289,6 +364,9 @@ export function GetStartedFlow() {
                   Continue <ArrowRight style={{ width: 16, height: 16 }} />
                 </button>
               </div>
+              {domainError && answers.situation === 'existing' && (
+                <p style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 10 }}>{domainError}</p>
+              )}
               <p style={{ fontSize: '.72rem', color: 'var(--t3)', marginTop: 10, fontWeight: 300, lineHeight: 1.6 }}>
                 We&apos;ll help you transfer your domain to Envosta after you sign up, or you can point your DNS to us and keep your current registrar.
               </p>
