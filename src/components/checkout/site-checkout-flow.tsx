@@ -57,6 +57,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
   const [domainResult, setDomainResult] = useState<{ domain: string; available: boolean } | null>(null);
   const [domainError, setDomainError] = useState('');
   const [selectedDomain, setSelectedDomain] = useState(initialDomain ?? '');
+  const [domainPriceCents, setDomainPriceCents] = useState<number | null>(null);
   const domainRef = useRef<HTMLInputElement>(null);
 
   // Checkout
@@ -102,22 +103,37 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
       const allPlans = (data as Plan[]) ?? [];
       setPlans(allPlans);
 
+      // Pre-select plan from URL param
       if (initialPlan) {
         const match = allPlans.find(p => p.slug === initialPlan);
-        if (match) {
-          setSelectedPlan(match);
-          if (initialDomain) {
-            // Both plan and domain pre-filled → skip to checkout
-            setStep(mode === 'public' ? 1 : 3); // public still needs account step first
-          } else {
-            // Plan pre-filled → skip to domain step
-            setStep(mode === 'public' ? 1 : 2);
-          }
-        }
-      } else if (initialDomain) {
-        // Domain pre-filled but no plan → start at plan step
-        setStep(mode === 'public' ? 1 : 1);
+        if (match) setSelectedPlan(match);
       }
+
+      // Pre-fill domain from URL param and fetch its price
+      if (initialDomain) {
+        setDomainMode('new');
+        setSelectedDomain(initialDomain);
+        const tld = initialDomain.split('.').pop()?.toLowerCase() ?? '';
+        const { data: pricing } = await supabase
+          .from('domain_pricing')
+          .select('registration_price_cad')
+          .eq('tld', tld)
+          .maybeSingle();
+        if (pricing?.registration_price_cad) setDomainPriceCents(pricing.registration_price_cad);
+      }
+
+      // Skip to the right step based on what's pre-filled
+      if (mode === 'dashboard') {
+        if (initialPlan && initialDomain) {
+          setStep(3); // Both → checkout
+        } else if (initialPlan) {
+          setStep(2); // Plan only → domain step
+        }
+        // Domain only → still need to pick plan first (step 1)
+      }
+      // Public mode always starts at step 1 (account), but after they
+      // complete account, the "Choose a Plan" button will skip ahead
+      // if plan is already selected
       setLoading(false);
     }
     fetchPlans();
@@ -143,6 +159,16 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
       const data = await res.json();
       if (res.ok) {
         setDomainResult({ domain, available: data.available });
+        // Fetch TLD price
+        if (data.available) {
+          const tld = domain.split('.').pop()?.toLowerCase() ?? '';
+          const { data: pricing } = await supabase
+            .from('domain_pricing')
+            .select('registration_price_cad')
+            .eq('tld', tld)
+            .maybeSingle();
+          setDomainPriceCents(pricing?.registration_price_cad ?? null);
+        }
       } else {
         setDomainError(data.error ?? 'Could not check availability');
       }
@@ -213,8 +239,9 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
         }
         window.location.href = data.url;
       }
-    } catch {
-      setCheckoutError('Something went wrong. Please try again.');
+    } catch (e: any) {
+      console.error('Checkout error:', e);
+      setCheckoutError(e?.message ?? 'Something went wrong. Please try again.');
       setCheckoutLoading(false);
     }
   }
@@ -363,7 +390,13 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
                 <div>
                   <label style={{ fontSize: '.78rem', color: t.textSub, marginBottom: 6, display: 'block' }}>Password *</label>
                   <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters"
-                    style={inputStyle} />
+                    style={{
+                      ...inputStyle,
+                      ...(password && password.length < 8 ? { borderColor: '#ef4444' } : {}),
+                    }} />
+                  {password && password.length < 8 && (
+                    <p style={{ fontSize: '.72rem', color: '#ef4444', marginTop: 4 }}>Password must be at least 8 characters</p>
+                  )}
                 </div>
                 <div>
                   <label style={{ fontSize: '.78rem', color: t.textSub, marginBottom: 6, display: 'block' }}>Confirm Password *</label>
@@ -381,7 +414,17 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
                   <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 (555) 123-4567" style={inputStyle} />
                 </div>
                 <button
-                  onClick={() => { if (name && email && password.length >= 8 && password === confirmPassword) setStep(2); }}
+                  onClick={() => {
+                    if (!(name && email && password.length >= 8 && password === confirmPassword)) return;
+                    // Skip steps that are already pre-filled
+                    if (selectedPlan && selectedDomain) {
+                      setStep(checkoutStepNum); // Both pre-filled → checkout
+                    } else if (selectedPlan) {
+                      setStep(domainStepNum); // Plan pre-filled → domain step
+                    } else {
+                      setStep(planStepNum); // Nothing pre-filled → plan step
+                    }
+                  }}
                   disabled={!name || !email || password.length < 8 || password !== confirmPassword}
                   style={{
                     padding: '14px 24px', background: t.btnBg, color: t.btnColor, borderRadius: 100, border: 'none',
@@ -390,7 +433,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}
                 >
-                  Choose a Plan <ArrowRight style={{ width: 16, height: 16 }} />
+                  {selectedPlan && selectedDomain ? 'Continue to Checkout' : selectedPlan ? 'Set Up Your Domain' : 'Choose a Plan'} <ArrowRight style={{ width: 16, height: 16 }} />
                 </button>
               </div>
               <p style={{ fontSize: '.7rem', color: t.textMuted, marginTop: 16, lineHeight: 1.6 }}>
@@ -573,7 +616,9 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: domainResult.available ? '#22c55e' : '#ef4444' }} />
                     <span style={{ fontWeight: 600, color: t.text, fontSize: '.88rem' }}>{domainResult.domain}</span>
                     <span style={{ color: domainResult.available ? '#22c55e' : 'var(--t3)', fontSize: '.8rem' }}>
-                      {domainResult.available ? 'is available' : 'is taken'}
+                      {domainResult.available
+                        ? `is available${domainPriceCents ? ` · $${(domainPriceCents / 100).toFixed(2)}/yr` : ''}`
+                        : 'is taken'}
                     </span>
                   </div>
                   {domainResult.available && (
@@ -664,7 +709,9 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
                   <p style={{ fontWeight: 500, color: t.text, fontSize: '.9rem' }}>{selectedDomain}</p>
                   <p style={{ fontSize: '.75rem', color: t.textMuted }}>Domain registration (1 year)</p>
                 </div>
-                <p style={{ fontWeight: 600, color: t.text, fontSize: '.9rem' }}>Included</p>
+                <p style={{ fontWeight: 600, color: t.text, fontSize: '.9rem' }}>
+                  {domainPriceCents ? `$${(domainPriceCents / 100).toFixed(2)}/yr` : '—'}
+                </p>
               </div>
             )}
 

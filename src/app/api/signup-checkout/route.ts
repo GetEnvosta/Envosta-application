@@ -19,6 +19,13 @@ function getStripe() {
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ error: 'Server config: missing SUPABASE_SERVICE_ROLE_KEY' }, { status: 503 });
+  }
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return NextResponse.json({ error: 'Server config: missing STRIPE_SECRET_KEY' }, { status: 503 });
+  }
+
   const supabaseAdmin = getSupabaseAdmin();
   const stripe = getStripe();
   try {
@@ -118,10 +125,9 @@ export async function POST(req: Request) {
       priceId = planData?.stripe_price_id_monthly ?? null;
     }
 
-    // If no plan selected (came through recommendation flow without pre-select),
-    // redirect to pricing page instead of checkout
     if (!priceId) {
-      return NextResponse.json({ redirect: '/pricing' });
+      console.error('No Stripe price ID found for plan:', plan);
+      return NextResponse.json({ error: `No pricing configured for the ${plan} plan. Please contact support.` }, { status: 400 });
     }
 
     // 4. Get or create Stripe customer
