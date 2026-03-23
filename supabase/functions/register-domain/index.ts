@@ -178,16 +178,10 @@ Deno.serve(async (req) => {
   const registrantUa = req.headers.get("user-agent") ?? "unknown";
 
   try {
-    const userSb = supabaseForUser(req);
-    const { data: { user }, error: authErr } = await userSb.auth.getUser();
-    if (authErr || !user) return error("Unauthorized", 401);
-
     const { action, domainName, serviceId, years, nameservers } = await req.json();
     if (!domainName) return error("domainName is required");
 
-    const sb = supabaseAdmin();
-
-    // CHECK availability
+    // CHECK availability — no auth required (public domain search)
     if (action === "check") {
       const xml = buildLookupXml(domainName);
       const responseXml = await opensrsRequest(xml);
@@ -197,9 +191,16 @@ Deno.serve(async (req) => {
       console.log("OpenSRS lookup:", parsed.responseCode, parsed.responseText);
 
       const available = parsed.responseCode === "210";
-      await log({ userId: user.id, action: "domain.check", message: `${domainName}: ${available ? "available" : "taken"}`, ms });
+      await log({ action: "domain.check", message: `${domainName}: ${available ? "available" : "taken"}`, ms });
       return json({ domainName, available });
     }
+
+    // All other actions require auth
+    const userSb = supabaseForUser(req);
+    const { data: { user }, error: authErr } = await userSb.auth.getUser();
+    if (authErr || !user) return error("Unauthorized", 401);
+
+    const sb = supabaseAdmin();
 
     // REGISTER
     const parts = domainName.split(".");
