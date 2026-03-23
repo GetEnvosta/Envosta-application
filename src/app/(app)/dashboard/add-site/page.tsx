@@ -1,8 +1,14 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { SiteCheckoutFlow } from '@/components/checkout/site-checkout-flow';
 
-export default function AddSitePage() {
+function AddSiteContent() {
+  const searchParams = useSearchParams();
+  const plan = searchParams.get('plan')?.toLowerCase() ?? undefined;
+  const domain = searchParams.get('domain') ?? undefined;
+
   return (
     <div>
       <div className="mb-8">
@@ -11,7 +17,15 @@ export default function AddSitePage() {
           Choose a plan, set up your domain, and check out.
         </p>
       </div>
-      <SiteCheckoutFlow mode="dashboard" />
+      <SiteCheckoutFlow mode="dashboard" initialPlan={plan} initialDomain={domain} />
     </div>
+  );
+}
+
+export default function AddSitePage() {
+  return (
+    <Suspense>
+      <AddSiteContent />
+    </Suspense>
   );
 }

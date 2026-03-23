@@ -41,8 +41,9 @@ export function DomainSearch() {
 
   function handleRegister() {
     if (!result) return;
-    // Send to login with redirect to domain registration in dashboard
-    window.location.href = `https://my.envosta.com/auth/login?redirect=${encodeURIComponent(`/dashboard/domains/register?domain=${result.domain}`)}`;
+    // Send to signup/checkout flow with domain pre-filled
+    // If logged in, they'll be redirected to dashboard add-site automatically
+    window.location.href = `/get-started?domain=${encodeURIComponent(result.domain)}`;
   }
 
   return (
@@ -99,7 +100,7 @@ export function DomainSearch() {
               className="bp"
               style={{ fontSize: '.82rem', padding: '10px 20px' }}
             >
-              Log in to register
+              Register this domain
             </button>
           )}
         </div>

@@ -27,10 +27,12 @@ interface Props {
   mode: 'public' | 'dashboard';
   /** Pre-select a plan slug from URL params */
   initialPlan?: string;
+  /** Pre-fill domain from URL params (e.g. from domains page search) */
+  initialDomain?: string;
 }
 
 /* ── Component ── */
-export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
+export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
   const supabase = createClient();
 
   /* State */
@@ -42,18 +44,19 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [hasAccount, setHasAccount] = useState<boolean | null>(null);
 
   // Plan
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
 
   // Domain
-  const [domainMode, setDomainMode] = useState<'new' | 'existing' | 'temp' | null>(null);
-  const [domainQuery, setDomainQuery] = useState('');
+  const [domainMode, setDomainMode] = useState<'new' | 'existing' | 'temp' | null>(initialDomain ? 'new' : null);
+  const [domainQuery, setDomainQuery] = useState(initialDomain ?? '');
   const [domainChecking, setDomainChecking] = useState(false);
   const [domainResult, setDomainResult] = useState<{ domain: string; available: boolean } | null>(null);
   const [domainError, setDomainError] = useState('');
-  const [selectedDomain, setSelectedDomain] = useState('');
+  const [selectedDomain, setSelectedDomain] = useState(initialDomain ?? '');
   const domainRef = useRef<HTMLInputElement>(null);
 
   // Checkout
@@ -84,8 +87,17 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
         const match = allPlans.find(p => p.slug === initialPlan);
         if (match) {
           setSelectedPlan(match);
-          setStep(mode === 'public' ? 1 : 2); // Skip to domain if plan pre-selected in dashboard
+          if (initialDomain) {
+            // Both plan and domain pre-filled → skip to checkout
+            setStep(mode === 'public' ? 1 : 3); // public still needs account step first
+          } else {
+            // Plan pre-filled → skip to domain step
+            setStep(mode === 'public' ? 1 : 2);
+          }
         }
+      } else if (initialDomain) {
+        // Domain pre-filled but no plan → start at plan step
+        setStep(mode === 'public' ? 1 : 1);
       }
       setLoading(false);
     }
@@ -196,15 +208,40 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
   function goToDomain() { setStep(domainStepNum); }
   function goToCheckout() { setStep(checkoutStepNum); }
 
+  // Theme: dark for marketing, light for dashboard
+  const dark = mode === 'public';
+  const t = {
+    text: dark ? 'var(--t1)' : '#111827',
+    textSub: dark ? 'var(--t2)' : '#6b7280',
+    textMuted: dark ? 'var(--t3)' : '#9ca3af',
+    accent: '#2563EB',
+    cardBg: dark ? 'rgba(255,255,255,.03)' : '#fff',
+    cardBorder: dark ? t.cardBorder : '#e5e7eb',
+    cardBorderActive: '#2563EB',
+    inputBg: dark ? t.cardBorder : '#fff',
+    inputBorder: dark ? 'var(--bdr2)' : '#d1d5db',
+    btnBg: dark ? '#fff' : '#111827',
+    btnColor: dark ? '#03060e' : '#fff',
+    btnGhostBorder: dark ? 'rgba(255,255,255,.12)' : '#d1d5db',
+    successBg: dark ? 'rgba(34,197,94,.06)' : '#f0fdf4',
+    successBorder: dark ? 'rgba(34,197,94,.3)' : '#bbf7d0',
+    errorBg: dark ? 'rgba(239,68,68,.04)' : '#fef2f2',
+    errorBorder: dark ? 'rgba(239,68,68,.2)' : '#fecaca',
+    summaryBg: dark ? 'rgba(255,255,255,.03)' : '#f9fafb',
+    summaryBorder: dark ? t.cardBorder : '#e5e7eb',
+    stepDoneBg: dark ? 'rgba(34,197,94,.15)' : '#dcfce7',
+    stepInactiveBg: dark ? t.cardBorder : '#f3f4f6',
+  };
+
   const inputStyle = {
-    width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,.06)',
-    border: '1px solid var(--bdr2)', borderRadius: 10, color: 'var(--t1)', fontSize: '.9rem',
+    width: '100%', padding: '12px 16px', background: t.inputBg,
+    border: `1px solid ${t.inputBorder}`, borderRadius: 10, color: t.text, fontSize: '.9rem',
   };
 
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
-        <Loader2 style={{ width: 24, height: 24, animation: 'spin 1s linear infinite', color: 'var(--t3)' }} />
+        <Loader2 style={{ width: 24, height: 24, animation: 'spin 1s linear infinite', color: t.textMuted }} />
       </div>
     );
   }
@@ -225,16 +262,16 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
           const done = step > n;
           return (
             <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {i > 0 && <ChevronRight style={{ width: 14, height: 14, color: 'var(--t3)', opacity: .4 }} />}
+              {i > 0 && <ChevronRight style={{ width: 14, height: 14, color: t.textMuted, opacity: .4 }} />}
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                color: active ? 'var(--t1)' : done ? 'var(--gold)' : 'var(--t3)',
+                color: active ? t.text : done ? t.accent : t.textMuted,
                 fontSize: '.82rem', fontWeight: active ? 500 : 400,
               }}>
                 <div style={{
                   width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '.7rem', fontWeight: 600,
-                  background: active ? '#2563EB' : done ? 'rgba(34,197,94,.15)' : 'rgba(255,255,255,.08)',
+                  background: active ? '#2563EB' : done ? t.stepDoneBg : t.stepInactiveBg,
                   color: active ? '#fff' : done ? '#22c55e' : 'var(--t3)',
                 }}>
                   {done ? <Check style={{ width: 12, height: 12 }} /> : n}
@@ -253,18 +290,18 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
         <div style={{ textAlign: 'center', maxWidth: 440, margin: '0 auto' }}>
           {hasAccount === null && (
             <>
-              <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 12, color: 'var(--t1)' }}>
+              <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 12, color: t.text }}>
                 Welcome to Envosta
               </h2>
-              <p style={{ color: 'var(--t2)', marginBottom: 32, fontSize: '.92rem' }}>
+              <p style={{ color: t.textSub, marginBottom: 32, fontSize: '.92rem' }}>
                 Do you already have an account?
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <a
                   href="https://my.envosta.com/auth/login?redirect=/dashboard/add-site"
                   style={{
-                    padding: '14px 24px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)',
-                    borderRadius: 12, color: 'var(--t1)', fontSize: '.9rem', fontWeight: 500, textDecoration: 'none',
+                    padding: '14px 24px', background: t.cardBorder, border: `1px solid ${t.inputBorder}`,
+                    borderRadius: 12, color: t.text, fontSize: '.9rem', fontWeight: 500, textDecoration: 'none',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'border-color .2s',
                   }}
                 >
@@ -273,7 +310,7 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
                 <button
                   onClick={() => setHasAccount(false)}
                   style={{
-                    padding: '14px 24px', background: '#fff', color: '#03060e', borderRadius: 12, border: 'none',
+                    padding: '14px 24px', background: t.btnBg, color: t.btnColor, borderRadius: 12, border: 'none',
                     fontSize: '.9rem', fontWeight: 500, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}
@@ -286,48 +323,59 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
 
           {hasAccount === false && (
             <>
-              <button onClick={() => setHasAccount(null)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', marginBottom: 20, fontSize: '.82rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <button onClick={() => setHasAccount(null)} style={{ background: 'none', border: 'none', color: t.textMuted, cursor: 'pointer', marginBottom: 20, fontSize: '.82rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <ArrowLeft style={{ width: 14, height: 14 }} /> Back
               </button>
-              <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 12, color: 'var(--t1)' }}>
+              <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 12, color: t.text }}>
                 Create your account
               </h2>
-              <p style={{ color: 'var(--t2)', marginBottom: 28, fontSize: '.92rem' }}>
+              <p style={{ color: t.textSub, marginBottom: 28, fontSize: '.92rem' }}>
                 Just the basics — we&apos;ll handle the rest during onboarding.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'left' }}>
                 <div>
-                  <label style={{ fontSize: '.78rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Full Name *</label>
+                  <label style={{ fontSize: '.78rem', color: t.textSub, marginBottom: 6, display: 'block' }}>Full Name *</label>
                   <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" style={inputStyle} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '.78rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Email *</label>
+                  <label style={{ fontSize: '.78rem', color: t.textSub, marginBottom: 6, display: 'block' }}>Email *</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jane@business.com" style={inputStyle} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '.78rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Password *</label>
+                  <label style={{ fontSize: '.78rem', color: t.textSub, marginBottom: 6, display: 'block' }}>Password *</label>
                   <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters"
                     style={inputStyle} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '.78rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Phone <span style={{ color: 'var(--t3)' }}>(optional)</span></label>
+                  <label style={{ fontSize: '.78rem', color: t.textSub, marginBottom: 6, display: 'block' }}>Confirm Password *</label>
+                  <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter your password"
+                    style={{
+                      ...inputStyle,
+                      ...(confirmPassword && confirmPassword !== password ? { borderColor: '#ef4444' } : {}),
+                    }} />
+                  {confirmPassword && confirmPassword !== password && (
+                    <p style={{ fontSize: '.72rem', color: '#ef4444', marginTop: 4 }}>Passwords don&apos;t match</p>
+                  )}
+                </div>
+                <div>
+                  <label style={{ fontSize: '.78rem', color: t.textSub, marginBottom: 6, display: 'block' }}>Phone <span style={{ color: t.textMuted }}>(optional)</span></label>
                   <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 (555) 123-4567" style={inputStyle} />
                 </div>
                 <button
-                  onClick={() => { if (name && email && password.length >= 8) setStep(2); }}
-                  disabled={!name || !email || password.length < 8}
+                  onClick={() => { if (name && email && password.length >= 8 && password === confirmPassword) setStep(2); }}
+                  disabled={!name || !email || password.length < 8 || password !== confirmPassword}
                   style={{
-                    padding: '14px 24px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
+                    padding: '14px 24px', background: t.btnBg, color: t.btnColor, borderRadius: 100, border: 'none',
                     fontSize: '.88rem', fontWeight: 500, cursor: 'pointer', marginTop: 8,
-                    opacity: (!name || !email || password.length < 8) ? 0.5 : 1,
+                    opacity: (!name || !email || password.length < 8 || password !== confirmPassword) ? 0.5 : 1,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}
                 >
                   Choose a Plan <ArrowRight style={{ width: 16, height: 16 }} />
                 </button>
               </div>
-              <p style={{ fontSize: '.7rem', color: 'var(--t3)', marginTop: 16, lineHeight: 1.6 }}>
-                By continuing you agree to our <a href="/legal/terms" style={{ color: 'var(--t2)', textDecoration: 'underline' }}>Terms</a> and <a href="/legal/privacy" style={{ color: 'var(--t2)', textDecoration: 'underline' }}>Privacy Policy</a>.
+              <p style={{ fontSize: '.7rem', color: t.textMuted, marginTop: 16, lineHeight: 1.6 }}>
+                By continuing you agree to our <a href="/legal/terms" style={{ color: t.textSub, textDecoration: 'underline' }}>Terms</a> and <a href="/legal/privacy" style={{ color: t.textSub, textDecoration: 'underline' }}>Privacy Policy</a>.
               </p>
             </>
           )}
@@ -340,14 +388,14 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
       {step === planStepNum && (
         <div>
           {mode === 'public' && (
-            <button onClick={() => setStep(1)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', marginBottom: 16, fontSize: '.82rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <button onClick={() => setStep(1)} style={{ background: 'none', border: 'none', color: t.textMuted, cursor: 'pointer', marginBottom: 16, fontSize: '.82rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <ArrowLeft style={{ width: 14, height: 14 }} /> Back
             </button>
           )}
-          <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 8, color: 'var(--t1)', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 8, color: t.text, textAlign: 'center' }}>
             Choose your plan
           </h2>
-          <p style={{ color: 'var(--t2)', marginBottom: 32, fontSize: '.92rem', textAlign: 'center' }}>
+          <p style={{ color: t.textSub, marginBottom: 32, fontSize: '.92rem', textAlign: 'center' }}>
             All plans include onboarding, SSL, CDN, daily backups, and staging.
           </p>
 
@@ -360,8 +408,8 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
                   key={plan.id}
                   onClick={() => setSelectedPlan(plan)}
                   style={{
-                    background: isSelected ? 'rgba(37,99,235,.06)' : 'rgba(255,255,255,.03)',
-                    border: `2px solid ${isSelected ? '#2563EB' : isPopular ? 'rgba(37,99,235,.2)' : 'rgba(255,255,255,.08)'}`,
+                    background: isSelected ? dark ? 'rgba(37,99,235,.06)' : 'rgba(37,99,235,.04)' : t.cardBg,
+                    border: `2px solid ${isSelected ? '#2563EB' : isPopular ? 'rgba(37,99,235,.2)' : t.cardBorder}`,
                     borderRadius: 18, padding: '28px 24px', cursor: 'pointer', transition: 'all .2s',
                     position: 'relative', display: 'flex', flexDirection: 'column', textAlign: 'left',
                   }}
@@ -373,15 +421,15 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
                   )}
                   <div style={{ fontSize: '.66rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '2px', color: '#2563EB', marginBottom: 6 }}>{plan.name}</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 6 }}>
-                    <span style={{ fontSize: '2rem', fontWeight: 600, color: '#fff', letterSpacing: '-1px' }}>${(plan.price_monthly / 100).toFixed(0)}</span>
-                    <span style={{ fontSize: '.8rem', color: 'var(--t3)', fontWeight: 300 }}>/mo</span>
+                    <span style={{ fontSize: '2rem', fontWeight: 600, color: t.text, letterSpacing: '-1px' }}>${(plan.price_monthly / 100).toFixed(0)}</span>
+                    <span style={{ fontSize: '.8rem', color: t.textMuted, fontWeight: 300 }}>/mo</span>
                   </div>
-                  <p style={{ fontSize: '.78rem', color: 'var(--t3)', lineHeight: 1.6, fontWeight: 300, marginBottom: 16 }}>{plan.description}</p>
+                  <p style={{ fontSize: '.78rem', color: t.textMuted, lineHeight: 1.6, fontWeight: 300, marginBottom: 16 }}>{plan.description}</p>
                   <div style={{ flex: 1 }}>
                     {(plan.features as string[]).slice(0, 6).map(f => (
                       <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
                         <Check style={{ width: 13, height: 13, color: '#22c55e', flexShrink: 0 }} />
-                        <span style={{ fontSize: '.76rem', color: 'var(--t2)', fontWeight: 300 }}>{f}</span>
+                        <span style={{ fontSize: '.76rem', color: t.textSub, fontWeight: 300 }}>{f}</span>
                       </div>
                     ))}
                   </div>
@@ -395,7 +443,7 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
               onClick={goToDomain}
               disabled={!selectedPlan}
               style={{
-                padding: '14px 32px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
+                padding: '14px 32px', background: t.btnBg, color: t.btnColor, borderRadius: 100, border: 'none',
                 fontSize: '.88rem', fontWeight: 500, cursor: 'pointer',
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 opacity: selectedPlan ? 1 : 0.4,
@@ -412,13 +460,13 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
          ════════════════════════════════════════════ */}
       {step === domainStepNum && (
         <div style={{ maxWidth: 560, margin: '0 auto' }}>
-          <button onClick={() => setStep(planStepNum)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', marginBottom: 16, fontSize: '.82rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <button onClick={() => setStep(planStepNum)} style={{ background: 'none', border: 'none', color: t.textMuted, cursor: 'pointer', marginBottom: 16, fontSize: '.82rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <ArrowLeft style={{ width: 14, height: 14 }} /> Back
           </button>
-          <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 8, color: 'var(--t1)', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 8, color: t.text, textAlign: 'center' }}>
             What about a domain?
           </h2>
-          <p style={{ color: 'var(--t2)', marginBottom: 32, fontSize: '.92rem', textAlign: 'center' }}>
+          <p style={{ color: t.textSub, marginBottom: 32, fontSize: '.92rem', textAlign: 'center' }}>
             You can always add or change your domain later.
           </p>
 
@@ -427,16 +475,16 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
             <button
               onClick={() => { setDomainMode('new'); setSelectedDomain(''); setDomainResult(null); setTimeout(() => domainRef.current?.focus(), 200); }}
               style={{
-                background: domainMode === 'new' ? 'rgba(37,99,235,.06)' : 'rgba(255,255,255,.03)',
-                border: `1px solid ${domainMode === 'new' ? '#2563EB' : 'rgba(255,255,255,.08)'}`,
+                background: domainMode === 'new' ? dark ? 'rgba(37,99,235,.06)' : 'rgba(37,99,235,.04)' : t.cardBg,
+                border: `1px solid ${domainMode === 'new' ? '#2563EB' : t.cardBorder}`,
                 borderRadius: 14, padding: '18px 20px', cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Sparkles style={{ width: 18, height: 18, color: '#2563EB' }} />
                 <div>
-                  <p style={{ fontWeight: 500, color: 'var(--t1)', fontSize: '.88rem' }}>Register a new domain</p>
-                  <p style={{ fontSize: '.75rem', color: 'var(--t3)' }}>Search and add a domain to your order</p>
+                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>Register a new domain</p>
+                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>Search and add a domain to your order</p>
                 </div>
               </div>
             </button>
@@ -444,16 +492,16 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
             <button
               onClick={() => { setDomainMode('existing'); setSelectedDomain(''); setDomainResult(null); }}
               style={{
-                background: domainMode === 'existing' ? 'rgba(37,99,235,.06)' : 'rgba(255,255,255,.03)',
-                border: `1px solid ${domainMode === 'existing' ? '#2563EB' : 'rgba(255,255,255,.08)'}`,
+                background: domainMode === 'existing' ? dark ? 'rgba(37,99,235,.06)' : 'rgba(37,99,235,.04)' : t.cardBg,
+                border: `1px solid ${domainMode === 'existing' ? '#2563EB' : t.cardBorder}`,
                 borderRadius: 14, padding: '18px 20px', cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Globe style={{ width: 18, height: 18, color: '#2563EB' }} />
                 <div>
-                  <p style={{ fontWeight: 500, color: 'var(--t1)', fontSize: '.88rem' }}>I already have a domain</p>
-                  <p style={{ fontSize: '.75rem', color: 'var(--t3)' }}>We&apos;ll help you connect or transfer it</p>
+                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>I already have a domain</p>
+                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>We&apos;ll help you connect or transfer it</p>
                 </div>
               </div>
             </button>
@@ -465,7 +513,7 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
                 padding: '8px 0', textAlign: 'center',
               }}
             >
-              <span style={{ fontSize: '.82rem', color: 'var(--t3)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+              <span style={{ fontSize: '.82rem', color: t.textMuted, textDecoration: 'underline', textUnderlineOffset: '3px' }}>
                 Use a temporary domain for now
               </span>
             </button>
@@ -487,7 +535,7 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
                   onClick={checkDomain}
                   disabled={domainChecking || !domainQuery.trim()}
                   style={{
-                    padding: '14px 24px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
+                    padding: '14px 24px', background: t.btnBg, color: t.btnColor, borderRadius: 100, border: 'none',
                     fontSize: '.85rem', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
                     opacity: domainChecking || !domainQuery.trim() ? 0.5 : 1, whiteSpace: 'nowrap',
                   }}
@@ -498,13 +546,13 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
               {domainResult && (
                 <div style={{
                   padding: '12px 18px', borderRadius: 12, marginBottom: 12,
-                  border: `1px solid ${domainResult.available ? 'rgba(34,197,94,.3)' : 'rgba(239,68,68,.2)'}`,
-                  background: domainResult.available ? 'rgba(34,197,94,.06)' : 'rgba(239,68,68,.04)',
+                  border: `1px solid ${domainResult.available ? t.successBorder : t.errorBorder}`,
+                  background: domainResult.available ? t.successBg : t.errorBg,
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: domainResult.available ? '#22c55e' : '#ef4444' }} />
-                    <span style={{ fontWeight: 600, color: 'var(--t1)', fontSize: '.88rem' }}>{domainResult.domain}</span>
+                    <span style={{ fontWeight: 600, color: t.text, fontSize: '.88rem' }}>{domainResult.domain}</span>
                     <span style={{ color: domainResult.available ? '#22c55e' : 'var(--t3)', fontSize: '.8rem' }}>
                       {domainResult.available ? 'is available' : 'is taken'}
                     </span>
@@ -550,7 +598,7 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
                     else setDomainError('Enter a valid domain (e.g. yourbusiness.com)');
                   }}
                   style={{
-                    padding: '14px 24px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
+                    padding: '14px 24px', background: t.btnBg, color: t.btnColor, borderRadius: 100, border: 'none',
                     fontSize: '.85rem', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
                     opacity: domainQuery.trim() ? 1 : 0.5, whiteSpace: 'nowrap',
                   }}
@@ -559,7 +607,7 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
                 </button>
               </div>
               {domainError && <p style={{ color: '#ef4444', fontSize: '.8rem', marginBottom: 10 }}>{domainError}</p>}
-              <p style={{ fontSize: '.72rem', color: 'var(--t3)', lineHeight: 1.6 }}>
+              <p style={{ fontSize: '.72rem', color: t.textMuted, lineHeight: 1.6 }}>
                 We&apos;ll help you transfer or point your DNS after checkout.
               </p>
             </div>
@@ -572,80 +620,80 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
          ════════════════════════════════════════════ */}
       {step === checkoutStepNum && selectedPlan && (
         <div style={{ maxWidth: 480, margin: '0 auto' }}>
-          <button onClick={() => setStep(domainStepNum)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', marginBottom: 16, fontSize: '.82rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <button onClick={() => setStep(domainStepNum)} style={{ background: 'none', border: 'none', color: t.textMuted, cursor: 'pointer', marginBottom: 16, fontSize: '.82rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <ArrowLeft style={{ width: 14, height: 14 }} /> Back
           </button>
 
-          <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 24, color: 'var(--t1)', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 24, color: t.text, textAlign: 'center' }}>
             Order summary
           </h2>
 
-          <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 18, padding: '28px 24px' }}>
+          <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 18, padding: '28px 24px' }}>
             {/* Plan */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: `1px solid ${t.cardBorder}` }}>
               <div>
-                <p style={{ fontWeight: 500, color: 'var(--t1)', fontSize: '.9rem' }}>{selectedPlan.name} Plan</p>
-                <p style={{ fontSize: '.75rem', color: 'var(--t3)' }}>Billed monthly</p>
+                <p style={{ fontWeight: 500, color: t.text, fontSize: '.9rem' }}>{selectedPlan.name} Plan</p>
+                <p style={{ fontSize: '.75rem', color: t.textMuted }}>Billed monthly</p>
               </div>
-              <p style={{ fontWeight: 600, color: 'var(--t1)', fontSize: '.9rem' }}>${(selectedPlan.price_monthly / 100).toFixed(2)}/mo</p>
+              <p style={{ fontWeight: 600, color: t.text, fontSize: '.9rem' }}>${(selectedPlan.price_monthly / 100).toFixed(2)}/mo</p>
             </div>
 
             {/* Domain */}
             {selectedDomain && domainMode === 'new' && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: `1px solid ${t.cardBorder}` }}>
                 <div>
-                  <p style={{ fontWeight: 500, color: 'var(--t1)', fontSize: '.9rem' }}>{selectedDomain}</p>
-                  <p style={{ fontSize: '.75rem', color: 'var(--t3)' }}>Domain registration (1 year)</p>
+                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.9rem' }}>{selectedDomain}</p>
+                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>Domain registration (1 year)</p>
                 </div>
-                <p style={{ fontWeight: 600, color: 'var(--t1)', fontSize: '.9rem' }}>Included</p>
+                <p style={{ fontWeight: 600, color: t.text, fontSize: '.9rem' }}>Included</p>
               </div>
             )}
 
             {selectedDomain && domainMode === 'existing' && (
-              <div style={{ padding: '16px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-                <p style={{ fontSize: '.82rem', color: 'var(--t2)' }}>
-                  Domain: <strong style={{ color: 'var(--t1)' }}>{selectedDomain}</strong>
-                  <span style={{ color: 'var(--t3)', marginLeft: 8, fontSize: '.75rem' }}>DNS setup after checkout</span>
+              <div style={{ padding: '16px 0', borderBottom: `1px solid ${t.cardBorder}` }}>
+                <p style={{ fontSize: '.82rem', color: t.textSub }}>
+                  Domain: <strong style={{ color: t.text }}>{selectedDomain}</strong>
+                  <span style={{ color: t.textMuted, marginLeft: 8, fontSize: '.75rem' }}>DNS setup after checkout</span>
                 </p>
               </div>
             )}
 
             {!selectedDomain && (
-              <div style={{ padding: '16px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-                <p style={{ fontSize: '.82rem', color: 'var(--t3)' }}>Temporary domain — add a custom domain anytime</p>
+              <div style={{ padding: '16px 0', borderBottom: `1px solid ${t.cardBorder}` }}>
+                <p style={{ fontSize: '.82rem', color: t.textMuted }}>Temporary domain — add a custom domain anytime</p>
               </div>
             )}
 
             {/* Onboarding preference */}
             <div style={{ padding: '16px 0' }}>
-              <p style={{ fontSize: '.8rem', color: 'var(--t2)', marginBottom: 12, fontWeight: 500 }}>After setup, would you like help?</p>
+              <p style={{ fontSize: '.8rem', color: t.textSub, marginBottom: 12, fontWeight: 500 }}>After setup, would you like help?</p>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
                   onClick={() => setOnboardingChoice('self')}
                   style={{
                     flex: 1, padding: '12px 14px', borderRadius: 10, cursor: 'pointer', textAlign: 'center', transition: 'all .2s',
-                    background: onboardingChoice === 'self' ? 'rgba(37,99,235,.08)' : 'rgba(255,255,255,.03)',
-                    border: `1px solid ${onboardingChoice === 'self' ? '#2563EB' : 'rgba(255,255,255,.08)'}`,
+                    background: onboardingChoice === 'self' ? dark ? 'rgba(37,99,235,.08)' : 'rgba(37,99,235,.04)' : t.cardBg,
+                    border: `1px solid ${onboardingChoice === 'self' ? '#2563EB' : t.cardBorder}`,
                   }}
                 >
-                  <p style={{ fontWeight: 500, color: 'var(--t1)', fontSize: '.82rem' }}>I&apos;ll take it from here</p>
-                  <p style={{ fontSize: '.68rem', color: 'var(--t3)', marginTop: 2 }}>Self-guided setup</p>
+                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.82rem' }}>I&apos;ll take it from here</p>
+                  <p style={{ fontSize: '.68rem', color: t.textMuted, marginTop: 2 }}>Self-guided setup</p>
                 </button>
                 <button
                   onClick={() => setOnboardingChoice('guided')}
                   style={{
                     flex: 1, padding: '12px 14px', borderRadius: 10, cursor: 'pointer', textAlign: 'center', transition: 'all .2s',
-                    background: onboardingChoice === 'guided' ? 'rgba(37,99,235,.08)' : 'rgba(255,255,255,.03)',
-                    border: `1px solid ${onboardingChoice === 'guided' ? '#2563EB' : 'rgba(255,255,255,.08)'}`,
+                    background: onboardingChoice === 'guided' ? dark ? 'rgba(37,99,235,.08)' : 'rgba(37,99,235,.04)' : t.cardBg,
+                    border: `1px solid ${onboardingChoice === 'guided' ? '#2563EB' : t.cardBorder}`,
                   }}
                 >
-                  <p style={{ fontWeight: 500, color: 'var(--t1)', fontSize: '.82rem' }}>I&apos;d like onboarding</p>
-                  <p style={{ fontSize: '.68rem', color: 'var(--t3)', marginTop: 2 }}>Book a call with our team</p>
+                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.82rem' }}>I&apos;d like onboarding</p>
+                  <p style={{ fontSize: '.68rem', color: t.textMuted, marginTop: 2 }}>Book a call with our team</p>
                 </button>
               </div>
               {onboardingChoice === 'guided' && (
                 <div style={{ marginTop: 12, padding: '12px 16px', background: 'rgba(37,99,235,.04)', border: '1px solid rgba(37,99,235,.12)', borderRadius: 10 }}>
-                  <p style={{ fontSize: '.78rem', color: 'var(--t2)', lineHeight: 1.6 }}>
+                  <p style={{ fontSize: '.78rem', color: t.textSub, lineHeight: 1.6 }}>
                     After checkout, we&apos;ll send you a link to book your onboarding call. We&apos;ll walk through your goals, set everything up, and get your site ready to launch.
                   </p>
                 </div>
@@ -658,7 +706,7 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
             onClick={handleCheckout}
             disabled={checkoutLoading}
             style={{
-              width: '100%', padding: '16px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
+              width: '100%', padding: '16px', background: t.btnBg, color: t.btnColor, borderRadius: 100, border: 'none',
               fontSize: '.9rem', fontWeight: 600, cursor: 'pointer', marginTop: 24,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               opacity: checkoutLoading ? 0.5 : 1,
