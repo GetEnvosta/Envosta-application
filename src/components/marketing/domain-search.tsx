@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase-browser';
 import { Search, Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 export function DomainSearch() {
@@ -22,42 +21,16 @@ export function DomainSearch() {
     setError('');
 
     try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-
-      // If logged in, use authenticated endpoint
-      if (session) {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-              'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            },
-            body: JSON.stringify({ action: 'check', domainName: fullDomain }),
-          }
-        );
-        const data = await res.json();
-        if (res.ok) {
-          setResult({ domain: fullDomain, available: data.available });
-        } else {
-          setError(data.error ?? 'Could not check availability');
-        }
+      const res = await fetch('/api/domain-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: fullDomain }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResult({ domain: fullDomain, available: data.available });
       } else {
-        // Not logged in — use public API route
-        const res = await fetch('/api/domain-check', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ domain: fullDomain }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setResult({ domain: fullDomain, available: data.available });
-        } else {
-          setError(data.error ?? 'Could not check availability');
-        }
+        setError(data.error ?? 'Could not check availability');
       }
     } catch {
       setError('Connection error. Please try again.');
@@ -68,16 +41,8 @@ export function DomainSearch() {
 
   function handleRegister() {
     if (!result) return;
-    const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        // Logged in — go to dashboard domain registration
-        window.location.href = `/dashboard/domains/register?domain=${encodeURIComponent(result.domain)}`;
-      } else {
-        // Not logged in — prompt to sign up
-        window.location.href = `https://my.envosta.com/auth/login?redirect=${encodeURIComponent(`/dashboard/domains/register?domain=${result.domain}`)}`;
-      }
-    });
+    // Send to login with redirect to domain registration in dashboard
+    window.location.href = `https://my.envosta.com/auth/login?redirect=${encodeURIComponent(`/dashboard/domains/register?domain=${result.domain}`)}`;
   }
 
   return (
@@ -134,7 +99,7 @@ export function DomainSearch() {
               className="bp"
               style={{ fontSize: '.82rem', padding: '10px 20px' }}
             >
-              Register this domain
+              Log in to register
             </button>
           )}
         </div>
