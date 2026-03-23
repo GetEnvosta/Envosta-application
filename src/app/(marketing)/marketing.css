@@ -2,7 +2,7 @@
 :root{--bg:#03060e;--bg2:#070c18;--card:#0b1220;--card2:#0f182a;--gold:#2563EB;--gold-dim:#2563EB10;--gold-bright:#3B82F6;--t1:#f5f7fb;--t2:#a3b1c9;--t3:#7889a3;--bdr:#101c2e;--bdr2:#182842;--grn:#22c55e;--r:12px}
 
 /* Scoped to marketing site wrapper */
-.marketing-site{font-family:var(--font-inter),'Inter',sans-serif;background:#040812;color:#d0d8e8;line-height:1.7;-webkit-font-smoothing:antialiased;width:100%;min-height:100vh;overflow-x:hidden;margin:0;padding:0}
+.marketing-site{font-family:var(--font-inter),'Inter',sans-serif;background:#040812;color:#d0d8e8;line-height:1.7;-webkit-font-smoothing:antialiased;width:100%;min-height:100dvh;overflow-x:hidden;margin:0;padding:0}
 .marketing-site *,.marketing-site *::before,.marketing-site *::after{margin:0;padding:0;box-sizing:border-box}
 .c{max-width:1320px;margin:0 auto;padding:0 32px}
 section{position:relative;z-index:1}
@@ -42,7 +42,7 @@ section{position:relative;z-index:1}
 /* ═══════════════════════════════════
    SECTION 1 — HERO (split layout)
 ═══════════════════════════════════ */
-.hero{padding:160px 0 80px;position:relative;overflow:hidden;min-height:70vh;display:flex;align-items:center}
+.hero{padding:160px 0 80px;position:relative;overflow:hidden;min-height:70dvh;display:flex;align-items:center}
 .hero-bg{position:absolute;inset:0;z-index:0;overflow:hidden}
 .hero-overlay{position:absolute;inset:0;z-index:1;background:
   radial-gradient(ellipse 80% 60% at 50% 40%, rgba(3,6,14,.35) 0%, rgba(3,6,14,.6) 50%, rgba(3,6,14,.92) 100%),
@@ -339,7 +339,7 @@ footer{border-top:1px solid var(--bdr);padding:100px 0 32px;margin-top:64px}
 
 
 /* ═══ Infrastructure globe visual ═══ */
-.infra-globe{position:relative;min-height:85vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:visible;padding:0;margin-top:-72px}
+.infra-globe{position:relative;min-height:85dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:visible;padding:0;margin-top:-72px}
 #infra-globe-canvas{position:absolute;inset:0;z-index:1;width:100%;height:100%}
 
 
@@ -385,7 +385,7 @@ footer{border-top:1px solid var(--bdr);padding:100px 0 32px;margin-top:64px}
 .ig-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:360px;margin:24px auto 0}
 }
 @media(max-width:480px){
-.infra-globe{padding:20px 16px;min-height:80vh}
+.infra-globe{padding:20px 16px;min-height:75dvh}
 .ig-hdr{padding:0 16px}
 .ig-trust{padding:0 16px}
 .ig-wrap{max-width:300px;gap:8px;margin:16px auto 0}
@@ -708,7 +708,7 @@ footer{border-top:1px solid var(--bdr);padding:100px 0 32px;margin-top:64px}
   .ham{display:flex}
 
   /* Hero */
-  .hero{padding:130px 0 60px}
+  .hero{padding:140px 0 80px;min-height:85dvh}
   .hero-text{padding:0 8px}
   .hero-text h1{font-size:2.4rem;letter-spacing:-1px;margin-bottom:20px}
   .hero-text p{font-size:.95rem;margin-bottom:32px;line-height:1.7;max-width:400px}
@@ -814,7 +814,7 @@ footer{border-top:1px solid var(--bdr);padding:100px 0 32px;margin-top:64px}
    RESPONSIVE — SMALL MOBILE (max-width: 480px)
 ═══════════════════════════════════ */
 @media(max-width:480px){
-  .hero{padding:110px 0 50px}
+  .hero{padding:120px 0 60px;min-height:80dvh}
   .hero-text{padding:0 4px}
   .hero-text h1{font-size:2rem;letter-spacing:-.8px;line-height:1.15;margin-bottom:16px}
   .hero-text p{font-size:.88rem;line-height:1.65;margin-bottom:28px;max-width:340px}

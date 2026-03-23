@@ -441,7 +441,7 @@ export function GlobeSection() {
         const eD = earthPixels;
         const eW = earthTexW;
         const eH = earthTexH;
-        const maxRes = 400; // cap pixel rendering resolution
+        const maxRes = 600; // cap pixel rendering resolution
         const rawD2 = Math.ceil(globeR * 2);
         const d2 = Math.min(rawD2, maxRes);
         const scale = rawD2 / d2;
