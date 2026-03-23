@@ -229,7 +229,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
 
   // Theme: dark for marketing, light for dashboard
   const dark = mode === 'public';
-  const t = {
+  const t: Record<string, string> = {
     text: dark ? 'var(--t1)' : '#111827',
     textSub: dark ? 'var(--t2)' : '#6b7280',
     textMuted: dark ? 'var(--t3)' : '#9ca3af',
