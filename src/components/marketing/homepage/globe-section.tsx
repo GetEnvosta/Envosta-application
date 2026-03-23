@@ -468,9 +468,10 @@ export function GlobeSection() {
             const lat3 = Math.asin(-(y0 > 1 ? 1 : y0 < -1 ? -1 : y0)) * 180 / Math.PI;
             const lo2 = Math.atan2(x0, z2v) * 180 / Math.PI;
             const lng3 = lo2 - rotation;
-            let tx3 = ((lng3 + 180) / 360 * eW) | 0;
+            // Proper modulo wrapping for continuous rotation
+            let tx3 = (((lng3 + 180) % 360 + 360) % 360) / 360 * eW | 0;
             let ty3 = ((90 - lat3) / 180 * eH) | 0;
-            if (tx3 < 0) tx3 = 0; if (tx3 >= eW) tx3 = eW - 1;
+            if (tx3 >= eW) tx3 = eW - 1;
             if (ty3 < 0) ty3 = 0; if (ty3 >= eH) ty3 = eH - 1;
             const ti2 = (ty3 * eW + tx3) * 4;
             let sf2 = sxN * nsdx + syN * nsdy + szN * nsdz;
