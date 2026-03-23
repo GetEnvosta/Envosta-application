@@ -1,0 +1,83 @@
+import { supabaseAdmin, supabaseForUser, cors, json, error } from "../_shared/deps.ts";
+
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+
+  try {
+    // Auth: admin only
+    const userSb = supabaseForUser(req);
+    const { data: { user }, error: authErr } = await userSb.auth.getUser();
+    if (authErr || !user) return error("Unauthorized", 401);
+
+    const sb = supabaseAdmin();
+    const { data: profile } = await sb.from("users").select("role").eq("id", user.id).single();
+    if (profile?.role !== "admin") return error("Admin access required", 403);
+
+    const { ticketId, ticketType, thread, customerContext, quoteAmount } = await req.json();
+    if (!ticketType || !thread) return error("ticketType and thread are required");
+
+    // Build system prompt
+    let contextLines = `Ticket type: ${ticketType}`;
+    if (customerContext) {
+      contextLines += `\nCustomer: ${customerContext.name ?? "Unknown"}`;
+      if (customerContext.plan) contextLines += `\nPlan: ${customerContext.plan}`;
+      if (customerContext.siteUrl) contextLines += `\nSite: ${customerContext.siteUrl}`;
+      if (customerContext.siteStatus) contextLines += `\nSite Status: ${customerContext.siteStatus}`;
+      if (customerContext.onboardingStage) contextLines += `\nOnboarding: ${customerContext.onboardingStage}`;
+    }
+    if (quoteAmount) {
+      contextLines += `\nApproved quote: $${(quoteAmount / 100).toFixed(2)} CAD`;
+    }
+
+    const conversationText = thread.map((msg: any) =>
+      `${msg.sender === "customer" ? "Customer" : "Agent"}: ${msg.message}`
+    ).join("\n\n");
+
+    const systemPrompt = `You are a support agent for Envosta, a premium WordPress hosting company with personal onboarding and concierge service.
+
+${contextLines}
+
+Conversation:
+${conversationText}
+
+Draft a professional, warm, concise reply.
+- Support: helpful, technical, reference their setup when relevant
+- Studio: creative, professional, ask about scope if no quote yet, confirm next steps if quoted
+- Sales: enthusiastic not pushy, highlight personal onboarding and concierge service, guide toward signing up
+
+Under 150 words. Be human, not corporate.`;
+
+    // Call Anthropic API
+    const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 500,
+        messages: [{ role: "user", content: systemPrompt }],
+      }),
+    });
+
+    if (!anthropicRes.ok) {
+      const errText = await anthropicRes.text();
+      console.error("Anthropic API error:", anthropicRes.status, errText);
+      return error(`AI API error: ${anthropicRes.status}`, 502);
+    }
+
+    const anthropicData = await anthropicRes.json();
+    const draft = anthropicData?.content?.[0]?.text ?? "";
+
+    console.log("AI draft generated for ticket:", ticketId, "length:", draft.length);
+
+    return json({ draft });
+  } catch (e) {
+    console.error("AI draft error:", e);
+    return error(String(e), 500);
+  }
+});
