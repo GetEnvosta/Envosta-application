@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { CheckCircle, Handshake, Loader2 } from 'lucide-react';
 
 const PARTNER_TYPES = [
@@ -10,7 +11,9 @@ const PARTNER_TYPES = [
 ];
 
 export default function PartnersPage() {
-  const [type, setType] = useState('sales');
+  const searchParams = useSearchParams();
+  const initialType = searchParams.get('type') ?? 'sales';
+  const [type, setType] = useState(initialType);
   const [form, setForm] = useState({
     fullName: '', email: '', phone: '', companyName: '', websiteUrl: '',
     siteCount: '', message: '', friendName: '', friendEmail: '',

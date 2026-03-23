@@ -27,10 +27,15 @@ export default async function SitesPage() {
           <h1 className="text-xl font-semibold text-gray-900">Sites</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage your WordPress hosting accounts</p>
         </div>
-        <Link href="/dashboard/add-site" className="btn-primary text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
-          <Plus className="w-4 h-4" />
-          Add a Site
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard/partners?type=referral" className="btn-secondary text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
+            🎁 Refer a Friend
+          </Link>
+          <Link href="/dashboard/add-site" className="btn-primary text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
+            <Plus className="w-4 h-4" />
+            Add a Site
+          </Link>
+        </div>
       </div>
 
       {/* State A: No subscription at all */}
@@ -119,9 +124,6 @@ export default async function SitesPage() {
                         {status}
                       </span>
                       <span className="badge-indigo">{planName}</span>
-                      {site.onboarding_status && site.onboarding_status !== 'completed' && (
-                        <span className="badge-yellow">Onboarding: {site.onboarding_status === 'not_started' ? 'Pending' : site.onboarding_status === 'scheduled' ? 'Call Scheduled' : 'In Progress'}</span>
-                      )}
                     </div>
                     {site.wp_cloud_url && (
                       <a

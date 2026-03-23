@@ -45,7 +45,7 @@ export default async function SiteDetailPage({
   const planName = (site as any).plans?.name ?? 'Unknown';
   const planSlug: string = (site as any).plans?.slug ?? '';
   const status: string = site.status ?? 'provisioning';
-  const isGrowthOrPerformance = ['growth', 'performance'].includes(planSlug);
+  // All plans include staging (wp.cloud provides 1 non-billable staging per site)
 
   const statusBadge =
     status === 'active'
@@ -183,34 +183,6 @@ export default async function SiteDetailPage({
         </div>
       </div>
 
-      {/* Onboarding Status */}
-      {site.onboarding_status && site.onboarding_status !== 'completed' && (
-        <div className="card p-6 mb-4">
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">Onboarding</h2>
-          <div className="flex items-center gap-6">
-            {['not_started', 'scheduled', 'in_progress', 'completed'].map((s, i) => {
-              const labels: Record<string, string> = { not_started: 'Not Started', scheduled: 'Call Scheduled', in_progress: 'In Progress', completed: 'Complete' };
-              const current = ['not_started', 'scheduled', 'in_progress', 'completed'].indexOf(site.onboarding_status ?? 'not_started');
-              const done = i <= current;
-              return (
-                <div key={s} className="flex items-center gap-2">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${done ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                    {i + 1}
-                  </div>
-                  <span className={`text-xs ${done ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>{labels[s]}</span>
-                  {i < 3 && <div className={`w-8 h-0.5 ${done && i < current ? 'bg-brand-600' : 'bg-gray-200'}`} />}
-                </div>
-              );
-            })}
-          </div>
-          {site.onboarding_call_date && (
-            <p className="text-xs text-gray-500 mt-3">
-              Onboarding call: {new Date(site.onboarding_call_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-            </p>
-          )}
-        </div>
-      )}
-
       {/* Connected Domain */}
       <div className="card p-6 mb-4">
         <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
@@ -270,29 +242,15 @@ export default async function SiteDetailPage({
           <Shield className="w-4 h-4 text-gray-400" />
           Staging
         </h2>
-        {isGrowthOrPerformance ? (
-          <div className="flex items-center justify-between mt-2">
-            <div>
-              <p className="text-sm text-gray-700">Staging available</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Create a staging copy of your site to test changes safely.
-              </p>
-            </div>
-            <button className="btn-secondary text-sm py-2 px-4 opacity-50 cursor-not-allowed" disabled title="Coming soon">Create Staging</button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between mt-2">
-            <p className="text-sm text-gray-500">
-              Available on Growth plan
+        <div className="flex items-center justify-between mt-2">
+          <div>
+            <p className="text-sm text-gray-700">Staging environment included</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Create a staging copy of your site to test changes safely before going live.
             </p>
-            <Link
-              href="/dashboard/billing"
-              className="text-sm font-medium text-brand-600 hover:text-brand-700"
-            >
-              Upgrade &rarr;
-            </Link>
           </div>
-        )}
+          <button className="btn-secondary text-sm py-2 px-4 opacity-50 cursor-not-allowed" disabled title="Coming soon">Create Staging</button>
+        </div>
       </div>
 
       {/* SSL */}

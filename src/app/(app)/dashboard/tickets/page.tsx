@@ -160,28 +160,50 @@ export default async function TicketsPage({
           )}
         </div>
 
-        {/* Envosta Studio promo */}
-        <div className="lg:col-span-1">
-          <div className="relative rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50/60 via-white to-blue-50/60 p-6 shadow-sm">
-            <h3 className="text-base font-semibold text-gray-900 mb-1">
-              Need a custom website?
-            </h3>
-            <p className="text-sm text-gray-600 leading-relaxed mb-4">
-              Our studio team designs and builds high-performance websites tailored to
-              your brand. From concept to launch, we handle everything.
-            </p>
-            <div className="flex flex-wrap gap-2 mb-5">
-              <span className="badge-indigo">Custom Design</span>
-              <span className="badge-indigo">SEO Optimized</span>
-              <span className="badge-indigo">Launch in 5 Days</span>
+        {/* Info cards */}
+        <div className="lg:col-span-1 space-y-4">
+          {/* Support tickets info */}
+          <div className="card p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Support</span>
             </div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">Get help with your site</h3>
+            <p className="text-xs text-gray-500 leading-relaxed mb-3">
+              Technical issues, questions about your hosting, DNS help, email setup, plugin conflicts, performance concerns, or anything else — our team is here to help.
+            </p>
+            <ul className="text-xs text-gray-500 space-y-1.5">
+              <li className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">&#10003;</span>Technical troubleshooting</li>
+              <li className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">&#10003;</span>DNS &amp; domain configuration</li>
+              <li className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">&#10003;</span>Email setup assistance</li>
+              <li className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">&#10003;</span>Performance questions</li>
+              <li className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">&#10003;</span>Account &amp; billing help</li>
+            </ul>
+          </div>
+
+          {/* Studio tickets info */}
+          <div className="relative rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50/60 via-white to-indigo-50/40 p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">Studio</span>
+              <span className="text-xs text-gray-400">from $250 CAD</span>
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">Request design &amp; development work</h3>
+            <p className="text-xs text-gray-500 leading-relaxed mb-3">
+              Need changes to your site? Our studio team handles it for you — no technical knowledge required. Submit a request and we&apos;ll send you a quote.
+            </p>
+            <ul className="text-xs text-gray-500 space-y-1.5 mb-4">
+              <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#10003;</span>Page design &amp; redesigns</li>
+              <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#10003;</span>New features &amp; functionality</li>
+              <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#10003;</span>Plugin setup &amp; configuration</li>
+              <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#10003;</span>Content updates &amp; copywriting</li>
+              <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#10003;</span>3–5 business day delivery</li>
+            </ul>
             <a
               href="https://envosta.com/studio"
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-primary inline-flex items-center gap-1.5"
+              className="text-xs text-purple-600 hover:text-purple-700 font-medium inline-flex items-center gap-1"
             >
-              Learn More <ExternalLink className="w-3.5 h-3.5" />
+              Learn more about Envosta Studio <ExternalLink className="w-3 h-3" />
             </a>
           </div>
         </div>
