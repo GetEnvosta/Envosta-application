@@ -819,11 +819,6 @@ export default async function HomePage() {
         </div>
 
         {/* ═══ WP.CLOUD GLOBE ═══ */}
-        <div className="c" style={{ position: 'relative', zIndex: 10, textAlign: 'center', marginBottom: 0 }}>
-          <div style={{ display: 'inline-block', fontSize: '.7rem', fontWeight: 400, textTransform: 'uppercase', letterSpacing: '3px', color: '#3b82f6', marginBottom: '14px' }}>wp.cloud</div>
-          <h2 className="ig-hdr-title">The infrastructure behind<br />the simplicity</h2>
-        </div>
-
         <GlobeSection />
 
         {/* Badges + trust + status */}
