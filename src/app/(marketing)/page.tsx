@@ -821,28 +821,6 @@ export default async function HomePage() {
         {/* ═══ WP.CLOUD GLOBE ═══ */}
         <GlobeSection />
 
-        {/* Badges + trust + status */}
-        <div className="c" style={{ position: 'relative', zIndex: 10, marginTop: -120 }}>
-          <div className="ig-wrap" id="ig-wrap">
-            <div className="ig-fm ig-fm-1" id="igf1"><div className="ig-fm-card"><div className="ig-fm-val">99.99<span>%</span></div><div className="ig-fm-label">Uptime SLA</div></div></div>
-            <div className="ig-fm ig-fm-2" id="igf2"><div className="ig-fm-card"><div className="ig-fm-val">&lt;142<span>ms</span></div><div className="ig-fm-label">Response Time</div></div></div>
-            <div className="ig-fm ig-fm-3" id="igf3"><div className="ig-fm-card"><div className="ig-fm-val">28<span>+</span></div><div className="ig-fm-label">Edge Locations</div></div></div>
-            <div className="ig-fm ig-fm-4" id="igf4"><div className="ig-fm-card"><div className="ig-fm-val" id="ig-req-val">0</div><div className="ig-fm-label">Requests Today</div></div></div>
-          </div>
-
-          <div className="ig-trust" id="ig-trust">
-            <p>Your site runs on <em>wp.cloud</em> — 28 edge locations, sub-150ms response times, and 99.99% uptime backed by the same platform that powers <strong>WordPress.com</strong> and <strong>WordPress VIP</strong>.</p>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div className="ig-status" id="ig-status">
-              <div className="ig-status-inner">
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px rgba(34,197,94,.5)', animation: 'dotPulse 2s ease-in-out infinite' }}></div>
-                <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '.56rem', color: '#86efac', letterSpacing: '.5px' }}>All systems operational</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* ═══ SECTION 8C — SEO & CUSTOM THEME ═══ */}
         <section className="zc-section" style={{ paddingTop: 20 }}>
           <div className="c zc-inner">

@@ -68,7 +68,7 @@ export function TestimonialCarousel() {
           position: 'absolute',
           inset: 0,
           zIndex: 0,
-          background: "url('/assets/images/7785487548.jpg') center/cover",
+          background: "url('/assets/images/case-1.jpg') center/cover",
           opacity: 0.75,
           transition: 'opacity .8s ease',
         }}
@@ -80,7 +80,7 @@ export function TestimonialCarousel() {
           position: 'absolute',
           inset: 0,
           zIndex: 0,
-          background: "url('/assets/images/hero-e1649318546466.jpg') center/cover",
+          background: "url('/assets/images/case-2.jpg') center/cover",
           opacity: 0,
           transition: 'opacity .8s ease',
         }}
@@ -92,7 +92,20 @@ export function TestimonialCarousel() {
           position: 'absolute',
           inset: 0,
           zIndex: 0,
-          background: "url('/assets/images/7577854.jpg') center/cover",
+          background: "url('/assets/images/case-3.jpg') center/cover",
+          opacity: 0,
+          transition: 'opacity .8s ease',
+        }}
+      />
+
+      <div
+        className="sp-quote-bg"
+        data-index="3"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+          background: "url('/assets/images/case-4.jpg') center/cover",
           opacity: 0,
           transition: 'opacity .8s ease',
         }}
@@ -172,6 +185,22 @@ export function TestimonialCarousel() {
           </div>
         </div>
 
+        <div className="sp-quote-slide" data-index="3">
+          <div className="sp-stars" style={{ marginBottom: '24px' }}>
+            ★★★★★
+          </div>
+          <p className="sp-hero-text">
+            &ldquo;As a musician, I needed a site that looked as good as it sounded. Envosta built something beautiful and it loads instantly — even when I share it with thousands of fans.&rdquo;
+          </p>
+          <div className="sp-hero-author">
+            <div className="sp-avatar">MV</div>
+            <div>
+              <div className="sp-name">Mary Vale</div>
+              <div className="sp-role">Independent Musician</div>
+            </div>
+          </div>
+        </div>
+
         {/* Dots */}
         <div
           className="sp-dots"
@@ -189,6 +218,7 @@ export function TestimonialCarousel() {
           <button className="sp-dot sp-dot-active" data-idx="0" aria-label="Testimonial 1" />
           <button className="sp-dot" data-idx="1" aria-label="Testimonial 2" />
           <button className="sp-dot" data-idx="2" aria-label="Testimonial 3" />
+          <button className="sp-dot" data-idx="3" aria-label="Testimonial 4" />
         </div>
       </div>
     </div>

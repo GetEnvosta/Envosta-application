@@ -17,23 +17,23 @@ export default function SupportPage() {
 
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         /* ── Section headers ── */
         .sh{text-align:left;margin-bottom:56px}
         .sh-tag{display:inline-block;font-size:.72rem;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--gold);margin-bottom:10px}
-        .sh h2{font-family:'Inter',sans-serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:500;letter-spacing:-1px;line-height:1.1}
+        .sh h2{font-family:'Inter',sans-serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:500;letter-spacing:-1px;line-height:1.1;color:var(--t1)}
         .sh-desc{font-size:.95rem;color:var(--t2);line-height:1.75;font-weight:300;margin-top:16px;max-width:560px}
 
         /* ── Scroll reveal ── */
         .rv{opacity:0;transform:translateY(20px);transition:opacity .6s,transform .6s}.rv.v{opacity:1;transform:none}
 
         /* ═══ HERO ═══ */
-        .hero{padding:180px 0 100px;position:relative;overflow:hidden;display:flex;align-items:center}
+        .hero{padding:160px 0 80px;position:relative;overflow:hidden;display:flex;align-items:center}
         .hero-overlay{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(37,99,235,.15),transparent 65%);z-index:0}
         .hero .c{position:relative;z-index:2;text-align:center}
         .hero-text{max-width:720px;margin:0 auto}
         .hero-text h1{font-family:'Inter',sans-serif;font-size:clamp(2.6rem,5.5vw,4.2rem);font-weight:400;line-height:1.12;letter-spacing:-1.5px;margin-bottom:28px;background:linear-gradient(180deg,#fff 30%,rgba(255,255,255,.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-        .hero-text h1 em{font-style:normal;color:#fff;font-weight:500}
+        .hero-text h1 em{font-style:normal;-webkit-text-fill-color:#fff;color:#fff;font-weight:500}
         .hero-text p{font-size:1.05rem;color:var(--t2);max-width:520px;margin-left:auto;margin-right:auto;line-height:1.8;font-weight:300}
 
         /* ═══ ZONE A ═══ */
@@ -49,7 +49,7 @@ export default function SupportPage() {
         .contact-card.featured{border-color:rgba(37,99,235,.15);background:linear-gradient(180deg,rgba(37,99,235,.06),var(--card) 50%)}
         .contact-icon{width:56px;height:56px;border-radius:14px;background:rgba(37,99,235,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;color:var(--gold)}
         .contact-icon svg{width:24px;height:24px}
-        .contact-card h3{font-size:1.05rem;font-weight:500;margin-bottom:8px}
+        .contact-card h3{font-size:1.05rem;font-weight:500;margin-bottom:8px;color:var(--t1)}
         .contact-card p{font-size:.84rem;color:var(--t3);line-height:1.7;font-weight:300;margin-bottom:20px}
         .contact-card .response{font-size:.72rem;color:var(--gold);font-weight:500;margin-bottom:20px;display:block}
         .contact-card .bp{width:100%;justify-content:center;padding:14px 24px;font-size:.88rem}
@@ -67,7 +67,7 @@ export default function SupportPage() {
         .studio-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(201,164,92,.1);border:1px solid rgba(201,164,92,.2);border-radius:100px;padding:6px 16px;font-size:.68rem;font-weight:600;color:#c9a45c;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:24px}
         .studio-badge-dot{width:6px;height:6px;border-radius:50%;background:#c9a45c;animation:sbpulse 2s ease-in-out infinite}
         @keyframes sbpulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(201,164,92,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(201,164,92,0)}}
-        .studio-left h3{font-family:'Inter',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:500;letter-spacing:-.5px;line-height:1.15;margin-bottom:16px}
+        .studio-left h3{font-family:'Inter',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:500;letter-spacing:-.5px;line-height:1.15;margin-bottom:16px;color:var(--t1)}
         .studio-left h3 span{background:linear-gradient(135deg,#c9a45c,#e6c46e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .studio-left>p{font-size:.92rem;color:var(--t2);line-height:1.75;font-weight:300;margin-bottom:32px;max-width:480px}
         .studio-price{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}
@@ -98,6 +98,7 @@ export default function SupportPage() {
         .form-group input,.form-group select,.form-group textarea{background:var(--bg);border:1px solid var(--bdr2);border-radius:10px;padding:12px 16px;color:var(--t1);font-size:.88rem;font-family:inherit;outline:none;transition:border-color .3s}
         .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--gold)}
         .form-group select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236a7a94' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center}
+        .form-group select option{background:#0b1220;color:var(--t1)}
         .form-group textarea{resize:vertical;min-height:120px}
         .form-submit{text-align:center;margin-top:24px}
         .form-submit .bp{padding:14px 48px;font-size:.92rem}
@@ -138,7 +139,7 @@ export default function SupportPage() {
 
         /* ── Responsive ── */
         @media(max-width:1024px){.contact-grid{grid-template-columns:1fr 1fr}.faq-grid{grid-template-columns:1fr 1fr}.studio-card{grid-template-columns:1fr;gap:40px}}
-        @media(max-width:768px){.contact-grid,.faq-grid,.sp-testimonials{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.hero{padding:150px 0 80px}.zone-a,.zone-b{border-radius:32px 32px 0 0}.studio-card{padding:40px 28px}.sp-stats{flex-wrap:wrap;gap:24px}.sp-divider{display:none}}
+        @media(max-width:768px){.contact-grid,.faq-grid,.sp-testimonials{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.hero{padding:140px 0 60px}.zone-a,.zone-b{border-radius:32px 32px 0 0}.studio-card{padding:40px 28px}.sp-stats{flex-wrap:wrap;gap:24px}.sp-divider{display:none}}
       `}</style>
 
       {/* ═══ HERO ═══ */}

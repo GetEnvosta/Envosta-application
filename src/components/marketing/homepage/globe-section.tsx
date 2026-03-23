@@ -70,10 +70,17 @@ export function GlobeSection() {
     let dragRotStart = 0;
     let animId: number;
 
+    let lastWidth = 0;
     function resize() {
       const rect = canvas!.parentElement!.getBoundingClientRect();
-      w = canvas!.width = rect.width;
-      h = canvas!.height = rect.height;
+      const newW = Math.round(rect.width);
+      const newH = Math.round(rect.height);
+      // Only resize canvas when WIDTH changes (not height)
+      // Mobile address bar show/hide changes height constantly, causing jitter
+      if (newW === lastWidth && canvas!.width > 0) return;
+      lastWidth = newW;
+      w = canvas!.width = newW;
+      h = canvas!.height = newH;
       cx = w / 2;
       cy = h / 2 - h * 0.12;
       // On mobile, use width as primary sizing so globe fills the screen

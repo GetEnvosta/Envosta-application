@@ -48,7 +48,7 @@ export default function StudioPage() {
         .ck{width:16px;height:16px;flex-shrink:0;color:var(--grn)}
 
         /* ═══ STUDIO HERO ═══ */
-        .vip-hero{padding:180px 0 100px;text-align:center;position:relative;overflow:hidden}
+        .vip-hero{padding:160px 0 80px;text-align:center;position:relative;overflow:hidden}
         .vip-hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:900px;height:900px;background:radial-gradient(circle,rgba(201,164,92,.1),transparent 60%);pointer-events:none}
         .vip-hero::after{content:'';position:absolute;bottom:-30%;left:50%;transform:translateX(-50%);width:700px;height:700px;background:radial-gradient(circle,rgba(37,99,235,.08),transparent 60%);pointer-events:none}
         .vip-hero .c{position:relative;z-index:1}

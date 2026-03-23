@@ -228,7 +228,7 @@ export default function FeaturesPage() {
       {/* HERO */}
       <section className="feat-hero">
         <div className="c">
-          <h1 className="rv">Everything your site needs to launch, grow, and stay online</h1>
+          <h1 className="rv">Built to perform</h1>
           <p className="rv">Managed WordPress hosting on enterprise infrastructure, domain registration, business email, and a team that helps you set it all up.</p>
           <div className="hero-btns rv">
             <a href="https://envosta.com/pricing" className="bp lg">Create Your Website</a>

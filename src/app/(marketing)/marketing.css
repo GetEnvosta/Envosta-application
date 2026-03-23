@@ -3,7 +3,7 @@
 
 /* Scoped to marketing site wrapper */
 .marketing-site{font-family:var(--font-inter),'Inter',sans-serif;background:#040812;color:#d0d8e8;line-height:1.7;-webkit-font-smoothing:antialiased;width:100%;min-height:100dvh;overflow-x:hidden;margin:0;padding:0}
-.marketing-site *,.marketing-site *::before,.marketing-site *::after{margin:0;padding:0;box-sizing:border-box}
+.marketing-site *,.marketing-site *::before,.marketing-site *::after{box-sizing:border-box}
 .c{max-width:1320px;margin:0 auto;padding:0 32px}
 section{position:relative;z-index:1}
 
@@ -270,7 +270,7 @@ section{position:relative;z-index:1}
 .faq-item.open .faq-a{max-height:240px;padding:0 0 24px}
 .faq-a p{font-size:.9rem;color:var(--t3);line-height:1.8;font-weight:300;max-width:620px}
 /* ── Footer ── */
-footer{border-top:1px solid var(--bdr);padding:100px 0 32px;margin-top:64px}
+.marketing-site footer{border-top:1px solid var(--bdr);padding:100px 0 40px;margin-top:64px}
 .fg-f{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1fr;gap:40px;margin-bottom:0;align-items:start}
 .fbr .logo{margin-bottom:16px;display:inline-flex;white-space:nowrap;flex-shrink:0}.fbr p{font-size:.82rem;color:var(--t2);line-height:1.7;max-width:280px;font-weight:300}
 .fcol h5{font-size:.7rem;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--t1);margin-bottom:14px}.fcol ul{list-style:none;padding:0;margin:0}.fcol li{margin-bottom:9px}.fcol a{color:var(--t2);text-decoration:none;font-size:.82rem;transition:color .2s}.fcol a:hover{color:#fff}
@@ -758,6 +758,15 @@ footer{border-top:1px solid var(--bdr);padding:100px 0 32px;margin-top:64px}
 
   /* Center SVGs in shop cards */
   .zm-grid-3 .zm-card-dark svg.shop-svg{width:100%!important;height:100%!important;position:absolute!important;inset:0!important;padding:8px 8px 160px!important;transform:none!important}
+
+  /* Responsive device mockups — scale down on mobile */
+  .resp-mon{width:280px!important;transform:translateZ(0)!important}
+  .resp-ph{width:120px!important;transform:translateZ(0)!important}
+  .resp-tilt{transform:none!important}
+  .resp-tab-bg{display:none}
+  .resp-mon-stand .resp-mon-neck{width:34px;height:20px}
+  .resp-mon-stand .resp-mon-base{width:70px}
+  .resp-mon-shadow{width:100px}
 
   /* Architecture cards */
   .arch-card{padding:20px 18px;gap:16px}
