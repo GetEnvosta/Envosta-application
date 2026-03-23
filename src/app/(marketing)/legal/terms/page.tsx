@@ -158,6 +158,68 @@ export default function TermsPage() {
                 <li><strong>Support:</strong> <a href="https://envosta.com/support">envosta.com/support</a></li>
                 <li><strong>Mailing address:</strong> Envosta Inc., Calgary, Alberta, Canada</li>
               </ul>
+              <hr className="legal-divider" />
+
+              <h2 id="domain-registration" style={{ marginTop: 48 }}>Appendix A &mdash; Domain Registration Agreement</h2>
+              <p>The following Master Domain Registration Agreement applies to all domain names registered through Envosta. By registering a domain name through our Services, you agree to be bound by the terms below in addition to Envosta&apos;s Terms of Service above.</p>
+              <hr className="legal-divider" />
+
+              <h3>Master Domain Registration Agreement</h3>
+              <p>This Registration Agreement (&quot;Agreement&quot;) is between Tucows Domains Inc. (&quot;Tucows&quot;) and you, on behalf of yourself or the entity you represent (&quot;Registrant&quot;), as offered through Envosta Inc., the Reseller participating in Tucows&apos; distribution channel for domain name registrations. Any reference to &quot;Registry&quot; or &quot;Registry Operator&quot; shall refer to the registry administrator of the applicable top-level domain (&quot;TLD&quot;). This Agreement explains Tucows&apos; obligations to Registrant, and Registrant&apos;s obligations to Tucows, for the domain registration services. By agreeing to the terms and conditions set forth in this Agreement, Registrant agrees to be bound by the rules and regulations set forth in this Agreement, and by a registry for that particular TLD.</p>
+
+              <h4>Domain Name Registration</h4>
+              <p>Domain name registrations are for a limited term, which ends on the expiration date communicated to the Registrant. A domain name submitted through Tucows will be deemed active when the relevant registry accepts the Registrant&apos;s application and activates Registrant&apos;s domain name registration or renewal. Tucows cannot guarantee that Registrant will obtain a desired domain name, even if an inquiry indicates that a domain name is available at the time of application. Tucows is not responsible for any inaccuracies or errors in the domain name registration or renewal process.</p>
+
+              <h4>Fees</h4>
+              <p>Registrant agrees to pay Reseller the applicable service fees prior to the registration or renewal of a domain. All fees payable hereunder are non-refundable even if Registrant&apos;s domain name registration is suspended, cancelled or transferred prior to the end of your current registration term. Tucows bills in United States dollars and is not responsible for any change in price due to exchange rates.</p>
+
+              <h4>Term</h4>
+              <p>This Agreement will remain in effect during the term of the domain name registration as selected, recorded and paid for at the time of registration or renewal. Should the domain name be transferred to another registrar, the terms and conditions of this Agreement shall cease.</p>
+
+              <h4>Selection of a Domain Name</h4>
+              <p>You acknowledge and agree that we cannot guarantee that you will obtain a desired domain name, even if an inquiry indicates that the domain name is available at the time of your application. You represent that, to the best of your knowledge and belief, neither the registration of the domain name nor the manner in which you intend to use it, infringes upon the legal rights of a third party and further, that the domain name is not being registered for, nor shall it at any time whatsoever be used for, any unlawful purpose.</p>
+
+              <h4>Expiration, Renewal, and Forfeiture</h4>
+              <p>The registered domain name will expire on the expiration date specified in the registration term. Registrant will receive reminders prior to the expiration inviting Registrant to renew the domain name. In the event that Registrant fails to renew the domain name in a timely fashion, the registration will expire and Tucows may, at its discretion, elect to assume the registration and may hold it in its own account, delete it, or sell it to a third party. Registrant acknowledges and agrees that Registrant&apos;s right and interest in a domain name ceases upon its expiration. If Tucows elects to renew the registration, Registrant will be entitled to a grace period of forty (40) days during which Registrant may re-register the domain name. Additional costs for the redemption and re-registration will apply.</p>
+
+              <h4>Expired Registration Recovery Policy</h4>
+              <p>Domain expiration notices will be sent via email thirty (30) days and five (5) days prior to a domain expiration date and three (3) days after a domain expires. Renewal, post-expiration renewal and redemption fees are published at <a href="https://opensrs.com/services/domains/domain-pricing/" target="_blank" rel="noopener noreferrer">opensrs.com</a>. Reseller&apos;s fees may differ.</p>
+
+              <h4>Registrant Information and Data Sharing</h4>
+              <p>Data required for the registration of a domain name varies by top-level domain. The required data (&quot;Minimum Data&quot;) will be presented at the time of registration or renewal and may include: name and postal address of the Registered Name Holder; registered name; names of nameservers; and name, postal address, email address, and telephone numbers of administrative, billing, and technical contacts. The Minimum Data will be shared with Tucows and the relevant authoritative registry services provider for your top-level domain.</p>
+
+              <h4>Accurate Information</h4>
+              <p>Registrant represents and warrants that: statements made in connection with domain name registration are complete and accurate; Registrant information will be kept current; Registrant will not permit others to use the domain name in violation of any ICANN or registry policies, applicable laws or regulations, or legal rights of others; and Registrant will respond to inquiries concerning the accuracy of contact details. A breach of this section constitutes a material breach entitling Tucows or a registry to terminate this Agreement immediately without refund or notice.</p>
+
+              <h4>Suspension and Cancellation</h4>
+              <p>Tucows may suspend or cancel Registrant&apos;s domain name registration if Registrant breaches this Agreement; fails to provide payment or accurate information; as required by ICANN or a Registry Operator; to protect the integrity of Tucows and any applicable registry; to comply with applicable laws, government rules, or court orders; in compliance with any dispute resolution process; to combat DNS Abuse; or to avoid any liability. Upon cancellation, you will not receive a refund for any fees already paid.</p>
+
+              <h4>Dispute Resolution</h4>
+              <p>Registrant is bound by all ICANN consensus policies and all policies of any relevant Registry Operator, including the Uniform Rapid Suspension Procedure and the Uniform Domain Name Dispute Resolution Policy (UDRP). If a third party challenges the registration of the Registrant&apos;s domain name, Registrant will be subject to the provisions specified in the dispute policy adopted by the applicable registry and will indemnify and hold Tucows harmless.</p>
+
+              <h4>WHOIS Privacy Service</h4>
+              <p>If Registrant elects to use the WHOIS privacy registration service: the publicly available Registrant contact information will list Contact Privacy Inc. as the Registrant with Tucows&apos; contact information; Registrant retains complete control over the domain name; and Tucows shall have the right to suspend the privacy service and reveal Registrant information when required by law, to comply with legal process, to resolve third party claims, or if Tucows believes the service is being used to conceal involvement with illegal activities.</p>
+
+              <h4>Transfer of Ownership</h4>
+              <p>The person named as Registrant on record shall be the &quot;Registered Name Holder.&quot; Prior to transferring ownership to another person (the &quot;Transferee&quot;), Registrant shall require the Transferee to agree in writing to be bound by all terms of this Agreement. Registrant explicitly authorizes Tucows to act as their Designated Agent, as stipulated by the ICANN Transfer Policy, to approve a Change of Registrant on their behalf.</p>
+
+              <h4>Limitation of Liability</h4>
+              <p>Registrant agrees that Tucows&apos; entire liability, and Registrant&apos;s exclusive remedy, is solely limited to the amount Registrant paid for the initial registration of the domain name. Tucows, ICANN and the applicable registries shall not be liable for any lost profits, revenues, or data, financial losses or indirect, special, consequential, exemplary, or punitive damages.</p>
+
+              <h4>Indemnity</h4>
+              <p>Registrant will defend, indemnify, and hold harmless Tucows, ICANN, the applicable registries, and their respective directors, officers, employees, agents, affiliates, and contractors, from all liabilities, claims and expenses arising out of or relating to Registrant&apos;s registration and use of the domain name, use in violation of this Agreement, or violation of any third party right. This indemnification obligation survives the termination or expiration of this Agreement.</p>
+
+              <h4>Governing Law</h4>
+              <p>This Agreement shall be governed by and interpreted in accordance with the laws of the Province of Ontario and the federal laws of Canada applicable therein. Any action relating to this Agreement must be brought in Ontario.</p>
+
+              <h4>Privacy</h4>
+              <p>Information collected about Registrant is subject to the terms of Tucows&apos; privacy policy at <a href="https://opensrs.com/privacy-policy/" target="_blank" rel="noopener noreferrer">opensrs.com/privacy-policy</a>.</p>
+
+              <h4>TLD-Specific Provisions</h4>
+              <p>Additional provisions apply to domain names registered with various registries. The complete list of TLD-specific provisions can be found at <a href="https://opensrs.com/docs/contracts/exhibita.htm" target="_blank" rel="noopener noreferrer">opensrs.com/docs/contracts/exhibita.htm</a>. These provisions are explicitly incorporated herein by reference.</p>
+
+              <h4>Acceptance</h4>
+              <p>By registering a domain name through Envosta, you acknowledge that you have read this Domain Registration Agreement and agree to all its terms and conditions. You have independently evaluated the desirability of the service and are not relying on any representation, agreement, guarantee, or statement other than as set forth in this Agreement.</p>
 
             </div>
           </div>

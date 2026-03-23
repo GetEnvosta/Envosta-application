@@ -3,13 +3,15 @@ import { createClient } from '@/lib/supabase-server';
 /**
  * Fetch active/trialing subscriptions with plan join for current user.
  */
-export async function getUserSubscriptions() {
+export async function getUserSubscriptions(userId?: string) {
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from('subscriptions')
     .select('*, plans(name, slug)')
     .in('status', ['active', 'trialing'])
     .order('created_at', { ascending: false });
+  if (userId) query = query.eq('user_id', userId);
+  const { data } = await query;
   return data ?? [];
 }
 
@@ -42,14 +44,15 @@ export async function getSubscriptionById(id: string) {
 /**
  * Fetch the first active subscription (for dashboard overview).
  */
-export async function getActiveSubscription() {
+export async function getActiveSubscription(userId?: string) {
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from('subscriptions')
     .select('*, plans(name, slug)')
     .eq('status', 'active')
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+  if (userId) query = query.eq('user_id', userId);
+  const { data } = await query.maybeSingle();
   return data;
 }
 

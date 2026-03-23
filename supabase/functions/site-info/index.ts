@@ -251,6 +251,79 @@ Deno.serve(async (req) => {
         return json(responseData);
       }
 
+      // Update site primary domain on wp.cloud + auto-setup DNS
+      case "update-domain": {
+        if (!siteId || !domain) return error("siteId and domain are required");
+
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("services").select("*").eq("id", siteId).single();
+        if (!svc) return error("Service not found", 404);
+        if (!svc.wp_cloud_site_id) return error("Site not yet provisioned", 400);
+
+        const siteIp = (svc as any).metadata?.site_ip ?? null;
+
+        // 1. Update primary domain on wp.cloud
+        //    POST /update-site-domain/{service}/{identifier}/{domain}/{keep}
+        //    keep=1 means keep the old domain as an alias
+        const wpResult = await wpcloudPost(
+          `/api/v1.0/update-site-domain/${WPCLOUD_CLIENT}/${svc.wp_cloud_site_id}/${domain}/1`,
+          {}
+        );
+        console.log("wp.cloud update-site-domain:", wpResult.status, JSON.stringify(wpResult.data));
+
+        if (!wpResult.ok) {
+          await log({ userId: user.id, serviceId: svc.id, level: "error", action: "hosting.update_domain.failed", message: `${domain}: ${wpResult.data?.message ?? wpResult.status}` });
+          return error(`Failed to update domain on wp.cloud: ${wpResult.data?.message ?? "Unknown error"}`, 502);
+        }
+
+        // 2. Update service record with new URL
+        await sb.from("services").update({
+          wp_cloud_url: `https://${domain}`,
+          metadata: { ...(svc as any).metadata, domain_name: domain },
+        }).eq("id", svc.id);
+
+        // 3. Link domain record to this service
+        await sb.from("domains")
+          .update({ service_id: svc.id })
+          .eq("domain_name", domain)
+          .eq("user_id", svc.user_id);
+
+        // 4. Auto-setup DNS if domain is registered through Envosta
+        let dnsSetup = null;
+        if (siteIp) {
+          const { data: domainRecord } = await sb.from("domains")
+            .select("registrar")
+            .eq("domain_name", domain)
+            .eq("user_id", svc.user_id)
+            .maybeSingle();
+
+          if (domainRecord?.registrar === "opensrs") {
+            const dnsRecords = [
+              { type: "A", subdomain: "", ip_address: siteIp, ttl: 3600 },
+              { type: "A", subdomain: "www", ip_address: siteIp, ttl: 3600 },
+              { type: "TXT", subdomain: "", text: "v=spf1 include:_spf.wpcloud.com ~all", ttl: 3600 },
+              { type: "CNAME", subdomain: "wpcloud1._domainkey", hostname: "wpcloud1._domainkey.wpcloud.com", ttl: 3600 },
+              { type: "CNAME", subdomain: "wpcloud2._domainkey", hostname: "wpcloud2._domainkey.wpcloud.com", ttl: 3600 },
+              { type: "TXT", subdomain: "_dmarc", text: "v=DMARC1; p=none;", ttl: 3600 },
+            ];
+
+            await sb.from("domains")
+              .update({
+                dns_records: dnsRecords,
+                metadata: { dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() },
+              })
+              .eq("domain_name", domain)
+              .eq("user_id", svc.user_id);
+
+            dnsSetup = { siteIp, records: dnsRecords.length };
+            console.log("Auto DNS setup for", domain, "→", siteIp);
+          }
+        }
+
+        await log({ userId: user.id, serviceId: svc.id, action: "hosting.update_domain.success", message: `Domain changed to ${domain}` });
+        return json({ domain, url: `https://${domain}`, dnsSetup, success: true });
+      }
+
       default:
         return error(`Unknown action: ${action}`, 400);
     }

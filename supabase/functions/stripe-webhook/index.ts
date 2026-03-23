@@ -62,6 +62,8 @@ Deno.serve(async (req) => {
             if (planData?.onboarding_type) onboardingType = planData.onboarding_type;
           }
 
+          const domainFromMeta = sub.metadata?.domain_name ?? null;
+
           const { data: svc, error: svcErr } = await sb.from("services").insert({
             user_id: cust.user_id,
             subscription_id: dbSub.id,
@@ -73,9 +75,29 @@ Deno.serve(async (req) => {
             php_version: "8.4",
             onboarding_status: "not_started",
             onboarding_type: onboardingType,
-            metadata: { auto_provisioned: true, plan_slug: plan?.slug ?? "minimum" },
+            metadata: { auto_provisioned: true, plan_slug: plan?.slug ?? "minimum", domain_name: domainFromMeta },
           }).select("id").single();
           console.log("Service created:", svc?.id, "err:", svcErr?.message);
+
+          // Auto-create domain record if domain was purchased with the plan
+          if (domainFromMeta && svc) {
+            const { data: existingDomain } = await sb.from("domains")
+              .select("id").eq("domain_name", domainFromMeta).eq("user_id", cust.user_id).maybeSingle();
+            if (!existingDomain) {
+              await sb.from("domains").insert({
+                user_id: cust.user_id,
+                domain_name: domainFromMeta,
+                service_id: svc.id,
+                status: "pending_registration",
+                registrar: "opensrs",
+              });
+              console.log("Domain record created:", domainFromMeta, "linked to service:", svc.id);
+            } else {
+              // Link existing domain to the new service
+              await sb.from("domains").update({ service_id: svc.id }).eq("id", existingDomain.id);
+              console.log("Existing domain linked:", domainFromMeta, "→", svc.id);
+            }
+          }
         } else {
           console.log("Service already exists:", existing.id);
         }

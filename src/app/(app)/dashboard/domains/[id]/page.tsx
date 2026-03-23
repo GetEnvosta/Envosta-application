@@ -1,4 +1,4 @@
-import { getCurrentUser } from '@/services/auth';
+import { getEffectiveUserId } from '@/services/auth';
 import { getDomainById } from '@/services/domains';
 import { getUserServicesList } from '@/services/sites';
 import { formatDate, statusColor } from '@/lib/utils';
@@ -11,12 +11,12 @@ import { NameserverManager } from '@/components/domains/nameserver-manager';
 
 export default async function DomainDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await getCurrentUser();
-  if (!user) redirect('/login');
+  const userId = await getEffectiveUserId();
+  if (!userId) redirect('/login');
 
   const [domain, services] = await Promise.all([
-    getDomainById(id, user.id),
-    getUserServicesList(user.id),
+    getDomainById(id, userId),
+    getUserServicesList(userId),
   ]);
 
   if (!domain) redirect('/dashboard/domains');
@@ -125,6 +125,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
         <p className="text-sm text-gray-500 mb-4">Choose which site this domain is connected to.</p>
         <ConnectedSiteSwitcher
           domainId={domain.id}
+          domainName={domain.domain_name}
           currentServiceId={domain.service_id}
           services={services ?? []}
         />

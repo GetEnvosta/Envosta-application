@@ -1,4 +1,4 @@
-import { getCurrentUser } from '@/services/auth';
+import { getEffectiveUserId } from '@/services/auth';
 import { getUserDashboardCounts, getRecentUserServices, getRecentUserDomains } from '@/services/admin';
 import { getActiveSubscription } from '@/services/subscriptions';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Server, Globe, CreditCard, Plus } from 'lucide-react';
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser();
+  const userId = await getEffectiveUserId();
 
   const [
     { sitesCount, domainsCount },
@@ -14,16 +14,16 @@ export default async function DashboardPage() {
     domains,
     subscription,
   ] = await Promise.all([
-    getUserDashboardCounts(user!.id),
-    getRecentUserServices(user!.id, 5),
-    getRecentUserDomains(user!.id, 5),
-    getActiveSubscription(),
+    getUserDashboardCounts(userId!),
+    getRecentUserServices(userId!, 5),
+    getRecentUserDomains(userId!, 5),
+    getActiveSubscription(userId!),
   ]);
 
   const stats = [
     { label: 'Active sites', value: sitesCount, icon: Server, href: '/dashboard/sites' },
     { label: 'Domains', value: domainsCount, icon: Globe, href: '/dashboard/domains' },
-    { label: 'Current plan', value: (subscription as any)?.plans?.name ?? 'Free', icon: CreditCard, href: '/dashboard/billing' },
+    { label: 'Current plan', value: (subscription as any)?.plans?.name ?? 'No websites created', icon: CreditCard, href: '/dashboard/billing' },
   ];
 
   return (

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getUserTickets } from '@/services/tickets';
+import { getEffectiveUserId } from '@/services/auth';
 import { ExternalLink, Plus } from 'lucide-react';
 
 function TypeBadge({ type }: { type: string }) {
@@ -58,7 +59,8 @@ export default async function TicketsPage({
 }) {
   const params = await searchParams;
   const typeFilter = params.type ?? 'all';
-  const tickets = await getUserTickets(typeFilter);
+  const userId = await getEffectiveUserId();
+  const tickets = await getUserTickets(typeFilter, userId!);
 
   return (
     <div>

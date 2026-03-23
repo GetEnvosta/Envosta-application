@@ -3,12 +3,14 @@ import { createClient } from '@/lib/supabase-server';
 /**
  * All domains for current user, ordered by created_at desc.
  */
-export async function getUserDomains() {
+export async function getUserDomains(userId?: string) {
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from('domains')
     .select('*')
     .order('created_at', { ascending: false });
+  if (userId) query = query.eq('user_id', userId);
+  const { data } = await query;
   return data ?? [];
 }
 

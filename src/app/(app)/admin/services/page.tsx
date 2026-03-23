@@ -3,6 +3,7 @@ import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { Search, Server } from 'lucide-react';
 import { ProvisionButton } from './provision-button';
+import { ImpersonateButton } from '../impersonate-button';
 
 const STATUSES = [
   'active',
@@ -129,12 +130,17 @@ export default async function ServicesPage({
                       {formatDate(s.created_at)}
                     </td>
                     <td className="px-5 py-3.5">
-                      {s.status === 'provisioning' && (
-                        <ProvisionButton serviceId={s.id} label={s.label} />
-                      )}
-                      <Link href={`/admin/services/${s.id}`} className="text-xs text-admin-600 hover:text-admin-700 ml-2">
-                        View
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        {s.status === 'provisioning' && (
+                          <ProvisionButton serviceId={s.id} label={s.label} />
+                        )}
+                        <Link href={`/admin/services/${s.id}`} className="text-xs text-admin-600 hover:text-admin-700">
+                          View
+                        </Link>
+                        {(s as any).user_id && (
+                          <ImpersonateButton userId={(s as any).user_id} label={(s.users as any)?.email} />
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

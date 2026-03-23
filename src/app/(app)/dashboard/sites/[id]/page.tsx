@@ -1,4 +1,4 @@
-import { getCurrentUser } from '@/services/auth';
+import { getEffectiveUserId } from '@/services/auth';
 import { getSiteById } from '@/services/sites';
 import { getUserDomainsForSite } from '@/services/domains';
 import { formatDate } from '@/lib/utils';
@@ -28,13 +28,13 @@ export default async function SiteDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await getCurrentUser();
+  const userId = await getEffectiveUserId();
 
-  if (!user) notFound();
+  if (!userId) notFound();
 
   const [site, domains] = await Promise.all([
     getSiteById(id),
-    getUserDomainsForSite(user.id),
+    getUserDomainsForSite(userId),
   ]);
 
   if (!site) notFound();
@@ -181,6 +181,17 @@ export default async function SiteDetailPage({
             {status}
           </span>
         </div>
+
+        {(site as any).metadata?.site_ip && (
+          <div className="card p-5">
+            <div className="flex items-center gap-2 text-gray-500 mb-1.5">
+              <Shield className="w-4 h-4" />
+              <span className="text-xs font-medium uppercase tracking-wider">Site IP</span>
+            </div>
+            <p className="text-sm font-mono font-semibold text-gray-900">{(site as any).metadata.site_ip}</p>
+            <p className="text-xs text-gray-400 mt-1">Point your domain A record here</p>
+          </div>
+        )}
       </div>
 
       {/* Connected Domain */}

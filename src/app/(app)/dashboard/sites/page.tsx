@@ -1,13 +1,15 @@
 import { getUserSitesWithSubscriptions } from '@/services/sites';
 import { getUserSubscriptions } from '@/services/subscriptions';
+import { getEffectiveUserId } from '@/services/auth';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { ExternalLink, Globe, Loader2, Plus, Server } from 'lucide-react';
 
 export default async function SitesPage() {
+  const userId = await getEffectiveUserId();
   const [services, subscriptions] = await Promise.all([
-    getUserSitesWithSubscriptions(),
-    getUserSubscriptions(),
+    getUserSitesWithSubscriptions(userId!),
+    getUserSubscriptions(userId!),
   ]);
 
   const allSubscriptions = subscriptions;

@@ -245,7 +245,7 @@ export default function StudioPage() {
           <p className="rv">A dedicated team, priority infrastructure, and hands-on management — so you can focus on growing your business while we handle everything behind the scenes.</p>
 
           <div className="hero-btns rv">
-            <a href="https://envosta.com/support" className="bp vip lg">Schedule a Studio Consultation</a>
+            <a href="/get-started" className="bp vip lg">Schedule a Studio Consultation</a>
           </div>
 
           <div className="vip-trust rv">

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase-server';
 /**
  * Get all tickets for current user (customer view).
  */
-export async function getUserTickets(typeFilter?: string) {
+export async function getUserTickets(typeFilter?: string, userId?: string) {
   const supabase = await createClient();
   let query = supabase
     .from('tickets')
@@ -13,6 +13,7 @@ export async function getUserTickets(typeFilter?: string) {
   if (typeFilter && typeFilter !== 'all') {
     query = query.eq('type', typeFilter);
   }
+  if (userId) query = query.eq('user_id', userId);
 
   const { data } = await query;
   return data ?? [];

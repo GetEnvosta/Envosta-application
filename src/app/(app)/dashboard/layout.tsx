@@ -1,12 +1,15 @@
-import { getCurrentUser, getUserProfile } from '@/services/auth';
+import { getCurrentUser, getUserProfile, getImpersonationInfo } from '@/services/auth';
 import { redirect } from 'next/navigation';
 import { DashboardShell } from '@/components/layout/dashboard-shell';
+import { ImpersonationBanner } from '@/components/layout/impersonation-banner';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect('/auth/login');
 
-  const profile = await getUserProfile(user.id);
+  const impersonation = await getImpersonationInfo();
+  const profileUserId = impersonation?.id ?? user.id;
+  const profile = await getUserProfile(profileUserId);
 
   return (
     <DashboardShell
@@ -16,6 +19,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
         avatar_url: profile?.avatar_url ?? null,
         role: profile?.role ?? 'customer',
       }}
+      impersonationBanner={
+        impersonation ? (
+          <ImpersonationBanner
+            targetName={impersonation.full_name}
+            targetEmail={impersonation.email}
+          />
+        ) : null
+      }
     >
       {children}
     </DashboardShell>

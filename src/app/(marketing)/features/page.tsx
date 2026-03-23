@@ -231,7 +231,7 @@ export default function FeaturesPage() {
           <h1 className="rv">Built to perform</h1>
           <p className="rv">Managed WordPress hosting on enterprise infrastructure, domain registration, business email, and a team that helps you set it all up.</p>
           <div className="hero-btns rv">
-            <a href="https://envosta.com/pricing" className="bp lg">Create Your Website</a>
+            <a href="/get-started" className="bp lg">Create Your Website</a>
           </div>
         </div>
       </section>
@@ -519,8 +519,8 @@ export default function FeaturesPage() {
             <h2>Ready to get started?</h2>
             <p>Every plan begins with a personal consultation. Let&apos;s build the right foundation for your site together.</p>
             <div className="feat-cta-btns">
-              <a href="https://envosta.com/pricing" className="bp lg">View Plans</a>
-              <a href="https://envosta.com/support" className="bp ghost lg">Book a Consultation</a>
+              <a href="/get-started" className="bp lg">View Plans</a>
+              <a href="/support" className="bp ghost lg">Book a Consultation</a>
             </div>
           </div>
         </div>

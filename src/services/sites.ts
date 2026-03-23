@@ -37,12 +37,14 @@ export async function getSiteById(id: string) {
 /**
  * Fetch services with plan + subscription joins (for the sites listing page).
  */
-export async function getUserSitesWithSubscriptions() {
+export async function getUserSitesWithSubscriptions(userId?: string) {
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from('services')
     .select('*, plans(name, slug), subscriptions(id, status, current_period_end, plans(name))')
     .order('created_at', { ascending: false });
+  if (userId) query = query.eq('user_id', userId);
+  const { data } = await query;
   return data ?? [];
 }
 

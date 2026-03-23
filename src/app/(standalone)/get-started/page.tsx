@@ -1,8 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, ArrowLeft, Globe, Paintbrush, Phone, Calendar, Building2, Target, Users, Zap, Check } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Globe, Paintbrush, Phone, Calendar, Check, Search } from 'lucide-react';
+
+const VALID_PLANS = ['minimum', 'growth', 'performance'] as const;
+
+const PLAN_DETAILS: Record<string, { name: string; price: string; features: string[] }> = {
+  minimum: { name: 'Minimum', price: '$50', features: ['10 GB SSD Storage', 'Staging Environment', 'Daily Backups', 'Free SSL + CDN', 'Standard Onboarding', 'Email Support'] },
+  growth: { name: 'Growth', price: '$129', features: ['30 GB SSD Storage', 'Staging Environment', 'Daily Backups', 'Free SSL + CDN', 'Guided Onboarding + SEO', 'WooCommerce Setup', 'Email Support'] },
+  performance: { name: 'Performance', price: '$350', features: ['100 GB SSD Storage', 'Unlimited Bandwidth', 'Daily Backups', 'Free SSL + CDN + WAF', 'Concierge Onboarding', 'Custom Theme', 'WooCommerce Setup', 'Priority Support (4hr)'] },
+};
 
 const PLAN_RECOMMENDATIONS: Record<string, { plan: string; reason: string }> = {
   'small-existing': { plan: 'Minimum', reason: 'Your existing site will be migrated to fast, secure hosting with daily backups and SSL included.' },
@@ -16,33 +25,46 @@ const PLAN_RECOMMENDATIONS: Record<string, { plan: string; reason: string }> = {
 };
 
 export default function GetStartedPage() {
+  const searchParams = useSearchParams();
+  const planParam = searchParams.get('plan')?.toLowerCase() ?? '';
+  const selectedPlan = VALID_PLANS.includes(planParam as any) ? planParam : '';
+
   const [step, setStep] = useState(1);
+  const [showDomainSearch, setShowDomainSearch] = useState(false);
+  const [domainQuery, setDomainQuery] = useState('');
   const [answers, setAnswers] = useState({
-    intent: '',       // 'plans' | 'talk'
-    situation: '',    // 'existing' | 'new'
-    contact: '',      // 'call' | 'urgent'
+    situation: '',
+    contact: '',
     businessName: '',
     website: '',
     industry: '',
     goals: '',
-    size: '',         // 'small' | 'medium' | 'large' | 'ecommerce'
-    timeline: '',
+    size: '',
     name: '',
     email: '',
     phone: '',
+    domain: '',
   });
   const [submitted, setSubmitted] = useState(false);
+  const domainInputRef = useRef<HTMLInputElement>(null);
 
   function update(field: string, value: string) {
     setAnswers(prev => ({ ...prev, [field]: value }));
   }
 
   function getRecommendation() {
+    if (selectedPlan) {
+      return { plan: PLAN_DETAILS[selectedPlan].name, reason: '' };
+    }
     const size = answers.size || 'small';
     const situation = answers.situation || 'new';
     const key = `${size}-${situation}`;
     return PLAN_RECOMMENDATIONS[key] ?? PLAN_RECOMMENDATIONS['small-new'];
   }
+
+  // When a plan is pre-selected from pricing, the flow is:
+  // Step 1 (situation) → Step 2 (business form) → Submit (skip recommendation)
+  const totalSteps = selectedPlan ? 2 : 3;
 
   function handleSubmit() {
     setSubmitted(true);
@@ -55,7 +77,7 @@ export default function GetStartedPage() {
 
         {/* Progress */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 48 }}>
-          {[1, 2, 3, 4].map(s => (
+          {Array.from({ length: totalSteps }, (_, i) => i + 1).map(s => (
             <div
               key={s}
               style={{
@@ -69,57 +91,20 @@ export default function GetStartedPage() {
           ))}
         </div>
 
-        {/* ═══ STEP 1: What brings you here? ═══ */}
+        {/* Selected plan badge */}
+        {selectedPlan && (
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <span style={{ display: 'inline-block', background: 'rgba(37,99,235,.1)', border: '1px solid rgba(37,99,235,.2)', color: '#2563EB', fontSize: '.72rem', fontWeight: 600, padding: '5px 16px', borderRadius: 100, letterSpacing: '.5px', textTransform: 'uppercase' }}>
+              {PLAN_DETAILS[selectedPlan].name} Plan — {PLAN_DETAILS[selectedPlan].price}/mo
+            </span>
+          </div>
+        )}
+
+        {/* ═══ STEP 1: Your situation ═══ */}
         {step === 1 && (
           <div style={{ textAlign: 'center' }}>
             <h1 style={{ fontSize: 'clamp(1.8rem,4vw,2.6rem)', fontWeight: 400, letterSpacing: '-1px', marginBottom: 12, color: 'var(--t1)' }}>
               Let&apos;s get you started
-            </h1>
-            <p style={{ color: 'var(--t2)', marginBottom: 40, fontSize: '.95rem' }}>
-              What brings you to Envosta today?
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, maxWidth: 560, margin: '0 auto' }}>
-              <button
-                onClick={() => { update('intent', 'plans'); setStep(2); }}
-                style={{
-                  background: 'rgba(255,255,255,.04)', border: '1px solid var(--bdr2)', borderRadius: 16,
-                  padding: '32px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
-                }}
-                onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
-                onMouseOut={e => (e.currentTarget.style.borderColor = 'var(--bdr2)')}
-              >
-                <Zap style={{ width: 32, height: 32, color: 'var(--gold)', margin: '0 auto 12px' }} />
-                <p style={{ fontWeight: 500, color: 'var(--t1)', marginBottom: 6 }}>I know what I need</p>
-                <p style={{ fontSize: '.8rem', color: 'var(--t3)' }}>Take me to the plans</p>
-              </button>
-
-              <button
-                onClick={() => { update('intent', 'talk'); setStep(2); }}
-                style={{
-                  background: 'rgba(255,255,255,.04)', border: '1px solid var(--bdr2)', borderRadius: 16,
-                  padding: '32px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
-                }}
-                onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
-                onMouseOut={e => (e.currentTarget.style.borderColor = 'var(--bdr2)')}
-              >
-                <Users style={{ width: 32, height: 32, color: 'var(--gold)', margin: '0 auto 12px' }} />
-                <p style={{ fontWeight: 500, color: 'var(--t1)', marginBottom: 6 }}>I want to talk to someone</p>
-                <p style={{ fontSize: '.8rem', color: 'var(--t3)' }}>Help me figure it out</p>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ═══ STEP 2: Your situation ═══ */}
-        {step === 2 && (
-          <div style={{ textAlign: 'center' }}>
-            <button onClick={() => setStep(1)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', marginBottom: 24, fontSize: '.85rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <ArrowLeft style={{ width: 14, height: 14 }} /> Back
-            </button>
-
-            <h1 style={{ fontSize: 'clamp(1.6rem,3.5vw,2.2rem)', fontWeight: 400, letterSpacing: '-1px', marginBottom: 12, color: 'var(--t1)' }}>
-              Tell us about your situation
             </h1>
             <p style={{ color: 'var(--t2)', marginBottom: 40, fontSize: '.95rem' }}>
               Where are you at right now?
@@ -127,13 +112,14 @@ export default function GetStartedPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, maxWidth: 560, margin: '0 auto', marginBottom: 24 }}>
               <button
-                onClick={() => { update('situation', 'existing'); setStep(answers.intent === 'plans' ? 3 : 3); }}
+                onClick={() => { update('situation', 'existing'); setShowDomainSearch(true); setTimeout(() => domainInputRef.current?.focus(), 300); }}
                 style={{
-                  background: 'rgba(255,255,255,.04)', border: '1px solid var(--bdr2)', borderRadius: 16,
-                  padding: '28px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
+                  background: answers.situation === 'existing' ? 'rgba(37,99,235,.08)' : 'rgba(255,255,255,.04)',
+                  border: `1px solid ${answers.situation === 'existing' ? 'var(--gold)' : 'var(--bdr2)'}`,
+                  borderRadius: 16, padding: '28px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
                 }}
                 onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
-                onMouseOut={e => (e.currentTarget.style.borderColor = 'var(--bdr2)')}
+                onMouseOut={e => { if (answers.situation !== 'existing') e.currentTarget.style.borderColor = 'var(--bdr2)'; }}
               >
                 <Globe style={{ width: 28, height: 28, color: 'var(--gold)', margin: '0 auto 10px' }} />
                 <p style={{ fontWeight: 500, color: 'var(--t1)', marginBottom: 4 }}>I have a website</p>
@@ -141,13 +127,14 @@ export default function GetStartedPage() {
               </button>
 
               <button
-                onClick={() => { update('situation', 'new'); setStep(3); }}
+                onClick={() => { update('situation', 'new'); setShowDomainSearch(true); setTimeout(() => domainInputRef.current?.focus(), 300); }}
                 style={{
-                  background: 'rgba(255,255,255,.04)', border: '1px solid var(--bdr2)', borderRadius: 16,
-                  padding: '28px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
+                  background: answers.situation === 'new' ? 'rgba(37,99,235,.08)' : 'rgba(255,255,255,.04)',
+                  border: `1px solid ${answers.situation === 'new' ? 'var(--gold)' : 'var(--bdr2)'}`,
+                  borderRadius: 16, padding: '28px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
                 }}
                 onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
-                onMouseOut={e => (e.currentTarget.style.borderColor = 'var(--bdr2)')}
+                onMouseOut={e => { if (answers.situation !== 'new') e.currentTarget.style.borderColor = 'var(--bdr2)'; }}
               >
                 <Paintbrush style={{ width: 28, height: 28, color: 'var(--gold)', margin: '0 auto 10px' }} />
                 <p style={{ fontWeight: 500, color: 'var(--t1)', marginBottom: 4 }}>I need a new website</p>
@@ -157,13 +144,14 @@ export default function GetStartedPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, maxWidth: 560, margin: '0 auto' }}>
               <button
-                onClick={() => { update('contact', 'call'); setStep(3); }}
+                onClick={() => { update('contact', 'call'); setShowDomainSearch(true); setTimeout(() => domainInputRef.current?.focus(), 300); }}
                 style={{
-                  background: 'rgba(255,255,255,.04)', border: '1px solid var(--bdr2)', borderRadius: 16,
-                  padding: '28px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
+                  background: answers.contact === 'call' ? 'rgba(37,99,235,.08)' : 'rgba(255,255,255,.04)',
+                  border: `1px solid ${answers.contact === 'call' ? 'var(--gold)' : 'var(--bdr2)'}`,
+                  borderRadius: 16, padding: '28px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
                 }}
                 onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
-                onMouseOut={e => (e.currentTarget.style.borderColor = 'var(--bdr2)')}
+                onMouseOut={e => { if (answers.contact !== 'call') e.currentTarget.style.borderColor = 'var(--bdr2)'; }}
               >
                 <Calendar style={{ width: 28, height: 28, color: 'var(--gold)', margin: '0 auto 10px' }} />
                 <p style={{ fontWeight: 500, color: 'var(--t1)', marginBottom: 4 }}>Book an onboarding call</p>
@@ -171,26 +159,82 @@ export default function GetStartedPage() {
               </button>
 
               <button
-                onClick={() => { update('contact', 'urgent'); setStep(3); }}
+                onClick={() => { update('contact', 'urgent'); setShowDomainSearch(true); setTimeout(() => domainInputRef.current?.focus(), 300); }}
                 style={{
-                  background: 'rgba(255,255,255,.04)', border: '1px solid var(--bdr2)', borderRadius: 16,
-                  padding: '28px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
+                  background: answers.contact === 'urgent' ? 'rgba(37,99,235,.08)' : 'rgba(255,255,255,.04)',
+                  border: `1px solid ${answers.contact === 'urgent' ? 'var(--gold)' : 'var(--bdr2)'}`,
+                  borderRadius: 16, padding: '28px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
                 }}
                 onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
-                onMouseOut={e => (e.currentTarget.style.borderColor = 'var(--bdr2)')}
+                onMouseOut={e => { if (answers.contact !== 'urgent') e.currentTarget.style.borderColor = 'var(--bdr2)'; }}
               >
                 <Phone style={{ width: 28, height: 28, color: 'var(--gold)', margin: '0 auto 10px' }} />
                 <p style={{ fontWeight: 500, color: 'var(--t1)', marginBottom: 4 }}>I need to talk now</p>
                 <p style={{ fontSize: '.78rem', color: 'var(--t3)' }}>It&apos;s urgent, let&apos;s connect</p>
               </button>
             </div>
+
+            {/* Domain search — fades in after card selection */}
+            <div
+              style={{
+                maxWidth: 560,
+                margin: '0 auto',
+                marginTop: 32,
+                opacity: showDomainSearch ? 1 : 0,
+                transform: showDomainSearch ? 'translateY(0)' : 'translateY(-12px)',
+                maxHeight: showDomainSearch ? 200 : 0,
+                overflow: 'hidden',
+                transition: 'opacity .4s ease, transform .4s ease, max-height .4s ease',
+              }}
+            >
+              <p style={{ fontSize: '.82rem', color: 'var(--t2)', marginBottom: 14, fontWeight: 400 }}>
+                Search for a domain name to get started
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <input
+                  ref={domainInputRef}
+                  type="text"
+                  value={domainQuery}
+                  onChange={e => setDomainQuery(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && domainQuery.trim()) { update('domain', domainQuery.trim()); setStep(2); } }}
+                  placeholder="yourbusiness.com"
+                  style={{
+                    flex: 1, padding: '14px 20px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)',
+                    borderRadius: 100, color: 'var(--t1)', fontSize: '.95rem', fontFamily: 'inherit', outline: 'none',
+                    transition: 'border-color .2s',
+                  }}
+                  onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
+                  onBlur={e => (e.currentTarget.style.borderColor = 'var(--bdr2)')}
+                />
+                <button
+                  onClick={() => { if (domainQuery.trim()) { update('domain', domainQuery.trim()); setStep(2); } }}
+                  style={{
+                    padding: '14px 24px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
+                    fontSize: '.88rem', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                    opacity: domainQuery.trim() ? 1 : 0.5,
+                  }}
+                >
+                  <Search style={{ width: 16, height: 16 }} /> Search
+                </button>
+              </div>
+
+              <button
+                onClick={() => { update('domain', ''); setStep(2); }}
+                style={{
+                  background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', marginTop: 16,
+                  fontSize: '.82rem', textDecoration: 'underline', textUnderlineOffset: '3px',
+                }}
+              >
+                I already own my domain
+              </button>
+            </div>
           </div>
         )}
 
-        {/* ═══ STEP 3: Business intake form ═══ */}
-        {step === 3 && (
+        {/* ═══ STEP 2: Business intake form ═══ */}
+        {step === 2 && (
           <div>
-            <button onClick={() => setStep(2)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', marginBottom: 24, fontSize: '.85rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <button onClick={() => setStep(1)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', marginBottom: 24, fontSize: '.85rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <ArrowLeft style={{ width: 14, height: 14 }} /> Back
             </button>
 
@@ -269,7 +313,14 @@ export default function GetStartedPage() {
               </div>
 
               <button
-                onClick={() => { if (answers.name && answers.email) setStep(4); }}
+                onClick={() => {
+                  if (!answers.name || !answers.email) return;
+                  if (selectedPlan) {
+                    handleSubmit();
+                  } else {
+                    setStep(3);
+                  }
+                }}
                 disabled={!answers.name || !answers.email}
                 style={{
                   padding: '14px 28px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
@@ -277,16 +328,16 @@ export default function GetStartedPage() {
                   gap: 8, margin: '0 auto', opacity: (!answers.name || !answers.email) ? 0.5 : 1,
                 }}
               >
-                See My Recommendation <ArrowRight style={{ width: 16, height: 16 }} />
+                {selectedPlan ? `Get Started with ${PLAN_DETAILS[selectedPlan].name}` : 'See My Recommendation'} <ArrowRight style={{ width: 16, height: 16 }} />
               </button>
             </div>
           </div>
         )}
 
-        {/* ═══ STEP 4: Recommendation ═══ */}
-        {step === 4 && !submitted && (
+        {/* ═══ STEP 3: Recommendation ═══ */}
+        {step === 3 && !submitted && (
           <div style={{ textAlign: 'center' }}>
-            <button onClick={() => setStep(3)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', marginBottom: 24, fontSize: '.85rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <button onClick={() => setStep(2)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', marginBottom: 24, fontSize: '.85rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <ArrowLeft style={{ width: 14, height: 14 }} /> Back
             </button>
 

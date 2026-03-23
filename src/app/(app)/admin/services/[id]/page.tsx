@@ -126,6 +126,13 @@ export default async function ServiceDetailPage({
             <span className="text-gray-500">Provisioned:</span>{' '}
             {formatDate(service.provisioned_at ?? service.created_at)}
           </div>
+          {(service as any).metadata?.site_ip && (
+            <div className="flex items-center gap-2 text-gray-600">
+              <Server className="w-4 h-4 text-gray-400" />
+              <span className="text-gray-500">Site IP:</span>{' '}
+              <code className="font-mono text-gray-900">{(service as any).metadata.site_ip}</code>
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { supabaseAdmin, supabaseForUser, wpcloudPost, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
 
 /**
  * Provision a WordPress site via wp.cloud Atomic API (routed through static IP proxy).
@@ -152,12 +152,25 @@ Deno.serve(async (req) => {
     const wpDomain = wpResponse?.domain_name ?? wpBody.domain_name;
     const wpUrl = wpDomain ? `https://${wpDomain}` : null;
 
+    // Fetch site IP from wp.cloud
+    let siteIp: string | null = null;
+    try {
+      const siteRef = wpDomain ?? wpSiteId;
+      if (siteRef) {
+        const ipsResult = await wpcloudGet(`/api/v1.0/get-ips/${WPCLOUD_CLIENT}/${siteRef}`);
+        siteIp = ipsResult.data?.ip_address ?? ipsResult.data?.ipv4?.[0] ?? null;
+        console.log("Site IP for", siteRef, ":", siteIp);
+      }
+    } catch (ipErr) {
+      console.error("Failed to fetch site IP (non-fatal):", ipErr);
+    }
+
     await sb.from("services").update({
       status: "active",
       wp_cloud_site_id: String(wpSiteId ?? ""),
       wp_cloud_url: wpUrl,
       provisioned_at: new Date().toISOString(),
-      metadata: { wp_cloud_response: wpResponse, job_id: wpResponse?.job_id },
+      metadata: { wp_cloud_response: wpResponse, job_id: wpResponse?.job_id, domain_name: domainName ?? null, site_ip: siteIp },
     }).eq("id", svc.id);
 
     // Link domain if provided
@@ -166,6 +179,45 @@ Deno.serve(async (req) => {
         .update({ service_id: svc.id })
         .eq("user_id", user.id)
         .eq("domain_name", domainName);
+    }
+
+    // Auto-setup DNS for Envosta-registered domains
+    // Uses the site IP already fetched above to set A, SPF, DKIM, DMARC records via OpenSRS
+    let dnsSetup = null;
+    if (domainName && siteIp) {
+      try {
+        const { data: domainRecord } = await sb.from("domains")
+          .select("registrar")
+          .eq("user_id", user.id)
+          .eq("domain_name", domainName)
+          .maybeSingle();
+
+        if (domainRecord?.registrar === "opensrs") {
+          const dnsRecords = [
+            { type: "A", subdomain: "", ip_address: siteIp, ttl: 3600 },
+            { type: "A", subdomain: "www", ip_address: siteIp, ttl: 3600 },
+            { type: "TXT", subdomain: "", text: "v=spf1 include:_spf.wpcloud.com ~all", ttl: 3600 },
+            { type: "CNAME", subdomain: "wpcloud1._domainkey", hostname: "wpcloud1._domainkey.wpcloud.com", ttl: 3600 },
+            { type: "CNAME", subdomain: "wpcloud2._domainkey", hostname: "wpcloud2._domainkey.wpcloud.com", ttl: 3600 },
+            { type: "TXT", subdomain: "_dmarc", text: "v=DMARC1; p=none;", ttl: 3600 },
+          ];
+
+          await sb.from("domains")
+            .update({
+              dns_records: dnsRecords,
+              metadata: { dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() },
+            })
+            .eq("user_id", user.id)
+            .eq("domain_name", domainName);
+
+          dnsSetup = { siteIp, records: dnsRecords.length };
+          console.log("DNS records queued for", domainName, "→", siteIp);
+          await log({ userId: user.id, serviceId: svc.id, action: "domain.dns.auto_setup", message: `${domainName} → ${siteIp}` });
+        }
+      } catch (dnsErr) {
+        // DNS setup is best-effort — don't fail provisioning
+        console.error("DNS auto-setup error (non-fatal):", dnsErr);
+      }
     }
 
     await log({
@@ -181,6 +233,7 @@ Deno.serve(async (req) => {
       domain: wpDomain,
       jobId: result.data?.job_id,
       status: "active",
+      dnsSetup,
     });
 
   } catch (e) {

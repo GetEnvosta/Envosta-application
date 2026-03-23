@@ -136,9 +136,11 @@ function AvatarDropdown({ user }: { user: DashboardUser }) {
 export function DashboardShell({
   user,
   children,
+  impersonationBanner,
 }: {
   user: DashboardUser;
   children: React.ReactNode;
+  impersonationBanner?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -186,6 +188,7 @@ export function DashboardShell({
 
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
+      {impersonationBanner}
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 w-[260px] bg-white border-r border-gray-100 hidden lg:flex flex-col z-30">
         <div className="px-5 py-6">

@@ -1,14 +1,14 @@
-import { getCurrentUser } from '@/services/auth';
+import { getEffectiveUserId } from '@/services/auth';
 import { getUserInvoices, getCustomerInfo } from '@/services/billing';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
 import { CreditCard, ExternalLink, FileText } from 'lucide-react';
 
 export default async function BillingPage() {
-  const user = await getCurrentUser();
+  const userId = await getEffectiveUserId();
 
   const [invoices, customer] = await Promise.all([
-    getUserInvoices(20),
-    getCustomerInfo(user?.id ?? ''),
+    getUserInvoices(20, userId!),
+    getCustomerInfo(userId!),
   ]);
 
   const pmBrand: string | null = (customer as any)?.card_brand ?? null;

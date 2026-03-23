@@ -283,8 +283,8 @@ export default function MethodPage() {
               Whether you&apos;re building from scratch or rebuilding what&apos;s broken — the method is the same. Every Envosta plan includes a personal consultation where we walk through your project step by step.
             </p>
             <div className="cta-btns rv">
-              <a href="https://envosta.com/pricing" className="bp lg">Compare Plans</a>
-              <a href="https://envosta.com/support" className="bp ghost lg">Talk to Sales</a>
+              <a href="/get-started" className="bp lg">Get Started</a>
+              <a href="/support" className="bp ghost lg">Talk to Sales</a>
             </div>
           </div>
         </section>

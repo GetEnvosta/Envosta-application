@@ -85,7 +85,7 @@ export default async function HomePage() {
 
             <div style={{ textAlign: 'center', marginTop: '40px' }}>
               <div className="block-button">
-                <Link href="/contact" className="bp">Book Your Call</Link>
+                <Link href="/get-started" className="bp">Book Your Call</Link>
               </div>
             </div>
           </div>

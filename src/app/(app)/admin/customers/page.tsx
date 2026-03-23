@@ -2,6 +2,7 @@ import { getAllCustomers } from '@/services/admin';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { Search, Users } from 'lucide-react';
+import { ImpersonateButton } from '../impersonate-button';
 
 export default async function CustomersPage({
   searchParams,
@@ -57,12 +58,15 @@ export default async function CustomersPage({
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
                   Joined
                 </th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {(!users || users.length === 0) ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center">
+                  <td colSpan={6} className="px-5 py-12 text-center">
                     <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                     <p className="text-sm text-gray-400">
                       {q ? 'No customers match your search.' : 'No customers yet.'}
@@ -91,6 +95,11 @@ export default async function CustomersPage({
                     </td>
                     <td className="px-5 py-3.5 text-gray-400 text-xs">
                       {formatDate(u.created_at)}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {u.role !== 'admin' && (
+                        <ImpersonateButton userId={u.id} label={u.full_name || u.email} />
+                      )}
                     </td>
                   </tr>
                 ))

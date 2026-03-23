@@ -1,11 +1,13 @@
 import { getUserDomains } from '@/services/domains';
+import { getEffectiveUserId } from '@/services/auth';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { Globe, Plus } from 'lucide-react';
 import { DomainSearchEmpty } from './domain-search-empty';
 
 export default async function DomainsPage() {
-  const domains = await getUserDomains();
+  const userId = await getEffectiveUserId();
+  const domains = await getUserDomains(userId!);
 
   const count = domains.length;
 

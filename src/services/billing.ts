@@ -3,13 +3,15 @@ import { createClient } from '@/lib/supabase-server';
 /**
  * Invoices for current user, ordered by created_at desc.
  */
-export async function getUserInvoices(limit: number = 20) {
+export async function getUserInvoices(limit: number = 20, userId?: string) {
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from('invoices')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit);
+  if (userId) query = query.eq('user_id', userId);
+  const { data } = await query;
   return data ?? [];
 }
 

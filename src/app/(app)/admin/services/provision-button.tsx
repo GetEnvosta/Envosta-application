@@ -34,6 +34,7 @@ export function ProvisionButton({ serviceId, label }: { serviceId: string; label
 
       const planSlug = (service as any).subscriptions?.plans?.slug ?? 'minimum';
       const userEmail = (service as any).users?.email ?? 'admin@envosta.com';
+      const domainName = (service as any).metadata?.domain_name ?? null;
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/provision-hosting`,
@@ -51,6 +52,7 @@ export function ProvisionButton({ serviceId, label }: { serviceId: string; label
             phpVersion: service.php_version ?? '8.4',
             planId: service.plan_id,
             adminEmail: userEmail,
+            ...(domainName && { domainName }),
           }),
         }
       );
