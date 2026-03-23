@@ -41,6 +41,7 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [hasAccount, setHasAccount] = useState<boolean | null>(null);
 
   // Plan
@@ -133,7 +134,7 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name, email, phone,
+            name, email, phone, password,
             plan: selectedPlan.slug,
             domain: selectedDomain || undefined,
             situation: domainMode === 'existing' ? 'existing' : 'new',
@@ -304,16 +305,21 @@ export function SiteCheckoutFlow({ mode, initialPlan }: Props) {
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jane@business.com" style={inputStyle} />
                 </div>
                 <div>
+                  <label style={{ fontSize: '.78rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Password *</label>
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters"
+                    style={inputStyle} />
+                </div>
+                <div>
                   <label style={{ fontSize: '.78rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Phone <span style={{ color: 'var(--t3)' }}>(optional)</span></label>
                   <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 (555) 123-4567" style={inputStyle} />
                 </div>
                 <button
-                  onClick={() => { if (name && email) setStep(2); }}
-                  disabled={!name || !email}
+                  onClick={() => { if (name && email && password.length >= 8) setStep(2); }}
+                  disabled={!name || !email || password.length < 8}
                   style={{
                     padding: '14px 24px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
                     fontSize: '.88rem', fontWeight: 500, cursor: 'pointer', marginTop: 8,
-                    opacity: (!name || !email) ? 0.5 : 1,
+                    opacity: (!name || !email || password.length < 8) ? 0.5 : 1,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}
                 >

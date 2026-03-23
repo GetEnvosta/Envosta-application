@@ -26,6 +26,7 @@ export async function POST(req: Request) {
       name,
       email,
       phone,
+      password,
       businessName,
       industry,
       situation,
@@ -40,6 +41,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Name and email are required' }, { status: 400 });
     }
 
+    if (!password || password.length < 8) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
+    }
+
     // 1. Create or get Supabase user
     let userId: string;
     const { data: existingUsers } = await supabaseAdmin
@@ -51,11 +56,10 @@ export async function POST(req: Request) {
     if (existingUsers?.id) {
       userId = existingUsers.id;
     } else {
-      // Create auth user with a temporary password (they'll reset via email)
-      const tempPassword = `Env0sta_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      // Create auth user with their chosen password
       const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
         email,
-        password: tempPassword,
+        password,
         email_confirm: true,
         user_metadata: { full_name: name },
       });
@@ -186,15 +190,6 @@ export async function POST(req: Request) {
       metadata: {
         supabase_user_id: userId,
         ...(domain && { domain_name: domain }),
-      },
-    });
-
-    // 6. Send password reset email so user can log into dashboard later
-    await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
-      email,
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://my.envosta.com'}/auth/reset-password`,
       },
     });
 
