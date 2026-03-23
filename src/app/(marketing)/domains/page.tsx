@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getDomainPricing } from '@/services/plans';
+import { DomainSearch } from '@/components/marketing/domain-search';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,10 +66,7 @@ export default async function DomainsPage() {
         <div className="c">
           <h1>Find your perfect domain</h1>
           <p>Register the right domain for your business. Simple pricing, free WHOIS privacy, and easy DNS management — all in one place.</p>
-          <div className="dom-search">
-            <input type="text" placeholder="Search for a domain name..." />
-            <Link href="/get-started" className="bp lg">Search</Link>
-          </div>
+          <DomainSearch />
         </div>
       </section>
 

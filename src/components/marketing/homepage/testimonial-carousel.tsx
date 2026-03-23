@@ -126,11 +126,11 @@ export function TestimonialCarousel() {
         style={{
           position: 'relative',
           zIndex: 2,
-          padding: '100px 56px',
+          padding: '100px 56px 120px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: 'flex-end',
           minHeight: '620px',
         }}
       >
