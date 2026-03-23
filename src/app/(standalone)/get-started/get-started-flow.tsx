@@ -46,6 +46,8 @@ export function GetStartedFlow() {
     domain: '',
   });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const domainInputRef = useRef<HTMLInputElement>(null);
 
   function update(field: string, value: string) {
@@ -66,9 +68,55 @@ export function GetStartedFlow() {
   // Step 1 (situation) → Step 2 (business form) → Submit (skip recommendation)
   const totalSteps = selectedPlan ? 2 : 3;
 
-  function handleSubmit() {
-    setSubmitted(true);
-    // Placeholder — will send to backend later
+  async function handleSubmit() {
+    setSubmitting(true);
+    setSubmitError('');
+
+    try {
+      const rec = getRecommendation();
+      const planSlug = selectedPlan || rec.plan.toLowerCase();
+
+      const res = await fetch('/api/signup-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: answers.name,
+          email: answers.email,
+          phone: answers.phone,
+          businessName: answers.businessName,
+          industry: answers.industry,
+          situation: answers.situation,
+          contact: answers.contact,
+          goals: answers.goals,
+          size: answers.size,
+          domain: answers.domain || undefined,
+          plan: planSlug,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setSubmitError(data.error ?? 'Something went wrong. Please try again.');
+        setSubmitting(false);
+        return;
+      }
+
+      if (data.redirect) {
+        window.location.href = data.redirect;
+        return;
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      setSubmitted(true);
+    } catch (e) {
+      setSubmitError('Connection error. Please try again.');
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -321,15 +369,18 @@ export function GetStartedFlow() {
                     setStep(3);
                   }
                 }}
-                disabled={!answers.name || !answers.email}
+                disabled={!answers.name || !answers.email || submitting}
                 style={{
                   padding: '14px 28px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
                   fontSize: '.9rem', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
-                  gap: 8, margin: '0 auto', opacity: (!answers.name || !answers.email) ? 0.5 : 1,
+                  gap: 8, margin: '0 auto', opacity: (!answers.name || !answers.email || submitting) ? 0.5 : 1,
                 }}
               >
-                {selectedPlan ? `Get Started with ${PLAN_DETAILS[selectedPlan].name}` : 'See My Recommendation'} <ArrowRight style={{ width: 16, height: 16 }} />
+                {submitting ? 'Setting up your account...' : selectedPlan ? `Get Started with ${PLAN_DETAILS[selectedPlan].name}` : 'See My Recommendation'} {!submitting && <ArrowRight style={{ width: 16, height: 16 }} />}
               </button>
+              {submitError && (
+                <p style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 12, textAlign: 'center' }}>{submitError}</p>
+              )}
             </div>
           </div>
         )}
@@ -379,13 +430,18 @@ export function GetStartedFlow() {
 
                   <button
                     onClick={handleSubmit}
+                    disabled={submitting}
                     style={{
                       padding: '14px 32px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
                       fontSize: '.9rem', fontWeight: 500, cursor: 'pointer', width: '100%',
+                      opacity: submitting ? 0.5 : 1,
                     }}
                   >
-                    Get Started with {rec.plan}
+                    {submitting ? 'Setting up your account...' : `Get Started with ${rec.plan}`}
                   </button>
+                  {submitError && (
+                    <p style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 12 }}>{submitError}</p>
+                  )}
 
                   <Link href="/pricing" style={{ display: 'block', marginTop: 16, fontSize: '.82rem', color: 'var(--t3)', textDecoration: 'underline' }}>
                     View all plans
