@@ -78,13 +78,14 @@ export function GlobeSection() {
       // Only resize canvas when WIDTH changes (not height)
       // Mobile address bar show/hide changes height constantly, causing jitter
       if (newW === lastWidth && canvas!.width > 0) return;
+      if (newW < 10 || newH < 10) return; // Container not visible yet
       lastWidth = newW;
       w = canvas!.width = newW;
       h = canvas!.height = newH;
       cx = w / 2;
       cy = h / 2 - h * 0.12;
       // On mobile, use width as primary sizing so globe fills the screen
-      globeR = w < 768 ? w * 0.42 : Math.min(w, h) * 0.38;
+      globeR = Math.max(1, w < 768 ? w * 0.42 : Math.min(w, h) * 0.38);
     }
     resize();
 
