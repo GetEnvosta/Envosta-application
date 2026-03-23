@@ -822,7 +822,7 @@ export default async function HomePage() {
         <GlobeSection />
 
         {/* Badges + trust + status */}
-        <div className="c" style={{ position: 'relative', zIndex: 10, marginTop: -80 }}>
+        <div className="c" style={{ position: 'relative', zIndex: 10, marginTop: -60 }}>
           <div className="ig-wrap" id="ig-wrap">
             <div className="ig-fm ig-fm-1" id="igf1"><div className="ig-fm-card"><div className="ig-fm-val">99.99<span>%</span></div><div className="ig-fm-label">Uptime SLA</div></div></div>
             <div className="ig-fm ig-fm-2" id="igf2"><div className="ig-fm-card"><div className="ig-fm-val">&lt;142<span>ms</span></div><div className="ig-fm-label">Response Time</div></div></div>
@@ -844,7 +844,7 @@ export default async function HomePage() {
         </div>
 
         {/* ═══ SECTION 8C — SEO & CUSTOM THEME ═══ */}
-        <section className="zc-section" style={{ paddingTop: 40 }}>
+        <section className="zc-section" style={{ paddingTop: 20 }}>
           <div className="c zc-inner">
             <div className="rv zc-split" id="seo-split">
 

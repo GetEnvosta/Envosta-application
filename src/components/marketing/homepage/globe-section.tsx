@@ -318,7 +318,10 @@ export function GlobeSection() {
     let dcLabelAlpha = 0;
     let dcLabelsActive = false;
 
-    let earthOC: HTMLCanvasElement | null = null;
+    // Pre-create the offscreen canvas for earth rendering
+    const earthOC = document.createElement('canvas');
+    const earthOCCtx = earthOC.getContext('2d')!;
+    let lastEarthSize = 0;
     let time = 0;
 
     function draw() {
@@ -477,11 +480,13 @@ export function GlobeSection() {
           }
         }
 
-        if (!earthOC) { earthOC = document.createElement('canvas'); }
-        earthOC.width = d2;
-        earthOC.height = d2;
-        const octx2 = earthOC.getContext('2d')!;
-        octx2.putImageData(imgData, 0, 0);
+        // Only resize the offscreen canvas when globe size changes
+        if (lastEarthSize !== d2) {
+          earthOC.width = d2;
+          earthOC.height = d2;
+          lastEarthSize = d2;
+        }
+        earthOCCtx.putImageData(imgData, 0, 0);
         ctx!.save();
         ctx!.beginPath();
         ctx!.arc(cx, cy, globeR, 0, Math.PI * 2);
