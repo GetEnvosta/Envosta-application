@@ -14,17 +14,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid domain format' }, { status: 400 });
     }
 
-    // Proxy to the register-domain Edge Function
-    // check action is public (no user auth needed), just needs anon key to pass Supabase gateway
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    // Call the register-domain Edge Function with service role key
+    // Service role key is a valid JWT that passes Supabase's gateway auth
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceRoleKey) {
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 503 });
+    }
+
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${anonKey}`,
-          'apikey': anonKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
         },
         body: JSON.stringify({ action: 'check', domainName: cleanDomain }),
       }
@@ -33,7 +36,7 @@ export async function POST(req: Request) {
     const data = await res.json();
 
     if (!res.ok) {
-      console.error('Edge function error:', data);
+      console.error('Edge function error:', res.status, data);
       return NextResponse.json({ error: data.error ?? 'Domain lookup failed' }, { status: 502 });
     }
 
