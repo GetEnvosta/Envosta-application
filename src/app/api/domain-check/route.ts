@@ -14,16 +14,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid domain format' }, { status: 400 });
     }
 
-    // Proxy to the register-domain Edge Function using service role key
-    // OpenSRS credentials stay safely in Supabase Edge Functions only
+    // Proxy to the register-domain Edge Function
+    // check action is public (no user auth needed), just needs anon key to pass Supabase gateway
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          'Authorization': `Bearer ${anonKey}`,
+          'apikey': anonKey,
         },
         body: JSON.stringify({ action: 'check', domainName: cleanDomain }),
       }
