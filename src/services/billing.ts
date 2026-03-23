@@ -5,13 +5,32 @@ import { createClient } from '@/lib/supabase-server';
  */
 export async function getUserInvoices(limit: number = 20, userId?: string) {
   const supabase = await createClient();
-  let query = supabase
+
+  if (userId) {
+    // Invoices are linked via customer_id, not user_id — look up customer first
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!customer) return [];
+
+    const { data } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('customer_id', customer.id)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return data ?? [];
+  }
+
+  // No userId filter — relies on RLS
+  const { data } = await supabase
     .from('invoices')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit);
-  if (userId) query = query.eq('user_id', userId);
-  const { data } = await query;
   return data ?? [];
 }
 

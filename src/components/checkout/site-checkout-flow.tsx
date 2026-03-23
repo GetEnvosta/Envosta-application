@@ -344,7 +344,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <a
-                  href="https://my.envosta.com/auth/login?redirect=/dashboard/add-site"
+                  href={`https://my.envosta.com/auth/login?redirect=${encodeURIComponent(`/dashboard/add-site${initialPlan || initialDomain ? '?' : ''}${initialPlan ? `plan=${initialPlan}` : ''}${initialPlan && initialDomain ? '&' : ''}${initialDomain ? `domain=${initialDomain}` : ''}`)}`}
                   style={{
                     padding: '14px 24px', background: t.cardBorder, border: `1px solid ${t.inputBorder}`,
                     borderRadius: 12, color: t.text, fontSize: '.9rem', fontWeight: 500, textDecoration: 'none',

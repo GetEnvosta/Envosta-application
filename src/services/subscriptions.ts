@@ -5,13 +5,29 @@ import { createClient } from '@/lib/supabase-server';
  */
 export async function getUserSubscriptions(userId?: string) {
   const supabase = await createClient();
-  let query = supabase
+
+  if (userId) {
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (!customer) return [];
+
+    const { data } = await supabase
+      .from('subscriptions')
+      .select('*, plans(name, slug)')
+      .eq('customer_id', customer.id)
+      .in('status', ['active', 'trialing'])
+      .order('created_at', { ascending: false });
+    return data ?? [];
+  }
+
+  const { data } = await supabase
     .from('subscriptions')
     .select('*, plans(name, slug)')
     .in('status', ['active', 'trialing'])
     .order('created_at', { ascending: false });
-  if (userId) query = query.eq('user_id', userId);
-  const { data } = await query;
   return data ?? [];
 }
 
@@ -46,13 +62,31 @@ export async function getSubscriptionById(id: string) {
  */
 export async function getActiveSubscription(userId?: string) {
   const supabase = await createClient();
-  let query = supabase
+
+  if (userId) {
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (!customer) return null;
+
+    const { data } = await supabase
+      .from('subscriptions')
+      .select('*, plans(name, slug)')
+      .eq('customer_id', customer.id)
+      .eq('status', 'active')
+      .limit(1)
+      .maybeSingle();
+    return data;
+  }
+
+  const { data } = await supabase
     .from('subscriptions')
     .select('*, plans(name, slug)')
     .eq('status', 'active')
-    .limit(1);
-  if (userId) query = query.eq('user_id', userId);
-  const { data } = await query.maybeSingle();
+    .limit(1)
+    .maybeSingle();
   return data;
 }
 
