@@ -247,9 +247,9 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
     errorBg: dark ? 'rgba(239,68,68,.04)' : '#fef2f2',
     errorBorder: dark ? 'rgba(239,68,68,.2)' : '#fecaca',
     summaryBg: dark ? 'rgba(255,255,255,.03)' : '#f9fafb',
-    summaryBorder: dark ? t.cardBorder : '#e5e7eb',
+    summaryBorder: dark ? 'rgba(255,255,255,.08)' : '#e5e7eb',
     stepDoneBg: dark ? 'rgba(34,197,94,.15)' : '#dcfce7',
-    stepInactiveBg: dark ? t.cardBorder : '#f3f4f6',
+    stepInactiveBg: dark ? 'rgba(255,255,255,.08)' : '#f3f4f6',
   };
 
   const inputStyle = {
