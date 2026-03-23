@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, ArrowLeft, Globe, Paintbrush, Phone, Calendar, Check, Search } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Globe, Sparkles, Check, Search } from 'lucide-react';
 
 const VALID_PLANS = ['minimum', 'growth', 'performance'] as const;
 
@@ -48,6 +48,7 @@ export function GetStartedFlow() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [chosenPlan, setChosenPlan] = useState('');
   const domainInputRef = useRef<HTMLInputElement>(null);
 
   function update(field: string, value: string) {
@@ -74,7 +75,7 @@ export function GetStartedFlow() {
 
     try {
       const rec = getRecommendation();
-      const planSlug = selectedPlan || rec.plan.toLowerCase();
+      const planSlug = chosenPlan || selectedPlan || rec.plan.toLowerCase();
 
       const res = await fetch('/api/signup-checkout', {
         method: 'POST',
@@ -121,6 +122,10 @@ export function GetStartedFlow() {
 
   return (
     <div style={{ paddingTop: 100, paddingBottom: 80, minHeight: '100vh' }}>
+      <style>{`
+        .gs-plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:900px;margin:0 auto;text-align:left}
+        @media(max-width:768px){.gs-plans-grid{grid-template-columns:1fr;max-width:400px}}
+      `}</style>
       <div className="c" style={{ maxWidth: 720, margin: '0 auto' }}>
 
         {/* Progress */}
@@ -155,88 +160,56 @@ export function GetStartedFlow() {
               Let&apos;s get you started
             </h1>
             <p style={{ color: 'var(--t2)', marginBottom: 40, fontSize: '.95rem' }}>
-              Where are you at right now?
+              Which best describes you?
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, maxWidth: 560, margin: '0 auto', marginBottom: 24 }}>
-              <button
-                onClick={() => { update('situation', 'existing'); setShowDomainSearch(true); setTimeout(() => domainInputRef.current?.focus(), 300); }}
-                style={{
-                  background: answers.situation === 'existing' ? 'rgba(37,99,235,.08)' : 'rgba(255,255,255,.04)',
-                  border: `1px solid ${answers.situation === 'existing' ? 'var(--gold)' : 'var(--bdr2)'}`,
-                  borderRadius: 16, padding: '28px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
-                }}
-                onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
-                onMouseOut={e => { if (answers.situation !== 'existing') e.currentTarget.style.borderColor = 'var(--bdr2)'; }}
-              >
-                <Globe style={{ width: 28, height: 28, color: 'var(--gold)', margin: '0 auto 10px' }} />
-                <p style={{ fontWeight: 500, color: 'var(--t1)', marginBottom: 4 }}>I have a website</p>
-                <p style={{ fontSize: '.78rem', color: 'var(--t3)' }}>Looking to move to Envosta</p>
-              </button>
-
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, maxWidth: 560, margin: '0 auto' }}>
+              {/* Option 1: New website, need a domain */}
               <button
                 onClick={() => { update('situation', 'new'); setShowDomainSearch(true); setTimeout(() => domainInputRef.current?.focus(), 300); }}
                 style={{
                   background: answers.situation === 'new' ? 'rgba(37,99,235,.08)' : 'rgba(255,255,255,.04)',
                   border: `1px solid ${answers.situation === 'new' ? 'var(--gold)' : 'var(--bdr2)'}`,
-                  borderRadius: 16, padding: '28px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
+                  borderRadius: 16, padding: '32px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
                 }}
                 onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
                 onMouseOut={e => { if (answers.situation !== 'new') e.currentTarget.style.borderColor = 'var(--bdr2)'; }}
               >
-                <Paintbrush style={{ width: 28, height: 28, color: 'var(--gold)', margin: '0 auto 10px' }} />
-                <p style={{ fontWeight: 500, color: 'var(--t1)', marginBottom: 4 }}>I need a new website</p>
-                <p style={{ fontSize: '.78rem', color: 'var(--t3)' }}>Build something from scratch</p>
+                <Sparkles style={{ width: 28, height: 28, color: 'var(--gold)', margin: '0 auto 10px' }} />
+                <p style={{ fontWeight: 500, color: 'var(--t1)', marginBottom: 4 }}>I need a website</p>
+                <p style={{ fontSize: '.78rem', color: 'var(--t3)' }}>I don&apos;t have a domain yet</p>
+              </button>
+
+              {/* Option 2: Moving to Envosta, have a domain */}
+              <button
+                onClick={() => { update('situation', 'existing'); setShowDomainSearch(true); }}
+                style={{
+                  background: answers.situation === 'existing' ? 'rgba(37,99,235,.08)' : 'rgba(255,255,255,.04)',
+                  border: `1px solid ${answers.situation === 'existing' ? 'var(--gold)' : 'var(--bdr2)'}`,
+                  borderRadius: 16, padding: '32px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
+                }}
+                onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
+                onMouseOut={e => { if (answers.situation !== 'existing') e.currentTarget.style.borderColor = 'var(--bdr2)'; }}
+              >
+                <Globe style={{ width: 28, height: 28, color: 'var(--gold)', margin: '0 auto 10px' }} />
+                <p style={{ fontWeight: 500, color: 'var(--t1)', marginBottom: 4 }}>I&apos;m moving to Envosta</p>
+                <p style={{ fontSize: '.78rem', color: 'var(--t3)' }}>I already have my domain</p>
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, maxWidth: 560, margin: '0 auto' }}>
-              <button
-                onClick={() => { update('contact', 'call'); setShowDomainSearch(true); setTimeout(() => domainInputRef.current?.focus(), 300); }}
-                style={{
-                  background: answers.contact === 'call' ? 'rgba(37,99,235,.08)' : 'rgba(255,255,255,.04)',
-                  border: `1px solid ${answers.contact === 'call' ? 'var(--gold)' : 'var(--bdr2)'}`,
-                  borderRadius: 16, padding: '28px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
-                }}
-                onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
-                onMouseOut={e => { if (answers.contact !== 'call') e.currentTarget.style.borderColor = 'var(--bdr2)'; }}
-              >
-                <Calendar style={{ width: 28, height: 28, color: 'var(--gold)', margin: '0 auto 10px' }} />
-                <p style={{ fontWeight: 500, color: 'var(--t1)', marginBottom: 4 }}>Book an onboarding call</p>
-                <p style={{ fontSize: '.78rem', color: 'var(--t3)' }}>We&apos;ll walk you through everything</p>
-              </button>
-
-              <button
-                onClick={() => { update('contact', 'urgent'); setShowDomainSearch(true); setTimeout(() => domainInputRef.current?.focus(), 300); }}
-                style={{
-                  background: answers.contact === 'urgent' ? 'rgba(37,99,235,.08)' : 'rgba(255,255,255,.04)',
-                  border: `1px solid ${answers.contact === 'urgent' ? 'var(--gold)' : 'var(--bdr2)'}`,
-                  borderRadius: 16, padding: '28px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all .2s',
-                }}
-                onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
-                onMouseOut={e => { if (answers.contact !== 'urgent') e.currentTarget.style.borderColor = 'var(--bdr2)'; }}
-              >
-                <Phone style={{ width: 28, height: 28, color: 'var(--gold)', margin: '0 auto 10px' }} />
-                <p style={{ fontWeight: 500, color: 'var(--t1)', marginBottom: 4 }}>I need to talk now</p>
-                <p style={{ fontSize: '.78rem', color: 'var(--t3)' }}>It&apos;s urgent, let&apos;s connect</p>
-              </button>
-            </div>
-
-            {/* Domain search — fades in after card selection */}
+            {/* ── Dropdown for "I need a website" — domain search ── */}
             <div
               style={{
-                maxWidth: 560,
-                margin: '0 auto',
-                marginTop: 32,
-                opacity: showDomainSearch ? 1 : 0,
-                transform: showDomainSearch ? 'translateY(0)' : 'translateY(-12px)',
-                maxHeight: showDomainSearch ? 200 : 0,
+                maxWidth: 560, margin: '0 auto', marginTop: 32,
+                opacity: showDomainSearch && answers.situation === 'new' ? 1 : 0,
+                transform: showDomainSearch && answers.situation === 'new' ? 'translateY(0)' : 'translateY(-12px)',
+                maxHeight: showDomainSearch && answers.situation === 'new' ? 300 : 0,
                 overflow: 'hidden',
                 transition: 'opacity .4s ease, transform .4s ease, max-height .4s ease',
               }}
             >
-              <p style={{ fontSize: '.82rem', color: 'var(--t2)', marginBottom: 14, fontWeight: 400 }}>
-                Search for a domain name to get started
+              <p style={{ fontSize: '.88rem', color: 'var(--t2)', marginBottom: 14, fontWeight: 400 }}>
+                Search for a domain name
               </p>
               <div style={{ display: 'flex', gap: 10 }}>
                 <input
@@ -265,7 +238,6 @@ export function GetStartedFlow() {
                   <Search style={{ width: 16, height: 16 }} /> Search
                 </button>
               </div>
-
               <button
                 onClick={() => { update('domain', ''); setStep(2); }}
                 style={{
@@ -273,7 +245,61 @@ export function GetStartedFlow() {
                   fontSize: '.82rem', textDecoration: 'underline', textUnderlineOffset: '3px',
                 }}
               >
-                I already own my domain
+                Use a temporary domain for now
+              </button>
+            </div>
+
+            {/* ── Dropdown for "I'm moving to Envosta" — domain transfer ── */}
+            <div
+              style={{
+                maxWidth: 560, margin: '0 auto', marginTop: 32,
+                opacity: showDomainSearch && answers.situation === 'existing' ? 1 : 0,
+                transform: showDomainSearch && answers.situation === 'existing' ? 'translateY(0)' : 'translateY(-12px)',
+                maxHeight: showDomainSearch && answers.situation === 'existing' ? 300 : 0,
+                overflow: 'hidden',
+                transition: 'opacity .4s ease, transform .4s ease, max-height .4s ease',
+              }}
+            >
+              <p style={{ fontSize: '.88rem', color: 'var(--t2)', marginBottom: 14, fontWeight: 400 }}>
+                Enter your existing domain name
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <input
+                  type="text"
+                  value={domainQuery}
+                  onChange={e => setDomainQuery(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && domainQuery.trim()) { update('domain', domainQuery.trim()); setStep(2); } }}
+                  placeholder="yourbusiness.com"
+                  style={{
+                    flex: 1, padding: '14px 20px', background: 'rgba(255,255,255,.06)', border: '1px solid var(--bdr2)',
+                    borderRadius: 100, color: 'var(--t1)', fontSize: '.95rem', fontFamily: 'inherit', outline: 'none',
+                    transition: 'border-color .2s',
+                  }}
+                  onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold)')}
+                  onBlur={e => (e.currentTarget.style.borderColor = 'var(--bdr2)')}
+                />
+                <button
+                  onClick={() => { if (domainQuery.trim()) { update('domain', domainQuery.trim()); setStep(2); } }}
+                  style={{
+                    padding: '14px 24px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
+                    fontSize: '.88rem', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                    opacity: domainQuery.trim() ? 1 : 0.5,
+                  }}
+                >
+                  Continue <ArrowRight style={{ width: 16, height: 16 }} />
+                </button>
+              </div>
+              <p style={{ fontSize: '.72rem', color: 'var(--t3)', marginTop: 10, fontWeight: 300, lineHeight: 1.6 }}>
+                We&apos;ll help you transfer your domain to Envosta after you sign up, or you can point your DNS to us and keep your current registrar.
+              </p>
+              <button
+                onClick={() => { update('domain', ''); setStep(2); }}
+                style={{
+                  background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', marginTop: 12,
+                  fontSize: '.82rem', textDecoration: 'underline', textUnderlineOffset: '3px',
+                }}
+              >
+                Skip for now, use a temporary domain
               </button>
             </div>
           </div>
@@ -385,72 +411,92 @@ export function GetStartedFlow() {
           </div>
         )}
 
-        {/* ═══ STEP 3: Recommendation ═══ */}
-        {step === 3 && !submitted && (
-          <div style={{ textAlign: 'center' }}>
-            <button onClick={() => setStep(2)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', marginBottom: 24, fontSize: '.85rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <ArrowLeft style={{ width: 14, height: 14 }} /> Back
-            </button>
+        {/* ═══ STEP 3: Choose your plan ═══ */}
+        {step === 3 && !submitted && (() => {
+          const rec = getRecommendation();
+          const recommendedSlug = rec.plan.toLowerCase();
+          const allPlans = [
+            { slug: 'minimum', name: 'Minimum', price: '$50', desc: 'Everything you need to launch a fast, secure WordPress site.', features: ['10 GB SSD Storage', '50 GB Bandwidth', 'Staging Environment', 'Daily Backups', 'Free SSL + CDN', 'Standard Onboarding', 'Email Support'] },
+            { slug: 'growth', name: 'Growth', price: '$129', desc: 'For growing businesses that need more power and hands-on support.', features: ['30 GB SSD Storage', '200 GB Bandwidth', 'Staging Environment', 'Daily Backups', 'Free SSL + CDN', 'SEO Audit & Setup', 'WooCommerce Setup', 'Email Support'] },
+            { slug: 'performance', name: 'Performance', price: '$350', desc: 'Enterprise-grade hosting with dedicated support and concierge onboarding.', features: ['100 GB SSD Storage', 'Unlimited Bandwidth', 'Staging Environment', 'Daily Backups', 'Free SSL + CDN + WAF', 'Custom Theme Included', 'WooCommerce Setup', 'Dedicated Account Manager', 'Priority Support (4hr)'] },
+          ];
+          const activePlan = chosenPlan || recommendedSlug;
 
-            <h1 style={{ fontSize: 'clamp(1.6rem,3.5vw,2.2rem)', fontWeight: 400, letterSpacing: '-1px', marginBottom: 12, color: 'var(--t1)' }}>
-              Our recommendation for you
-            </h1>
-            <p style={{ color: 'var(--t2)', marginBottom: 40, fontSize: '.95rem' }}>
-              Based on what you told us, here&apos;s what we think is the best fit.
-            </p>
+          return (
+            <div style={{ textAlign: 'center' }}>
+              <button onClick={() => setStep(2)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', marginBottom: 24, fontSize: '.85rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <ArrowLeft style={{ width: 14, height: 14 }} /> Back
+              </button>
 
-            {(() => {
-              const rec = getRecommendation();
-              const plans: Record<string, { price: string; features: string[] }> = {
-                Minimum: { price: '$50', features: ['25 GB Storage', 'Staging Environment', 'Daily Backups', 'Free SSL + CDN', 'Standard Onboarding', 'Email Support'] },
-                Growth: { price: '$129', features: ['50 GB Storage', 'Staging Environment', 'Daily Backups', 'Free SSL + CDN', 'Guided Onboarding + SEO', 'Priority Support (24hr)'] },
-                Performance: { price: '$350', features: ['125 GB Storage', 'Staging Environment', 'Daily Backups', 'Free SSL + CDN + WAF', 'Concierge Onboarding', 'WooCommerce Setup', 'Dedicated Support (4hr)'] },
-              };
-              const plan = plans[rec.plan];
+              <h1 style={{ fontSize: 'clamp(1.6rem,3.5vw,2.2rem)', fontWeight: 400, letterSpacing: '-1px', marginBottom: 12, color: 'var(--t1)' }}>
+                Choose your plan
+              </h1>
+              <p style={{ color: 'var(--t2)', marginBottom: 40, fontSize: '.95rem' }}>
+                Based on what you told us, we recommend <strong style={{ color: 'var(--t1)' }}>{rec.plan}</strong>. But you can pick any plan.
+              </p>
 
-              return (
-                <div style={{ maxWidth: 480, margin: '0 auto', background: 'rgba(37,99,235,.06)', border: '2px solid rgba(37,99,235,.2)', borderRadius: 20, padding: '40px 32px', position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: 'var(--gold)', color: '#fff', fontSize: '.7rem', fontWeight: 600, padding: '4px 16px', borderRadius: 100, letterSpacing: '.5px', textTransform: 'uppercase' }}>
-                    Recommended
-                  </div>
-                  <h2 style={{ fontSize: '1.6rem', fontWeight: 500, color: 'var(--t1)', marginBottom: 4 }}>{rec.plan}</h2>
-                  <p style={{ fontSize: '2rem', fontWeight: 600, color: '#fff', marginBottom: 8 }}>
-                    {plan.price} <span style={{ fontSize: '.9rem', fontWeight: 300, color: 'var(--t3)' }}>CAD/mo</span>
-                  </p>
-                  <p style={{ fontSize: '.88rem', color: 'var(--t2)', marginBottom: 24, lineHeight: 1.6 }}>{rec.reason}</p>
-
-                  <div style={{ textAlign: 'left', marginBottom: 28 }}>
-                    {plan.features.map(f => (
-                      <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
-                        <Check style={{ width: 16, height: 16, color: '#22c55e', flexShrink: 0 }} />
-                        <span style={{ fontSize: '.85rem', color: 'var(--t2)' }}>{f}</span>
+              <div className="gs-plans-grid">
+                {allPlans.map(p => {
+                  const isRecommended = p.slug === recommendedSlug;
+                  const isActive = p.slug === activePlan;
+                  return (
+                    <div
+                      key={p.slug}
+                      onClick={() => setChosenPlan(p.slug)}
+                      style={{
+                        background: isActive ? 'rgba(37,99,235,.06)' : 'rgba(255,255,255,.03)',
+                        border: `2px solid ${isActive ? '#2563EB' : 'rgba(255,255,255,.08)'}`,
+                        borderRadius: 18,
+                        padding: '28px 24px',
+                        cursor: 'pointer',
+                        transition: 'all .2s',
+                        position: 'relative',
+                        display: 'flex',
+                        flexDirection: 'column',
+                      }}
+                    >
+                      {isRecommended && (
+                        <div style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)', background: '#2563EB', color: '#fff', fontSize: '.62rem', fontWeight: 600, padding: '3px 14px', borderRadius: 100, letterSpacing: '.5px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                          Recommended
+                        </div>
+                      )}
+                      <div style={{ fontSize: '.68rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '2.5px', color: '#2563EB', marginBottom: 8 }}>{p.name}</div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 6 }}>
+                        <span style={{ fontSize: '2rem', fontWeight: 600, color: '#fff', letterSpacing: '-1px' }}>{p.price}</span>
+                        <span style={{ fontSize: '.8rem', color: 'var(--t3)', fontWeight: 300 }}>/mo</span>
                       </div>
-                    ))}
-                  </div>
+                      <p style={{ fontSize: '.78rem', color: 'var(--t3)', lineHeight: 1.6, fontWeight: 300, marginBottom: 20 }}>{p.desc}</p>
+                      <div style={{ flex: 1 }}>
+                        {p.features.map(f => (
+                          <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                            <Check style={{ width: 14, height: 14, color: '#22c55e', flexShrink: 0 }} />
+                            <span style={{ fontSize: '.78rem', color: 'var(--t2)', fontWeight: 300 }}>{f}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
 
-                  <button
-                    onClick={handleSubmit}
-                    disabled={submitting}
-                    style={{
-                      padding: '14px 32px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
-                      fontSize: '.9rem', fontWeight: 500, cursor: 'pointer', width: '100%',
-                      opacity: submitting ? 0.5 : 1,
-                    }}
-                  >
-                    {submitting ? 'Setting up your account...' : `Get Started with ${rec.plan}`}
-                  </button>
-                  {submitError && (
-                    <p style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 12 }}>{submitError}</p>
-                  )}
-
-                  <Link href="/pricing" style={{ display: 'block', marginTop: 16, fontSize: '.82rem', color: 'var(--t3)', textDecoration: 'underline' }}>
-                    View all plans
-                  </Link>
-                </div>
-              );
-            })()}
-          </div>
-        )}
+              <button
+                onClick={() => { setChosenPlan(activePlan); handleSubmit(); }}
+                disabled={submitting}
+                style={{
+                  padding: '14px 36px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
+                  fontSize: '.9rem', fontWeight: 500, cursor: 'pointer', marginTop: 32,
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  opacity: submitting ? 0.5 : 1,
+                }}
+              >
+                {submitting ? 'Setting up your account...' : `Get Started with ${allPlans.find(p => p.slug === activePlan)?.name ?? 'Growth'}`} {!submitting && <ArrowRight style={{ width: 16, height: 16 }} />}
+              </button>
+              {submitError && (
+                <p style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 12 }}>{submitError}</p>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ═══ SUBMITTED ═══ */}
         {submitted && (
