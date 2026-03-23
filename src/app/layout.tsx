@@ -1,3 +1,12 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  icons: {
+    icon: '/assets/Logo/envosta-logo-mark-dark.svg',
+    apple: '/assets/Logo/envosta-logo-mark-dark.svg',
+  },
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" style={{ margin: 0, padding: 0 }}>

@@ -89,9 +89,15 @@ export function MarketingNav() {
             )}
           </Link>
         ))}
-        <a href="https://my.envosta.com/auth/login" onClick={() => setMobileOpen(false)}>
-          Log in
-        </a>
+        <div style={{ marginTop: 'auto', paddingTop: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <Link href="/get-started" onClick={() => setMobileOpen(false)} className="bp lg" style={{ textAlign: 'center', width: '100%' }}>
+            Get Started
+          </Link>
+          <a href="https://my.envosta.com/auth/login" onClick={() => setMobileOpen(false)}
+            style={{ textAlign: 'center', padding: '14px 0', color: 'rgba(255,255,255,.6)', fontSize: '.95rem', textDecoration: 'none' }}>
+            Log in
+          </a>
+        </div>
       </div>
     </>
   );

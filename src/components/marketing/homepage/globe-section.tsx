@@ -290,25 +290,27 @@ export function GlobeSection() {
       return { x: x2 + cx, y: y2 + cy, z: z3, v: (z3 + r) / (r * 2) };
     }
 
-    // Earth texture
+    // Earth texture — keep the source canvas alive to prevent GC issues
     let earthReady = false;
     let earthPixels: Uint8ClampedArray | null = null;
     let earthTexW = 0;
     let earthTexH = 0;
+    const earthSourceCanvas = document.createElement('canvas');
     const earthTex = new Image();
     earthTex.crossOrigin = 'anonymous';
     earthTex.src = '/assets/images/2k_earth_nightmap.jpg';
     earthTex.onload = function () {
-      const oc = document.createElement('canvas');
-      oc.width = earthTex.width;
-      oc.height = earthTex.height;
-      const octx = oc.getContext('2d')!;
+      earthSourceCanvas.width = earthTex.width;
+      earthSourceCanvas.height = earthTex.height;
+      const octx = earthSourceCanvas.getContext('2d')!;
       octx.drawImage(earthTex, 0, 0);
-      const imgData = octx.getImageData(0, 0, oc.width, oc.height);
-      // Copy pixel data so it survives garbage collection of the offscreen canvas
-      earthPixels = new Uint8ClampedArray(imgData.data);
-      earthTexW = oc.width;
-      earthTexH = oc.height;
+      const imgData = octx.getImageData(0, 0, earthSourceCanvas.width, earthSourceCanvas.height);
+      // Make a standalone copy of pixel data
+      const pixelsCopy = new Uint8ClampedArray(imgData.data.length);
+      pixelsCopy.set(imgData.data);
+      earthPixels = pixelsCopy;
+      earthTexW = earthSourceCanvas.width;
+      earthTexH = earthSourceCanvas.height;
       earthReady = true;
     };
 

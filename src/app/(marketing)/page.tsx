@@ -165,7 +165,7 @@ export default async function HomePage() {
 
               {/* Card 1: Online Shop / Storefront */}
               <div className="zm-card zm-card-dark zm-card-tall" style={{ background: 'linear-gradient(165deg,#0c1424 0%,#0a1020 100%)' }}>
-                <svg viewBox="0 0 480 480" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '460px', position: 'absolute', top: 0, left: 0, right: 0 }} className="shop-svg">
+                <svg viewBox="0 0 480 480" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, padding: '16px 8px 120px' }} className="shop-svg">
                   <defs>
                     <linearGradient id="shopGlow" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0" stopColor="#2563EB" stopOpacity=".08" />
@@ -248,7 +248,7 @@ export default async function HomePage() {
                   </svg>
                 </div>
 
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(0deg,rgba(10,16,32,.95) 0%,rgba(10,16,32,.7) 60%,transparent 100%)', padding: '56px 28px 28px', zIndex: 2, height: '140px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(0deg,rgba(10,16,32,.95) 0%,rgba(10,16,32,.7) 60%,transparent 100%)', padding: '56px 28px 28px', zIndex: 2, height: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
                   <h3 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.3rem', fontWeight: 400, color: '#fff', marginBottom: '6px' }}>Start selling immediately</h3>
                   <p style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.45)', fontWeight: 300, lineHeight: 1.6 }}>Your shop goes live with your site. Payments, products, and shipping ready at launch.</p>
                 </div>
@@ -256,7 +256,7 @@ export default async function HomePage() {
 
               {/* Card 2: Checkout Experience */}
               <div className="zm-card zm-card-dark zm-card-tall" style={{ background: 'linear-gradient(165deg,#0a0e1a 0%,#0c1424 100%)' }}>
-                <svg viewBox="0 0 480 520" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '440px', position: 'absolute', top: 0, left: 0, right: 0 }} className="shop-svg">
+                <svg viewBox="0 0 480 520" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, padding: '8px 8px 120px' }} className="shop-svg">
                   <defs>
                     <linearGradient id="chkGlow" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0" stopColor="#2563EB" stopOpacity=".04" />
@@ -346,7 +346,7 @@ export default async function HomePage() {
                   <text x="240" y="478" fill="rgba(26,26,46,.2)" fontFamily="Inter,sans-serif" fontSize="8" textAnchor="middle">🔒 Secured by Stripe · 256-bit encryption</text>
                 </svg>
 
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(0deg,rgba(10,14,26,.95) 0%,rgba(10,14,26,.7) 60%,transparent 100%)', padding: '56px 28px 28px', zIndex: 2, height: '140px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(0deg,rgba(10,14,26,.95) 0%,rgba(10,14,26,.7) 60%,transparent 100%)', padding: '56px 28px 28px', zIndex: 2, height: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
                   <h3 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.3rem', fontWeight: 400, color: '#fff', marginBottom: '6px' }}>Checkout that converts</h3>
                   <p style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.45)', fontWeight: 300, lineHeight: 1.6 }}>One page, no friction. Powered by Stripe and optimized for every device.</p>
                 </div>
@@ -354,7 +354,7 @@ export default async function HomePage() {
 
               {/* Card 3: Point of Sale */}
               <div className="zm-card zm-card-dark zm-card-tall" style={{ background: 'linear-gradient(165deg,#0c1220 0%,#0a1018 100%)' }}>
-                <svg viewBox="0 0 480 560" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '440px', position: 'absolute', top: 0, left: 0, right: 0 }} className="shop-svg">
+                <svg viewBox="0 0 480 560" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, padding: '0 8px 120px' }} className="shop-svg">
                   <defs>
                     <linearGradient id="posGlow2" x1=".5" y1="0" x2=".5" y2="1">
                       <stop offset="0" stopColor="#2563EB" stopOpacity=".06" />
@@ -474,7 +474,7 @@ export default async function HomePage() {
                   </g>
                 </svg>
 
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(0deg,rgba(10,16,24,.95) 0%,rgba(10,16,24,.7) 60%,transparent 100%)', padding: '56px 28px 28px', zIndex: 2, height: '140px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(0deg,rgba(10,16,24,.95) 0%,rgba(10,16,24,.7) 60%,transparent 100%)', padding: '56px 28px 28px', zIndex: 2, height: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
                   <h3 style={{ fontFamily: "'Inter',sans-serif", fontSize: '1.3rem', fontWeight: 400, color: '#fff', marginBottom: '6px' }}>Sell in person, too</h3>
                   <p style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.45)', fontWeight: 300, lineHeight: 1.6 }}>Accept tap, card, and cash payments from your phone. Same inventory, anywhere.</p>
                 </div>
@@ -822,7 +822,7 @@ export default async function HomePage() {
         <GlobeSection />
 
         {/* Badges + trust + status */}
-        <div className="c" style={{ position: 'relative', zIndex: 10 }}>
+        <div className="c" style={{ position: 'relative', zIndex: 10, marginTop: -80 }}>
           <div className="ig-wrap" id="ig-wrap">
             <div className="ig-fm ig-fm-1" id="igf1"><div className="ig-fm-card"><div className="ig-fm-val">99.99<span>%</span></div><div className="ig-fm-label">Uptime SLA</div></div></div>
             <div className="ig-fm ig-fm-2" id="igf2"><div className="ig-fm-card"><div className="ig-fm-val">&lt;142<span>ms</span></div><div className="ig-fm-label">Response Time</div></div></div>
@@ -844,7 +844,7 @@ export default async function HomePage() {
         </div>
 
         {/* ═══ SECTION 8C — SEO & CUSTOM THEME ═══ */}
-        <section className="zc-section">
+        <section className="zc-section" style={{ paddingTop: 40 }}>
           <div className="c zc-inner">
             <div className="rv zc-split" id="seo-split">
 
