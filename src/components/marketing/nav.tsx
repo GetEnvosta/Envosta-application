@@ -4,8 +4,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const navLinks = [
-  { label: 'Studio', href: '/studio', badge: 'New', badgePosition: 'left' as const },
+interface NavLink {
+  label: string;
+  href: string;
+  badge?: string;
+  badgePosition?: 'left' | 'right';
+}
+
+const navLinks: NavLink[] = [
+  { label: 'Studio', href: '/studio', badge: 'New', badgePosition: 'left' },
   { label: 'Features', href: '/features' },
   { label: 'Domains', href: '/domains' },
   { label: 'Explore', href: '/blog' },
@@ -55,11 +62,11 @@ export function MarketingNav() {
                   href={link.href}
                   className={`nav-link${isActive(link.href) ? ' nav-active' : ''}`}
                 >
-                  {'badge' in link && link.badge && link.badgePosition === 'left' && (
+                  {link.badge && link.badgePosition === 'left' && (
                     <span className="nav-badge">{link.badge}</span>
                   )}
                   {link.label}
-                  {'badge' in link && link.badge && link.badgePosition !== 'left' && (
+                  {link.badge && link.badgePosition !== 'left' && (
                     <span className="nav-badge">{link.badge}</span>
                   )}
                 </Link>
@@ -87,11 +94,11 @@ export function MarketingNav() {
       <div className={`mn${mobileOpen ? ' open' : ''}`}>
         {navLinks.map(link => (
           <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}>
-            {'badge' in link && link.badge && link.badgePosition === 'left' && (
+            {link.badge && link.badgePosition === 'left' && (
               <span className="nav-badge">{link.badge}</span>
             )}
             {link.label}
-            {'badge' in link && link.badge && link.badgePosition !== 'left' && (
+            {link.badge && link.badgePosition !== 'left' && (
               <span className="nav-badge">{link.badge}</span>
             )}
           </Link>
