@@ -270,7 +270,6 @@ Deno.serve(async (req) => {
 
     await log({ userId: userId, serviceId, action: "domain.register.success", message: domainName, ip: registrantIp, ua: registrantUa, ms });
     return json({ domainId: domain.id, domainName, status: "registered" });
-    }
 
     // UPDATE NAMESERVERS
     if (action === "update-nameservers") {
