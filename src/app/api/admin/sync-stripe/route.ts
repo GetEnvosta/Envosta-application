@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,8 +23,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Server not configured' }, { status: 503 });
   }
 
-  const stripe = getStripe();
+  // Verify admin auth
+  const cookieStore = await cookies();
+  const supabaseAuth = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } }
+  );
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const supabase = getSupabase();
+  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+  if (profile?.role !== 'admin') return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+
+  const stripe = getStripe();
 
   try {
     const { type, id, data } = await req.json();

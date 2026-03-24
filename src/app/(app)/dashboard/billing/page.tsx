@@ -2,6 +2,7 @@ import { getEffectiveUserId } from '@/services/auth';
 import { getUserInvoices, getCustomerInfo } from '@/services/billing';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
 import { CreditCard, ExternalLink, FileText } from 'lucide-react';
+import { ManageBillingButton } from '@/components/billing/manage-billing-button';
 
 export default async function BillingPage() {
   const userId = await getEffectiveUserId();
@@ -43,9 +44,7 @@ export default async function BillingPage() {
                   )}
                 </div>
               </div>
-              <button className="btn-secondary opacity-50 cursor-not-allowed" disabled title="Stripe Customer Portal coming soon">
-                Manage Billing
-              </button>
+              <ManageBillingButton />
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

@@ -120,9 +120,12 @@ export async function POST(req: Request) {
     if (plan) {
       const { data: planData } = await supabaseAdmin
         .from('plans')
-        .select('stripe_price_id_monthly')
+        .select('stripe_price_id_monthly, is_active')
         .eq('slug', plan)
         .single();
+      if (planData && !planData.is_active) {
+        return NextResponse.json({ error: 'This plan is no longer available' }, { status: 400 });
+      }
       priceId = planData?.stripe_price_id_monthly ?? null;
     }
 

@@ -6,7 +6,7 @@ export async function GET() {
   const checks: Record<string, string> = {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'MISSING',
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'MISSING',
-    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ? `set (${process.env.STRIPE_SECRET_KEY.startsWith('sk_live') ? 'LIVE' : 'TEST'})` : 'MISSING',
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ? 'set' : 'MISSING',
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'set' : 'MISSING',
     OPENSRS_USERNAME: process.env.OPENSRS_USERNAME ? 'set' : 'MISSING',
     OPENSRS_API_KEY: process.env.OPENSRS_API_KEY ? 'set' : 'MISSING',
@@ -14,8 +14,5 @@ export async function GET() {
 
   const allGood = Object.values(checks).every(v => v !== 'MISSING');
 
-  return NextResponse.json({
-    status: allGood ? 'ok' : 'missing_env_vars',
-    checks,
-  });
+  return NextResponse.json({ status: allGood ? 'ok' : 'missing_env_vars', checks });
 }
