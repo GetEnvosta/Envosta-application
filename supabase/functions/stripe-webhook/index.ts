@@ -48,9 +48,10 @@ Deno.serve(async (req) => {
 
       console.log("Subscription upserted:", dbSub?.id, "status:", sub.status);
 
-      // Auto-create service record for active subscriptions (fires on both created and updated,
-      // because Stripe often sends "created" with status "incomplete" then "updated" with "active")
-      if (sub.status === "active" && dbSub) {
+      // Auto-create service record for active subscriptions with a hosting plan
+      // Skip domain-only subscriptions (type: "domain_renewal" in metadata)
+      const isDomainRenewal = sub.metadata?.type === "domain_renewal";
+      if (sub.status === "active" && dbSub && plan?.id && !isDomainRenewal) {
         const { data: existing } = await sb.from("services").select("id").eq("subscription_id", dbSub.id).maybeSingle();
         if (!existing) {
           const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.user_id).maybeSingle();
@@ -265,6 +266,33 @@ Deno.serve(async (req) => {
           paid_at: inv.status === "paid" ? new Date().toISOString() : null,
         }, { onConflict: "stripe_invoice_id" });
         console.log("Invoice:", inv.id, inv.status);
+
+        // Handle domain renewal — when yearly domain subscription charges
+        if (event.type === "invoice.paid" && inv.subscription) {
+          const subStripeId2 = typeof inv.subscription === "string" ? inv.subscription : inv.subscription.id;
+          // Check if this is a domain renewal subscription (by metadata)
+          try {
+            const stripe = getStripe();
+            const stripeSub = await stripe.subscriptions.retrieve(subStripeId2);
+            if (stripeSub.metadata?.type === "domain_renewal" && stripeSub.metadata?.domain_name) {
+              const domainToRenew = stripeSub.metadata.domain_name;
+              console.log("Domain renewal invoice paid:", domainToRenew);
+
+              // Renew at OpenSRS (auto_renew should handle this, but update expiry in our DB)
+              await sb.from("domains")
+                .update({
+                  expiry_date: new Date(Date.now() + 365.25 * 86400000).toISOString(),
+                  metadata: { last_renewal: new Date().toISOString(), renewal_invoice: inv.id },
+                })
+                .eq("domain_name", domainToRenew)
+                .eq("user_id", cust.user_id);
+
+              console.log("Domain expiry updated:", domainToRenew);
+            }
+          } catch (renewErr) {
+            console.error("Domain renewal processing error (non-fatal):", renewErr);
+          }
+        }
 
         // Fallback: create service if invoice.paid and no service exists yet
         if (event.type === "invoice.paid" && inv.subscription) {

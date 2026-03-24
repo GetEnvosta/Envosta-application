@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     const stripe = getStripe();
     const sb = supabaseAdmin();
 
-    // ---- Studio Request ($250 one-time charge) ----
+    // ---- Studio Request (price from addon_products table) ----
     if (studioRequest) {
       // Get or create customer
       let { data: customer } = await sb.from("customers").select("*").eq("user_id", user.id).single();
@@ -36,17 +36,19 @@ Deno.serve(async (req) => {
         customer = newCust;
       }
 
+      // Get studio request price from DB
+      const { data: studioAddon } = await sb.from("addon_products").select("price_cad, stripe_price_id, name").eq("slug", "studio-request").maybeSingle();
+      const studioPrice = studioAddon?.price_cad ?? 25000;
+      const studioName = studioAddon?.name ?? "Studio Request";
+
+      const lineItems: any[] = studioAddon?.stripe_price_id
+        ? [{ price: studioAddon.stripe_price_id, quantity: 1 }]
+        : [{ price_data: { currency: "cad", unit_amount: studioPrice, product_data: { name: studioName } }, quantity: 1 }];
+
       const session = await stripe.checkout.sessions.create({
         customer: customer!.stripe_customer_id,
         mode: "payment",
-        line_items: [{
-          price_data: {
-            currency: "cad",
-            unit_amount: 25000, // $250 CAD
-            product_data: { name: "Studio Request" },
-          },
-          quantity: 1,
-        }],
+        line_items: lineItems,
         success_url: `https://my.envosta.com/dashboard/support?studio=success`,
         cancel_url: `https://my.envosta.com/dashboard/support?studio=cancelled`,
         metadata: {

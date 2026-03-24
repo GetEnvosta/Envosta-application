@@ -63,10 +63,10 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
       {/* DNS Management */}
       {(() => {
         const ns = Array.isArray(domain.nameservers) ? domain.nameservers : [];
-        const isDefault = ns.length === 0 || (ns.length === 2 && ns[0] === 'ns1.envosta.com' && ns[1] === 'ns2.envosta.com');
+        const isDefault = ns.length === 0 || (ns.length <= 2 && ns.every((n: string) => n.includes('opensrs.net')));
         return isDefault ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <DnsManager domainId={domain.id} domainName={domain.domain_name} />
+            <DnsManager domainId={domain.id} domainName={domain.domain_name} initialRecords={domain.dns_records} serviceId={domain.service_id} />
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 opacity-60">

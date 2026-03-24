@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
 import { Loader2, RotateCcw, Save, Plus, X } from 'lucide-react';
 
-const DEFAULT_NAMESERVERS = ['ns1.envosta.com', 'ns2.envosta.com'];
+const DEFAULT_NAMESERVERS = ['ns1.opensrs.net', 'ns2.opensrs.net'];
 
 export function NameserverManager({ domainName, currentNameservers }: {
   domainName: string;

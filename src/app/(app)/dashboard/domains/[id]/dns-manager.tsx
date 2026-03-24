@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Loader2, Zap } from 'lucide-react';
+import { createClient } from '@/lib/supabase-browser';
 
 interface DnsRecord {
   id: string;
@@ -11,13 +12,6 @@ interface DnsRecord {
   priority?: number;
   ttl: number;
 }
-
-const MOCK_RECORDS: DnsRecord[] = [
-  { id: '1', type: 'A', name: '@', value: '76.76.21.21', ttl: 3600 },
-  { id: '2', type: 'CNAME', name: 'www', value: 'cname.vercel-dns.com', ttl: 3600 },
-  { id: '3', type: 'MX', name: '@', value: 'mail.envosta.com', priority: 10, ttl: 3600 },
-  { id: '4', type: 'TXT', name: '@', value: 'v=spf1 include:_spf.envosta.com ~all', ttl: 3600 },
-];
 
 const TTL_OPTIONS = [
   { label: '1 min', value: 60 },
@@ -36,8 +30,69 @@ function formatTtl(seconds: number): string {
   return `${seconds / 86400} day`;
 }
 
-export function DnsManager({ domainId, domainName }: { domainId: string; domainName: string }) {
-  const [records, setRecords] = useState<DnsRecord[]>(MOCK_RECORDS);
+export function DnsManager({ domainId, domainName, initialRecords, serviceId }: {
+  domainId: string;
+  domainName: string;
+  initialRecords?: any[];
+  serviceId?: string | null;
+}) {
+  // Convert stored DNS records to display format
+  const storedRecords: DnsRecord[] = (initialRecords ?? []).map((r: any, i: number) => ({
+    id: String(i),
+    type: r.type ?? 'A',
+    name: r.subdomain === '' ? '@' : r.subdomain ?? '@',
+    value: r.ip_address ?? r.hostname ?? r.text ?? '',
+    ttl: r.ttl ?? 3600,
+  }));
+
+  const [records, setRecords] = useState<DnsRecord[]>(storedRecords);
+  const [settingUp, setSettingUp] = useState(false);
+  const [setupMsg, setSetupMsg] = useState('');
+
+  async function handleSetupDns() {
+    setSettingUp(true);
+    setSetupMsg('');
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setSetupMsg('Not authenticated'); setSettingUp(false); return; }
+
+      // Get site IP from the connected service
+      let siteIp = '';
+      if (serviceId) {
+        const { data: svc } = await supabase.from('services').select('metadata').eq('id', serviceId).maybeSingle();
+        siteIp = (svc?.metadata as any)?.site_ip ?? '';
+      }
+
+      if (!siteIp) {
+        setSetupMsg('No site IP found. Connect this domain to a provisioned site first.');
+        setSettingUp(false);
+        return;
+      }
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          },
+          body: JSON.stringify({ action: 'setup-dns', domainName, siteIp }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setSetupMsg(`DNS configured: ${data.records} records set for ${siteIp}`);
+        // Refresh page to show new records
+        window.location.reload();
+      } else {
+        setSetupMsg(data.error ?? 'DNS setup failed');
+      }
+    } catch { setSetupMsg('Connection error'); }
+    setSettingUp(false);
+  }
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ type: 'A', name: '', value: '', priority: 10, ttl: 3600 });

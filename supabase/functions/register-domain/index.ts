@@ -42,7 +42,35 @@ function buildLookupXml(domain: string): string {
 </OPS_envelope>`;
 }
 
-function buildRegisterXml(domain: string, years: number, email: string): string {
+interface ContactInfo {
+  first_name: string;
+  last_name: string;
+  org_name: string;
+  email: string;
+  phone: string;
+  address1: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+}
+
+function buildRegisterXml(domain: string, years: number, contact: ContactInfo): string {
+  const c = (role: string) => `<item key="${role}">
+                  <dt_assoc>
+                    <item key="first_name">${contact.first_name}</item>
+                    <item key="last_name">${contact.last_name}</item>
+                    <item key="org_name">${contact.org_name}</item>
+                    <item key="address1">${contact.address1}</item>
+                    <item key="city">${contact.city}</item>
+                    <item key="state">${contact.state}</item>
+                    <item key="postal_code">${contact.postal_code}</item>
+                    <item key="country">${contact.country}</item>
+                    <item key="phone">${contact.phone}</item>
+                    <item key="email">${contact.email}</item>
+                  </dt_assoc>
+                </item>`;
+
   return `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
 <!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
 <OPS_envelope>
@@ -73,62 +101,10 @@ function buildRegisterXml(domain: string, years: number, email: string): string 
             <item key="auto_renew">1</item>
             <item key="contact_set">
               <dt_assoc>
-                <item key="owner">
-                  <dt_assoc>
-                    <item key="first_name">Domain</item>
-                    <item key="last_name">Owner</item>
-                    <item key="org_name">Envosta</item>
-                    <item key="address1">123 Main St</item>
-                    <item key="city">Calgary</item>
-                    <item key="state">AB</item>
-                    <item key="postal_code">T2P0A1</item>
-                    <item key="country">CA</item>
-                    <item key="phone">+1.4035551234</item>
-                    <item key="email">${email}</item>
-                  </dt_assoc>
-                </item>
-                <item key="admin">
-                  <dt_assoc>
-                    <item key="first_name">Domain</item>
-                    <item key="last_name">Owner</item>
-                    <item key="org_name">Envosta</item>
-                    <item key="address1">123 Main St</item>
-                    <item key="city">Calgary</item>
-                    <item key="state">AB</item>
-                    <item key="postal_code">T2P0A1</item>
-                    <item key="country">CA</item>
-                    <item key="phone">+1.4035551234</item>
-                    <item key="email">${email}</item>
-                  </dt_assoc>
-                </item>
-                <item key="billing">
-                  <dt_assoc>
-                    <item key="first_name">Domain</item>
-                    <item key="last_name">Owner</item>
-                    <item key="org_name">Envosta</item>
-                    <item key="address1">123 Main St</item>
-                    <item key="city">Calgary</item>
-                    <item key="state">AB</item>
-                    <item key="postal_code">T2P0A1</item>
-                    <item key="country">CA</item>
-                    <item key="phone">+1.4035551234</item>
-                    <item key="email">${email}</item>
-                  </dt_assoc>
-                </item>
-                <item key="tech">
-                  <dt_assoc>
-                    <item key="first_name">Domain</item>
-                    <item key="last_name">Owner</item>
-                    <item key="org_name">Envosta</item>
-                    <item key="address1">123 Main St</item>
-                    <item key="city">Calgary</item>
-                    <item key="state">AB</item>
-                    <item key="postal_code">T2P0A1</item>
-                    <item key="country">CA</item>
-                    <item key="phone">+1.4035551234</item>
-                    <item key="email">${email}</item>
-                  </dt_assoc>
-                </item>
+                ${c("owner")}
+                ${c("admin")}
+                ${c("billing")}
+                ${c("tech")}
               </dt_assoc>
             </item>
           </dt_assoc>
@@ -241,7 +217,26 @@ Deno.serve(async (req) => {
     }).select().single();
     if (domErr) return error(domErr.message, 500);
 
-    const regXml = buildRegisterXml(domainName, years ?? 1, userEmail ?? "domains@envosta.com");
+    // Get user profile for domain contact info
+    const { data: profile } = await sb.from("users")
+      .select("full_name, email, phone, company_name, metadata")
+      .eq("id", userId).maybeSingle();
+
+    const nameParts = (profile?.full_name ?? "Domain Owner").split(" ");
+    const contact: ContactInfo = {
+      first_name: nameParts[0] ?? "Domain",
+      last_name: nameParts.slice(1).join(" ") || "Owner",
+      org_name: profile?.company_name ?? "N/A",
+      email: profile?.email ?? userEmail ?? "domains@envosta.com",
+      phone: profile?.phone ?? "+1.0000000000",
+      address1: (profile?.metadata as any)?.address ?? "N/A",
+      city: (profile?.metadata as any)?.city ?? "Calgary",
+      state: (profile?.metadata as any)?.state ?? "AB",
+      postal_code: (profile?.metadata as any)?.postal_code ?? "T2P0A1",
+      country: (profile?.metadata as any)?.country ?? "CA",
+    };
+
+    const regXml = buildRegisterXml(domainName, years ?? 1, contact);
     const responseXml = await opensrsRequest(regXml);
     const parsed = parseResponse(responseXml);
     const ms = Date.now() - t0;
