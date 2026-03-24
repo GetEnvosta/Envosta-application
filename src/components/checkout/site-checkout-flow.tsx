@@ -195,6 +195,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
             plan: selectedPlan.slug,
             domain: selectedDomain || undefined,
             situation: domainMode === 'existing' ? 'existing' : 'new',
+            onboarding: onboardingChoice ?? 'self',
           }),
         });
         const data = await res.json();

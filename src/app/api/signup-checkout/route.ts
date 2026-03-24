@@ -42,6 +42,7 @@ export async function POST(req: Request) {
       size,
       domain,
       plan, // 'minimum' | 'growth' | 'performance' | ''
+      onboarding, // 'self' | 'guided'
     } = await req.json();
 
     if (!email || !name) {
@@ -179,6 +180,45 @@ export async function POST(req: Request) {
         ...(domain && { domain_name: domain }),
       },
     });
+
+    // Create sales ticket for the team
+    try {
+      const planLabel = plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : 'Unknown';
+      const onboardingLabel = onboarding === 'guided' ? 'Wants onboarding call' : 'Self-guided setup';
+      const domainLabel = domain
+        ? (situation === 'existing' ? `Bringing domain: ${domain}` : `Registering: ${domain}`)
+        : 'Using temporary domain';
+
+      const ticketMessage = [
+        `**New signup: ${name}**`,
+        '',
+        `**Email:** ${email}`,
+        phone ? `**Phone:** ${phone}` : null,
+        `**Plan:** ${planLabel}`,
+        `**Domain:** ${domainLabel}`,
+        `**Onboarding:** ${onboardingLabel}`,
+        situation === 'existing' ? `**Situation:** Moving existing site to Envosta` : `**Situation:** New website`,
+      ].filter(Boolean).join('\n');
+
+      const { data: ticket } = await supabaseAdmin.from('tickets').insert({
+        user_id: userId,
+        subject: `New signup: ${name} — ${planLabel} plan`,
+        type: 'sales',
+        status: 'open',
+        priority: 'normal',
+        metadata: { source: 'signup', plan, domain, onboarding, situation },
+      }).select('id').single();
+
+      if (ticket) {
+        await supabaseAdmin.from('ticket_messages').insert({
+          ticket_id: ticket.id,
+          sender: 'system',
+          message: ticketMessage,
+        });
+      }
+    } catch {
+      // Non-fatal — don't block checkout if ticket creation fails
+    }
 
     return NextResponse.json({ url: session.url });
 
