@@ -3,8 +3,8 @@ import { getAdminBillingStats, getAdminRecentInvoices } from '@/services/billing
 import { formatCents } from '@/lib/utils';
 import { DollarSign, Receipt, AlertCircle, Users } from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
-import { InvoiceFilters } from './invoice-filters';
-import { SubscriptionFilters } from './subscription-filters';
+import { InvoiceFilters } from '@/components/admin/invoice-filters';
+import { SubscriptionFilters } from '@/components/admin/subscription-filters';
 
 export default async function AdminBillingPage() {
   const [

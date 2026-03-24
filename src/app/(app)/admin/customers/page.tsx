@@ -2,7 +2,7 @@ import { getAllCustomers } from '@/services/admin';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { Search, Users } from 'lucide-react';
-import { ImpersonateButton } from '../impersonate-button';
+import { ImpersonateButton } from '@/components/admin/impersonate-button';
 
 export default async function CustomersPage({
   searchParams,

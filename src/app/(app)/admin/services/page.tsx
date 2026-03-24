@@ -2,8 +2,8 @@ import { getAllServices } from '@/services/sites';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { Search, Server } from 'lucide-react';
-import { ProvisionButton } from './provision-button';
-import { ImpersonateButton } from '../impersonate-button';
+import { ProvisionButton } from '@/components/admin/provision-button';
+import { ImpersonateButton } from '@/components/admin/impersonate-button';
 
 const STATUSES = [
   'active',

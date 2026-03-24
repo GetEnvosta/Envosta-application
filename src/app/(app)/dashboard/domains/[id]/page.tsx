@@ -5,7 +5,7 @@ import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { ArrowLeft, Globe, ExternalLink } from 'lucide-react';
 import { redirect } from 'next/navigation';
-import { DnsManager } from './dns-manager';
+import { DnsManager } from '@/components/domains/dns-manager';
 import { ConnectedSiteSwitcher } from '@/components/domains/connected-site-switcher';
 import { NameserverManager } from '@/components/domains/nameserver-manager';
 import { AutoRenewToggle } from '@/components/domains/auto-renew-toggle';

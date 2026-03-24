@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat \"src/app/\\(app\\)/admin/plans/page.tsx\")",
+      "Bash(cat \"src/app/\\(app\\)/admin/domains/pricing/page.tsx\")"
+    ]
+  }
+}

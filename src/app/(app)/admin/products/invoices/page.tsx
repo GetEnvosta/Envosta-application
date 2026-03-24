@@ -1,5 +1,5 @@
 import { getAllCustomersWithUsers } from '@/services/billing';
-import { CreateInvoiceForm } from '../../billing/create-invoice';
+import { CreateInvoiceForm } from '@/components/admin/create-invoice';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 

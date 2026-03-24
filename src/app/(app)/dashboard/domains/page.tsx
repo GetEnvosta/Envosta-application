@@ -3,7 +3,7 @@ import { getEffectiveUserId } from '@/services/auth';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { Globe, Plus } from 'lucide-react';
-import { DomainSearchEmpty } from './domain-search-empty';
+import { DomainSearchEmpty } from '@/components/domains/domain-search-empty';
 
 export default async function DomainsPage() {
   const userId = await getEffectiveUserId();
