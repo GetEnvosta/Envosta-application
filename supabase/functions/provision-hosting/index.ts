@@ -13,12 +13,17 @@ Deno.serve(async (req) => {
   const t0 = Date.now();
 
   try {
-    const userSb = supabaseForUser(req);
-    const { data: { user }, error: authErr } = await userSb.auth.getUser();
-    if (authErr || !user) return error("Unauthorized", 401);
-
-    const { label, region, phpVersion, subscriptionId, planId, domainName, adminEmail, serviceId } = await req.json();
+    const body = await req.json();
+    const { label, region, phpVersion, subscriptionId, planId, domainName, adminEmail, serviceId, userId: bodyUserId } = body;
     if (!label && !serviceId) return error("label or serviceId is required");
+
+    // Auth: either user session or service role with userId in body (for webhook calls)
+    const userSb = supabaseForUser(req);
+    const { data: { user } } = await userSb.auth.getUser();
+
+    if (!user && !bodyUserId) return error("Unauthorized", 401);
+    const userId = user?.id ?? bodyUserId;
+    const userEmail = user?.email ?? adminEmail ?? "admin@envosta.com";
 
     const sb = supabaseAdmin();
     let svc: any;
@@ -51,7 +56,7 @@ Deno.serve(async (req) => {
       if (!svc) {
         const geoAffinity = region ?? "dca";
         const { data: newSvc, error: svcErr } = await sb.from("services").insert({
-          user_id: user.id,
+          user_id: userId,
           subscription_id: subscriptionId ?? null,
           plan_id: planId ?? null,
           type: "hosting",
@@ -90,7 +95,7 @@ Deno.serve(async (req) => {
     // Build wp.cloud request
     const siteName = label.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").slice(0, 50);
     const wpBody: Record<string, unknown> = {
-      admin_email: adminEmail ?? user.email ?? "admin@envosta.com",
+      admin_email: adminEmail ?? userEmail ?? "admin@envosta.com",
       admin_user: "envosta_admin",
       php_version: php,
       space_quota: `${storageGb}G`,
@@ -103,7 +108,7 @@ Deno.serve(async (req) => {
       },
       persist_data: {
         envosta_service_id: svc.id,
-        envosta_user_id: user.id,
+        envosta_user_id: userId,
         envosta_plan: planSlug,
       },
     };
@@ -138,7 +143,7 @@ Deno.serve(async (req) => {
         metadata: { error: result.data, http_status: result.status },
       }).eq("id", svc.id);
       await log({
-        userId: user.id, serviceId: svc.id, level: "error",
+        userId: userId, serviceId: svc.id, level: "error",
         action: "hosting.provision.failed",
         message: result.data?.message ?? `HTTP ${result.status}`,
         req: wpBody, res: result.data, ms,
@@ -177,7 +182,7 @@ Deno.serve(async (req) => {
     if (domainName) {
       await sb.from("domains")
         .update({ service_id: svc.id })
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .eq("domain_name", domainName);
     }
 
@@ -188,7 +193,7 @@ Deno.serve(async (req) => {
       try {
         const { data: domainRecord } = await sb.from("domains")
           .select("registrar")
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .eq("domain_name", domainName)
           .maybeSingle();
 
@@ -207,12 +212,12 @@ Deno.serve(async (req) => {
               dns_records: dnsRecords,
               metadata: { dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() },
             })
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .eq("domain_name", domainName);
 
           dnsSetup = { siteIp, records: dnsRecords.length };
           console.log("DNS records queued for", domainName, "→", siteIp);
-          await log({ userId: user.id, serviceId: svc.id, action: "domain.dns.auto_setup", message: `${domainName} → ${siteIp}` });
+          await log({ userId: userId, serviceId: svc.id, action: "domain.dns.auto_setup", message: `${domainName} → ${siteIp}` });
         }
       } catch (dnsErr) {
         // DNS setup is best-effort — don't fail provisioning
@@ -221,7 +226,7 @@ Deno.serve(async (req) => {
     }
 
     await log({
-      userId: user.id, serviceId: svc.id,
+      userId: userId, serviceId: svc.id,
       action: "hosting.provision.success",
       message: wpDomain ?? label, req: wpBody, res: result.data, ms,
     });

@@ -142,6 +142,37 @@ Deno.serve(async (req) => {
               console.log("Existing domain linked:", domainFromMeta, "→", svc.id);
             }
           }
+          // Auto-provision wp.cloud site
+          if (svc) {
+            try {
+              console.log("Auto-provisioning site:", svc.id);
+              const provRes = await fetch(`${SUPABASE_URL}/functions/v1/provision-hosting`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                },
+                body: JSON.stringify({
+                  serviceId: svc.id,
+                  label: `${name}-site`,
+                  region: "dca",
+                  phpVersion: "8.4",
+                  planId: plan?.id ?? null,
+                  userId: cust.user_id,
+                  ...(domainFromMeta && { domainName: domainFromMeta }),
+                }),
+              });
+              const provData = await provRes.json();
+              console.log("Auto-provision result:", provRes.status, JSON.stringify(provData).substring(0, 300));
+
+              if (!provRes.ok) {
+                console.error("Auto-provision failed (admin can retry):", provData.error);
+              }
+            } catch (provErr) {
+              // Non-fatal — admin can retry via Provision button
+              console.error("Auto-provision error (non-fatal):", provErr);
+            }
+          }
         } else {
           console.log("Service already exists:", existing.id);
         }
