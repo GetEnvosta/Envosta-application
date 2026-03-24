@@ -70,6 +70,7 @@ function buildRegisterXml(domain: string, years: number, email: string): string 
               </dt_array>
             </item>
             <item key="f_whois_privacy">1</item>
+            <item key="auto_renew">1</item>
             <item key="contact_set">
               <dt_assoc>
                 <item key="owner">
@@ -178,7 +179,8 @@ Deno.serve(async (req) => {
   const registrantUa = req.headers.get("user-agent") ?? "unknown";
 
   try {
-    const { action, domainName, serviceId, years, nameservers } = await req.json();
+    const body = await req.json();
+    const { action, domainName, serviceId, years, nameservers, userId: bodyUserId, siteIp } = body;
     if (!domainName) return error("domainName is required");
 
     // CHECK availability — no auth required (public domain search)
@@ -195,10 +197,26 @@ Deno.serve(async (req) => {
       return json({ domainName, available });
     }
 
-    // All other actions require auth
+    // All other actions require auth — either a user session or service role with userId in body
+    let userId: string;
+    let userEmail: string;
+
     const userSb = supabaseForUser(req);
-    const { data: { user }, error: authErr } = await userSb.auth.getUser();
-    if (authErr || !user) return error("Unauthorized", 401);
+    const { data: { user } } = await userSb.auth.getUser();
+
+    if (user) {
+      userId = user.id;
+      userEmail = user.email ?? "domains@envosta.com";
+    } else if (bodyUserId) {
+      // Service role call from webhook — look up user
+      const sb2 = supabaseAdmin();
+      const { data: profile } = await sb2.from("users").select("id, email").eq("id", bodyUserId).maybeSingle();
+      if (!profile) return error("User not found", 404);
+      userId = profile.id;
+      userEmail = profile.email ?? "domains@envosta.com";
+    } else {
+      return error("Unauthorized", 401);
+    }
 
     const sb = supabaseAdmin();
 
@@ -210,20 +228,20 @@ Deno.serve(async (req) => {
       accepted_at: new Date().toISOString(),
       ip_address: registrantIp,
       user_agent: registrantUa,
-      user_id: user.id,
-      user_email: user.email,
+      user_id: userId,
+      user_email: userEmail,
       agreement_version: "2026-03-01",
       agreement_url: "https://envosta.com/legal/terms#domain-registration",
     };
 
     const { data: domain, error: domErr } = await sb.from("domains").insert({
-      user_id: user.id, service_id: serviceId ?? null, domain_name: domainName,
+      user_id: userId, service_id: serviceId ?? null, domain_name: domainName,
       tld, status: "pending_dns", registrar: "opensrs",
       metadata: { agreement_acceptance: agreementAcceptance },
     }).select().single();
     if (domErr) return error(domErr.message, 500);
 
-    const regXml = buildRegisterXml(domainName, years ?? 1, user.email ?? "domains@envosta.com");
+    const regXml = buildRegisterXml(domainName, years ?? 1, userEmail ?? "domains@envosta.com");
     const responseXml = await opensrsRequest(regXml);
     const parsed = parseResponse(responseXml);
     const ms = Date.now() - t0;
@@ -235,7 +253,7 @@ Deno.serve(async (req) => {
       await sb.from("domains").update({
         status: "failed", metadata: { agreement_acceptance: agreementAcceptance, error: parsed.responseText, code: parsed.responseCode },
       }).eq("id", domain.id);
-      await log({ userId: user.id, level: "error", action: "domain.register.failed", message: `${domainName}: ${parsed.responseText}`, ms });
+      await log({ userId: userId, level: "error", action: "domain.register.failed", message: `${domainName}: ${parsed.responseText}`, ms });
       return error(`Registration failed: ${parsed.responseText}`, 502);
     }
 
@@ -250,7 +268,7 @@ Deno.serve(async (req) => {
       },
     }).eq("id", domain.id);
 
-    await log({ userId: user.id, serviceId, action: "domain.register.success", message: domainName, ip: registrantIp, ua: registrantUa, ms });
+    await log({ userId: userId, serviceId, action: "domain.register.success", message: domainName, ip: registrantIp, ua: registrantUa, ms });
     return json({ domainId: domain.id, domainName, status: "registered" });
     }
 
@@ -302,17 +320,17 @@ Deno.serve(async (req) => {
       console.log("OpenSRS raw:", responseXml.substring(0, 500));
 
       if (!parsed.isSuccess) {
-        await log({ userId: user.id, level: "error", action: "domain.nameservers.failed", message: `${domainName}: ${parsed.responseText}`, ms });
+        await log({ userId: userId, level: "error", action: "domain.nameservers.failed", message: `${domainName}: ${parsed.responseText}`, ms });
         return error(`Nameserver update failed: ${parsed.responseText}`, 502);
       }
 
       // Update nameservers in our database
       await sb.from("domains")
         .update({ nameservers: nameservers })
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .eq("domain_name", domainName);
 
-      await log({ userId: user.id, action: "domain.nameservers.updated", message: `${domainName}: ${nameservers.join(", ")}`, ms });
+      await log({ userId: userId, action: "domain.nameservers.updated", message: `${domainName}: ${nameservers.join(", ")}`, ms });
       return json({ domainName, nameservers, success: true });
     }
 
@@ -374,7 +392,7 @@ Deno.serve(async (req) => {
       console.log("OpenSRS set_dns_zone:", parsed.responseCode, parsed.responseText);
 
       if (!parsed.isSuccess) {
-        await log({ userId: user.id, level: "error", action: "domain.dns.setup.failed", message: `${domainName}: ${parsed.responseText}`, ms });
+        await log({ userId: userId, level: "error", action: "domain.dns.setup.failed", message: `${domainName}: ${parsed.responseText}`, ms });
         return error(`DNS setup failed: ${parsed.responseText}`, 502);
       }
 
@@ -385,11 +403,62 @@ Deno.serve(async (req) => {
           dns_records: records,
           metadata: { dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() },
         })
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .eq("domain_name", domainName);
 
-      await log({ userId: user.id, action: "domain.dns.setup.complete", message: `${domainName} → ${siteIp} (${records.length} records)`, ms });
+      await log({ userId: userId, action: "domain.dns.setup.complete", message: `${domainName} → ${siteIp} (${records.length} records)`, ms });
       return json({ domainName, siteIp, records: records.length, success: true });
+    }
+
+    // TOGGLE AUTO-RENEW at OpenSRS
+    if (action === "set-auto-renew") {
+      const { autoRenew } = body;
+      if (typeof autoRenew !== "boolean") return error("autoRenew (boolean) is required");
+
+      const xml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
+<OPS_envelope>
+  <header><version>0.9</version></header>
+  <body>
+    <data_block>
+      <dt_assoc>
+        <item key="protocol">XCP</item>
+        <item key="object">DOMAIN</item>
+        <item key="action">MODIFY</item>
+        <item key="attributes">
+          <dt_assoc>
+            <item key="domain">${domainName}</item>
+            <item key="data">
+              <dt_assoc>
+                <item key="auto_renew">${autoRenew ? 1 : 0}</item>
+              </dt_assoc>
+            </item>
+          </dt_assoc>
+        </item>
+      </dt_assoc>
+    </data_block>
+  </body>
+</OPS_envelope>`;
+
+      const responseXml = await opensrsRequest(xml);
+      const parsed = parseResponse(responseXml);
+      const ms = Date.now() - t0;
+
+      console.log("OpenSRS auto-renew toggle:", parsed.responseCode, parsed.responseText);
+
+      if (!parsed.isSuccess) {
+        await log({ userId, level: "error", action: "domain.auto_renew.failed", message: `${domainName}: ${parsed.responseText}`, ms });
+        return error(`Auto-renew update failed: ${parsed.responseText}`, 502);
+      }
+
+      // Update in database
+      await sb.from("domains")
+        .update({ auto_renew: autoRenew })
+        .eq("user_id", userId)
+        .eq("domain_name", domainName);
+
+      await log({ userId, action: "domain.auto_renew.updated", message: `${domainName}: ${autoRenew ? "enabled" : "disabled"}`, ms });
+      return json({ domainName, autoRenew, success: true });
     }
 
     return error(`Unknown action: ${action}`, 400);

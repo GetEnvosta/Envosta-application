@@ -36,6 +36,7 @@ export async function getUserInvoices(limit: number = 20, userId?: string) {
 
 /**
  * Customer record with payment method info for a given user.
+ * Fetches card details from Stripe if a customer exists.
  */
 export async function getCustomerInfo(userId: string) {
   const supabase = await createClient();
@@ -44,6 +45,44 @@ export async function getCustomerInfo(userId: string) {
     .select('*')
     .eq('user_id', userId)
     .maybeSingle();
+
+  if (!data?.stripe_customer_id) return data;
+
+  // Fetch payment method from Stripe
+  try {
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) return data;
+
+    const res = await fetch(
+      `https://api.stripe.com/v1/customers/${data.stripe_customer_id}?expand[]=default_source&expand[]=invoice_settings.default_payment_method`,
+      { headers: { Authorization: `Bearer ${stripeKey}` } }
+    );
+    const customer = await res.json();
+
+    const pm = customer.invoice_settings?.default_payment_method;
+    if (pm?.card) {
+      return {
+        ...data,
+        card_brand: pm.card.brand,
+        card_last4: pm.card.last4,
+        card_expiry: `${String(pm.card.exp_month).padStart(2, '0')}/${pm.card.exp_year}`,
+      };
+    }
+
+    // Fallback: check default source
+    const src = customer.default_source;
+    if (src?.last4) {
+      return {
+        ...data,
+        card_brand: src.brand,
+        card_last4: src.last4,
+        card_expiry: `${String(src.exp_month).padStart(2, '0')}/${src.exp_year}`,
+      };
+    }
+  } catch (e) {
+    console.error('Failed to fetch payment method from Stripe:', e);
+  }
+
   return data;
 }
 

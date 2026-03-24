@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation';
 import { DnsManager } from './dns-manager';
 import { ConnectedSiteSwitcher } from '@/components/domains/connected-site-switcher';
 import { NameserverManager } from '@/components/domains/nameserver-manager';
+import { AutoRenewToggle } from '@/components/domains/auto-renew-toggle';
 
 export default async function DomainDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -55,20 +56,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
             <h2 className="text-sm font-semibold text-gray-900">Auto-Renew</h2>
             <p className="text-sm text-gray-500 mt-0.5">Automatically renew this domain before it expires.</p>
           </div>
-          <button
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-              domain.auto_renew ? 'bg-brand-600' : 'bg-gray-200'
-            }`}
-            role="switch"
-            aria-checked={domain.auto_renew}
-            disabled
-          >
-            <span
-              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                domain.auto_renew ? 'translate-x-5' : 'translate-x-0'
-              }`}
-            />
-          </button>
+          <AutoRenewToggle domainName={domain.domain_name} initialValue={domain.auto_renew ?? true} />
         </div>
       </div>
 

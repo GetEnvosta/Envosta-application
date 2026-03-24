@@ -1,4 +1,4 @@
-import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, json, error } from "../_shared/deps.ts";
+import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, json, error } from "../_shared/deps.ts";
 
 Deno.serve(async (req) => {
   const stripe = getStripe();
@@ -79,19 +79,63 @@ Deno.serve(async (req) => {
           }).select("id").single();
           console.log("Service created:", svc?.id, "err:", svcErr?.message);
 
-          // Auto-create domain record if domain was purchased with the plan
+          // Auto-register domain at OpenSRS if domain was purchased with the plan
           if (domainFromMeta && svc) {
             const { data: existingDomain } = await sb.from("domains")
-              .select("id").eq("domain_name", domainFromMeta).eq("user_id", cust.user_id).maybeSingle();
+              .select("id, status").eq("domain_name", domainFromMeta).eq("user_id", cust.user_id).maybeSingle();
+
             if (!existingDomain) {
-              await sb.from("domains").insert({
-                user_id: cust.user_id,
-                domain_name: domainFromMeta,
-                service_id: svc.id,
-                status: "pending_registration",
-                registrar: "opensrs",
-              });
-              console.log("Domain record created:", domainFromMeta, "linked to service:", svc.id);
+              // Call register-domain Edge Function to register at OpenSRS
+              // Uses service role key to bypass auth (webhook has no user session)
+              try {
+                console.log("Auto-registering domain:", domainFromMeta);
+                const regRes = await fetch(`${SUPABASE_URL}/functions/v1/register-domain`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                  },
+                  body: JSON.stringify({
+                    action: "register",
+                    domainName: domainFromMeta,
+                    serviceId: svc.id,
+                    years: 1,
+                    userId: cust.user_id,
+                  }),
+                });
+                const regData = await regRes.json();
+                console.log("Domain registration result:", regRes.status, JSON.stringify(regData));
+
+                if (regRes.ok) {
+                  // Link domain to service
+                  await sb.from("domains")
+                    .update({ service_id: svc.id })
+                    .eq("domain_name", domainFromMeta)
+                    .eq("user_id", cust.user_id);
+                } else {
+                  // Registration failed but don't fail the whole webhook
+                  // Create a pending record so admin can retry
+                  await sb.from("domains").insert({
+                    user_id: cust.user_id,
+                    domain_name: domainFromMeta,
+                    service_id: svc.id,
+                    status: "pending_registration",
+                    registrar: "opensrs",
+                    metadata: { registration_error: regData.error ?? "Unknown error" },
+                  });
+                  console.error("Domain registration failed:", domainFromMeta, regData.error);
+                }
+              } catch (regErr) {
+                console.error("Domain registration error (non-fatal):", regErr);
+                await sb.from("domains").insert({
+                  user_id: cust.user_id,
+                  domain_name: domainFromMeta,
+                  service_id: svc.id,
+                  status: "pending_registration",
+                  registrar: "opensrs",
+                  metadata: { registration_error: String(regErr) },
+                });
+              }
             } else {
               // Link existing domain to the new service
               await sb.from("domains").update({ service_id: svc.id }).eq("id", existingDomain.id);
