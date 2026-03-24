@@ -23,9 +23,8 @@ export default async function DomainsPage({
           <h1 className="text-xl font-semibold text-gray-900">Domains</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage all registered domains across the platform.</p>
         </div>
-        <Link href="/admin/domains/pricing" className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
-          <DollarSign className="w-4 h-4" />
-          TLD Pricing
+        <Link href="/admin/products/domains" className="text-sm text-admin-600 hover:text-admin-700 font-medium">
+          Manage TLD Pricing →
         </Link>
       </div>
 

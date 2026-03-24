@@ -23,7 +23,7 @@ export default async function ProductsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
 
         {/* Hosting Plans */}
-        <Link href="/admin/plans" className="card p-6 hover:border-admin-300 transition-colors group">
+        <Link href="/admin/products/plans" className="card p-6 hover:border-admin-300 transition-colors group">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Settings className="w-5 h-5 text-admin-500" />
@@ -48,7 +48,7 @@ export default async function ProductsPage() {
         </Link>
 
         {/* Domain TLDs */}
-        <Link href="/admin/domains/pricing" className="card p-6 hover:border-admin-300 transition-colors group">
+        <Link href="/admin/products/domains" className="card p-6 hover:border-admin-300 transition-colors group">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Globe className="w-5 h-5 text-admin-500" />
