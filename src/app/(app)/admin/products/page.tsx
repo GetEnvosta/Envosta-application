@@ -88,7 +88,7 @@ export default async function ProductsPage() {
         </Link>
 
         {/* Custom Invoices */}
-        <Link href="/admin/billing" className="card p-6 hover:border-admin-300 transition-colors group">
+        <Link href="/admin/products/invoices" className="card p-6 hover:border-admin-300 transition-colors group">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-admin-500" />
