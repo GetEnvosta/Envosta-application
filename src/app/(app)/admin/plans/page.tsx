@@ -1,15 +1,19 @@
 import { getAllPlans } from '@/services/plans';
 import { formatCents } from '@/lib/utils';
 import { EditPlanForm } from './edit-plan-form';
+import { SyncAllPlansButton } from './sync-all-button';
 
 export default async function AdminPlansPage() {
   const plans = await getAllPlans();
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Plans</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage hosting plans and pricing.</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Plans</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Manage hosting plans and pricing.</p>
+        </div>
+        <SyncAllPlansButton />
       </div>
 
       {/* Plans table */}
@@ -26,12 +30,13 @@ export default async function AdminPlansPage() {
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Domains</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Storage</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Active</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stripe</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {plans.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-sm text-gray-400">No plans found.</td>
+                  <td colSpan={9} className="p-8 text-center text-sm text-gray-400">No plans found.</td>
                 </tr>
               ) : plans.map((plan: any) => (
                 <tr key={plan.id} className="hover:bg-gray-50 transition-colors">
@@ -45,6 +50,11 @@ export default async function AdminPlansPage() {
                   <td className="px-5 py-3.5">
                     <span className={plan.is_active ? 'badge-green' : 'badge-gray'}>
                       {plan.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className={plan.stripe_price_id_monthly ? 'badge-green' : 'badge-yellow'}>
+                      {plan.stripe_price_id_monthly ? 'Synced' : 'Not synced'}
                     </span>
                   </td>
                 </tr>
