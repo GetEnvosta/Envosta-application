@@ -260,6 +260,18 @@ Deno.serve(async (req) => {
         if (!svc) return error("Service not found", 404);
         if (!svc.wp_cloud_site_id) return error("Site not yet provisioned", 400);
 
+        // Check if domain is already connected to a different site
+        const { data: existingLink } = await sb.from("domains")
+          .select("service_id, domain_name")
+          .eq("domain_name", domain)
+          .eq("user_id", svc.user_id)
+          .not("service_id", "is", null)
+          .maybeSingle();
+
+        if (existingLink && existingLink.service_id && existingLink.service_id !== siteId) {
+          return error(`This domain is already connected to another site. Disconnect it first.`, 409);
+        }
+
         const siteIp = (svc as any).metadata?.site_ip ?? null;
 
         // 1. Update primary domain on wp.cloud
@@ -289,8 +301,23 @@ Deno.serve(async (req) => {
           .eq("user_id", svc.user_id);
 
         // 4. Auto-setup DNS if domain is registered through Envosta
+        // If siteIp is missing, fetch it from wp.cloud
+        let resolvedIp = siteIp;
+        if (!resolvedIp) {
+          try {
+            const ipsResult = await wpcloudGet(`/api/v1.0/get-ips/${WPCLOUD_CLIENT}/${domain}`);
+            resolvedIp = ipsResult.data?.ip_address ?? ipsResult.data?.ipv4?.[0] ?? null;
+            if (resolvedIp) {
+              // Store it for future use
+              await sb.from("services").update({
+                metadata: { ...(svc as any).metadata, domain_name: domain, site_ip: resolvedIp },
+              }).eq("id", svc.id);
+            }
+          } catch { /* non-fatal */ }
+        }
+
         let dnsSetup = null;
-        if (siteIp) {
+        if (resolvedIp) {
           const { data: domainRecord } = await sb.from("domains")
             .select("registrar")
             .eq("domain_name", domain)
@@ -299,8 +326,8 @@ Deno.serve(async (req) => {
 
           if (domainRecord?.registrar === "opensrs") {
             const dnsRecords = [
-              { type: "A", subdomain: "", ip_address: siteIp, ttl: 3600 },
-              { type: "A", subdomain: "www", ip_address: siteIp, ttl: 3600 },
+              { type: "A", subdomain: "", ip_address: resolvedIp, ttl: 3600 },
+              { type: "A", subdomain: "www", ip_address: resolvedIp, ttl: 3600 },
               { type: "TXT", subdomain: "", text: "v=spf1 include:_spf.wpcloud.com ~all", ttl: 3600 },
               { type: "CNAME", subdomain: "wpcloud1._domainkey", hostname: "wpcloud1._domainkey.wpcloud.com", ttl: 3600 },
               { type: "CNAME", subdomain: "wpcloud2._domainkey", hostname: "wpcloud2._domainkey.wpcloud.com", ttl: 3600 },
@@ -310,13 +337,13 @@ Deno.serve(async (req) => {
             await sb.from("domains")
               .update({
                 dns_records: dnsRecords,
-                metadata: { dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() },
+                metadata: { dns_setup: "complete", site_ip: resolvedIp, dns_setup_at: new Date().toISOString() },
               })
               .eq("domain_name", domain)
               .eq("user_id", svc.user_id);
 
-            dnsSetup = { siteIp, records: dnsRecords.length };
-            console.log("Auto DNS setup for", domain, "→", siteIp);
+            dnsSetup = { siteIp: resolvedIp, records: dnsRecords.length };
+            console.log("Auto DNS setup for", domain, "→", resolvedIp);
           }
         }
 
