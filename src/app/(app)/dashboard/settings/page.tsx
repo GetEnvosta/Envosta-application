@@ -110,8 +110,19 @@ export default function SettingsPage() {
     }
   }
 
-  function handleSavePreferences() {
-    showToast('Preferences saved', 'success');
+  async function handleSavePreferences() {
+    try {
+      const supabase = createClient();
+      await supabase.from('users').update({
+        metadata: {
+          ...(user as any)?.metadata,
+          notification_prefs: { billing: true, sites: true, domains: true, marketing: false },
+        },
+      }).eq('id', user!.id);
+      showToast('Preferences saved', 'success');
+    } catch {
+      showToast('Failed to save preferences', 'error');
+    }
   }
 
   if (loading) {
@@ -289,7 +300,7 @@ export default function SettingsPage() {
             className="btn-danger"
             onClick={() => {
               setShowDeleteModal(false);
-              showToast('Account deletion is not yet available', 'info');
+              showToast('To delete your account, please contact support at support@envosta.com', 'info');
             }}
           >
             Delete My Account

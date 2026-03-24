@@ -184,7 +184,7 @@ export default async function CustomerDetailPage({
                   {domains.map((d: any) => (
                     <tr key={d.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-5 py-3 font-medium text-gray-900">
-                        {d.name}
+                        {d.domain_name ?? d.name}
                       </td>
                       <td className="px-5 py-3">
                         <span className={statusColor(d.status)}>{d.status}</span>

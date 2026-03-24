@@ -129,7 +129,35 @@ Deno.serve(async (req) => {
           },
         }).eq("id", siteId);
 
-        // 3. Unlink domains (but don't delete them)
+        // 3. Cancel domain renewal subscriptions for domains linked to this site
+        const { data: linkedDomains } = await sb.from("domains")
+          .select("domain_name")
+          .eq("service_id", siteId);
+
+        if (linkedDomains?.length) {
+          try {
+            const stripe = (await import("../_shared/deps.ts")).getStripe();
+            // Find and cancel domain renewal subscriptions
+            for (const dom of linkedDomains) {
+              const subs = await stripe.subscriptions.list({
+                customer: undefined, // search all
+                limit: 10,
+              });
+              // Search by metadata is not supported in list, so we check each
+              // This is acceptable for small numbers of domains per site
+              for (const s of subs.data) {
+                if (s.metadata?.type === "domain_renewal" && s.metadata?.domain_name === dom.domain_name && s.status !== "canceled") {
+                  await stripe.subscriptions.cancel(s.id);
+                  console.log("Cancelled domain renewal subscription:", s.id, dom.domain_name);
+                }
+              }
+            }
+          } catch (e) {
+            console.error("Domain renewal cancellation error (non-fatal):", e);
+          }
+        }
+
+        // 4. Unlink domains (but don't delete them)
         await sb.from("domains")
           .update({ service_id: null })
           .eq("service_id", siteId);

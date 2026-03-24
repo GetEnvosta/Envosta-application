@@ -278,16 +278,27 @@ Deno.serve(async (req) => {
               const domainToRenew = stripeSub.metadata.domain_name;
               console.log("Domain renewal invoice paid:", domainToRenew);
 
-              // Renew at OpenSRS (auto_renew should handle this, but update expiry in our DB)
-              await sb.from("domains")
-                .update({
-                  expiry_date: new Date(Date.now() + 365.25 * 86400000).toISOString(),
-                  metadata: { last_renewal: new Date().toISOString(), renewal_invoice: inv.id },
-                })
+              // Check if domain still exists in our DB
+              const { data: domainRecord } = await sb.from("domains")
+                .select("id, status")
                 .eq("domain_name", domainToRenew)
-                .eq("user_id", cust.user_id);
+                .eq("user_id", cust.user_id)
+                .maybeSingle();
 
-              console.log("Domain expiry updated:", domainToRenew);
+              if (!domainRecord) {
+                // Domain was deleted — cancel the renewal subscription
+                console.log("Domain no longer exists, cancelling renewal subscription:", domainToRenew);
+                await stripe.subscriptions.cancel(stripeSub.id);
+              } else {
+                // Update expiry in our DB
+                await sb.from("domains")
+                  .update({
+                    expiry_date: new Date(Date.now() + 365.25 * 86400000).toISOString(),
+                    metadata: { last_renewal: new Date().toISOString(), renewal_invoice: inv.id },
+                  })
+                  .eq("id", domainRecord.id);
+                console.log("Domain expiry updated:", domainToRenew);
+              }
             }
           } catch (renewErr) {
             console.error("Domain renewal processing error (non-fatal):", renewErr);

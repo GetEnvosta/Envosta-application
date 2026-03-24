@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { PlanSwitcher } from '@/components/sites/plan-switcher';
 import { SiteAddons } from '@/components/sites/site-addons';
+import { CancelSubscriptionButton } from '@/components/admin/cancel-subscription-button';
 import { Package } from 'lucide-react';
 
 export default async function ServiceDetailPage({
@@ -216,7 +217,7 @@ export default async function ServiceDetailPage({
                 {domains.map((d: any) => (
                   <tr key={d.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-3 font-medium text-gray-900">
-                      {d.name}
+                      {d.domain_name ?? d.name}
                     </td>
                     <td className="px-5 py-3">
                       <span className={statusColor(d.status)}>{d.status}</span>
@@ -290,6 +291,12 @@ export default async function ServiceDetailPage({
       {/* Danger Zone */}
       <div className="rounded-xl border border-red-200 bg-white p-6">
         <h2 className="text-sm font-semibold text-red-600 mb-1">Danger Zone</h2>
+        {service.status === 'active' && (
+          <div className="mb-4">
+            <p className="text-sm text-gray-500 mb-2">Cancel the subscription, stop billing, and soft-delete the site (30-day recovery).</p>
+            <CancelSubscriptionButton serviceId={service.id} siteName={service.label} />
+          </div>
+        )}
         <p className="text-sm text-gray-500 mb-4">
           Permanently delete this site from wp.cloud and remove all associated data.
         </p>
