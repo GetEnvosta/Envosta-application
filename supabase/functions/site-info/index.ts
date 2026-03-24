@@ -324,6 +324,72 @@ Deno.serve(async (req) => {
         return json({ domain, url: `https://${domain}`, dnsSetup, success: true });
       }
 
+      // Upgrade/downgrade plan — updates Stripe subscription + wp.cloud resources
+      case "change-plan": {
+        const { newPlanId } = await req.clone().json().catch(() => ({}));
+        if (!siteId || !newPlanId) return error("siteId and newPlanId are required");
+
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("services").select("*, subscriptions(id, stripe_subscription_id)").eq("id", siteId).single();
+        if (!svc) return error("Service not found", 404);
+        if (!svc.wp_cloud_site_id) return error("Site not yet provisioned", 400);
+
+        const { data: newPlan } = await sb.from("plans").select("*").eq("id", newPlanId).single();
+        if (!newPlan) return error("Plan not found", 404);
+
+        // 1. Update wp.cloud resources
+        const wpUpdates = [
+          { key: "default_php_conns", value: newPlan.default_php_workers },
+          { key: "php_memory_limit", value: newPlan.php_memory_mb },
+        ];
+
+        for (const u of wpUpdates) {
+          const result = await wpcloudPost(`/api/v1.0/site-meta/${svc.wp_cloud_site_id}/${u.key}/update`, { value: u.value });
+          console.log(`wp.cloud ${u.key}=${u.value}:`, result.status);
+        }
+
+        // Update storage quota
+        await wpcloudPost(`/api/v1.0/site-meta/${svc.wp_cloud_site_id}/space_quota/update`, { value: `${newPlan.storage_gb ?? 25}G` });
+
+        // 2. Update Stripe subscription price
+        const sub = (svc as any).subscriptions;
+        if (sub?.stripe_subscription_id && newPlan.stripe_price_id_monthly) {
+          try {
+            const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
+            // Get current subscription to find the item ID
+            const subRes = await fetch(`https://api.stripe.com/v1/subscriptions/${sub.stripe_subscription_id}`, {
+              headers: { Authorization: `Basic ${btoa(stripeKey + ":")}` },
+            });
+            const stripeSub = await subRes.json();
+            const itemId = stripeSub.items?.data?.[0]?.id;
+
+            if (itemId) {
+              // Update the subscription item to the new price
+              await fetch(`https://api.stripe.com/v1/subscriptions/${sub.stripe_subscription_id}`, {
+                method: "POST",
+                headers: {
+                  Authorization: `Basic ${btoa(stripeKey + ":")}`,
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: `items[0][id]=${itemId}&items[0][price]=${newPlan.stripe_price_id_monthly}&proration_behavior=create_prorations`,
+              });
+              console.log("Stripe subscription updated to:", newPlan.stripe_price_id_monthly);
+            }
+          } catch (stripeErr) {
+            console.error("Stripe update failed (wp.cloud updated):", stripeErr);
+          }
+        }
+
+        // 3. Update service + subscription records
+        await sb.from("services").update({ plan_id: newPlan.id }).eq("id", svc.id);
+        if (sub?.id) {
+          await sb.from("subscriptions").update({ plan_id: newPlan.id }).eq("id", sub.id);
+        }
+
+        await log({ userId: user.id, serviceId: svc.id, action: "hosting.plan_change", message: `Changed to ${newPlan.name} (${newPlan.slug})` });
+        return json({ success: true, plan: newPlan.name, slug: newPlan.slug });
+      }
+
       default:
         return error(`Unknown action: ${action}`, 400);
     }

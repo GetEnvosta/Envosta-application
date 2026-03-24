@@ -31,16 +31,29 @@ export async function POST(req: Request) {
     // SYNC PLAN TO STRIPE
     // ════════════════════════════════════════
     if (type === 'plan') {
-      const { name, description, price_monthly, price_yearly, is_active, stripe_product_id, stripe_price_id_monthly, stripe_price_id_yearly } = data;
+      const { name, description, price_monthly, price_yearly, is_active, stripe_product_id, stripe_price_id_monthly, stripe_price_id_yearly,
+        storage_gb, bandwidth_gb, default_php_workers, max_php_workers, php_memory_mb, onboarding_type, support_response_hours } = data;
 
       let productId = stripe_product_id;
+
+      const productMetadata = {
+        envosta_plan_id: id,
+        type: 'hosting_plan',
+        storage_gb: String(storage_gb ?? ''),
+        bandwidth_gb: String(bandwidth_gb ?? ''),
+        default_php_workers: String(default_php_workers ?? ''),
+        max_php_workers: String(max_php_workers ?? ''),
+        php_memory_mb: String(php_memory_mb ?? ''),
+        onboarding_type: onboarding_type ?? '',
+        support_response_hours: String(support_response_hours ?? ''),
+      };
 
       // Create or update product
       if (!productId) {
         const product = await stripe.products.create({
           name: `${name} Plan`,
           description: description || `${name} hosting plan`,
-          metadata: { envosta_plan_id: id, type: 'hosting_plan' },
+          metadata: productMetadata,
         });
         productId = product.id;
       } else {
@@ -48,6 +61,7 @@ export async function POST(req: Request) {
           name: `${name} Plan`,
           description: description || `${name} hosting plan`,
           active: is_active,
+          metadata: productMetadata,
         });
       }
 

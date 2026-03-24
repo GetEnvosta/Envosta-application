@@ -10,9 +10,12 @@ interface Plan {
   description: string | null;
   price_monthly: number;
   price_yearly: number;
-  disk_gb: number;
+  storage_gb: number;
   bandwidth_gb: number;
   php_workers: number;
+  default_php_workers: number;
+  max_php_workers: number;
+  php_memory_mb: number;
   sites_allowed: number;
   domains_allowed: number;
   has_staging: boolean;
@@ -20,9 +23,12 @@ interface Plan {
   has_cdn: boolean;
   has_waf: boolean;
   is_active: boolean;
+  onboarding_type: string;
+  support_response_hours: number;
   stripe_product_id?: string | null;
   stripe_price_id_monthly?: string | null;
   stripe_price_id_yearly?: string | null;
+  disk_gb?: number; // alias for storage_gb in some places
 }
 
 export function EditPlanForm({ plan }: { plan: Plan }) {
@@ -34,9 +40,11 @@ export function EditPlanForm({ plan }: { plan: Plan }) {
   const [description, setDescription] = useState(plan.description ?? '');
   const [priceMonthly, setPriceMonthly] = useState(plan.price_monthly);
   const [priceYearly, setPriceYearly] = useState(plan.price_yearly);
-  const [diskGb, setDiskGb] = useState(plan.disk_gb);
+  const [storageGb, setStorageGb] = useState(plan.storage_gb ?? plan.disk_gb ?? 25);
   const [bandwidthGb, setBandwidthGb] = useState(plan.bandwidth_gb);
-  const [phpWorkers, setPhpWorkers] = useState(plan.php_workers);
+  const [defaultPhpWorkers, setDefaultPhpWorkers] = useState(plan.default_php_workers ?? 2);
+  const [maxPhpWorkers, setMaxPhpWorkers] = useState(plan.max_php_workers ?? 2);
+  const [phpMemoryMb, setPhpMemoryMb] = useState(plan.php_memory_mb ?? 512);
   const [sitesAllowed, setSitesAllowed] = useState(plan.sites_allowed);
   const [domainsAllowed, setDomainsAllowed] = useState(plan.domains_allowed);
   const [hasStaging, setHasStaging] = useState(plan.has_staging);
@@ -44,6 +52,8 @@ export function EditPlanForm({ plan }: { plan: Plan }) {
   const [hasCdn, setHasCdn] = useState(plan.has_cdn);
   const [hasWaf, setHasWaf] = useState(plan.has_waf);
   const [isActive, setIsActive] = useState(plan.is_active);
+  const [onboardingType, setOnboardingType] = useState(plan.onboarding_type ?? 'standard');
+  const [supportResponseHours, setSupportResponseHours] = useState(plan.support_response_hours ?? 48);
 
   async function handleSave() {
     setSaving(true);
@@ -57,9 +67,13 @@ export function EditPlanForm({ plan }: { plan: Plan }) {
         description: description || null,
         price_monthly: priceMonthly,
         price_yearly: priceYearly,
-        disk_gb: diskGb,
+        storage_gb: storageGb,
+        disk_gb: storageGb,
         bandwidth_gb: bandwidthGb,
-        php_workers: phpWorkers,
+        default_php_workers: defaultPhpWorkers,
+        max_php_workers: maxPhpWorkers,
+        php_memory_mb: phpMemoryMb,
+        php_workers: defaultPhpWorkers,
         sites_allowed: sitesAllowed,
         domains_allowed: domainsAllowed,
         has_staging: hasStaging,
@@ -67,6 +81,8 @@ export function EditPlanForm({ plan }: { plan: Plan }) {
         has_cdn: hasCdn,
         has_waf: hasWaf,
         is_active: isActive,
+        onboarding_type: onboardingType,
+        support_response_hours: supportResponseHours,
       })
       .eq('id', plan.id);
 
@@ -152,70 +168,82 @@ export function EditPlanForm({ plan }: { plan: Plan }) {
             </div>
           </div>
 
-          {/* Number fields */}
+          {/* Pricing */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="label">Monthly price (cents)</label>
-              <input
-                type="number"
-                className="input"
-                value={priceMonthly}
-                onChange={e => setPriceMonthly(Number(e.target.value))}
-              />
+              <label className="label">Monthly price (cents CAD)</label>
+              <input type="number" className="input" value={priceMonthly}
+                onChange={e => setPriceMonthly(Number(e.target.value))} />
             </div>
             <div>
-              <label className="label">Yearly price (cents)</label>
-              <input
-                type="number"
-                className="input"
-                value={priceYearly}
-                onChange={e => setPriceYearly(Number(e.target.value))}
-              />
+              <label className="label">Yearly price (cents CAD)</label>
+              <input type="number" className="input" value={priceYearly}
+                onChange={e => setPriceYearly(Number(e.target.value))} />
             </div>
+          </div>
+
+          {/* wp.cloud Resources */}
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-2">wp.cloud Resources</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="label">Disk (GB)</label>
-              <input
-                type="number"
-                className="input"
-                value={diskGb}
-                onChange={e => setDiskGb(Number(e.target.value))}
-              />
+              <label className="label">Storage (GB)</label>
+              <input type="number" className="input" value={storageGb}
+                onChange={e => setStorageGb(Number(e.target.value))} />
             </div>
             <div>
               <label className="label">Bandwidth (GB)</label>
-              <input
-                type="number"
-                className="input"
-                value={bandwidthGb}
-                onChange={e => setBandwidthGb(Number(e.target.value))}
-              />
+              <input type="number" className="input" value={bandwidthGb}
+                onChange={e => setBandwidthGb(Number(e.target.value))} />
+              <p className="text-xs text-gray-400 mt-1">0 = unlimited</p>
             </div>
             <div>
-              <label className="label">PHP workers</label>
-              <input
-                type="number"
-                className="input"
-                value={phpWorkers}
-                onChange={e => setPhpWorkers(Number(e.target.value))}
-              />
+              <label className="label">Default PHP Workers</label>
+              <input type="number" className="input" value={defaultPhpWorkers}
+                onChange={e => setDefaultPhpWorkers(Number(e.target.value))} />
             </div>
+            <div>
+              <label className="label">Max PHP Workers</label>
+              <input type="number" className="input" value={maxPhpWorkers}
+                onChange={e => setMaxPhpWorkers(Number(e.target.value))} />
+            </div>
+            <div>
+              <label className="label">PHP Memory (MB)</label>
+              <select className="input" value={phpMemoryMb}
+                onChange={e => setPhpMemoryMb(Number(e.target.value))}>
+                <option value={512}>512 MB</option>
+                <option value={1024}>1024 MB</option>
+                <option value={1536}>1536 MB</option>
+                <option value={2048}>2048 MB</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Limits & Support */}
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-2">Limits & Support</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="label">Sites allowed</label>
-              <input
-                type="number"
-                className="input"
-                value={sitesAllowed}
-                onChange={e => setSitesAllowed(Number(e.target.value))}
-              />
+              <input type="number" className="input" value={sitesAllowed}
+                onChange={e => setSitesAllowed(Number(e.target.value))} />
             </div>
             <div>
               <label className="label">Domains allowed</label>
-              <input
-                type="number"
-                className="input"
-                value={domainsAllowed}
-                onChange={e => setDomainsAllowed(Number(e.target.value))}
-              />
+              <input type="number" className="input" value={domainsAllowed}
+                onChange={e => setDomainsAllowed(Number(e.target.value))} />
+            </div>
+            <div>
+              <label className="label">Onboarding Type</label>
+              <select className="input" value={onboardingType}
+                onChange={e => setOnboardingType(e.target.value)}>
+                <option value="standard">Standard</option>
+                <option value="guided">Guided</option>
+                <option value="concierge">Concierge</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Support Response (hours)</label>
+              <input type="number" className="input" value={supportResponseHours}
+                onChange={e => setSupportResponseHours(Number(e.target.value))} />
             </div>
           </div>
 
