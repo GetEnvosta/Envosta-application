@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, MessageSquare } from 'lucide-react';
 import { TicketReplyForm } from '@/components/admin/ticket-reply-form';
 import { TicketSidebar } from '@/components/admin/ticket-sidebar';
+import { OnboardingControls } from '@/components/admin/onboarding-controls';
 
 function typeBadge(type: string) {
   switch (type) {
@@ -122,6 +123,17 @@ export default async function AdminTicketDetailPage({
               </div>
             )}
           </div>
+
+          {/* Onboarding controls for sales tickets */}
+          {ticket.type === 'sales' && (
+            <OnboardingControls
+              ticketId={ticket.id}
+              currentStatus={(ticket.metadata as any)?.onboarding_status ?? 'not_started'}
+              onboardingType={(ticket.metadata as any)?.onboarding ?? 'self'}
+              callDate={(ticket.metadata as any)?.onboarding_call_date ?? null}
+              notes={(ticket.metadata as any)?.onboarding_notes ?? null}
+            />
+          )}
 
           {/* Reply form */}
           <TicketReplyForm ticketId={ticket.id} ticketStatus={ticket.status} />

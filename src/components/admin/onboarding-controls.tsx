@@ -7,21 +7,15 @@ import { Loader2, Save, Calendar, ClipboardCheck } from 'lucide-react';
 
 const STATUS_OPTIONS = [
   { value: 'not_started', label: 'Not Started', color: 'bg-gray-100 text-gray-600' },
-  { value: 'scheduled', label: 'Scheduled', color: 'bg-blue-50 text-blue-700' },
+  { value: 'scheduled', label: 'Call Scheduled', color: 'bg-blue-50 text-blue-700' },
   { value: 'in_progress', label: 'In Progress', color: 'bg-amber-50 text-amber-700' },
   { value: 'completed', label: 'Completed', color: 'bg-emerald-50 text-emerald-700' },
 ];
 
-const TYPE_LABELS: Record<string, string> = {
-  standard: 'Standard — Consultation + WordPress setup',
-  guided: 'Guided — Standard + SEO configured',
-  concierge: 'Concierge — Full setup with WooCommerce, email, security',
-};
-
-export function OnboardingControls({ serviceId, currentStatus, currentType, callDate, notes }: {
-  serviceId: string;
+export function OnboardingControls({ ticketId, currentStatus, onboardingType, callDate, notes }: {
+  ticketId: string;
   currentStatus: string;
-  currentType: string;
+  onboardingType: string;
   callDate: string | null;
   notes: string | null;
 }) {
@@ -40,18 +34,23 @@ export function OnboardingControls({ serviceId, currentStatus, currentType, call
 
     const supabase = createClient();
     const { error: err } = await supabase
-      .from('services')
+      .from('tickets')
       .update({
-        onboarding_status: status,
-        onboarding_call_date: date || null,
-        onboarding_notes: adminNotes || null,
+        metadata: {
+          onboarding_status: status,
+          onboarding_type: onboardingType,
+          onboarding_call_date: date || null,
+          onboarding_notes: adminNotes || null,
+        },
+        // Close ticket when onboarding is completed
+        ...(status === 'completed' ? { status: 'closed' } : {}),
       })
-      .eq('id', serviceId);
+      .eq('id', ticketId);
 
     if (err) {
       setError(err.message);
     } else {
-      setSuccess('Onboarding status updated');
+      setSuccess('Onboarding updated');
       setTimeout(() => setSuccess(''), 3000);
       router.refresh();
     }
@@ -59,6 +58,7 @@ export function OnboardingControls({ serviceId, currentStatus, currentType, call
   }
 
   const statusOption = STATUS_OPTIONS.find(s => s.value === status);
+  const typeLabel = onboardingType === 'guided' ? 'Customer wants an onboarding call' : 'Customer chose self-guided setup';
 
   return (
     <div className="card p-6 mb-6">
@@ -69,31 +69,33 @@ export function OnboardingControls({ serviceId, currentStatus, currentType, call
           {statusOption?.label}
         </span>
       </div>
-      <p className="text-xs text-gray-500 mb-4">{TYPE_LABELS[currentType] ?? currentType}</p>
+      <p className="text-xs text-gray-500 mb-4">{typeLabel}</p>
 
       {error && <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700 mb-4">{error}</div>}
       {success && <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-700 mb-4">{success}</div>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div>
-          <label className="label">Status</label>
+          <label className="label">Onboarding Status</label>
           <select className="input" value={status} onChange={e => setStatus(e.target.value)}>
             {STATUS_OPTIONS.map(s => (
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
         </div>
-        <div>
-          <label className="label flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" /> Call Date
-          </label>
-          <input
-            type="datetime-local"
-            className="input"
-            value={date ? date.slice(0, 16) : ''}
-            onChange={e => setDate(e.target.value)}
-          />
-        </div>
+        {onboardingType === 'guided' && (
+          <div>
+            <label className="label flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5" /> Call Date
+            </label>
+            <input
+              type="datetime-local"
+              className="input"
+              value={date ? date.slice(0, 16) : ''}
+              onChange={e => setDate(e.target.value)}
+            />
+          </div>
+        )}
       </div>
 
       <div className="mb-4">
@@ -113,7 +115,7 @@ export function OnboardingControls({ serviceId, currentStatus, currentType, call
         className="btn-admin text-sm inline-flex items-center gap-1.5"
       >
         {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-        Save Onboarding Status
+        Save
       </button>
     </div>
   );
