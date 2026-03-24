@@ -1,17 +1,20 @@
-import { getAllActiveSubscriptions } from '@/services/subscriptions';
+import { getAllActiveSubscriptions, getAllSubscriptionsAdmin } from '@/services/subscriptions';
 import { getAdminBillingStats, getAdminRecentInvoices } from '@/services/billing';
-import { formatCents, formatDate, statusColor } from '@/lib/utils';
-import { DollarSign, Receipt, AlertCircle } from 'lucide-react';
+import { formatCents } from '@/lib/utils';
+import { DollarSign, Receipt, AlertCircle, Users } from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
 import { InvoiceFilters } from './invoice-filters';
+import { SubscriptionFilters } from './subscription-filters';
 
 export default async function AdminBillingPage() {
   const [
     activeSubscriptions,
+    allSubscriptions,
     { paidInvoicesCount, outstandingInvoicesCount },
     recentInvoices,
   ] = await Promise.all([
     getAllActiveSubscriptions(),
+    getAllSubscriptionsAdmin(),
     getAdminBillingStats(),
     getAdminRecentInvoices(100),
   ]);
@@ -20,12 +23,7 @@ export default async function AdminBillingPage() {
     (sum: number, sub: any) => sum + (sub.plans?.price_monthly ?? 0), 0
   );
 
-  const subsByPlan: Record<string, { name: string; count: number }> = {};
-  for (const sub of activeSubscriptions) {
-    const planName = (sub.plans as any)?.name ?? 'Unknown';
-    if (!subsByPlan[planName]) subsByPlan[planName] = { name: planName, count: 0 };
-    subsByPlan[planName].count++;
-  }
+  const activeCount = allSubscriptions.filter((s: any) => s.status === 'active').length;
 
   // Tag each invoice with a category
   const taggedInvoices = recentInvoices.map((inv: any) => {
@@ -45,31 +43,24 @@ export default async function AdminBillingPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <StatCard label="Monthly recurring revenue" value={formatCents(mrr)} icon={DollarSign} sub="MRR from active subscriptions" />
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+        <StatCard label="Monthly recurring revenue" value={formatCents(mrr)} icon={DollarSign} sub="MRR" />
+        <StatCard label="Active subscriptions" value={activeCount} icon={Users} />
         <StatCard label="Paid invoices" value={paidInvoicesCount} icon={Receipt} />
-        <StatCard label="Outstanding invoices" value={outstandingInvoicesCount} icon={AlertCircle} sub="Open or draft" />
+        <StatCard label="Outstanding" value={outstandingInvoicesCount} icon={AlertCircle} sub="Open or draft" />
       </div>
 
-      {/* Subscriptions by plan */}
-      <div className="card mb-8">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-900">Subscriptions by Plan</h2>
-        </div>
-        <div className="divide-y divide-gray-100">
-          {Object.values(subsByPlan).length === 0 ? (
-            <div className="p-8 text-center text-sm text-gray-400">No active subscriptions.</div>
-          ) : Object.values(subsByPlan).map(plan => (
-            <div key={plan.name} className="px-5 py-3.5 flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-900">{plan.name}</span>
-              <span className="badge-indigo">{plan.count} active</span>
-            </div>
-          ))}
-        </div>
+      {/* Subscriptions */}
+      <div className="mb-8">
+        <h2 className="text-sm font-semibold text-gray-900 mb-4">Subscriptions</h2>
+        <SubscriptionFilters subscriptions={allSubscriptions as any} />
       </div>
 
-      {/* Invoices with filters */}
-      <InvoiceFilters invoices={taggedInvoices} />
+      {/* Invoices */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-900 mb-4">Invoices</h2>
+        <InvoiceFilters invoices={taggedInvoices} />
+      </div>
     </div>
   );
 }

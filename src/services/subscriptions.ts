@@ -101,3 +101,16 @@ export async function getAllActiveSubscriptions() {
     .eq('status', 'active');
   return data ?? [];
 }
+
+/**
+ * Admin: all subscriptions with customer + plan info for billing page.
+ */
+export async function getAllSubscriptionsAdmin() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('subscriptions')
+    .select('*, plans(name, slug, price_monthly), customers(user_id, billing_email, users(full_name, email))')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  return data ?? [];
+}
