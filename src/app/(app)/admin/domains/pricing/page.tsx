@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
-import { Loader2, Plus, Save, Trash2, DollarSign } from 'lucide-react';
+import { Loader2, Plus, Save, Trash2, DollarSign, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 interface TldPricing {
@@ -20,6 +20,7 @@ export default function DomainPricingPage() {
   const [pricing, setPricing] = useState<TldPricing[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -82,8 +83,40 @@ export default function DomainPricingPage() {
 
     if (err) {
       setError(`Failed to update .${item.tld}: ${err.message}`);
-    } else {
-      setSuccess(`.${item.tld} pricing updated`);
+      setSaving(null);
+      return;
+    }
+
+    // Sync to Stripe
+    try {
+      const res = await fetch('/api/admin/sync-stripe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'domain_tld',
+          id: item.id,
+          data: {
+            tld: item.tld,
+            renewal_price_cad: item.renewal_price_cad,
+            stripe_product_id: item.stripe_product_id,
+            stripe_price_id_yearly: item.stripe_price_id_yearly,
+            active: item.active,
+          },
+        }),
+      });
+      const result = await res.json();
+      if (res.ok && result.stripe_product_id) {
+        setPricing(prev => prev.map(p => p.id === item.id ? {
+          ...p,
+          stripe_product_id: result.stripe_product_id,
+          stripe_price_id_yearly: result.stripe_price_id_yearly,
+        } : p));
+        setSuccess(`.${item.tld} pricing updated + synced to Stripe`);
+      } else {
+        setSuccess(`.${item.tld} pricing updated (Stripe sync: ${result.error ?? 'failed'})`);
+      }
+    } catch {
+      setSuccess(`.${item.tld} pricing updated (Stripe sync failed)`);
     }
     setSaving(null);
   }
@@ -158,13 +191,42 @@ export default function DomainPricingPage() {
           <h1 className="text-xl font-semibold text-gray-900">Domain Pricing</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage TLD registration, renewal, and transfer prices (CAD).</p>
         </div>
-        <button
-          onClick={() => setShowAdd(!showAdd)}
-          className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5"
-        >
-          <Plus className="w-4 h-4" />
-          Add TLD
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              setSyncing(true);
+              setError('');
+              setSuccess('');
+              try {
+                const res = await fetch('/api/admin/sync-stripe', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ type: 'sync_all' }),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                  setSuccess(`Synced: ${data.results?.join(', ') || 'All up to date'}`);
+                  fetchPricing();
+                } else {
+                  setError(data.error ?? 'Sync failed');
+                }
+              } catch { setError('Sync failed'); }
+              setSyncing(false);
+            }}
+            disabled={syncing}
+            className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync All to Stripe'}
+          </button>
+          <button
+            onClick={() => setShowAdd(!showAdd)}
+            className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            Add TLD
+          </button>
+        </div>
       </div>
 
       {error && (

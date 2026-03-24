@@ -20,6 +20,9 @@ interface Plan {
   has_cdn: boolean;
   has_waf: boolean;
   is_active: boolean;
+  stripe_product_id?: string | null;
+  stripe_price_id_monthly?: string | null;
+  stripe_price_id_yearly?: string | null;
 }
 
 export function EditPlanForm({ plan }: { plan: Plan }) {
@@ -67,8 +70,46 @@ export function EditPlanForm({ plan }: { plan: Plan }) {
       })
       .eq('id', plan.id);
 
+    if (error) {
+      setSaving(false);
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 3000);
+      return;
+    }
+
+    // Sync to Stripe
+    try {
+      const res = await fetch('/api/admin/sync-stripe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'plan',
+          id: plan.id,
+          data: {
+            name,
+            description: description || null,
+            price_monthly: priceMonthly,
+            price_yearly: priceYearly,
+            is_active: isActive,
+            stripe_product_id: plan.stripe_product_id,
+            stripe_price_id_monthly: plan.stripe_price_id_monthly,
+            stripe_price_id_yearly: plan.stripe_price_id_yearly,
+          },
+        }),
+      });
+      const result = await res.json();
+      if (res.ok && result.stripe_product_id) {
+        // Update local plan reference with new Stripe IDs
+        plan.stripe_product_id = result.stripe_product_id;
+        plan.stripe_price_id_monthly = result.stripe_price_id_monthly;
+        plan.stripe_price_id_yearly = result.stripe_price_id_yearly;
+      }
+    } catch (e) {
+      console.error('Stripe sync failed (plan saved to DB):', e);
+    }
+
     setSaving(false);
-    setStatus(error ? 'error' : 'success');
+    setStatus('success');
     setTimeout(() => setStatus('idle'), 3000);
   }
 
