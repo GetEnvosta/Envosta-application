@@ -35,7 +35,7 @@ export default async function ServicesPage({
 
       {/* Search + Filter */}
       <form method="GET" className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"

@@ -18,14 +18,9 @@ export default async function DomainsPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Domains</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage all registered domains across the platform.</p>
-        </div>
-        <Link href="/admin/products/domains" className="text-sm text-admin-600 hover:text-admin-700 font-medium">
-          Manage TLD Pricing →
-        </Link>
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold text-gray-900">Domains</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Manage all registered domains across the platform.</p>
       </div>
 
       {/* Filters */}

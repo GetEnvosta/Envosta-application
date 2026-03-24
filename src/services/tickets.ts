@@ -82,6 +82,20 @@ export async function getTicketCounts() {
 /**
  * Admin: get full ticket detail with customer context.
  */
+/**
+ * Admin: recent tickets by type for dashboard.
+ */
+export async function getRecentTicketsByType(type: string, limit: number = 5) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('tickets')
+    .select('id, subject, type, status, priority, created_at, updated_at, metadata, users(full_name, email)')
+    .eq('type', type)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  return data ?? [];
+}
+
 export async function getAdminTicketDetail(id: string) {
   const supabase = await createClient();
   const { data: ticket } = await supabase
