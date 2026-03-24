@@ -197,6 +197,64 @@ export async function POST(req: Request) {
     }
 
     // ════════════════════════════════════════
+    // SYNC ADDON PRODUCT TO STRIPE
+    // ════════════════════════════════════════
+    if (type === 'addon') {
+      const { name, description, price_cad, billing_type, is_active, stripe_product_id, stripe_price_id, slug } = data;
+
+      let productId = stripe_product_id;
+
+      if (!productId) {
+        const product = await stripe.products.create({
+          name,
+          description: description || `${name} add-on`,
+          metadata: { envosta_addon_slug: slug, type: 'addon' },
+        });
+        productId = product.id;
+      } else {
+        await stripe.products.update(productId, {
+          name,
+          description: description || `${name} add-on`,
+          active: is_active,
+        });
+      }
+
+      let priceId = stripe_price_id;
+      const interval = billing_type === 'yearly' ? 'year' : billing_type === 'monthly' ? 'month' : null;
+
+      if (priceId) {
+        const existingPrice = await stripe.prices.retrieve(priceId);
+        if (existingPrice.unit_amount !== price_cad) {
+          await stripe.prices.update(priceId, { active: false });
+          priceId = null; // force create new
+        }
+      }
+
+      if (!priceId && price_cad > 0) {
+        const priceParams: any = {
+          product: productId,
+          unit_amount: price_cad,
+          currency: 'cad',
+          metadata: { envosta_addon_slug: slug },
+        };
+        if (interval) priceParams.recurring = { interval };
+        const newPrice = await stripe.prices.create(priceParams);
+        priceId = newPrice.id;
+      }
+
+      await supabase.from('addon_products').update({
+        stripe_product_id: productId,
+        stripe_price_id: priceId,
+      }).eq('id', id);
+
+      return NextResponse.json({
+        success: true,
+        stripe_product_id: productId,
+        stripe_price_id: priceId,
+      });
+    }
+
+    // ════════════════════════════════════════
     // SYNC ALL — bulk sync everything missing Stripe IDs
     // ════════════════════════════════════════
     if (type === 'sync_all') {
@@ -227,6 +285,20 @@ export async function POST(req: Request) {
           });
           if (res.ok) results.push(`TLD: .${tld.tld} ✓`);
           else results.push(`TLD: .${tld.tld} ✗`);
+        }
+      }
+
+      // Sync addons
+      const { data: addons } = await supabase.from('addon_products').select('*').eq('is_active', true);
+      for (const addon of addons ?? []) {
+        if (!addon.stripe_product_id || !addon.stripe_price_id) {
+          const res = await fetch(req.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'addon', id: addon.id, data: addon }),
+          });
+          if (res.ok) results.push(`Addon: ${addon.name} ✓`);
+          else results.push(`Addon: ${addon.name} ✗`);
         }
       }
 
