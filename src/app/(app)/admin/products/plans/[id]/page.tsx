@@ -61,8 +61,51 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
       features: plan.features,
     }).eq('id', planId);
 
-    if (err) setError(err.message);
-    else { setSuccess('Plan updated'); setTimeout(() => setSuccess(''), 3000); }
+    if (err) { setError(err.message); setSaving(false); return; }
+
+    // Sync to Stripe
+    try {
+      const syncRes = await fetch('/api/admin/sync-stripe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'plan',
+          id: planId,
+          data: {
+            name: plan.name,
+            description: plan.description,
+            price_monthly: plan.price_monthly,
+            price_yearly: plan.price_yearly,
+            is_active: plan.is_active,
+            stripe_product_id: plan.stripe_product_id,
+            stripe_price_id_monthly: plan.stripe_price_id_monthly,
+            stripe_price_id_yearly: plan.stripe_price_id_yearly,
+            storage_gb: plan.storage_gb,
+            bandwidth_gb: plan.bandwidth_gb,
+            default_php_workers: plan.default_php_workers,
+            max_php_workers: plan.max_php_workers,
+            php_memory_mb: plan.php_memory_mb,
+            onboarding_type: plan.onboarding_type,
+            support_response_hours: plan.support_response_hours,
+          },
+        }),
+      });
+      const syncData = await syncRes.json();
+      if (syncRes.ok && syncData.stripe_product_id) {
+        setPlan((prev: any) => ({
+          ...prev,
+          stripe_product_id: syncData.stripe_product_id,
+          stripe_price_id_monthly: syncData.stripe_price_id_monthly,
+          stripe_price_id_yearly: syncData.stripe_price_id_yearly,
+        }));
+        setSuccess('Plan saved & synced to Stripe');
+      } else {
+        setSuccess('Plan saved (Stripe sync: ' + (syncData.error ?? 'failed') + ')');
+      }
+    } catch {
+      setSuccess('Plan saved (Stripe sync failed)');
+    }
+    setTimeout(() => setSuccess(''), 5000);
     setSaving(false);
   }
 
