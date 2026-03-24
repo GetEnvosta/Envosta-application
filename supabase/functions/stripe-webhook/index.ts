@@ -112,6 +112,33 @@ Deno.serve(async (req) => {
                     .update({ service_id: svc.id })
                     .eq("domain_name", domainFromMeta)
                     .eq("user_id", cust.user_id);
+
+                  // Create yearly renewal subscription — first year free (already paid at checkout)
+                  // trial_end = 1 year from now, then Stripe auto-charges yearly
+                  try {
+                    const tld = domainFromMeta.split(".").pop()?.toLowerCase() ?? "";
+                    const { data: tldPricing } = await sb.from("domain_pricing")
+                      .select("stripe_price_id_yearly")
+                      .eq("tld", tld).maybeSingle();
+
+                    if (tldPricing?.stripe_price_id_yearly) {
+                      const stripe = getStripe();
+                      const oneYearFromNow = Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60);
+                      await stripe.subscriptions.create({
+                        customer: custStripeId,
+                        items: [{ price: tldPricing.stripe_price_id_yearly }],
+                        trial_end: oneYearFromNow,
+                        metadata: {
+                          supabase_user_id: cust.user_id,
+                          domain_name: domainFromMeta,
+                          type: "domain_renewal",
+                        },
+                      });
+                      console.log("Domain renewal subscription created for:", domainFromMeta, "trial until:", new Date(oneYearFromNow * 1000).toISOString());
+                    }
+                  } catch (renewErr) {
+                    console.error("Domain renewal subscription failed (non-fatal):", renewErr);
+                  }
                 } else {
                   // Registration failed but don't fail the whole webhook
                   // Create a pending record so admin can retry
