@@ -19,9 +19,11 @@ import {
   AlertTriangle,
   Layers,
   Lock,
+  Package,
 } from 'lucide-react';
 import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-switcher';
 import { PlanSwitcher } from '@/components/sites/plan-switcher';
+import { SiteAddons } from '@/components/sites/site-addons';
 
 export default async function SiteDetailPage({
   params,
@@ -203,6 +205,16 @@ export default async function SiteDetailPage({
         </h2>
         <p className="text-sm text-gray-500 mb-4">Upgrade or downgrade your hosting plan. Changes take effect immediately with prorated billing.</p>
         <PlanSwitcher siteId={id} currentPlanId={site.plan_id} />
+      </div>
+
+      {/* Add-ons */}
+      <div className="card p-6 mb-4">
+        <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+          <Package className="w-4 h-4 text-gray-400" />
+          Add-ons
+        </h2>
+        <p className="text-sm text-gray-500 mb-4">Enable or disable add-ons for this site. Billing is prorated.</p>
+        <SiteAddons siteId={id} />
       </div>
 
       {/* Connected Domain */}
