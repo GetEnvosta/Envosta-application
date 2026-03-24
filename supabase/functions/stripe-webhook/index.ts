@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
                     if (tldPricing?.stripe_price_id_yearly) {
                       const stripe = getStripe();
                       const oneYearFromNow = Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60);
-                      await stripe.subscriptions.create({
+                      const renewalSub = await stripe.subscriptions.create({
                         customer: custStripeId,
                         items: [{ price: tldPricing.stripe_price_id_yearly }],
                         trial_end: oneYearFromNow,
@@ -135,7 +135,14 @@ Deno.serve(async (req) => {
                           type: "domain_renewal",
                         },
                       });
-                      console.log("Domain renewal subscription created for:", domainFromMeta, "trial until:", new Date(oneYearFromNow * 1000).toISOString());
+
+                      // Store renewal subscription ID on the domain record for fast lookup
+                      await sb.from("domains")
+                        .update({ metadata: { renewal_stripe_subscription_id: renewalSub.id, dns_setup: "pending" } })
+                        .eq("domain_name", domainFromMeta)
+                        .eq("user_id", cust.user_id);
+
+                      console.log("Domain renewal subscription created:", renewalSub.id, "for:", domainFromMeta);
                     }
                   } catch (renewErr) {
                     console.error("Domain renewal subscription failed (non-fatal):", renewErr);

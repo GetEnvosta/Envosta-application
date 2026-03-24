@@ -130,25 +130,23 @@ Deno.serve(async (req) => {
         }).eq("id", siteId);
 
         // 3. Cancel domain renewal subscriptions for domains linked to this site
+        // Cancel domain renewal subscriptions using stored Stripe sub IDs
         const { data: linkedDomains } = await sb.from("domains")
-          .select("domain_name")
+          .select("domain_name, metadata")
           .eq("service_id", siteId);
 
         if (linkedDomains?.length) {
           try {
             const stripe = (await import("../_shared/deps.ts")).getStripe();
-            // Find and cancel domain renewal subscriptions
             for (const dom of linkedDomains) {
-              const subs = await stripe.subscriptions.list({
-                customer: undefined, // search all
-                limit: 10,
-              });
-              // Search by metadata is not supported in list, so we check each
-              // This is acceptable for small numbers of domains per site
-              for (const s of subs.data) {
-                if (s.metadata?.type === "domain_renewal" && s.metadata?.domain_name === dom.domain_name && s.status !== "canceled") {
-                  await stripe.subscriptions.cancel(s.id);
-                  console.log("Cancelled domain renewal subscription:", s.id, dom.domain_name);
+              const renewalSubId = (dom.metadata as any)?.renewal_stripe_subscription_id;
+              if (renewalSubId) {
+                try {
+                  await stripe.subscriptions.cancel(renewalSubId);
+                  console.log("Cancelled domain renewal:", renewalSubId, dom.domain_name);
+                } catch (e: any) {
+                  // Already cancelled or not found — that's fine
+                  console.log("Renewal cancel skipped:", renewalSubId, e.message);
                 }
               }
             }

@@ -20,12 +20,19 @@ Deno.serve(async (req) => {
 
   try {
     // ═══ 1. CHECK SITE IPs ═══
-    const { data: activeSites } = await sb.from("services")
-      .select("id, label, wp_cloud_site_id, wp_cloud_url, metadata, user_id")
+    // Only check sites that have a domain connected (temp domains don't need IP tracking)
+    const { data: sitesWithDomains } = await sb.from("services")
+      .select("id, label, wp_cloud_site_id, wp_cloud_url, metadata, user_id, domains!inner(id, domain_name, registrar)")
       .eq("status", "active")
       .not("wp_cloud_site_id", "is", null);
 
-    for (const site of activeSites ?? []) {
+    // Fallback: if inner join fails, get all active sites
+    const activeSites = sitesWithDomains ?? (await sb.from("services")
+      .select("id, label, wp_cloud_site_id, wp_cloud_url, metadata, user_id")
+      .eq("status", "active")
+      .not("wp_cloud_site_id", "is", null)).data ?? [];
+
+    for (const site of activeSites) {
       if (!site.wp_cloud_site_id) continue;
 
       try {
@@ -37,6 +44,12 @@ Deno.serve(async (req) => {
 
         if (!currentIp) {
           issues.push(`${site.label}: Could not fetch IP from wp.cloud`);
+          continue;
+        }
+
+        // Skip if IP hasn't changed
+        if (storedIp === currentIp) {
+          results.push(`${site.label}: IP ${currentIp} OK`);
           continue;
         }
 
