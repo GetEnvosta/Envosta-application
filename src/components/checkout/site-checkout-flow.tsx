@@ -203,6 +203,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
           setCheckoutLoading(false);
           return;
         }
+
         if (data.url) { window.location.href = data.url; return; }
         if (data.redirect) { window.location.href = data.redirect; return; }
       } else {

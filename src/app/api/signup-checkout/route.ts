@@ -185,7 +185,7 @@ export async function POST(req: Request) {
       customer: customer.stripe_customer_id,
       mode: 'subscription',
       line_items: lineItems,
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://my.envosta.com'}/dashboard/sites?checkout=success${domain ? `&domain=${domain}` : ''}`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://my.envosta.com'}/auth/login?checkout=success&email=${encodeURIComponent(email)}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://envosta.com'}/get-started?plan=${plan}`,
       subscription_data: {
         metadata: {

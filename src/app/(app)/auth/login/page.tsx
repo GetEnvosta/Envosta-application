@@ -1,11 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import Link from 'next/link';
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const isCheckoutSuccess = searchParams.get('checkout') === 'success';
+  const prefillEmail = searchParams.get('email') ?? '';
+  const redirect = searchParams.get('redirect') ?? '/dashboard';
+
+  const [email, setEmail] = useState(prefillEmail);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,7 +24,7 @@ export default function LoginPage() {
     const supabase = createClient();
     const { error: err } = await supabase.auth.signInWithPassword({ email, password });
     if (err) { setError(err.message); setLoading(false); return; }
-    window.location.href = '/dashboard';
+    window.location.href = redirect;
   }
 
   return (
@@ -29,6 +36,11 @@ export default function LoginPage() {
         </div>
 
         <div className="card p-6">
+          {isCheckoutSuccess && (
+            <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-700 mb-4">
+              Payment successful! Sign in with the password you created to access your dashboard.
+            </div>
+          )}
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (
               <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>
@@ -57,11 +69,19 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Don&apos;t have an account?{' '}
-          <Link href="/auth/signup" className="text-brand-600 hover:text-brand-700 font-medium">
-            Create one
-          </Link>
+          <a href="https://envosta.com/get-started" className="text-brand-600 hover:text-brand-700 font-medium">
+            Get started
+          </a>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
