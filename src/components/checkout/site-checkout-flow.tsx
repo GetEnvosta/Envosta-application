@@ -618,7 +618,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
                     <span style={{ fontWeight: 600, color: t.text, fontSize: '.88rem' }}>{domainResult.domain}</span>
                     <span style={{ color: domainResult.available ? '#22c55e' : 'var(--t3)', fontSize: '.8rem' }}>
                       {domainResult.available
-                        ? `is available${domainPriceCents ? ` · $${(domainPriceCents / 100).toFixed(2)}/yr` : ''}`
+                        ? 'is available · free with your plan'
                         : 'is taken'}
                     </span>
                   </div>
@@ -708,11 +708,9 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: `1px solid ${t.cardBorder}` }}>
                 <div>
                   <p style={{ fontWeight: 500, color: t.text, fontSize: '.9rem' }}>{selectedDomain}</p>
-                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>Domain registration (1 year)</p>
+                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>Domain registration — first year included</p>
                 </div>
-                <p style={{ fontWeight: 600, color: t.text, fontSize: '.9rem' }}>
-                  {domainPriceCents ? `$${(domainPriceCents / 100).toFixed(2)}/yr` : '—'}
-                </p>
+                <p style={{ fontWeight: 600, color: '#22c55e', fontSize: '.9rem' }}>Free</p>
               </div>
             )}
 

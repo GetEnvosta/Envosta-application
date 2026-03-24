@@ -122,30 +122,28 @@ Deno.serve(async (req) => {
       line_items.push({ price: priceId, quantity: 1 });
     }
 
-    // Domain line item — always one-time charge when bundled with a plan subscription
-    // (Stripe doesn't allow mixing monthly + yearly intervals in one checkout)
-    // Yearly renewal subscription is created separately after domain registration
-    if (domainName) {
+    // Domain registration is free with the hosting plan (first year included).
+    // Webhook handles OpenSRS registration and creates a yearly renewal
+    // subscription with 1-year trial so renewals auto-charge from year 2.
+    // Domain-only purchases (no plan) still need a charge:
+    if (domainName && !priceId) {
       const tld = domainName.split(".").pop()?.toLowerCase() ?? "";
       const { data: tldPricing } = await sb.from("domain_pricing")
-        .select("registration_price_cad, renewal_price_cad")
+        .select("stripe_price_id_yearly, registration_price_cad")
         .eq("tld", tld).maybeSingle();
 
-      const price = renewal
-        ? (tldPricing?.renewal_price_cad ?? domainPriceCents ?? 1500)
-        : (tldPricing?.registration_price_cad ?? domainPriceCents ?? 1500);
-      const label = renewal
-        ? `Domain Renewal: ${domainName} (1 year)`
-        : `Domain Registration: ${domainName} (1 year)`;
-
-      line_items.push({
-        price_data: {
-          currency: "cad",
-          unit_amount: price,
-          product_data: { name: label },
-        },
-        quantity: 1,
-      });
+      if (tldPricing?.stripe_price_id_yearly) {
+        line_items.push({ price: tldPricing.stripe_price_id_yearly, quantity: 1 });
+      } else {
+        line_items.push({
+          price_data: {
+            currency: "cad",
+            unit_amount: tldPricing?.registration_price_cad ?? domainPriceCents ?? 1500,
+            product_data: { name: `Domain Registration: ${domainName} (1 year)` },
+          },
+          quantity: 1,
+        });
+      }
     }
 
     if (line_items.length === 0) return error("No line items to checkout");

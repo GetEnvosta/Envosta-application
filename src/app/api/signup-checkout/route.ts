@@ -158,27 +158,9 @@ export async function POST(req: Request) {
       { price: priceId, quantity: 1 },
     ];
 
-    // Add domain as one-time charge (can't mix monthly + yearly in same checkout)
-    // Yearly renewal subscription created separately after registration
-    if (domain) {
-      const tld = domain.split('.').pop()?.toLowerCase() ?? '';
-      const { data: tldPricing } = await supabaseAdmin
-        .from('domain_pricing')
-        .select('registration_price_cad')
-        .eq('tld', tld)
-        .maybeSingle();
-
-      if (tldPricing?.registration_price_cad) {
-        lineItems.push({
-          price_data: {
-            currency: 'cad',
-            unit_amount: tldPricing.registration_price_cad,
-            product_data: { name: `Domain Registration: ${domain} (1 year)` },
-          },
-          quantity: 1,
-        });
-      }
-    }
+    // Domain registration is free with first year of hosting plan.
+    // No charge at checkout — domain gets registered by the webhook,
+    // and a yearly renewal subscription with 1-year trial is created.
 
     const session = await stripe.checkout.sessions.create({
       customer: customer.stripe_customer_id,
