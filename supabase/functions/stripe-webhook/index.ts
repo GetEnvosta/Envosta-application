@@ -187,17 +187,27 @@ Deno.serve(async (req) => {
       if (metadata.type === "studio_request") {
         const userId = metadata.supabase_user_id;
         if (userId) {
-          const { data: cust } = await sb.from("customers").select("id").eq("user_id", userId).maybeSingle();
-          await sb.from("studio_requests").insert({
+          // Create as a ticket with type 'studio'
+          const { data: ticket } = await sb.from("tickets").insert({
             user_id: userId,
-            customer_id: cust?.id ?? null,
-            stripe_payment_id: session.payment_intent ?? session.id,
             subject: metadata.studio_subject ?? "Studio Request",
-            message: metadata.studio_message ?? "",
-            status: "paid",
-            amount_cad: session.amount_total ?? 25000,
-          });
-          console.log("Studio request created for user:", userId);
+            type: "studio",
+            status: "open",
+            priority: "normal",
+            metadata: {
+              stripe_payment_id: session.payment_intent ?? session.id,
+              amount_cad: session.amount_total ?? 25000,
+            },
+          }).select("id").single();
+
+          if (ticket && metadata.studio_message) {
+            await sb.from("ticket_messages").insert({
+              ticket_id: ticket.id,
+              sender: "customer",
+              message: metadata.studio_message,
+            });
+          }
+          console.log("Studio ticket created:", ticket?.id, "for user:", userId);
         }
       }
     }

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getPublishedPosts } from '@/services/blog';
-import { NewsletterForm } from '@/components/marketing/newsletter-form';
+import { ContactForm } from '@/components/marketing/contact-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -208,7 +208,16 @@ export default async function BlogPage({ searchParams }: { searchParams: Promise
           <div className="cta-box">
             <h2>Get tips delivered to your inbox</h2>
             <p>Join business owners who get our weekly WordPress tips, security updates, and growth guides.</p>
-            <NewsletterForm source="blog" />
+            <ContactForm
+              minimal
+              type="newsletter"
+              subject="Newsletter Subscription"
+              buttonText="Subscribe"
+              successMessage="You're subscribed! Check your inbox."
+              showMessage={false}
+              showName={false}
+              className="nl-form"
+            />
           </div>
         </div>
       </section>

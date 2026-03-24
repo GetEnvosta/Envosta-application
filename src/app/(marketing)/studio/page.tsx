@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { StudioWaitlistForm } from '@/components/marketing/studio-waitlist-form';
+import { ContactForm } from '@/components/marketing/contact-form';
 
 export default function StudioPage() {
   useEffect(() => {
@@ -739,7 +739,12 @@ export default function StudioPage() {
             </p>
           </div>
           <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(201,164,92,.12)', borderRadius: 20, padding: '32px 28px' }}>
-            <StudioWaitlistForm />
+            <ContactForm
+              type="studio"
+              subject="Studio Inquiry"
+              buttonText="Get in Touch"
+              successMessage="Thanks! We'll review your project and reach out soon."
+            />
           </div>
         </div>
       </section>
