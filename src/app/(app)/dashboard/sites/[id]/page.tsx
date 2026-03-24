@@ -21,6 +21,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-switcher';
+import { PlanSwitcher } from '@/components/sites/plan-switcher';
 
 export default async function SiteDetailPage({
   params,
@@ -192,6 +193,16 @@ export default async function SiteDetailPage({
             <p className="text-xs text-gray-400 mt-1">Point your domain A record here</p>
           </div>
         )}
+      </div>
+
+      {/* Change Plan */}
+      <div className="card p-6 mb-4">
+        <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+          <Layers className="w-4 h-4 text-gray-400" />
+          Change Plan
+        </h2>
+        <p className="text-sm text-gray-500 mb-4">Upgrade or downgrade your hosting plan. Changes take effect immediately with prorated billing.</p>
+        <PlanSwitcher siteId={id} currentPlanId={site.plan_id} />
       </div>
 
       {/* Connected Domain */}
