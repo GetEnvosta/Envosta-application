@@ -158,18 +158,17 @@ export async function POST(req: Request) {
       { price: priceId, quantity: 1 },
     ];
 
-    // Add domain if provided
+    // Add domain as one-time charge (can't mix monthly + yearly in same checkout)
+    // Yearly renewal subscription created separately after registration
     if (domain) {
       const tld = domain.split('.').pop()?.toLowerCase() ?? '';
       const { data: tldPricing } = await supabaseAdmin
         .from('domain_pricing')
-        .select('stripe_price_id_yearly, registration_price_cad')
+        .select('registration_price_cad')
         .eq('tld', tld)
         .maybeSingle();
 
-      if (tldPricing?.stripe_price_id_yearly) {
-        lineItems.push({ price: tldPricing.stripe_price_id_yearly, quantity: 1 });
-      } else if (tldPricing?.registration_price_cad) {
+      if (tldPricing?.registration_price_cad) {
         lineItems.push({
           price_data: {
             currency: 'cad',

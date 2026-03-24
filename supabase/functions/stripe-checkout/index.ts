@@ -122,34 +122,30 @@ Deno.serve(async (req) => {
       line_items.push({ price: priceId, quantity: 1 });
     }
 
-    // Domain line item — use Stripe Price ID if available, otherwise dynamic price_data
+    // Domain line item — always one-time charge when bundled with a plan subscription
+    // (Stripe doesn't allow mixing monthly + yearly intervals in one checkout)
+    // Yearly renewal subscription is created separately after domain registration
     if (domainName) {
       const tld = domainName.split(".").pop()?.toLowerCase() ?? "";
       const { data: tldPricing } = await sb.from("domain_pricing")
-        .select("stripe_price_id_yearly, registration_price_cad, renewal_price_cad")
+        .select("registration_price_cad, renewal_price_cad")
         .eq("tld", tld).maybeSingle();
 
-      if (tldPricing?.stripe_price_id_yearly) {
-        // Use the pre-created Stripe Price (yearly subscription for domain renewal)
-        line_items.push({ price: tldPricing.stripe_price_id_yearly, quantity: 1 });
-      } else {
-        // Fallback: dynamic one-time charge (for TLDs without Stripe Price set up yet)
-        const price = renewal
-          ? (tldPricing?.renewal_price_cad ?? domainPriceCents ?? 1500)
-          : (tldPricing?.registration_price_cad ?? domainPriceCents ?? 1500);
-        const label = renewal
-          ? `Domain Renewal: ${domainName} (1 year)`
-          : `Domain Registration: ${domainName} (1 year)`;
+      const price = renewal
+        ? (tldPricing?.renewal_price_cad ?? domainPriceCents ?? 1500)
+        : (tldPricing?.registration_price_cad ?? domainPriceCents ?? 1500);
+      const label = renewal
+        ? `Domain Renewal: ${domainName} (1 year)`
+        : `Domain Registration: ${domainName} (1 year)`;
 
-        line_items.push({
-          price_data: {
-            currency: "cad",
-            unit_amount: price,
-            product_data: { name: label },
-          },
-          quantity: 1,
-        });
-      }
+      line_items.push({
+        price_data: {
+          currency: "cad",
+          unit_amount: price,
+          product_data: { name: label },
+        },
+        quantity: 1,
+      });
     }
 
     if (line_items.length === 0) return error("No line items to checkout");
