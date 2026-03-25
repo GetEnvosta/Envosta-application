@@ -44,8 +44,9 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
       slug: plan.slug,
       price_monthly: plan.price_monthly,
       price_yearly: plan.price_yearly,
-      stripe_price_id_monthly: plan.stripe_price_id_monthly,
-      stripe_price_id_yearly: plan.stripe_price_id_yearly,
+      stripe_product_id: plan.stripe_product_id || null,
+      stripe_price_id_monthly: plan.stripe_price_id_monthly || null,
+      stripe_price_id_yearly: plan.stripe_price_id_yearly || null,
       storage_gb: plan.storage_gb,
       max_php_workers: plan.max_php_workers,
       default_php_workers: plan.default_php_workers,
@@ -148,6 +149,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="label">Monthly Price (cents)</label><input type="number" className="input" value={plan.price_monthly} onChange={e => update('price_monthly', parseInt(e.target.value) || 0)} /></div>
             <div><label className="label">Yearly Price (cents)</label><input type="number" className="input" value={plan.price_yearly ?? 0} onChange={e => update('price_yearly', parseInt(e.target.value) || 0)} /></div>
+            <div><label className="label">Stripe Product ID</label><input className="input font-mono text-xs" value={plan.stripe_product_id ?? ''} onChange={e => update('stripe_product_id', e.target.value)} placeholder="prod_..." /></div>
             <div><label className="label">Stripe Monthly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id_monthly ?? ''} onChange={e => update('stripe_price_id_monthly', e.target.value)} placeholder="price_..." /></div>
             <div><label className="label">Stripe Yearly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id_yearly ?? ''} onChange={e => update('stripe_price_id_yearly', e.target.value)} placeholder="price_..." /></div>
           </div>
