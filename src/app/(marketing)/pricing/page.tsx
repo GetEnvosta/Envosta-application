@@ -139,7 +139,7 @@ export default function PricingPage() {
           <div className="p-card-price">
             <span className="currency">$</span>
             <span className="amount price-val" data-monthly="50" data-annual="42">50</span>
-            <span className="period">/mo</span>
+            <span className="period">CAD/mo</span>
           </div>
           <p className="p-card-desc">Everything you need to launch a fast, secure WordPress site with hands-on support.</p>
           <ul>
@@ -163,7 +163,7 @@ export default function PricingPage() {
           <div className="p-card-price">
             <span className="currency">$</span>
             <span className="amount price-val" data-monthly="129" data-annual="108">129</span>
-            <span className="period">/mo</span>
+            <span className="period">CAD/mo</span>
           </div>
           <p className="p-card-desc">For growing businesses that need more storage, staging, and hands-on support.</p>
           <ul>
@@ -188,7 +188,7 @@ export default function PricingPage() {
           <div className="p-card-price">
             <span className="currency">$</span>
             <span className="amount price-val" data-monthly="350" data-annual="292">350</span>
-            <span className="period">/mo</span>
+            <span className="period">CAD/mo</span>
           </div>
           <p className="p-card-desc">For enterprises that need maximum resources, priority support, and a dedicated team.</p>
           <ul>

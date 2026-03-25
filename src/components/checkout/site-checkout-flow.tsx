@@ -15,7 +15,9 @@ interface Plan {
   slug: string;
   description: string;
   stripe_price_id_monthly: string;
+  stripe_price_id_yearly: string;
   price_monthly: number;
+  price_yearly: number;
   storage_gb: number;
   features: string[];
   onboarding_type: string;
@@ -29,10 +31,12 @@ interface Props {
   initialPlan?: string;
   /** Pre-fill domain from URL params (e.g. from domains page search) */
   initialDomain?: string;
+  /** Pre-select billing period from URL params */
+  initialBilling?: 'monthly' | 'annual';
 }
 
 /* ── Component ── */
-export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
+export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBilling }: Props) {
   const supabase = createClient();
 
   /* State */
@@ -63,6 +67,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
   // Checkout
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>(initialBilling ?? 'monthly');
 
   // Onboarding
   const [onboardingChoice, setOnboardingChoice] = useState<'self' | 'guided' | null>(null);
@@ -193,9 +199,12 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
           body: JSON.stringify({
             name, email, phone, password,
             plan: selectedPlan.slug,
+            billing: billingPeriod,
             domain: selectedDomain || undefined,
             situation: domainMode === 'existing' ? 'existing' : 'new',
             onboarding: onboardingChoice ?? 'self',
+            termsAccepted: true,
+            termsAcceptedAt: new Date().toISOString(),
           }),
         });
         const data = await res.json();
@@ -216,7 +225,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
           return;
         }
         const body: Record<string, unknown> = {
-          priceId: selectedPlan.stripe_price_id_monthly,
+          priceId: billingPeriod === 'annual' ? selectedPlan.stripe_price_id_yearly : selectedPlan.stripe_price_id_monthly,
         };
         if (selectedDomain) {
           body.domainName = selectedDomain;
@@ -463,6 +472,28 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
             All plans include onboarding, SSL, CDN, daily backups, and staging.
           </p>
 
+          {/* Billing toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
+            <span style={{ fontSize: '.82rem', color: billingPeriod === 'monthly' ? t.text : t.textMuted, fontWeight: billingPeriod === 'monthly' ? 500 : 400 }}>Monthly</span>
+            <button
+              onClick={() => setBillingPeriod(p => p === 'monthly' ? 'annual' : 'monthly')}
+              style={{
+                width: 48, height: 26, borderRadius: 100, border: 'none', cursor: 'pointer', position: 'relative',
+                background: billingPeriod === 'annual' ? '#2563EB' : dark ? 'rgba(255,255,255,.15)' : '#d1d5db',
+                transition: 'background .2s',
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 3, width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                transition: 'transform .2s',
+                transform: billingPeriod === 'annual' ? 'translateX(24px)' : 'translateX(4px)',
+              }} />
+            </button>
+            <span style={{ fontSize: '.82rem', color: billingPeriod === 'annual' ? t.text : t.textMuted, fontWeight: billingPeriod === 'annual' ? 500 : 400 }}>
+              Annual <span style={{ fontSize: '.7rem', color: '#22c55e', fontWeight: 600 }}>2 months free</span>
+            </span>
+          </div>
+
           <div className="scf-plans">
             {plans.map(plan => {
               const isPopular = plan.slug === 'growth';
@@ -485,8 +516,12 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
                   )}
                   <div style={{ fontSize: '.66rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '2px', color: '#2563EB', marginBottom: 6 }}>{plan.name}</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 6 }}>
-                    <span style={{ fontSize: '2rem', fontWeight: 600, color: t.text, letterSpacing: '-1px' }}>${(plan.price_monthly / 100).toFixed(0)}</span>
-                    <span style={{ fontSize: '.8rem', color: t.textMuted, fontWeight: 300 }}>/mo</span>
+                    <span style={{ fontSize: '2rem', fontWeight: 600, color: t.text, letterSpacing: '-1px' }}>
+                      ${billingPeriod === 'annual' ? (plan.price_yearly / 100 / 12).toFixed(0) : (plan.price_monthly / 100).toFixed(0)}
+                    </span>
+                    <span style={{ fontSize: '.8rem', color: t.textMuted, fontWeight: 300 }}>
+                      CAD/{billingPeriod === 'annual' ? 'mo (billed yearly)' : 'mo'}
+                    </span>
                   </div>
                   <p style={{ fontSize: '.78rem', color: t.textMuted, lineHeight: 1.6, fontWeight: 300, marginBottom: 16 }}>{plan.description}</p>
                   <div style={{ flex: 1 }}>
@@ -701,7 +736,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
                 <p style={{ fontWeight: 500, color: t.text, fontSize: '.9rem' }}>{selectedPlan.name} Plan</p>
                 <p style={{ fontSize: '.75rem', color: t.textMuted }}>Billed monthly</p>
               </div>
-              <p style={{ fontWeight: 600, color: t.text, fontSize: '.9rem' }}>${(selectedPlan.price_monthly / 100).toFixed(2)}/mo</p>
+              <p style={{ fontWeight: 600, color: t.text, fontSize: '.9rem' }}>${billingPeriod === 'annual' ? (selectedPlan.price_yearly / 100).toFixed(2) + ' CAD/yr' : (selectedPlan.price_monthly / 100).toFixed(2) + ' CAD/mo'}</p>
             </div>
 
             {/* Domain */}
@@ -767,15 +802,28 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain }: Props) {
             </div>
           </div>
 
+          {/* Terms acceptance */}
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 20, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={e => setTermsAccepted(e.target.checked)}
+              style={{ marginTop: 3, accentColor: '#2563EB' }}
+            />
+            <span style={{ fontSize: '.78rem', color: t.textSub, lineHeight: 1.6 }}>
+              I agree to the <a href="/legal/terms" target="_blank" style={{ color: t.accent, textDecoration: 'underline' }}>Terms of Service</a> and <a href="/legal/terms#domain-registration" target="_blank" style={{ color: t.accent, textDecoration: 'underline' }}>Domain Registration Agreement</a>.
+            </span>
+          </label>
+
           {/* Checkout button */}
           <button
             onClick={handleCheckout}
-            disabled={checkoutLoading}
+            disabled={checkoutLoading || !termsAccepted}
             style={{
               width: '100%', padding: '16px', background: t.btnBg, color: t.btnColor, borderRadius: 100, border: 'none',
-              fontSize: '.9rem', fontWeight: 600, cursor: 'pointer', marginTop: 24,
+              fontSize: '.9rem', fontWeight: 600, cursor: 'pointer', marginTop: 16,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              opacity: checkoutLoading ? 0.5 : 1,
+              opacity: (checkoutLoading || !termsAccepted) ? 0.4 : 1,
             }}
           >
             {checkoutLoading ? (

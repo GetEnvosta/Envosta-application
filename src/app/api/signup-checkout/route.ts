@@ -43,6 +43,9 @@ export async function POST(req: Request) {
       domain,
       plan, // 'minimum' | 'growth' | 'performance' | ''
       onboarding, // 'self' | 'guided'
+      billing, // 'monthly' | 'annual'
+      termsAccepted,
+      termsAcceptedAt,
     } = await req.json();
 
     if (!email || !name) {
@@ -112,6 +115,9 @@ export async function POST(req: Request) {
         signup_domain: domain || null,
         signup_plan: plan || null,
         signup_at: new Date().toISOString(),
+        terms_accepted: termsAccepted ?? false,
+        terms_accepted_at: termsAcceptedAt ?? new Date().toISOString(),
+        terms_version: '2026-03-01',
       },
     }).eq('id', userId);
 
@@ -120,13 +126,15 @@ export async function POST(req: Request) {
     if (plan) {
       const { data: planData } = await supabaseAdmin
         .from('plans')
-        .select('stripe_price_id_monthly, is_active')
+        .select('stripe_price_id_monthly, stripe_price_id_yearly, is_active')
         .eq('slug', plan)
         .single();
       if (planData && !planData.is_active) {
         return NextResponse.json({ error: 'This plan is no longer available' }, { status: 400 });
       }
-      priceId = planData?.stripe_price_id_monthly ?? null;
+      priceId = billing === 'annual'
+        ? (planData?.stripe_price_id_yearly ?? planData?.stripe_price_id_monthly ?? null)
+        : (planData?.stripe_price_id_monthly ?? null);
     }
 
     if (!priceId) {

@@ -25,9 +25,24 @@ export default function PricingClient() {
       toggle?.classList.toggle('on', annual);
       lblMonthly?.classList.toggle('active', !annual);
       lblAnnual?.classList.toggle('active', annual);
+      // Update displayed prices
       document.querySelectorAll('.price-val').forEach((el) => {
         const e = el as HTMLElement;
         e.textContent = annual ? e.dataset.annual! : e.dataset.monthly!;
+      });
+      // Update period labels
+      document.querySelectorAll('.period').forEach((el) => {
+        el.textContent = annual ? 'CAD/yr' : 'CAD/mo';
+      });
+      // Update Get Started links to include billing period
+      document.querySelectorAll<HTMLAnchorElement>('a[href*="/get-started?plan="]').forEach((a) => {
+        const url = new URL(a.href);
+        if (annual) {
+          url.searchParams.set('billing', 'annual');
+        } else {
+          url.searchParams.delete('billing');
+        }
+        a.href = url.toString();
       });
     }
 
