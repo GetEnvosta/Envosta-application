@@ -1,4 +1,5 @@
 import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, json, error } from "../_shared/deps.ts";
+import { sendEmail, welcomeEmail, invoicePaidEmail } from "../_shared/email.ts";
 
 Deno.serve(async (req) => {
   const stripe = getStripe();
@@ -79,6 +80,16 @@ Deno.serve(async (req) => {
             metadata: { auto_provisioned: true, plan_slug: plan?.slug ?? "minimum", domain_name: domainFromMeta },
           }).select("id").single();
           console.log("Service created:", svc?.id, "err:", svcErr?.message);
+
+          // Send welcome email
+          if (svc && !svcErr) {
+            const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.user_id).maybeSingle();
+            if (userProfile?.email) {
+              const planName = plan?.slug ? plan.slug.charAt(0).toUpperCase() + plan.slug.slice(1) : "Hosting";
+              const email = welcomeEmail(userProfile.full_name ?? "there", planName, "https://my.envosta.com/dashboard");
+              await sendEmail({ to: userProfile.email, ...email });
+            }
+          }
 
           // Auto-register domain at OpenSRS if domain was purchased with the plan
           if (domainFromMeta && svc) {
@@ -273,6 +284,17 @@ Deno.serve(async (req) => {
           paid_at: inv.status === "paid" ? new Date().toISOString() : null,
         }, { onConflict: "stripe_invoice_id" });
         console.log("Invoice:", inv.id, inv.status);
+
+        // Send invoice receipt email
+        if (event.type === "invoice.paid" && inv.amount_paid > 0) {
+          const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.user_id).maybeSingle();
+          if (userProfile?.email) {
+            const amount = `$${(inv.amount_paid / 100).toFixed(2)} ${(inv.currency ?? "cad").toUpperCase()}`;
+            const desc = inv.description ?? `Invoice ${inv.number ?? ""}`;
+            const email = invoicePaidEmail(userProfile.full_name ?? "there", amount, desc, inv.hosted_invoice_url ?? null);
+            await sendEmail({ to: userProfile.email, ...email });
+          }
+        }
 
         // Handle domain renewal — when yearly domain subscription charges
         if (event.type === "invoice.paid" && inv.subscription) {

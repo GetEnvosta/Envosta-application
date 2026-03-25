@@ -1,4 +1,5 @@
 import { supabaseAdmin, wpcloudGet, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
+import { sendEmail, domainExpiryWarningEmail } from "../_shared/email.ts";
 
 /**
  * Daily health check — run via cron or manual trigger.
@@ -110,6 +111,17 @@ Deno.serve(async (req) => {
         issues.push(`EXPIRED: ${domain.domain_name} expired ${Math.abs(daysLeft)} days ago${domain.auto_renew ? ' (auto-renew on)' : ' (auto-renew OFF)'}`);
       } else {
         issues.push(`EXPIRING: ${domain.domain_name} expires in ${daysLeft} days${domain.auto_renew ? '' : ' (auto-renew OFF!)'}`);
+
+        // Send warning email at 30, 14, 7, and 1 day(s) before expiry
+        if ([30, 14, 7, 1].includes(daysLeft)) {
+          try {
+            const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", domain.user_id).maybeSingle();
+            if (userProfile?.email) {
+              const email = domainExpiryWarningEmail(userProfile.full_name ?? "there", domain.domain_name, daysLeft, domain.auto_renew ?? false);
+              await sendEmail({ to: userProfile.email, ...email });
+            }
+          } catch { /* non-fatal */ }
+        }
       }
     }
 

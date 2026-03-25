@@ -1,4 +1,5 @@
 import { supabaseAdmin, supabaseForUser, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
+import { sendEmail, siteReadyEmail, provisioningFailedEmail } from "../_shared/email.ts";
 
 /**
  * Provision a WordPress site via wp.cloud Atomic API (routed through static IP proxy).
@@ -148,6 +149,15 @@ Deno.serve(async (req) => {
         message: result.data?.message ?? `HTTP ${result.status}`,
         req: wpBody, res: result.data, ms,
       });
+      // Send failure notification email
+      try {
+        const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", userId).maybeSingle();
+        if (userProfile?.email) {
+          const email = provisioningFailedEmail(userProfile.full_name ?? "there", svc.label ?? "your site");
+          await sendEmail({ to: userProfile.email, ...email });
+        }
+      } catch { /* non-fatal */ }
+
       return error(`Provisioning failed: ${result.data?.message ?? "Unknown error"}`, 502);
     }
 
@@ -230,6 +240,15 @@ Deno.serve(async (req) => {
       action: "hosting.provision.success",
       message: wpDomain ?? label, req: wpBody, res: result.data, ms,
     });
+
+    // Send "site ready" email
+    try {
+      const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", userId).maybeSingle();
+      if (userProfile?.email && wpUrl) {
+        const email = siteReadyEmail(userProfile.full_name ?? "there", svc.label ?? "Your site", wpUrl, `${wpUrl}/wp-admin`);
+        await sendEmail({ to: userProfile.email, ...email });
+      }
+    } catch { /* non-fatal */ }
 
     return json({
       serviceId: svc.id,

@@ -1,4 +1,5 @@
 import { supabaseAdmin, supabaseForUser, cors, json, error, log } from "../_shared/deps.ts";
+import { sendEmail, domainRegisteredEmail } from "../_shared/email.ts";
 
 const OPENSRS_USERNAME = Deno.env.get("OPENSRS_USERNAME") ?? "";
 const OPENSRS_API_KEY = Deno.env.get("OPENSRS_API_KEY") ?? "";
@@ -264,6 +265,13 @@ Deno.serve(async (req) => {
     }).eq("id", domain.id);
 
     await log({ userId: userId, serviceId, action: "domain.register.success", message: domainName, ip: registrantIp, ua: registrantUa, ms });
+
+    // Send domain registered email
+    try {
+      const email = domainRegisteredEmail(contact.first_name, domainName);
+      await sendEmail({ to: contact.email, ...email });
+    } catch { /* non-fatal */ }
+
     return json({ domainId: domain.id, domainName, status: "registered" });
 
     // UPDATE NAMESERVERS
