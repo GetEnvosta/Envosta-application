@@ -46,10 +46,12 @@ export async function POST(req: Request) {
     // SYNC PLAN TO STRIPE
     // ════════════════════════════════════════
     if (type === 'plan') {
-      const { name, description, price_monthly, price_yearly, is_active, stripe_product_id, stripe_price_id_monthly, stripe_price_id_yearly,
+      const { name, description, price_monthly, price_yearly, is_active,
         storage_gb, bandwidth_gb, default_php_workers, max_php_workers, php_memory_mb, onboarding_type, support_response_hours } = data;
 
-      let productId = stripe_product_id;
+      // Always read current Stripe IDs from DB (not from stale form state)
+      const { data: dbPlan } = await supabase.from('plans').select('stripe_product_id, stripe_price_id_monthly, stripe_price_id_yearly').eq('id', id).single();
+      let productId = dbPlan?.stripe_product_id ?? data.stripe_product_id ?? null;
 
       const productMetadata = {
         envosta_plan_id: id,
@@ -81,7 +83,7 @@ export async function POST(req: Request) {
       }
 
       // Handle monthly price
-      let monthlyPriceId = stripe_price_id_monthly;
+      let monthlyPriceId = dbPlan?.stripe_price_id_monthly ?? data.stripe_price_id_monthly ?? null;
       if (monthlyPriceId) {
         // Check if price amount changed
         const existingPrice = await stripe.prices.retrieve(monthlyPriceId);
@@ -109,7 +111,7 @@ export async function POST(req: Request) {
       }
 
       // Handle yearly price
-      let yearlyPriceId = stripe_price_id_yearly;
+      let yearlyPriceId = dbPlan?.stripe_price_id_yearly ?? data.stripe_price_id_yearly ?? null;
       if (yearlyPriceId) {
         const existingPrice = await stripe.prices.retrieve(yearlyPriceId);
         if (existingPrice.unit_amount !== price_yearly) {
@@ -275,17 +277,81 @@ export async function POST(req: Request) {
     if (type === 'sync_all') {
       const results: string[] = [];
 
+      // Helper to sync a single plan inline (no HTTP call)
+      async function syncPlan(plan: any) {
+        try {
+          let pid = plan.stripe_product_id;
+          const meta = { envosta_plan_id: plan.id, type: 'hosting_plan' };
+
+          if (!pid) {
+            const p = await stripe.products.create({ name: `${plan.name} Plan`, metadata: meta });
+            pid = p.id;
+          } else {
+            await stripe.products.update(pid, { name: `${plan.name} Plan`, metadata: meta });
+          }
+
+          let mPriceId = plan.stripe_price_id_monthly;
+          if (!mPriceId && plan.price_monthly > 0) {
+            const p = await stripe.prices.create({ product: pid, unit_amount: plan.price_monthly, currency: 'cad', recurring: { interval: 'month' } });
+            mPriceId = p.id;
+          }
+
+          let yPriceId = plan.stripe_price_id_yearly;
+          if (!yPriceId && plan.price_yearly > 0) {
+            const p = await stripe.prices.create({ product: pid, unit_amount: plan.price_yearly, currency: 'cad', recurring: { interval: 'year' } });
+            yPriceId = p.id;
+          }
+
+          await supabase.from('plans').update({ stripe_product_id: pid, stripe_price_id_monthly: mPriceId, stripe_price_id_yearly: yPriceId }).eq('id', plan.id);
+          return true;
+        } catch (e) { console.error('Plan sync error:', e); return false; }
+      }
+
+      // Helper to sync a single TLD inline
+      async function syncTld(tld: any) {
+        try {
+          let pid = tld.stripe_product_id;
+          if (!pid) {
+            const p = await stripe.products.create({ name: `.${tld.tld} Domain Registration`, metadata: { tld: tld.tld, type: 'domain_registration' } });
+            pid = p.id;
+          }
+          let yPriceId = tld.stripe_price_id_yearly;
+          if (!yPriceId && tld.renewal_price_cad > 0) {
+            const p = await stripe.prices.create({ product: pid, unit_amount: tld.renewal_price_cad, currency: 'cad', recurring: { interval: 'year' } });
+            yPriceId = p.id;
+          }
+          await supabase.from('domain_pricing').update({ stripe_product_id: pid, stripe_price_id_yearly: yPriceId }).eq('id', tld.id);
+          return true;
+        } catch (e) { console.error('TLD sync error:', e); return false; }
+      }
+
+      // Helper to sync a single addon inline
+      async function syncAddon(addon: any) {
+        try {
+          let pid = addon.stripe_product_id;
+          if (!pid) {
+            const p = await stripe.products.create({ name: addon.name, metadata: { envosta_addon_slug: addon.slug, type: 'addon' } });
+            pid = p.id;
+          }
+          let priceId = addon.stripe_price_id;
+          if (!priceId && addon.price_cad > 0) {
+            const interval = addon.billing_type === 'yearly' ? 'year' : addon.billing_type === 'monthly' ? 'month' : null;
+            const params: any = { product: pid, unit_amount: addon.price_cad, currency: 'cad' };
+            if (interval) params.recurring = { interval };
+            const p = await stripe.prices.create(params);
+            priceId = p.id;
+          }
+          await supabase.from('addon_products').update({ stripe_product_id: pid, stripe_price_id: priceId }).eq('id', addon.id);
+          return true;
+        } catch (e) { console.error('Addon sync error:', e); return false; }
+      }
+
       // Sync plans
       const { data: plans } = await supabase.from('plans').select('*').eq('is_active', true);
       for (const plan of plans ?? []) {
-        if (!plan.stripe_product_id || !plan.stripe_price_id_monthly) {
-          const res = await fetch(req.url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'plan', id: plan.id, data: plan }),
-          });
-          if (res.ok) results.push(`Plan: ${plan.name} ✓`);
-          else results.push(`Plan: ${plan.name} ✗`);
+        if (!plan.stripe_product_id || !plan.stripe_price_id_monthly || !plan.stripe_price_id_yearly) {
+          const ok = await syncPlan(plan);
+          results.push(`Plan: ${plan.name} ${ok ? '✓' : '✗'}`);
         }
       }
 
@@ -293,13 +359,8 @@ export async function POST(req: Request) {
       const { data: tlds } = await supabase.from('domain_pricing').select('*').eq('active', true);
       for (const tld of tlds ?? []) {
         if (!tld.stripe_product_id || !tld.stripe_price_id_yearly) {
-          const res = await fetch(req.url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'domain_tld', id: tld.id, data: tld }),
-          });
-          if (res.ok) results.push(`TLD: .${tld.tld} ✓`);
-          else results.push(`TLD: .${tld.tld} ✗`);
+          const ok = await syncTld(tld);
+          results.push(`TLD: .${tld.tld} ${ok ? '✓' : '✗'}`);
         }
       }
 
@@ -307,13 +368,8 @@ export async function POST(req: Request) {
       const { data: addons } = await supabase.from('addon_products').select('*').eq('is_active', true);
       for (const addon of addons ?? []) {
         if (!addon.stripe_product_id || !addon.stripe_price_id) {
-          const res = await fetch(req.url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'addon', id: addon.id, data: addon }),
-          });
-          if (res.ok) results.push(`Addon: ${addon.name} ✓`);
-          else results.push(`Addon: ${addon.name} ✗`);
+          const ok = await syncAddon(addon);
+          results.push(`Addon: ${addon.name} ${ok ? '✓' : '✗'}`);
         }
       }
 
