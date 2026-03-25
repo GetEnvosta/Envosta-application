@@ -72,7 +72,7 @@ export function MarketingFooter() {
           <div className="fbr">
             <Link href="/" className="logo" style={{ marginBottom: 16 }}>
               <div className="logo-mark"><LogoSvg /></div>
-              <div className="logo-text">Env<span>o</span>sta</div>
+              <div className="logo-text">Envosta</div>
             </Link>
             <p style={{ maxWidth: 280 }}>
               Hosting that starts with a consultation. Enterprise infrastructure,

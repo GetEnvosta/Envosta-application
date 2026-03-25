@@ -41,7 +41,7 @@ export default function StandaloneLayout({ children }: { children: React.ReactNo
               <rect width="64" height="64" rx="10" fill="currentColor" mask="url(#standalone-e)" />
             </svg>
           </div>
-          <div className="logo-text">Env<span>o</span>sta</div>
+          <div className="logo-text">Envosta</div>
         </Link>
         <a
           href="https://my.envosta.com/auth/login"

@@ -52,7 +52,7 @@ export function MarketingNav() {
         <div className="c">
           <Link href="/" className="logo">
             <div className="logo-mark"><LogoSvg /></div>
-            <div className="logo-text">Env<span>o</span>sta</div>
+            <div className="logo-text">Envosta</div>
           </Link>
 
           <ul className="nl">

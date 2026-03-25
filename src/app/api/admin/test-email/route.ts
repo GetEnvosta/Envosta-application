@@ -18,8 +18,7 @@ function template(content: string): string {
   .card{background:#fff;border-radius:12px;padding:40px 32px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
   .logo-row{display:flex;align-items:center;gap:10px;margin-bottom:32px;text-decoration:none}
   .logo-mark{width:32px;height:32px}
-  .logo-text{font-size:22px;font-weight:300;color:#111;letter-spacing:-.5px}
-  .logo-text strong{font-weight:600}
+  .logo-text{font-size:22px;font-weight:300;color:#0f172a;letter-spacing:-.5px}
   h1{font-size:22px;font-weight:600;color:#111;margin:0 0 16px;line-height:1.3}
   p{font-size:15px;color:#555;line-height:1.7;margin:0 0 16px}
   .btn{display:inline-block;background:#111;color:#fff!important;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:500;margin:8px 0 24px}
@@ -28,7 +27,7 @@ function template(content: string): string {
   .detail-label{color:#888}.detail-value{color:#111;font-weight:500}
   .footer{text-align:center;padding:24px 0;font-size:12px;color:#aaa}.footer a{color:#888;text-decoration:none}
 </style></head><body>
-<div class="wrap"><div class="card"><a href="https://envosta.com" class="logo-row" style="text-decoration:none;"><img src="https://envosta.com/assets/Logo/envosta-logo-mark-blue.svg" alt="Envosta" class="logo-mark" width="32" height="32" style="width:32px;height:32px;"><span class="logo-text">Env<strong>o</strong>sta</span></a>${content}</div>
+<div class="wrap"><div class="card"><a href="https://envosta.com" class="logo-row" style="text-decoration:none;"><img src="https://envosta.com/assets/Logo/envosta-logo-mark-blue.svg" alt="Envosta" class="logo-mark" width="32" height="32" style="width:32px;height:32px;"><span class="logo-text">Envosta</span></a>${content}</div>
 <div class="footer"><p>Envosta Inc. · Calgary, Alberta, Canada</p><p><a href="https://envosta.com">envosta.com</a> · <a href="https://envosta.com/support">Support</a></p></div></div>
 </body></html>`;
 }
