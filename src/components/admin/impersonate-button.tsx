@@ -1,6 +1,6 @@
 'use client';
 
-import { startImpersonation } from './actions';
+import { startImpersonation } from '@/app/(app)/admin/actions';
 import { LogIn } from 'lucide-react';
 
 export function ImpersonateButton({ userId, label }: { userId: string; label?: string }) {
