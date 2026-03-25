@@ -227,6 +227,41 @@ export async function POST(req: Request) {
           message: ticketMessage,
         });
       }
+
+      // If migrating existing site, create a separate migration ticket
+      if (situation === 'existing') {
+        const migrationMessage = [
+          `**Migration request for ${name}**`,
+          '',
+          `**Current domain:** ${domain || 'Not provided'}`,
+          `**Plan:** ${planLabel}`,
+          '',
+          'Customer is moving an existing website to Envosta.',
+          'Steps:',
+          '1. Reach out to schedule migration',
+          '2. Get wp-admin and/or FTP access to current site',
+          '3. Run migration (files + database)',
+          '4. Test on staging/temp domain',
+          '5. Switch DNS when ready',
+        ].join('\n');
+
+        const { data: migTicket } = await supabaseAdmin.from('tickets').insert({
+          user_id: userId,
+          subject: `Migration request: ${name} — ${domain || 'domain TBD'}`,
+          type: 'support',
+          status: 'open',
+          priority: 'high',
+          metadata: { source: 'signup_migration', plan, domain, situation: 'existing' },
+        }).select('id').single();
+
+        if (migTicket) {
+          await supabaseAdmin.from('ticket_messages').insert({
+            ticket_id: migTicket.id,
+            sender: 'system',
+            message: migrationMessage,
+          });
+        }
+      }
     } catch {
       // Non-fatal — don't block checkout if ticket creation fails
     }
