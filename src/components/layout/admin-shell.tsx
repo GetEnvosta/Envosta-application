@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase-browser';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Users, Server, Globe, CreditCard, ScrollText,
-  Activity, LogOut, Menu, X, ArrowLeft, Tag, PenSquare, MessageSquare,
+  Activity, LogOut, Menu, X, ArrowLeft, Tag, PenSquare, MessageSquare, Mail,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -19,6 +19,7 @@ const nav = [
   { name: 'Billing', href: '/admin/billing', icon: CreditCard },
   { name: 'Products', href: '/admin/products', icon: Tag },
   { name: 'Blog', href: '/admin/blog', icon: PenSquare },
+  { name: 'Emails', href: '/admin/emails', icon: Mail },
   { name: 'Logs', href: '/admin/logs', icon: ScrollText },
 ];
 
