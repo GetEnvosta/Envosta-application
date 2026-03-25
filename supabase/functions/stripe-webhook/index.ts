@@ -285,14 +285,22 @@ Deno.serve(async (req) => {
         }, { onConflict: "stripe_invoice_id" });
         console.log("Invoice:", inv.id, inv.status);
 
-        // Send invoice receipt email
+        // Send invoice receipt email (idempotent — check if already sent via metadata)
         if (event.type === "invoice.paid" && inv.amount_paid > 0) {
-          const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.user_id).maybeSingle();
-          if (userProfile?.email) {
-            const amount = `$${(inv.amount_paid / 100).toFixed(2)} ${(inv.currency ?? "cad").toUpperCase()}`;
-            const desc = inv.description ?? `Invoice ${inv.number ?? ""}`;
-            const email = invoicePaidEmail(userProfile.full_name ?? "there", amount, desc, inv.hosted_invoice_url ?? null);
-            await sendEmail({ to: userProfile.email, ...email });
+          const { data: existingInv } = await sb.from("invoices").select("metadata").eq("stripe_invoice_id", inv.id).maybeSingle();
+          const alreadySent = (existingInv?.metadata as any)?.email_sent;
+
+          if (!alreadySent) {
+            const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.user_id).maybeSingle();
+            if (userProfile?.email) {
+              const amount = `$${(inv.amount_paid / 100).toFixed(2)} ${(inv.currency ?? "cad").toUpperCase()}`;
+              const desc = inv.description ?? `Invoice ${inv.number ?? ""}`;
+              const email = invoicePaidEmail(userProfile.full_name ?? "there", amount, desc, inv.hosted_invoice_url ?? null);
+              await sendEmail({ to: userProfile.email, ...email });
+
+              // Mark as sent to prevent duplicates
+              await sb.from("invoices").update({ metadata: { ...(existingInv?.metadata as any ?? {}), email_sent: true } }).eq("stripe_invoice_id", inv.id);
+            }
           }
         }
 
@@ -319,10 +327,14 @@ Deno.serve(async (req) => {
                 console.log("Domain no longer exists, cancelling renewal subscription:", domainToRenew);
                 await stripe.subscriptions.cancel(stripeSub.id);
               } else {
-                // Update expiry in our DB
+                // Extend expiry from current expiry date (not from now)
+                const { data: fullDomain } = await sb.from("domains").select("expiry_date").eq("id", domainRecord.id).single();
+                const currentExpiry = fullDomain?.expiry_date ? new Date(fullDomain.expiry_date).getTime() : Date.now();
+                const newExpiry = new Date(Math.max(currentExpiry, Date.now()) + 365.25 * 86400000).toISOString();
+
                 await sb.from("domains")
                   .update({
-                    expiry_date: new Date(Date.now() + 365.25 * 86400000).toISOString(),
+                    expiry_date: newExpiry,
                     metadata: { last_renewal: new Date().toISOString(), renewal_invoice: inv.id },
                   })
                   .eq("id", domainRecord.id);

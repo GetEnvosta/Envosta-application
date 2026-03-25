@@ -39,10 +39,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Protect admin routes
+  // Protect admin routes — block during impersonation
   if (request.nextUrl.pathname.startsWith('/admin')) {
     if (!user) {
       return NextResponse.redirect(new URL('/auth/login', request.url));
+    }
+    // Block admin access while impersonating a customer
+    const impersonating = request.cookies.get('impersonating_user_id')?.value;
+    if (impersonating) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     const { data: profile } = await supabase
       .from('users').select('role').eq('id', user.id).single();

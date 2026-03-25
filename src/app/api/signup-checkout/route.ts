@@ -52,6 +52,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Name and email are required' }, { status: 400 });
     }
 
+    if (!termsAccepted) {
+      return NextResponse.json({ error: 'You must accept the Terms of Service to continue' }, { status: 400 });
+    }
+
     if (!password || password.length < 8) {
       return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
     }
