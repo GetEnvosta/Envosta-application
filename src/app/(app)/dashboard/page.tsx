@@ -28,12 +28,12 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-500 mt-0.5">Welcome back. Here&apos;s your hosting overview.</p>
         </div>
-        <Link href="/dashboard/add-site" className="btn-primary">
+        <Link href="/dashboard/add-site" className="btn-primary whitespace-nowrap shrink-0">
           <Plus className="w-4 h-4" /> Add site
         </Link>
       </div>

@@ -1,7 +1,7 @@
 import { getAllServices } from '@/services/sites';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { Search, Server } from 'lucide-react';
+import { Search, Server, ExternalLink } from 'lucide-react';
 import { ProvisionButton } from '@/components/admin/provision-button';
 import { ImpersonateButton } from '@/components/admin/impersonate-button';
 
@@ -24,13 +24,22 @@ export default async function ServicesPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Services</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Manage and monitor all provisioned services.
           </p>
         </div>
+        <a
+          href="https://atomic-api.wordpress.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+        >
+          <ExternalLink className="w-4 h-4" />
+          wp.cloud Dashboard
+        </a>
       </div>
 
       {/* Search + Filter */}

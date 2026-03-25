@@ -484,9 +484,9 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
               }}
             >
               <span style={{
-                position: 'absolute', top: 3, width: 20, height: 20, borderRadius: '50%', background: '#fff',
-                transition: 'transform .2s',
-                transform: billingPeriod === 'annual' ? 'translateX(24px)' : 'translateX(4px)',
+                position: 'absolute', top: 3, left: 0, width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                transition: 'transform .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+                transform: billingPeriod === 'annual' ? 'translateX(25px)' : 'translateX(3px)',
               }} />
             </button>
             <span style={{ fontSize: '.82rem', color: billingPeriod === 'annual' ? t.text : t.textMuted, fontWeight: billingPeriod === 'annual' ? 500 : 400 }}>

@@ -24,16 +24,16 @@ export default async function SitesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Sites</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage your WordPress hosting accounts</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/dashboard/partners?type=referral" className="btn-secondary text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
+        <div className="flex items-center gap-2 shrink-0">
+          <Link href="/dashboard/partners?type=referral" className="btn-secondary text-sm py-2 px-3.5 inline-flex items-center gap-1.5 whitespace-nowrap">
             🎁 Refer a Friend
           </Link>
-          <Link href="/dashboard/add-site" className="btn-primary text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
+          <Link href="/dashboard/add-site" className="btn-primary text-sm py-2 px-3.5 inline-flex items-center gap-1.5 whitespace-nowrap">
             <Plus className="w-4 h-4" />
             Add a Site
           </Link>

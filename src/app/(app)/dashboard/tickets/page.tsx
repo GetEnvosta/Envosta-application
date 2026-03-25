@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getUserTickets } from '@/services/tickets';
 import { getEffectiveUserId } from '@/services/auth';
-import { ExternalLink, Plus } from 'lucide-react';
+import { ExternalLink, Plus, Paintbrush, Wrench } from 'lucide-react';
 
 function TypeBadge({ type }: { type: string }) {
   if (type === 'studio') {
@@ -12,8 +12,8 @@ function TypeBadge({ type }: { type: string }) {
     );
   }
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-      Support
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+      Technical
     </span>
   );
 }
@@ -62,154 +62,128 @@ export default async function TicketsPage({
   const userId = await getEffectiveUserId();
   const tickets = await getUserTickets(typeFilter, userId!);
 
+  const studioCount = tickets.filter((t: any) => t.type === 'studio').length;
+  const techCount = tickets.filter((t: any) => t.type === 'support').length;
+
   return (
     <div>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold text-gray-900">Tickets</h1>
-            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-              {tickets.length}
-            </span>
-          </div>
-          <p className="text-sm text-gray-500 mt-1">Manage your support tickets and studio requests</p>
-        </div>
-        <div className="flex gap-3">
-          <Link
-            href="/dashboard/tickets/new?type=support"
-            className="btn-primary inline-flex items-center gap-1.5 text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            New Support Ticket
-          </Link>
-          <Link
-            href="/dashboard/tickets/new?type=studio"
-            className="inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-purple-200 bg-purple-50 text-purple-700 font-medium hover:bg-purple-100 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            New Studio Request
-          </Link>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-xl font-semibold text-gray-900">Requests &amp; Support</h1>
+        <p className="text-sm text-gray-500 mt-1">Submit design requests or report technical issues.</p>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 mb-6">
-        {[
-          { label: 'All', value: 'all' },
-          { label: 'Support', value: 'support' },
-          { label: 'Studio', value: 'studio' },
-        ].map((tab) => (
-          <Link
-            key={tab.value}
-            href={tab.value === 'all' ? '/dashboard/tickets' : `/dashboard/tickets?type=${tab.value}`}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              typeFilter === tab.value
-                ? 'bg-gray-900 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Ticket list */}
-        <div className="lg:col-span-2 space-y-3">
-          {tickets.length === 0 ? (
-            <div className="card p-12 text-center">
-              <p className="text-gray-500 text-sm">No tickets yet.</p>
-              <p className="text-gray-400 text-xs mt-1">
-                Create a support ticket or studio request to get started.
+      {/* Studio CTA — front and center */}
+      <div className="relative rounded-xl border border-purple-200 bg-gradient-to-r from-purple-50 via-white to-indigo-50 p-6 mb-6 overflow-hidden">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-purple-100/30 rounded-full -translate-y-1/2 translate-x-1/3" />
+        <div className="relative">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Paintbrush className="w-5 h-5 text-purple-600" />
+                <h2 className="text-base font-semibold text-gray-900">Envosta Studio</h2>
+                <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full font-medium">from $250 CAD</span>
+              </div>
+              <p className="text-sm text-gray-600 max-w-lg">
+                Need design changes, new pages, plugin setup, content updates, or new features?
+                Our team handles it — no technical knowledge needed. Just describe what you want.
               </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-gray-500">
+                <span>Page design</span>
+                <span>New features</span>
+                <span>Plugin setup</span>
+                <span>Content updates</span>
+                <span>WooCommerce</span>
+                <span>3–5 day delivery</span>
+              </div>
             </div>
-          ) : (
-            tickets.map((ticket: any) => {
-              const messages = ticket.ticket_messages ?? [];
-              const sorted = [...messages].sort(
-                (a: any, b: any) =>
-                  new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-              );
-              const lastMessage = sorted[0];
-
-              return (
-                <Link
-                  key={ticket.id}
-                  href={`/dashboard/tickets/${ticket.id}`}
-                  className="card p-5 block hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <TypeBadge type={ticket.type} />
-                      <span className="text-sm font-medium text-gray-900">
-                        {ticket.subject}
-                      </span>
-                    </div>
-                    <StatusBadge status={ticket.status} />
-                  </div>
-                  {lastMessage && (
-                    <p className="text-sm text-gray-500 line-clamp-1">
-                      {lastMessage.message}
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-400 mt-2">
-                    {formatDate(ticket.created_at)}
-                  </p>
-                </Link>
-              );
-            })
-          )}
-        </div>
-
-        {/* Info cards */}
-        <div className="lg:col-span-1 space-y-4">
-          {/* Support tickets info */}
-          <div className="card p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Support</span>
-            </div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-1">Get help with your site</h3>
-            <p className="text-xs text-gray-500 leading-relaxed mb-3">
-              Technical issues, questions about your hosting, DNS help, email setup, plugin conflicts, performance concerns, or anything else — our team is here to help.
-            </p>
-            <ul className="text-xs text-gray-500 space-y-1.5">
-              <li className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">&#10003;</span>Technical troubleshooting</li>
-              <li className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">&#10003;</span>DNS &amp; domain configuration</li>
-              <li className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">&#10003;</span>Email setup assistance</li>
-              <li className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">&#10003;</span>Performance questions</li>
-              <li className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">&#10003;</span>Account &amp; billing help</li>
-            </ul>
-          </div>
-
-          {/* Studio tickets info */}
-          <div className="relative rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50/60 via-white to-indigo-50/40 p-5 shadow-sm">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">Studio</span>
-              <span className="text-xs text-gray-400">from $250 CAD</span>
-            </div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-1">Request design &amp; development work</h3>
-            <p className="text-xs text-gray-500 leading-relaxed mb-3">
-              Need changes to your site? Our studio team handles it for you — no technical knowledge required. Submit a request and we&apos;ll send you a quote.
-            </p>
-            <ul className="text-xs text-gray-500 space-y-1.5 mb-4">
-              <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#10003;</span>Page design &amp; redesigns</li>
-              <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#10003;</span>New features &amp; functionality</li>
-              <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#10003;</span>Plugin setup &amp; configuration</li>
-              <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#10003;</span>Content updates &amp; copywriting</li>
-              <li className="flex items-start gap-2"><span className="text-purple-500 mt-0.5">&#10003;</span>3–5 business day delivery</li>
-            </ul>
-            <a
-              href="https://envosta.com/studio"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-purple-600 hover:text-purple-700 font-medium inline-flex items-center gap-1"
+            <Link
+              href="/dashboard/tickets/new?type=studio"
+              className="inline-flex items-center gap-1.5 text-sm px-5 py-2.5 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 transition-colors whitespace-nowrap shrink-0"
             >
-              Learn more about Envosta Studio <ExternalLink className="w-3 h-3" />
-            </a>
+              <Plus className="w-4 h-4" />
+              New Studio Request
+            </Link>
           </div>
         </div>
       </div>
+
+      {/* Filter tabs + tech issue button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div className="flex gap-2">
+          {[
+            { label: 'All', value: 'all', count: tickets.length },
+            { label: 'Studio Requests', value: 'studio', count: studioCount },
+            { label: 'Technical Issues', value: 'support', count: techCount },
+          ].map((tab) => (
+            <Link
+              key={tab.value}
+              href={tab.value === 'all' ? '/dashboard/tickets' : `/dashboard/tickets?type=${tab.value}`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                typeFilter === tab.value
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {tab.label} {tab.count > 0 && <span className="ml-1 opacity-60">{tab.count}</span>}
+            </Link>
+          ))}
+        </div>
+        <Link
+          href="/dashboard/tickets/new?type=support"
+          className="inline-flex items-center gap-1.5 text-sm px-3.5 py-2 rounded-lg border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors whitespace-nowrap"
+        >
+          <Wrench className="w-3.5 h-3.5" />
+          Report Technical Issue
+        </Link>
+      </div>
+
+      {/* Ticket list */}
+      {tickets.length === 0 ? (
+        <div className="card p-12 text-center">
+          <p className="text-gray-500 text-sm">No requests yet.</p>
+          <p className="text-gray-400 text-xs mt-1">
+            Submit a studio request or report a technical issue to get started.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {tickets.map((ticket: any) => {
+            const messages = ticket.ticket_messages ?? [];
+            const sorted = [...messages].sort(
+              (a: any, b: any) =>
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+            const lastMessage = sorted[0];
+
+            return (
+              <Link
+                key={ticket.id}
+                href={`/dashboard/tickets/${ticket.id}`}
+                className="card p-5 block hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <TypeBadge type={ticket.type} />
+                    <span className="text-sm font-medium text-gray-900">
+                      {ticket.subject}
+                    </span>
+                  </div>
+                  <StatusBadge status={ticket.status} />
+                </div>
+                {lastMessage && (
+                  <p className="text-sm text-gray-500 line-clamp-1">
+                    {lastMessage.message}
+                  </p>
+                )}
+                <p className="text-xs text-gray-400 mt-2">
+                  {formatDate(ticket.created_at)}
+                </p>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

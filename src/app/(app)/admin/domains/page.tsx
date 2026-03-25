@@ -1,6 +1,6 @@
 import { getAllDomains } from '@/services/domains';
 import { formatDate, statusColor } from '@/lib/utils';
-import { Globe, Search, DollarSign } from 'lucide-react';
+import { Globe, Search, DollarSign, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
 const STATUSES = ['available', 'registered', 'transferring', 'expired', 'pending_dns', 'failed'] as const;
@@ -18,9 +18,20 @@ export default async function DomainsPage({
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Domains</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage all registered domains across the platform.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Domains</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Manage all registered domains across the platform.</p>
+        </div>
+        <a
+          href="https://rr-n1-tor.opensrs.net/openSRS"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+        >
+          <ExternalLink className="w-4 h-4" />
+          OpenSRS Dashboard
+        </a>
       </div>
 
       {/* Filters */}

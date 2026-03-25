@@ -1,7 +1,7 @@
 import { getAllActiveSubscriptions, getAllSubscriptionsAdmin } from '@/services/subscriptions';
 import { getAdminBillingStats, getAdminRecentInvoices } from '@/services/billing';
 import { formatCents } from '@/lib/utils';
-import { DollarSign, Receipt, AlertCircle, Users } from 'lucide-react';
+import { DollarSign, Receipt, AlertCircle, Users, ExternalLink } from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
 import { InvoiceFilters } from '@/components/admin/invoice-filters';
 import { SubscriptionFilters } from '@/components/admin/subscription-filters';
@@ -37,9 +37,20 @@ export default async function AdminBillingPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Billing</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Revenue, subscriptions, and invoices.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Billing</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Revenue, subscriptions, and invoices.</p>
+        </div>
+        <a
+          href="https://dashboard.stripe.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+        >
+          <ExternalLink className="w-4 h-4" />
+          Stripe Dashboard
+        </a>
       </div>
 
       {/* Stats */}
