@@ -5,6 +5,8 @@ import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DeleteSiteButton } from '@/components/sites/delete-site-button';
+import { SiteBackups } from '@/components/sites/site-backups';
+import { SslStatus } from '@/components/sites/ssl-status';
 import {
   ArrowLeft,
   ExternalLink,
@@ -59,11 +61,6 @@ export default async function SiteDetailPage({
           ? 'bg-red-50 text-red-700 ring-1 ring-red-600/20'
           : 'bg-gray-100 text-gray-600 ring-1 ring-gray-500/20';
 
-  const placeholderBackups = [
-    { date: 'Mar 19, 2026', size: '245 MB', status: 'Completed' },
-    { date: 'Mar 18, 2026', size: '243 MB', status: 'Completed' },
-    { date: 'Mar 17, 2026', size: '241 MB', status: 'Completed' },
-  ];
 
   return (
     <div>
@@ -237,37 +234,7 @@ export default async function SiteDetailPage({
           <Copy className="w-4 h-4 text-gray-400" />
           Backups
         </h2>
-        <p className="text-xs text-gray-500 mb-4">
-          Daily backups with 30-day retention included.
-        </p>
-        <div className="overflow-hidden rounded-lg border border-gray-200">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">
-                  Date
-                </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">
-                  Size
-                </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {placeholderBackups.map((b, i) => (
-                <tr key={i} className="hover:bg-gray-50/50">
-                  <td className="px-4 py-2.5 text-sm text-gray-900">{b.date}</td>
-                  <td className="px-4 py-2.5 text-sm text-gray-600">{b.size}</td>
-                  <td className="px-4 py-2.5">
-                    <span className="badge-green">{b.status}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SiteBackups siteId={id} wpCloudSiteId={site.wp_cloud_site_id} />
       </div>
 
       {/* Staging */}
@@ -289,16 +256,11 @@ export default async function SiteDetailPage({
 
       {/* SSL */}
       <div className="card p-6 mb-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
           <Lock className="w-4 h-4 text-gray-400" />
           SSL Certificate
         </h2>
-        <div className="flex items-center gap-2 mt-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <p className="text-sm text-gray-700">
-            SSL certificate active and auto-renewing.
-          </p>
-        </div>
+        <SslStatus siteId={id} domain={site.wp_cloud_url?.replace('https://', '') ?? connectedDomain?.domain_name ?? null} />
       </div>
 
       {/* Cancel Site */}
