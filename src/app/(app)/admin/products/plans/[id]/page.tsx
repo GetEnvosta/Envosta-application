@@ -143,21 +143,21 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
           </div>
         </div>
 
-        {/* Pricing */}
+        {/* Stripe — Billing */}
         <div className="card p-6">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Pricing (CAD cents)</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Stripe — Billing</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label className="label">Monthly Price (cents)</label><input type="number" className="input" value={plan.price_monthly} onChange={e => update('price_monthly', parseInt(e.target.value) || 0)} /></div>
-            <div><label className="label">Yearly Price (cents)</label><input type="number" className="input" value={plan.price_yearly ?? 0} onChange={e => update('price_yearly', parseInt(e.target.value) || 0)} /></div>
-            <div><label className="label">Stripe Product ID</label><input className="input font-mono text-xs" value={plan.stripe_product_id ?? ''} onChange={e => update('stripe_product_id', e.target.value)} placeholder="prod_..." /></div>
-            <div><label className="label">Stripe Monthly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id_monthly ?? ''} onChange={e => update('stripe_price_id_monthly', e.target.value)} placeholder="price_..." /></div>
-            <div><label className="label">Stripe Yearly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id_yearly ?? ''} onChange={e => update('stripe_price_id_yearly', e.target.value)} placeholder="price_..." /></div>
+            <div><label className="label">Monthly Price (cents CAD)</label><input type="number" className="input" value={plan.price_monthly} onChange={e => update('price_monthly', parseInt(e.target.value) || 0)} /></div>
+            <div><label className="label">Yearly Price (cents CAD)</label><input type="number" className="input" value={plan.price_yearly ?? 0} onChange={e => update('price_yearly', parseInt(e.target.value) || 0)} /></div>
+            <div><label className="label">Monthly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id_monthly ?? ''} onChange={e => update('stripe_price_id_monthly', e.target.value)} placeholder="price_..." /></div>
+            <div><label className="label">Yearly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id_yearly ?? ''} onChange={e => update('stripe_price_id_yearly', e.target.value)} placeholder="price_..." /></div>
+            <div><label className="label">Product ID</label><input className="input font-mono text-xs" value={plan.stripe_product_id ?? ''} onChange={e => update('stripe_product_id', e.target.value)} placeholder="prod_..." /></div>
           </div>
         </div>
 
-        {/* Infrastructure */}
+        {/* wp.cloud — Infrastructure */}
         <div className="card p-6">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Infrastructure</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">wp.cloud — Infrastructure</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div><label className="label">Storage (GB)</label><input type="number" className="input" value={plan.storage_gb ?? plan.disk_gb ?? 25} onChange={e => update('storage_gb', parseInt(e.target.value) || 25)} /></div>
             <div><label className="label">Default PHP Workers</label><input type="number" className="input" value={plan.default_php_workers ?? 2} onChange={e => update('default_php_workers', parseInt(e.target.value) || 2)} /></div>
@@ -190,9 +190,9 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
           </div>
         </div>
 
-        {/* Features JSON */}
+        {/* Marketing — Plan Card Features */}
         <div className="card p-6">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Features (displayed on plan cards)</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Marketing — Plan Card Features</h2>
           <textarea
             className="input font-mono text-xs"
             rows={6}

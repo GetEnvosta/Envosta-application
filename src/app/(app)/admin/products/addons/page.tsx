@@ -152,8 +152,8 @@ export default function AddonsPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Add-on Products</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage add-ons that can be attached to customer sites.</p>
+          <h1 className="text-xl font-semibold text-gray-900">Plan Add-ons</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Manage add-ons that can be enabled per site on any hosting plan.</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={handleSyncAll} disabled={syncing} className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5">

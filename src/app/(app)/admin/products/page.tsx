@@ -71,12 +71,12 @@ export default async function ProductsPage() {
           </div>
         </Link>
 
-        {/* Add-on Products */}
+        {/* Plan Add-ons */}
         <Link href="/admin/products/addons" className="card p-6 hover:border-admin-300 transition-colors group">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Package className="w-5 h-5 text-admin-500" />
-              <h2 className="text-base font-semibold text-gray-900">Add-on Products</h2>
+              <h2 className="text-base font-semibold text-gray-900">Plan Add-ons</h2>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-admin-500 transition-colors" />
           </div>

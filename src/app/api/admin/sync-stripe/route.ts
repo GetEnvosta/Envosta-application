@@ -6,6 +6,8 @@ import { createServerClient } from '@supabase/ssr';
 
 export const dynamic = 'force-dynamic';
 
+// ─── Clients ─────────────────────────────────────────────
+
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
 }
@@ -14,129 +16,155 @@ function getSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
+    { auth: { persistSession: false } },
   );
 }
+
+// ─── Helpers ─────────────────────────────────────────────
+
+/** Create or update a Stripe product. Returns the product ID. */
+async function upsertProduct(
+  stripe: Stripe,
+  productId: string | null,
+  name: string,
+  description: string,
+  metadata: Record<string, string>,
+  active = true,
+): Promise<string> {
+  if (!productId) {
+    const product = await stripe.products.create({ name, description, metadata });
+    return product.id;
+  }
+  await stripe.products.update(productId, { name, description, active, metadata });
+  return productId;
+}
+
+/** Create, update, or leave a Stripe recurring price. Returns the price ID. */
+async function upsertPrice(
+  stripe: Stripe,
+  priceId: string | null,
+  productId: string,
+  amount: number,
+  interval: 'month' | 'year',
+  metadata: Record<string, string> = {},
+): Promise<string | null> {
+  if (amount <= 0) return priceId;
+
+  if (priceId) {
+    const existing = await stripe.prices.retrieve(priceId);
+    if (existing.unit_amount === amount) return priceId; // unchanged
+    await stripe.prices.update(priceId, { active: false }); // archive old
+  }
+
+  const price = await stripe.prices.create({
+    product: productId,
+    unit_amount: amount,
+    currency: 'cad',
+    recurring: { interval },
+    metadata,
+  });
+  return price.id;
+}
+
+/** Create, update, or leave a Stripe price (recurring or one-time). Returns the price ID. */
+async function upsertFlexPrice(
+  stripe: Stripe,
+  priceId: string | null,
+  productId: string,
+  amount: number,
+  billingType: string,
+  metadata: Record<string, string> = {},
+): Promise<string | null> {
+  if (amount <= 0) return priceId;
+
+  if (priceId) {
+    const existing = await stripe.prices.retrieve(priceId);
+    if (existing.unit_amount === amount) return priceId;
+    await stripe.prices.update(priceId, { active: false });
+  }
+
+  const interval = billingType === 'yearly' ? 'year' : billingType === 'monthly' ? 'month' : null;
+  const params: Stripe.PriceCreateParams = {
+    product: productId,
+    unit_amount: amount,
+    currency: 'cad',
+    metadata,
+  };
+  if (interval) params.recurring = { interval };
+
+  const price = await stripe.prices.create(params);
+  return price.id;
+}
+
+// ─── Auth ────────────────────────────────────────────────
+
+async function verifyAdmin() {
+  const cookieStore = await cookies();
+  const supabaseAuth = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } },
+  );
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (!user) return null;
+
+  const supabase = getSupabase();
+  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+  return profile?.role === 'admin' ? user : null;
+}
+
+// ─── Route ───────────────────────────────────────────────
 
 export async function POST(req: Request) {
   if (!process.env.STRIPE_SECRET_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return NextResponse.json({ error: 'Server not configured' }, { status: 503 });
   }
 
-  // Verify admin auth
-  const cookieStore = await cookies();
-  const supabaseAuth = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } }
-  );
-  const { data: { user } } = await supabaseAuth.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const supabase = getSupabase();
-  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (profile?.role !== 'admin') return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
 
   const stripe = getStripe();
+  const supabase = getSupabase();
 
   try {
     const { type, id, data } = await req.json();
 
-    // ════════════════════════════════════════
-    // SYNC PLAN TO STRIPE
-    // ════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
+    // HOSTING PLANS → Stripe product + monthly/yearly prices
+    // ═══════════════════════════════════════════════════════
     if (type === 'plan') {
       const { name, description, price_monthly, price_yearly, is_active,
-        storage_gb, bandwidth_gb, default_php_workers, max_php_workers, php_memory_mb, onboarding_type, support_response_hours } = data;
+        storage_gb, bandwidth_gb, default_php_workers, max_php_workers,
+        php_memory_mb, onboarding_type, support_response_hours } = data;
 
-      // Always read current Stripe IDs from DB (not from stale form state)
-      const { data: dbPlan } = await supabase.from('plans').select('stripe_product_id, stripe_price_id_monthly, stripe_price_id_yearly').eq('id', id).single();
-      let productId = dbPlan?.stripe_product_id ?? data.stripe_product_id ?? null;
+      const { data: db } = await supabase
+        .from('plans')
+        .select('stripe_product_id, stripe_price_id_monthly, stripe_price_id_yearly')
+        .eq('id', id).single();
 
-      const productMetadata = {
-        envosta_plan_id: id,
-        type: 'hosting_plan',
-        storage_gb: String(storage_gb ?? ''),
-        bandwidth_gb: String(bandwidth_gb ?? ''),
-        default_php_workers: String(default_php_workers ?? ''),
-        max_php_workers: String(max_php_workers ?? ''),
-        php_memory_mb: String(php_memory_mb ?? ''),
-        onboarding_type: onboarding_type ?? '',
+      const metadata = {
+        envosta_plan_id: id, type: 'hosting_plan',
+        storage_gb: String(storage_gb ?? ''), bandwidth_gb: String(bandwidth_gb ?? ''),
+        default_php_workers: String(default_php_workers ?? ''), max_php_workers: String(max_php_workers ?? ''),
+        php_memory_mb: String(php_memory_mb ?? ''), onboarding_type: onboarding_type ?? '',
         support_response_hours: String(support_response_hours ?? ''),
       };
 
-      // Create or update product
-      if (!productId) {
-        const product = await stripe.products.create({
-          name: `${name} Plan`,
-          description: description || `${name} hosting plan`,
-          metadata: productMetadata,
-        });
-        productId = product.id;
-      } else {
-        await stripe.products.update(productId, {
-          name: `${name} Plan`,
-          description: description || `${name} hosting plan`,
-          active: is_active,
-          metadata: productMetadata,
-        });
-      }
+      const productId = await upsertProduct(
+        stripe, db?.stripe_product_id ?? data.stripe_product_id ?? null,
+        `${name} Plan`, description || `${name} hosting plan`, metadata, is_active,
+      );
 
-      // Handle monthly price
-      let monthlyPriceId = dbPlan?.stripe_price_id_monthly ?? data.stripe_price_id_monthly ?? null;
-      if (monthlyPriceId) {
-        // Check if price amount changed
-        const existingPrice = await stripe.prices.retrieve(monthlyPriceId);
-        if (existingPrice.unit_amount !== price_monthly) {
-          // Archive old price, create new one
-          await stripe.prices.update(monthlyPriceId, { active: false });
-          const newPrice = await stripe.prices.create({
-            product: productId,
-            unit_amount: price_monthly,
-            currency: 'cad',
-            recurring: { interval: 'month' },
-            metadata: { envosta_plan_id: id },
-          });
-          monthlyPriceId = newPrice.id;
-        }
-      } else if (price_monthly > 0) {
-        const newPrice = await stripe.prices.create({
-          product: productId,
-          unit_amount: price_monthly,
-          currency: 'cad',
-          recurring: { interval: 'month' },
-          metadata: { envosta_plan_id: id },
-        });
-        monthlyPriceId = newPrice.id;
-      }
+      const monthlyPriceId = await upsertPrice(
+        stripe, db?.stripe_price_id_monthly ?? data.stripe_price_id_monthly ?? null,
+        productId, price_monthly, 'month', { envosta_plan_id: id },
+      );
 
-      // Handle yearly price
-      let yearlyPriceId = dbPlan?.stripe_price_id_yearly ?? data.stripe_price_id_yearly ?? null;
-      if (yearlyPriceId) {
-        const existingPrice = await stripe.prices.retrieve(yearlyPriceId);
-        if (existingPrice.unit_amount !== price_yearly) {
-          await stripe.prices.update(yearlyPriceId, { active: false });
-          const newPrice = await stripe.prices.create({
-            product: productId,
-            unit_amount: price_yearly,
-            currency: 'cad',
-            recurring: { interval: 'year' },
-            metadata: { envosta_plan_id: id },
-          });
-          yearlyPriceId = newPrice.id;
-        }
-      } else if (price_yearly > 0) {
-        const newPrice = await stripe.prices.create({
-          product: productId,
-          unit_amount: price_yearly,
-          currency: 'cad',
-          recurring: { interval: 'year' },
-          metadata: { envosta_plan_id: id },
-        });
-        yearlyPriceId = newPrice.id;
-      }
+      const yearlyPriceId = await upsertPrice(
+        stripe, db?.stripe_price_id_yearly ?? data.stripe_price_id_yearly ?? null,
+        productId, price_yearly, 'year', { envosta_plan_id: id },
+      );
 
-      // Update DB with Stripe IDs
       await supabase.from('plans').update({
         stripe_product_id: productId,
         stripe_price_id_monthly: monthlyPriceId,
@@ -144,124 +172,65 @@ export async function POST(req: Request) {
       }).eq('id', id);
 
       return NextResponse.json({
-        success: true,
-        stripe_product_id: productId,
-        stripe_price_id_monthly: monthlyPriceId,
-        stripe_price_id_yearly: yearlyPriceId,
+        success: true, stripe_product_id: productId,
+        stripe_price_id_monthly: monthlyPriceId, stripe_price_id_yearly: yearlyPriceId,
       });
     }
 
-    // ════════════════════════════════════════
-    // SYNC DOMAIN TLD TO STRIPE
-    // ════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
+    // DOMAIN TLDs → Stripe product + yearly renewal price
+    // ═══════════════════════════════════════════════════════
     if (type === 'domain_tld') {
       const { tld, renewal_price_cad, active } = data;
 
-      // Always read current Stripe IDs from DB
-      const { data: dbTld } = await supabase.from('domain_pricing').select('stripe_product_id, stripe_price_id_yearly').eq('id', id).single();
-      let productId = dbTld?.stripe_product_id ?? data.stripe_product_id ?? null;
+      const { data: db } = await supabase
+        .from('domain_pricing')
+        .select('stripe_product_id, stripe_price_id_yearly')
+        .eq('id', id).single();
 
-      // Create or update product
-      if (!productId) {
-        const product = await stripe.products.create({
-          name: `.${tld} Domain Registration`,
-          description: `Domain registration and annual renewal for .${tld} domains`,
-          metadata: { tld, type: 'domain_registration' },
-        });
-        productId = product.id;
-      } else {
-        await stripe.products.update(productId, {
-          name: `.${tld} Domain Registration`,
-          active,
-        });
-      }
+      const productId = await upsertProduct(
+        stripe, db?.stripe_product_id ?? data.stripe_product_id ?? null,
+        `.${tld} Domain Registration`,
+        `Domain registration and annual renewal for .${tld} domains`,
+        { tld, type: 'domain_registration' }, active,
+      );
 
-      // Handle yearly price
-      let yearlyPriceId = dbTld?.stripe_price_id_yearly ?? data.stripe_price_id_yearly ?? null;
-      if (yearlyPriceId) {
-        const existingPrice = await stripe.prices.retrieve(yearlyPriceId);
-        if (existingPrice.unit_amount !== renewal_price_cad) {
-          await stripe.prices.update(yearlyPriceId, { active: false });
-          const newPrice = await stripe.prices.create({
-            product: productId,
-            unit_amount: renewal_price_cad,
-            currency: 'cad',
-            recurring: { interval: 'year' },
-            metadata: { tld },
-          });
-          yearlyPriceId = newPrice.id;
-        }
-      } else if (renewal_price_cad > 0) {
-        const newPrice = await stripe.prices.create({
-          product: productId,
-          unit_amount: renewal_price_cad,
-          currency: 'cad',
-          recurring: { interval: 'year' },
-          metadata: { tld },
-        });
-        yearlyPriceId = newPrice.id;
-      }
+      const yearlyPriceId = await upsertPrice(
+        stripe, db?.stripe_price_id_yearly ?? data.stripe_price_id_yearly ?? null,
+        productId, renewal_price_cad, 'year', { tld },
+      );
 
-      // Update DB
       await supabase.from('domain_pricing').update({
         stripe_product_id: productId,
         stripe_price_id_yearly: yearlyPriceId,
       }).eq('id', id);
 
       return NextResponse.json({
-        success: true,
-        stripe_product_id: productId,
-        stripe_price_id_yearly: yearlyPriceId,
+        success: true, stripe_product_id: productId, stripe_price_id_yearly: yearlyPriceId,
       });
     }
 
-    // ════════════════════════════════════════
-    // SYNC ADDON PRODUCT TO STRIPE
-    // ════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
+    // PLAN ADD-ONS → Stripe product + price (recurring or one-time)
+    // ═══════════════════════════════════════════════════════
     if (type === 'addon') {
       const { name, description, price_cad, billing_type, is_active, slug } = data;
 
-      // Always read current Stripe IDs from DB
-      const { data: dbAddon } = await supabase.from('addon_products').select('stripe_product_id, stripe_price_id').eq('id', id).single();
-      let productId = dbAddon?.stripe_product_id ?? data.stripe_product_id ?? null;
+      const { data: db } = await supabase
+        .from('addon_products')
+        .select('stripe_product_id, stripe_price_id')
+        .eq('id', id).single();
 
-      if (!productId) {
-        const product = await stripe.products.create({
-          name,
-          description: description || `${name} add-on`,
-          metadata: { envosta_addon_slug: slug, type: 'addon' },
-        });
-        productId = product.id;
-      } else {
-        await stripe.products.update(productId, {
-          name,
-          description: description || `${name} add-on`,
-          active: is_active,
-        });
-      }
+      const productId = await upsertProduct(
+        stripe, db?.stripe_product_id ?? data.stripe_product_id ?? null,
+        name, description || `${name} add-on`,
+        { envosta_addon_slug: slug, type: 'addon' }, is_active,
+      );
 
-      let priceId = dbAddon?.stripe_price_id ?? data.stripe_price_id ?? null;
-      const interval = billing_type === 'yearly' ? 'year' : billing_type === 'monthly' ? 'month' : null;
-
-      if (priceId) {
-        const existingPrice = await stripe.prices.retrieve(priceId);
-        if (existingPrice.unit_amount !== price_cad) {
-          await stripe.prices.update(priceId, { active: false });
-          priceId = null; // force create new
-        }
-      }
-
-      if (!priceId && price_cad > 0) {
-        const priceParams: any = {
-          product: productId,
-          unit_amount: price_cad,
-          currency: 'cad',
-          metadata: { envosta_addon_slug: slug },
-        };
-        if (interval) priceParams.recurring = { interval };
-        const newPrice = await stripe.prices.create(priceParams);
-        priceId = newPrice.id;
-      }
+      const priceId = await upsertFlexPrice(
+        stripe, db?.stripe_price_id ?? data.stripe_price_id ?? null,
+        productId, price_cad, billing_type, { envosta_addon_slug: slug },
+      );
 
       await supabase.from('addon_products').update({
         stripe_product_id: productId,
@@ -269,118 +238,60 @@ export async function POST(req: Request) {
       }).eq('id', id);
 
       return NextResponse.json({
-        success: true,
-        stripe_product_id: productId,
-        stripe_price_id: priceId,
+        success: true, stripe_product_id: productId, stripe_price_id: priceId,
       });
     }
 
-    // ════════════════════════════════════════
-    // SYNC ALL — bulk sync everything missing Stripe IDs
-    // ════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
+    // SYNC ALL — bulk create missing Stripe products + prices
+    // ═══════════════════════════════════════════════════════
     if (type === 'sync_all') {
       const results: string[] = [];
 
-      // Helper to sync a single plan inline (no HTTP call)
-      async function syncPlan(plan: any) {
-        try {
-          let pid = plan.stripe_product_id;
-          const meta = { envosta_plan_id: plan.id, type: 'hosting_plan' };
-
-          if (!pid) {
-            const p = await stripe.products.create({ name: `${plan.name} Plan`, metadata: meta });
-            pid = p.id;
-          } else {
-            await stripe.products.update(pid, { name: `${plan.name} Plan`, metadata: meta });
-          }
-
-          let mPriceId = plan.stripe_price_id_monthly;
-          if (!mPriceId && plan.price_monthly > 0) {
-            const p = await stripe.prices.create({ product: pid, unit_amount: plan.price_monthly, currency: 'cad', recurring: { interval: 'month' } });
-            mPriceId = p.id;
-          }
-
-          let yPriceId = plan.stripe_price_id_yearly;
-          if (!yPriceId && plan.price_yearly > 0) {
-            const p = await stripe.prices.create({ product: pid, unit_amount: plan.price_yearly, currency: 'cad', recurring: { interval: 'year' } });
-            yPriceId = p.id;
-          }
-
-          await supabase.from('plans').update({ stripe_product_id: pid, stripe_price_id_monthly: mPriceId, stripe_price_id_yearly: yPriceId }).eq('id', plan.id);
-          return true;
-        } catch (e) { console.error('Plan sync error:', e); return false; }
-      }
-
-      // Helper to sync a single TLD inline
-      async function syncTld(tld: any) {
-        try {
-          let pid = tld.stripe_product_id;
-          if (!pid) {
-            const p = await stripe.products.create({ name: `.${tld.tld} Domain Registration`, metadata: { tld: tld.tld, type: 'domain_registration' } });
-            pid = p.id;
-          }
-          let yPriceId = tld.stripe_price_id_yearly;
-          if (!yPriceId && tld.renewal_price_cad > 0) {
-            const p = await stripe.prices.create({ product: pid, unit_amount: tld.renewal_price_cad, currency: 'cad', recurring: { interval: 'year' } });
-            yPriceId = p.id;
-          }
-          await supabase.from('domain_pricing').update({ stripe_product_id: pid, stripe_price_id_yearly: yPriceId }).eq('id', tld.id);
-          return true;
-        } catch (e) { console.error('TLD sync error:', e); return false; }
-      }
-
-      // Helper to sync a single addon inline
-      async function syncAddon(addon: any) {
-        try {
-          let pid = addon.stripe_product_id;
-          if (!pid) {
-            const p = await stripe.products.create({ name: addon.name, metadata: { envosta_addon_slug: addon.slug, type: 'addon' } });
-            pid = p.id;
-          }
-          let priceId = addon.stripe_price_id;
-          if (!priceId && addon.price_cad > 0) {
-            const interval = addon.billing_type === 'yearly' ? 'year' : addon.billing_type === 'monthly' ? 'month' : null;
-            const params: any = { product: pid, unit_amount: addon.price_cad, currency: 'cad' };
-            if (interval) params.recurring = { interval };
-            const p = await stripe.prices.create(params);
-            priceId = p.id;
-          }
-          await supabase.from('addon_products').update({ stripe_product_id: pid, stripe_price_id: priceId }).eq('id', addon.id);
-          return true;
-        } catch (e) { console.error('Addon sync error:', e); return false; }
-      }
-
-      // Sync plans
+      // Plans
       const { data: plans } = await supabase.from('plans').select('*').eq('is_active', true);
       for (const plan of plans ?? []) {
         if (!plan.stripe_product_id || !plan.stripe_price_id_monthly || !plan.stripe_price_id_yearly) {
-          const ok = await syncPlan(plan);
-          results.push(`Plan: ${plan.name} ${ok ? '✓' : '✗'}`);
+          try {
+            const pid = await upsertProduct(stripe, plan.stripe_product_id, `${plan.name} Plan`, plan.description || '', { envosta_plan_id: plan.id, type: 'hosting_plan' });
+            const mId = plan.stripe_price_id_monthly || (plan.price_monthly > 0 ? (await stripe.prices.create({ product: pid, unit_amount: plan.price_monthly, currency: 'cad', recurring: { interval: 'month' } })).id : null);
+            const yId = plan.stripe_price_id_yearly || (plan.price_yearly > 0 ? (await stripe.prices.create({ product: pid, unit_amount: plan.price_yearly, currency: 'cad', recurring: { interval: 'year' } })).id : null);
+            await supabase.from('plans').update({ stripe_product_id: pid, stripe_price_id_monthly: mId, stripe_price_id_yearly: yId }).eq('id', plan.id);
+            results.push(`Plan: ${plan.name} ✓`);
+          } catch (e) { console.error('Plan sync error:', e); results.push(`Plan: ${plan.name} ✗`); }
         }
       }
 
-      // Sync TLDs
+      // TLDs
       const { data: tlds } = await supabase.from('domain_pricing').select('*').eq('active', true);
       for (const tld of tlds ?? []) {
         if (!tld.stripe_product_id || !tld.stripe_price_id_yearly) {
-          const ok = await syncTld(tld);
-          results.push(`TLD: .${tld.tld} ${ok ? '✓' : '✗'}`);
+          try {
+            const pid = await upsertProduct(stripe, tld.stripe_product_id, `.${tld.tld} Domain Registration`, '', { tld: tld.tld, type: 'domain_registration' });
+            const yId = tld.stripe_price_id_yearly || (tld.renewal_price_cad > 0 ? (await stripe.prices.create({ product: pid, unit_amount: tld.renewal_price_cad, currency: 'cad', recurring: { interval: 'year' } })).id : null);
+            await supabase.from('domain_pricing').update({ stripe_product_id: pid, stripe_price_id_yearly: yId }).eq('id', tld.id);
+            results.push(`TLD: .${tld.tld} ✓`);
+          } catch (e) { console.error('TLD sync error:', e); results.push(`TLD: .${tld.tld} ✗`); }
         }
       }
 
-      // Sync addons
+      // Add-ons
       const { data: addons } = await supabase.from('addon_products').select('*').eq('is_active', true);
       for (const addon of addons ?? []) {
         if (!addon.stripe_product_id || !addon.stripe_price_id) {
-          const ok = await syncAddon(addon);
-          results.push(`Addon: ${addon.name} ${ok ? '✓' : '✗'}`);
+          try {
+            const pid = await upsertProduct(stripe, addon.stripe_product_id, addon.name, addon.description || '', { envosta_addon_slug: addon.slug, type: 'addon' });
+            const priceId = await upsertFlexPrice(stripe, addon.stripe_price_id, pid, addon.price_cad, addon.billing_type, { envosta_addon_slug: addon.slug });
+            await supabase.from('addon_products').update({ stripe_product_id: pid, stripe_price_id: priceId }).eq('id', addon.id);
+            results.push(`Addon: ${addon.name} ✓`);
+          } catch (e) { console.error('Addon sync error:', e); results.push(`Addon: ${addon.name} ✗`); }
         }
       }
 
       return NextResponse.json({ success: true, results });
     }
 
-    return NextResponse.json({ error: 'Unknown type' }, { status: 400 });
+    return NextResponse.json({ error: 'Unknown sync type' }, { status: 400 });
   } catch (e: any) {
     console.error('Stripe sync error:', e);
     return NextResponse.json({ error: e.message ?? 'Sync failed' }, { status: 500 });
