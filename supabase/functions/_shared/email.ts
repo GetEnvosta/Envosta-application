@@ -77,7 +77,7 @@ function template(content: string): string {
   <div class="wrap">
     <div class="card">
       <a href="https://envosta.com" class="logo-row" style="text-decoration:none;">
-        <img src="https://envosta.com/assets/Logo/envosta-logo-mark-blue.svg" alt="Envosta" class="logo-mark" width="32" height="32" style="width:32px;height:32px;">
+        <img src="https://envosta.com/assets/Logo/envosta-logo-mark-dark.svg" alt="Envosta" class="logo-mark" width="32" height="32" style="width:32px;height:32px;">
         <span class="logo-text">Envosta</span>
       </a>
       ${content}
