@@ -1,10 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import { Loader2 } from 'lucide-react';
+
+const promos = [
+  {
+    tag: 'Managed WordPress Hosting',
+    heading: 'WordPress hosting,\nhandled from day one.',
+    desc: 'Enterprise infrastructure, personal onboarding, and a team that actually knows your site.',
+  },
+  {
+    tag: 'Envosta Studio',
+    heading: 'Need a stunning website?\nWe build it for you.',
+    desc: 'Custom WordPress design, development, and launch — handled entirely by our team.',
+  },
+  {
+    tag: 'Enterprise Infrastructure',
+    heading: 'Built on wp.cloud.\nThe same platform behind WordPress.com.',
+    desc: 'Auto-scaling PHP workers, global CDN, daily backups, and 99.99% uptime — included on every plan.',
+  },
+  {
+    tag: 'White-Glove Onboarding',
+    heading: 'We don\'t just host.\nWe set everything up.',
+    desc: 'DNS, email, SSL, security hardening, performance optimization — all configured before you launch.',
+  },
+];
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -16,6 +39,21 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [promoIdx, setPromoIdx] = useState(0);
+  const [fade, setFade] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFade(false);
+      setTimeout(() => {
+        setPromoIdx(i => (i + 1) % promos.length);
+        setFade(true);
+      }, 400);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const promo = promos[promoIdx];
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -29,36 +67,28 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left panel — branding */}
+      {/* Left panel — rotating marketing */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #03060e 0%, #0a1628 50%, #0f1d36 100%)' }}>
         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 30% 50%, rgba(37,99,235,.15), transparent 60%)' }} />
         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 70% 80%, rgba(37,99,235,.08), transparent 50%)' }} />
 
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <div className="flex items-center gap-3">
-            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: 32, height: 32 }}>
-              <defs>
-                <mask id="login-e">
-                  <rect width="64" height="64" rx="10" fill="white" />
-                  <rect x="19.2" y="17" width="25.6" height="5.4" fill="black" />
-                  <rect x="19.2" y="29.3" width="6.7" height="17.7" fill="black" />
-                  <rect x="25.5" y="29.3" width="16" height="5.4" fill="black" />
-                  <rect x="25.5" y="41.6" width="19.3" height="5.4" fill="black" />
-                </mask>
-              </defs>
-              <rect width="64" height="64" rx="10" fill="white" mask="url(#login-e)" />
-            </svg>
+            <img src="/assets/Logo/envosta-logo-mark.svg" alt="Envosta" style={{ width: 32, height: 32 }} />
             <span style={{ fontSize: '1.2rem', fontWeight: 300, color: '#fff', letterSpacing: '-.5px' }}>
-              Env<span style={{ fontWeight: 400 }}>o</span>sta
+              Envosta
             </span>
           </div>
 
-          <div>
-            <h2 style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 400, color: '#fff', letterSpacing: '-1px', lineHeight: 1.15, marginBottom: 16 }}>
-              WordPress hosting,<br />handled from day one.
+          <div style={{ transition: 'opacity .4s ease', opacity: fade ? 1 : 0 }}>
+            <div style={{ display: 'inline-block', padding: '4px 12px', borderRadius: 20, background: 'rgba(37,99,235,.15)', border: '1px solid rgba(37,99,235,.25)', marginBottom: 20 }}>
+              <span style={{ fontSize: '.75rem', fontWeight: 500, color: '#60a5fa', letterSpacing: '.3px' }}>{promo.tag}</span>
+            </div>
+            <h2 style={{ fontSize: 'clamp(1.8rem, 3vw, 2.6rem)', fontWeight: 400, color: '#fff', letterSpacing: '-1px', lineHeight: 1.15, marginBottom: 16, whiteSpace: 'pre-line' }}>
+              {promo.heading}
             </h2>
             <p style={{ fontSize: '.95rem', color: 'rgba(255,255,255,.45)', lineHeight: 1.7, maxWidth: 400, fontWeight: 300 }}>
-              Enterprise infrastructure, personal onboarding, and a team that actually knows your site.
+              {promo.desc}
             </p>
           </div>
 
@@ -67,7 +97,11 @@ function LoginForm() {
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px rgba(34,197,94,.4)' }} />
               <span style={{ fontSize: '.72rem', color: 'rgba(255,255,255,.35)', fontFamily: 'monospace', letterSpacing: '.5px' }}>All systems operational</span>
             </div>
-            <span style={{ fontSize: '.72rem', color: 'rgba(255,255,255,.2)' }}>99.99% uptime</span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {promos.map((_, i) => (
+                <div key={i} style={{ width: i === promoIdx ? 20 : 6, height: 6, borderRadius: 3, background: i === promoIdx ? '#2563EB' : 'rgba(255,255,255,.15)', transition: 'all .4s ease' }} />
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -106,7 +140,8 @@ function LoginForm() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@company.com"
                 required
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 focus:bg-white"
+                autoComplete="email"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 text-base text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 focus:bg-white"
               />
             </div>
 
@@ -123,7 +158,8 @@ function LoginForm() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 focus:bg-white"
+                autoComplete="current-password"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50/50 text-base text-gray-900 placeholder:text-gray-400 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 focus:bg-white"
               />
             </div>
 

@@ -2,13 +2,13 @@
 :root{--bg:#03060e;--bg2:#070c18;--card:#0b1220;--card2:#0f182a;--gold:#2563EB;--gold-dim:#2563EB10;--gold-bright:#3B82F6;--t1:#f5f7fb;--t2:#a3b1c9;--t3:#7889a3;--bdr:#101c2e;--bdr2:#182842;--grn:#22c55e;--r:12px}
 
 /* Scoped to marketing site wrapper */
-.marketing-site{font-family:var(--font-inter),'Inter',sans-serif;background:#040812;color:#d0d8e8;line-height:1.7;-webkit-font-smoothing:antialiased;width:100%;min-height:100dvh;overflow-x:hidden;margin:0;padding:0}
+.marketing-site{font-family:var(--font-inter),'Inter',sans-serif;background:#040812;color:#d0d8e8;line-height:1.7;-webkit-font-smoothing:antialiased;width:100%;min-height:100vh;overflow-x:hidden;margin:0;padding:0;-webkit-overflow-scrolling:touch}
 .marketing-site *,.marketing-site *::before,.marketing-site *::after{box-sizing:border-box}
 .c{max-width:1320px;margin:0 auto;padding:0 32px}
 section{position:relative;z-index:1}
 
 /* ── Nav ── */
-.site-nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(8,12,24,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr)}
+.site-nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(8,12,24,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr);will-change:transform;transform:translateZ(0)}
 .site-nav .c{display:flex;align-items:center;height:72px}
 
 /* Nav link styles — blue underline on hover and active */
@@ -41,7 +41,7 @@ section{position:relative;z-index:1}
 /* ═══════════════════════════════════
    SECTION 1 — HERO (split layout)
 ═══════════════════════════════════ */
-.hero{padding:160px 0 80px;position:relative;overflow:hidden;min-height:70dvh;display:flex;align-items:center}
+.hero{padding:160px 0 80px;position:relative;overflow:hidden;min-height:70vh;display:flex;align-items:center}
 .hero-bg{position:absolute;inset:0;z-index:0;overflow:hidden}
 .hero-overlay{position:absolute;inset:0;z-index:1;background:
   radial-gradient(ellipse 80% 60% at 50% 40%, rgba(3,6,14,.35) 0%, rgba(3,6,14,.6) 50%, rgba(3,6,14,.92) 100%),
@@ -707,7 +707,7 @@ section{position:relative;z-index:1}
   .ham{display:flex}
 
   /* Hero */
-  .hero{padding:140px 0 80px;min-height:85dvh}
+  .hero{padding:140px 0 80px;min-height:85vh}
   .hero-text{padding:0 8px}
   .hero-text h1{font-size:2.4rem;letter-spacing:-1px;margin-bottom:20px}
   .hero-text p{font-size:.95rem;margin-bottom:32px;line-height:1.7;max-width:400px}
@@ -822,7 +822,7 @@ section{position:relative;z-index:1}
    RESPONSIVE — SMALL MOBILE (max-width: 480px)
 ═══════════════════════════════════ */
 @media(max-width:480px){
-  .hero{padding:120px 0 60px;min-height:80dvh}
+  .hero{padding:120px 0 60px;min-height:80vh}
   .hero-text{padding:0 4px}
   .hero-text h1{font-size:2rem;letter-spacing:-.8px;line-height:1.15;margin-bottom:16px}
   .hero-text p{font-size:.88rem;line-height:1.65;margin-bottom:28px;max-width:340px}
