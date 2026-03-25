@@ -155,9 +155,11 @@ export async function POST(req: Request) {
     // SYNC DOMAIN TLD TO STRIPE
     // ════════════════════════════════════════
     if (type === 'domain_tld') {
-      const { tld, renewal_price_cad, stripe_product_id, stripe_price_id_yearly, active } = data;
+      const { tld, renewal_price_cad, active } = data;
 
-      let productId = stripe_product_id;
+      // Always read current Stripe IDs from DB
+      const { data: dbTld } = await supabase.from('domain_pricing').select('stripe_product_id, stripe_price_id_yearly').eq('id', id).single();
+      let productId = dbTld?.stripe_product_id ?? data.stripe_product_id ?? null;
 
       // Create or update product
       if (!productId) {
@@ -175,7 +177,7 @@ export async function POST(req: Request) {
       }
 
       // Handle yearly price
-      let yearlyPriceId = stripe_price_id_yearly;
+      let yearlyPriceId = dbTld?.stripe_price_id_yearly ?? data.stripe_price_id_yearly ?? null;
       if (yearlyPriceId) {
         const existingPrice = await stripe.prices.retrieve(yearlyPriceId);
         if (existingPrice.unit_amount !== renewal_price_cad) {
@@ -217,9 +219,11 @@ export async function POST(req: Request) {
     // SYNC ADDON PRODUCT TO STRIPE
     // ════════════════════════════════════════
     if (type === 'addon') {
-      const { name, description, price_cad, billing_type, is_active, stripe_product_id, stripe_price_id, slug } = data;
+      const { name, description, price_cad, billing_type, is_active, slug } = data;
 
-      let productId = stripe_product_id;
+      // Always read current Stripe IDs from DB
+      const { data: dbAddon } = await supabase.from('addon_products').select('stripe_product_id, stripe_price_id').eq('id', id).single();
+      let productId = dbAddon?.stripe_product_id ?? data.stripe_product_id ?? null;
 
       if (!productId) {
         const product = await stripe.products.create({
@@ -236,7 +240,7 @@ export async function POST(req: Request) {
         });
       }
 
-      let priceId = stripe_price_id;
+      let priceId = dbAddon?.stripe_price_id ?? data.stripe_price_id ?? null;
       const interval = billing_type === 'yearly' ? 'year' : billing_type === 'monthly' ? 'month' : null;
 
       if (priceId) {

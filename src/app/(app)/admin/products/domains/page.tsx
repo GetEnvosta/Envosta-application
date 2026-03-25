@@ -285,6 +285,7 @@ export default function DomainPricingPage() {
               <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Registration</th>
               <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Renewal</th>
               <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Transfer</th>
+              <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Stripe Product ID</th>
               <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Stripe Price ID</th>
               <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Status</th>
               <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Actions</th>
@@ -329,6 +330,15 @@ export default function DomainPricingPage() {
                       onChange={e => handleUpdate(item, 'transfer_price_cad', e.target.value)}
                     />
                   </div>
+                </td>
+                <td className="px-5 py-3">
+                  <input
+                    type="text"
+                    className="w-36 rounded border border-gray-200 px-2 py-1 text-xs font-mono"
+                    placeholder="prod_..."
+                    value={item.stripe_product_id ?? ''}
+                    onChange={e => handleUpdate(item, 'stripe_product_id', e.target.value)}
+                  />
                 </td>
                 <td className="px-5 py-3">
                   <input

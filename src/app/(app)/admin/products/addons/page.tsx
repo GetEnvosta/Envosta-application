@@ -56,6 +56,8 @@ export default function AddonsPage() {
       billing_type: addon.billing_type,
       is_active: addon.is_active,
       sort_order: addon.sort_order,
+      stripe_product_id: addon.stripe_product_id || null,
+      stripe_price_id: addon.stripe_price_id || null,
     }).eq('id', addon.id);
 
     if (err) { setError(err.message); setSaving(null); return; }
@@ -211,6 +213,10 @@ export default function AddonsPage() {
             <div className="mb-4">
               <label className="label">Description</label>
               <input className="input" value={addon.description ?? ''} onChange={e => updateAddon(addon.id, 'description', e.target.value)} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div><label className="label">Stripe Product ID</label><input className="input font-mono text-xs" placeholder="prod_..." value={addon.stripe_product_id ?? ''} onChange={e => updateAddon(addon.id, 'stripe_product_id', e.target.value || null)} /></div>
+              <div><label className="label">Stripe Price ID</label><input className="input font-mono text-xs" placeholder="price_..." value={addon.stripe_price_id ?? ''} onChange={e => updateAddon(addon.id, 'stripe_price_id', e.target.value || null)} /></div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
