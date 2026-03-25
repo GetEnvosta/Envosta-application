@@ -54,12 +54,15 @@ function template(content: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!--[if mso]><style>table,td{font-family:Arial,sans-serif !important;}</style><![endif]-->
   <style>
-    body { margin: 0; padding: 0; background: #f4f4f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { margin: 0; padding: 0; background: #f4f4f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased; }
     .wrap { max-width: 560px; margin: 0 auto; padding: 40px 20px; }
     .card { background: #fff; border-radius: 12px; padding: 40px 32px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-    .logo { font-size: 20px; font-weight: 300; color: #111; letter-spacing: -.5px; margin-bottom: 32px; }
-    .logo span { font-weight: 500; }
+    .logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; text-decoration: none; }
+    .logo-mark { width: 32px; height: 32px; }
+    .logo-text { font-size: 22px; font-weight: 300; color: #111; letter-spacing: -.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+    .logo-text strong { font-weight: 600; }
     h1 { font-size: 22px; font-weight: 600; color: #111; margin: 0 0 16px; line-height: 1.3; }
     p { font-size: 15px; color: #555; line-height: 1.7; margin: 0 0 16px; }
     .btn { display: inline-block; background: #111; color: #fff !important; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 500; margin: 8px 0 24px; }
@@ -74,7 +77,10 @@ function template(content: string): string {
 <body>
   <div class="wrap">
     <div class="card">
-      <div class="logo">Env<span>o</span>sta</div>
+      <a href="https://envosta.com" class="logo-row" style="text-decoration:none;">
+        <img src="https://envosta.com/assets/Logo/envosta-logo-mark-blue.svg" alt="Envosta" class="logo-mark" width="32" height="32" style="width:32px;height:32px;">
+        <span class="logo-text">Env<strong>o</strong>sta</span>
+      </a>
       ${content}
     </div>
     <div class="footer">
