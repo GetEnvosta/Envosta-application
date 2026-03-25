@@ -113,12 +113,13 @@ export default function SettingsPage() {
   async function handleSavePreferences() {
     try {
       const supabase = createClient();
+      if (!profile?.id) return;
       await supabase.from('users').update({
         metadata: {
-          ...(user as any)?.metadata,
+          ...(profile as any)?.metadata,
           notification_prefs: { billing: true, sites: true, domains: true, marketing: false },
         },
-      }).eq('id', user!.id);
+      }).eq('id', profile.id);
       showToast('Preferences saved', 'success');
     } catch {
       showToast('Failed to save preferences', 'error');
