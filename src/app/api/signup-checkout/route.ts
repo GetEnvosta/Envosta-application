@@ -156,9 +156,14 @@ export async function POST(req: Request) {
       if (planData && !planData.is_active) {
         return NextResponse.json({ error: 'This plan is no longer available' }, { status: 400 });
       }
-      priceId = billing === 'annual'
-        ? (planData?.stripe_price_id_yearly ?? planData?.stripe_price_id_monthly ?? null)
-        : (planData?.stripe_price_id_monthly ?? null);
+      if (billing === 'annual') {
+        if (!planData?.stripe_price_id_yearly) {
+          return NextResponse.json({ error: 'Annual billing is not yet available for this plan. Please select monthly.' }, { status: 400 });
+        }
+        priceId = planData.stripe_price_id_yearly;
+      } else {
+        priceId = planData?.stripe_price_id_monthly ?? null;
+      }
     }
 
     if (!priceId) {
@@ -214,7 +219,7 @@ export async function POST(req: Request) {
       mode: 'subscription',
       line_items: lineItems,
       success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://my.envosta.com'}/auth/login?checkout=success&email=${encodeURIComponent(email)}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://envosta.com'}/get-started?plan=${plan}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://envosta.com'}/get-started?plan=${plan}${billing === 'annual' ? '&billing=annual' : ''}${promoCode ? `&promo=${promoCode}` : ''}`,
       subscription_data: {
         metadata: {
           supabase_user_id: userId,
@@ -237,9 +242,11 @@ export async function POST(req: Request) {
     try {
       const planLabel = plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : 'Unknown';
       const onboardingLabel = onboarding === 'guided' ? 'Wants onboarding call' : 'Self-guided setup';
-      const domainLabel = domain
-        ? (situation === 'existing' ? `Bringing domain: ${domain}` : `Registering: ${domain}`)
-        : 'Using temporary domain';
+      const domainLabel = situation === 'temporary' || !domain
+        ? 'Using temporary domain'
+        : situation === 'existing'
+          ? `Bringing existing domain: ${domain}`
+          : `Registering new domain: ${domain}`;
 
       const ticketMessage = [
         `**New signup: ${name}**`,
@@ -249,7 +256,7 @@ export async function POST(req: Request) {
         `**Plan:** ${planLabel}`,
         `**Domain:** ${domainLabel}`,
         `**Onboarding:** ${onboardingLabel}`,
-        situation === 'existing' ? `**Situation:** Moving existing site to Envosta` : `**Situation:** New website`,
+        situation === 'existing' ? `**Situation:** Moving existing site to Envosta` : situation === 'temporary' ? `**Situation:** Starting fresh (temporary domain)` : `**Situation:** New website`,
       ].filter(Boolean).join('\n');
 
       const { data: ticket } = await supabaseAdmin.from('tickets').insert({

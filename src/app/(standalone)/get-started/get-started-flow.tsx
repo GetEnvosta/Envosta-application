@@ -10,8 +10,8 @@ export function GetStartedFlow() {
   const billing = (searchParams.get('billing') === 'annual' ? 'annual' : 'monthly') as 'monthly' | 'annual';
   const promo = searchParams.get('promo') ?? undefined;
 
-  // No plan param = free trial mode (auto Minimum, temp domain, 14-day trial)
-  const isTrial = !plan;
+  // Trial mode only when no plan AND no domain — pure "Get Started" click
+  const isTrial = !plan && !domain;
 
   return (
     <div style={{ paddingTop: 100, paddingBottom: 80, minHeight: '100vh' }}>
