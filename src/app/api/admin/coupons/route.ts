@@ -90,7 +90,7 @@ export async function POST(req: Request) {
     const coupon = await stripe.coupons.create(couponParams);
 
     // Create the promotion code
-    await stripe.promotionCodes.create({
+    await (stripe.promotionCodes as any).create({
       coupon: coupon.id,
       code: promo_code,
     });
