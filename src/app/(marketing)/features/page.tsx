@@ -8,7 +8,7 @@ const pageStyles = `
 .sh-tag{display:inline-block;font-size:.72rem;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--gold);margin-bottom:10px}
 
 /* hero */
-.feat-hero{padding:160px 0 100px;text-align:center;position:relative;overflow:hidden}
+.feat-hero{padding:160px 0 80px;text-align:center;position:relative;overflow:hidden}
 .feat-hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 65%);pointer-events:none}
 .feat-hero .c{position:relative;z-index:1}
 .feat-hero h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:600;letter-spacing:-1.5px;line-height:1.12;margin-bottom:20px}

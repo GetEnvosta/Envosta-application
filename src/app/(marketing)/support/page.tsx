@@ -32,7 +32,7 @@ export default function SupportPage() {
         .hero-overlay{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(37,99,235,.15),transparent 65%);z-index:0}
         .hero .c{position:relative;z-index:2;text-align:center}
         .hero-text{max-width:720px;margin:0 auto}
-        .hero-text h1{font-family:'Inter',sans-serif;font-size:clamp(2.6rem,5.5vw,4.2rem);font-weight:600;line-height:1.08;letter-spacing:-2px;margin-bottom:28px;background:linear-gradient(180deg,#fff 30%,rgba(255,255,255,.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .hero-text h1{font-family:'Inter',sans-serif;font-size:clamp(2.4rem,5vw,3.8rem);font-weight:600;line-height:1.08;letter-spacing:-2px;margin-bottom:28px;background:linear-gradient(180deg,#fff 30%,rgba(255,255,255,.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .hero-text h1 em{font-style:normal;-webkit-text-fill-color:#fff;color:#fff;font-weight:500}
         .hero-text p{font-size:1.05rem;color:var(--t2);max-width:520px;margin-left:auto;margin-right:auto;line-height:1.8;font-weight:300}
 
