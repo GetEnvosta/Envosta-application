@@ -822,7 +822,7 @@ export default async function HomePage() {
         <GlobeSection />
 
         {/* ═══ SECTION 8C — SEO & CUSTOM THEME ═══ */}
-        <section className="zc-section" style={{ paddingTop: 20 }}>
+        <section className="zc-section" style={{ paddingTop: 80 }}>
           <div className="c zc-inner">
             <div className="rv zc-split" id="seo-split">
 
