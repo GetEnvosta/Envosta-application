@@ -73,12 +73,12 @@ function LoginForm() {
         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 70% 80%, rgba(37,99,235,.08), transparent 50%)' }} />
 
         <div className="relative z-10 flex flex-col p-12 w-full" style={{ minHeight: '100%' }}>
-          <div className="flex items-center gap-3">
+          <a href="https://envosta.com" className="flex items-center gap-3" style={{ textDecoration: 'none' }}>
             <img src="/assets/Logo/envosta-logo-mark.svg" alt="Envosta" style={{ width: 32, height: 32 }} />
             <span style={{ fontSize: '1.2rem', fontWeight: 300, color: '#fff', letterSpacing: '-.5px' }}>
               Envosta
             </span>
-          </div>
+          </a>
 
           <div className="flex-1 flex items-center">
           <div style={{ transition: 'opacity .4s ease', opacity: fade ? 1 : 0, width: '100%' }}>
@@ -112,10 +112,10 @@ function LoginForm() {
       <div className="flex-1 flex items-center justify-center bg-white px-6">
         <div className="w-full max-w-[380px]">
           {/* Mobile logo */}
-          <div className="flex items-center gap-2.5 mb-10 lg:hidden">
+          <a href="https://envosta.com" className="flex items-center gap-2.5 mb-10 lg:hidden" style={{ textDecoration: 'none' }}>
             <img src="/assets/Logo/envosta-logo-mark-dark.svg" alt="Envosta" className="w-7 h-7" />
             <span className="text-lg font-bold text-gray-900 tracking-tight">Envosta</span>
-          </div>
+          </a>
 
           <div className="mb-8">
             <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">Welcome back</h1>

@@ -26,7 +26,7 @@ export default function StandaloneLayout({ children }: { children: React.ReactNo
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '16px 32px',
       }}>
-        <Link href="/" className="logo" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+        <Link href="https://envosta.com" className="logo" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <div className="logo-mark">
             <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
               <defs>

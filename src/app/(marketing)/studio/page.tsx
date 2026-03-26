@@ -54,7 +54,7 @@ export default function StudioPage() {
         .vip-hero .c{position:relative;z-index:1}
         .vip-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(201,164,92,.08);border:1px solid rgba(201,164,92,.2);border-radius:100px;padding:8px 20px 8px 14px;font-size:.72rem;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--vip);margin-bottom:28px}
         .vip-badge-diamond{width:16px;height:16px}
-        .vip-hero h1{font-size:clamp(2.6rem,5.5vw,4.2rem);font-weight:500;letter-spacing:-1.5px;line-height:1.08;margin-bottom:24px}
+        .vip-hero h1{font-size:clamp(2.6rem,5.5vw,4.2rem);font-weight:600;letter-spacing:-1.5px;line-height:1.08;margin-bottom:24px}
         .vip-hero h1 em{font-style:normal;background:linear-gradient(135deg,var(--vip),var(--vip-bright));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .vip-hero p{font-size:1.08rem;color:var(--t2);max-width:580px;margin:0 auto 44px;line-height:1.8;font-weight:300}
         .hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}

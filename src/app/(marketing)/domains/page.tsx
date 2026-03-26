@@ -20,7 +20,7 @@ export default async function DomainsPage() {
         .dom-hero{padding:160px 0 80px;text-align:center;position:relative;overflow:hidden}
         .dom-hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 65%);pointer-events:none}
         .dom-hero .c{position:relative;z-index:1}
-        .dom-hero h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:400;letter-spacing:-1.5px;line-height:1.12;margin-bottom:16px;background:linear-gradient(180deg,#fff 30%,rgba(255,255,255,.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .dom-hero h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:600;letter-spacing:-1.5px;line-height:1.12;margin-bottom:16px;background:linear-gradient(180deg,#fff 30%,rgba(255,255,255,.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .dom-hero p{font-size:1.05rem;color:var(--t2);max-width:520px;margin:0 auto 40px;line-height:1.75;font-weight:300}
 
         .dom-search{max-width:560px;margin:0 auto;display:flex;gap:10px}

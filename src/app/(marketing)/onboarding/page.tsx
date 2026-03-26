@@ -87,7 +87,7 @@ export default function OnboardingPage() {
         .ob-hero{padding:160px 0 60px;text-align:center;position:relative;overflow:hidden}
         .ob-hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 65%);pointer-events:none}
         .ob-hero .c{position:relative;z-index:1}
-        .ob-hero h1{font-size:clamp(1.8rem,5vw,3.8rem);font-weight:500;letter-spacing:-1.5px;line-height:1.12;margin-bottom:20px}
+        .ob-hero h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:600;letter-spacing:-1.5px;line-height:1.12;margin-bottom:20px}
         .ob-hero h1 em{font-style:italic;color:var(--gold-bright)}
         .ob-hero p{font-size:clamp(.88rem,2.5vw,1.05rem);color:var(--t2);max-width:580px;margin:0 auto 36px;line-height:1.8;font-weight:300}
         .hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
