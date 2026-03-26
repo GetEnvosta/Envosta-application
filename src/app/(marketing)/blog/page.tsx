@@ -17,7 +17,6 @@ const CATEGORIES = [
   { slug: 'design', label: 'Design' },
   { slug: 'business', label: 'Business' },
   { slug: 'ecommerce', label: 'Ecommerce' },
-  { slug: 'envosta-news', label: 'Envosta News' },
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
