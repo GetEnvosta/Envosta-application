@@ -28,7 +28,7 @@ export default function EditBlogPostPage() {
   const [excerpt, setExcerpt] = useState('');
   const [featuredImageUrl, setFeaturedImageUrl] = useState('');
   const [tags, setTags] = useState('');
-  const [category, setCategory] = useState('wordpress-news');
+  const [category, setCategory] = useState('wordpress');
   const [metaTitle, setMetaTitle] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
   const [status, setStatus] = useState<'draft' | 'published'>('draft');
@@ -55,7 +55,7 @@ export default function EditBlogPostPage() {
       setExcerpt(data.excerpt ?? '');
       setFeaturedImageUrl(data.featured_image_url ?? '');
       setTags(Array.isArray(data.tags) ? data.tags.join(', ') : '');
-      setCategory(data.category ?? 'wordpress-news');
+      setCategory(data.category ?? 'wordpress');
       setMetaTitle(data.meta_title ?? '');
       setMetaDescription(data.meta_description ?? '');
       setStatus(data.status ?? 'draft');
@@ -225,9 +225,11 @@ export default function EditBlogPostPage() {
           <div>
             <label className="label">Category</label>
             <select className="input w-full" value={category} onChange={e => setCategory(e.target.value)}>
-              <option value="wordpress-news">WordPress News &amp; Tips</option>
-              <option value="website-design">Website Design</option>
-              <option value="business-growth">Business Growth</option>
+              <option value="wordpress">WordPress</option>
+              <option value="design">Design</option>
+              <option value="business">Business</option>
+              <option value="ecommerce">Ecommerce</option>
+              <option value="envosta-news">Envosta News</option>
             </select>
           </div>
           <div>

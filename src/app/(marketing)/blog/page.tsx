@@ -13,22 +13,28 @@ export const metadata: Metadata = {
 
 const CATEGORIES = [
   { slug: 'all', label: 'All Posts' },
-  { slug: 'wordpress-news', label: 'WordPress News & Tips' },
-  { slug: 'website-design', label: 'Website Design' },
-  { slug: 'business-growth', label: 'Business Growth' },
+  { slug: 'wordpress', label: 'WordPress' },
+  { slug: 'design', label: 'Design' },
+  { slug: 'business', label: 'Business' },
+  { slug: 'ecommerce', label: 'Ecommerce' },
+  { slug: 'envosta-news', label: 'Envosta News' },
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
-  'wordpress-news': 'WordPress News & Tips',
-  'website-design': 'Website Design',
-  'business-growth': 'Business Growth',
+  'wordpress': 'WordPress',
+  'design': 'Design',
+  'business': 'Business',
+  'ecommerce': 'Ecommerce',
+  'envosta-news': 'Envosta News',
 };
 
 function categoryColor(cat: string): string {
   switch (cat) {
-    case 'wordpress-news': return 'background:rgba(37,99,235,.15);color:#60a5fa';
-    case 'website-design': return 'background:rgba(168,85,247,.15);color:#c084fc';
-    case 'business-growth': return 'background:rgba(34,197,94,.15);color:#86efac';
+    case 'wordpress': return 'background:rgba(37,99,235,.15);color:#60a5fa';
+    case 'design': return 'background:rgba(168,85,247,.15);color:#c084fc';
+    case 'business': return 'background:rgba(34,197,94,.15);color:#86efac';
+    case 'ecommerce': return 'background:rgba(251,146,60,.15);color:#fb923c';
+    case 'envosta-news': return 'background:rgba(99,102,241,.15);color:#a5b4fc';
     default: return 'background:rgba(37,99,235,.15);color:#60a5fa';
   }
 }
