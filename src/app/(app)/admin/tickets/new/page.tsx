@@ -8,6 +8,7 @@ import { ArrowLeft, Loader2, Send } from 'lucide-react';
 
 export default function NewTicketPage() {
   const router = useRouter();
+  const [ticketType, setTicketType] = useState('sales');
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [subject, setSubject] = useState('');
@@ -34,7 +35,7 @@ export default function NewTicketPage() {
           contact_name: contactName.trim(),
           contact_email: contactEmail.trim(),
           subject: subject.trim(),
-          type: 'sales',
+          type: ticketType,
           source: 'manual',
           status: 'open',
           priority: 'normal',
@@ -74,9 +75,9 @@ export default function NewTicketPage() {
       </Link>
 
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Create Sales Ticket</h1>
+        <h1 className="text-xl font-semibold text-gray-900">Create Ticket</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Manually create a ticket for a sales inquiry or lead.
+          Manually create a ticket on behalf of a customer.
         </p>
       </div>
 
@@ -87,6 +88,32 @@ export default function NewTicketPage() {
               {error}
             </div>
           )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Ticket Type</label>
+            <div className="flex gap-2">
+              {[
+                { value: 'sales', label: 'Sales', color: 'green' },
+                { value: 'support', label: 'Technical', color: 'blue' },
+                { value: 'studio', label: 'Studio', color: 'purple' },
+              ].map(t => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setTicketType(t.value)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    ticketType === t.value
+                      ? t.color === 'green' ? 'bg-green-100 text-green-700 ring-1 ring-green-300'
+                      : t.color === 'blue' ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                      : 'bg-purple-100 text-purple-700 ring-1 ring-purple-300'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
