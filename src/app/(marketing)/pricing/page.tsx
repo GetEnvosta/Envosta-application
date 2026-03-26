@@ -122,6 +122,11 @@ export default function PricingPage() {
         <div className="c">
           <h1 className="rv">Simple, transparent <em>pricing</em></h1>
           <p className="rv">Every plan starts with a personal consultation. Pick the foundation that fits — we&apos;ll help you build from there.</p>
+          <div className="rv" style={{ textAlign: 'center', marginBottom: 32 }}>
+            <a href="/get-started" className="bp" style={{ background: 'transparent', color: '#22c55e', border: '1px solid rgba(34,197,94,.3)', fontSize: '.82rem', padding: '10px 24px' }}>
+              Start free — 14-day trial &rarr;
+            </a>
+          </div>
           <div className="toggle-wrap rv">
             <span className="toggle-label active" id="lbl-monthly">Monthly</span>
             <div className="toggle" id="billing-toggle"></div>
