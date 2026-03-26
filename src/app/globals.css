@@ -29,7 +29,7 @@
   }
   .btn-secondary {
     @apply btn bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300
-           focus:ring-gray-300 shadow-sm;
+           focus:ring-gray-300 shadow-sm active:scale-[0.98];
   }
   .btn-danger {
     @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm
@@ -76,7 +76,7 @@
            hover:shadow-md active:scale-[0.98];
   }
   .btn-admin-secondary {
-    @apply btn bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 focus:ring-indigo-500;
+    @apply btn bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 focus:ring-indigo-500 active:scale-[0.98];
   }
   .btn-admin-ghost {
     @apply btn text-indigo-200 hover:bg-indigo-800 hover:text-white;
