@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTicketById } from '@/services/tickets';
 import { ArrowLeft } from 'lucide-react';
 import { TicketReplyForm } from './reply-form';
+import { StudioProgressBar } from '@/components/admin/studio-progress';
 
 function TypeBadge({ type }: { type: string }) {
   if (type === 'studio') {
@@ -95,6 +96,11 @@ export default async function TicketDetailPage({
           Opened {formatDateTime(ticket.created_at)}
         </p>
       </div>
+
+      {/* Studio progress tracker (customer view — read only) */}
+      {ticket.type === 'studio' && (
+        <StudioProgressBar currentStage={(ticket.metadata as any)?.studio_stage ?? 'submitted'} />
+      )}
 
       {/* Message thread */}
       <div className="space-y-4 mb-8">

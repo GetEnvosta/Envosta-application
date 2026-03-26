@@ -6,6 +6,7 @@ import { ArrowLeft, MessageSquare } from 'lucide-react';
 import { TicketReplyForm } from '@/components/admin/ticket-reply-form';
 import { TicketSidebar } from '@/components/admin/ticket-sidebar';
 import { OnboardingControls } from '@/components/admin/onboarding-controls';
+import { StudioProgressBar, StudioStageAdvancer } from '@/components/admin/studio-progress';
 
 function typeBadge(type: string) {
   switch (type) {
@@ -71,6 +72,14 @@ export default async function AdminTicketDetailPage({
           {ticket.source && <span> &middot; Source: {ticket.source}</span>}
         </p>
       </div>
+
+      {/* Studio progress tracker */}
+      {ticket.type === 'studio' && (
+        <>
+          <StudioProgressBar currentStage={(ticket.metadata as any)?.studio_stage ?? 'submitted'} />
+          <StudioStageAdvancer ticketId={ticket.id} currentStage={(ticket.metadata as any)?.studio_stage ?? 'submitted'} />
+        </>
+      )}
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
