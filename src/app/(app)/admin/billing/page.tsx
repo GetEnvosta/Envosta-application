@@ -55,10 +55,10 @@ export default async function AdminBillingPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Monthly recurring revenue" value={formatCents(mrr)} icon={DollarSign} sub="MRR" />
-        <StatCard label="Active subscriptions" value={activeCount} icon={Users} />
-        <StatCard label="Paid invoices" value={paidInvoicesCount} icon={Receipt} />
-        <StatCard label="Outstanding" value={outstandingInvoicesCount} icon={AlertCircle} sub="Open or draft" />
+        <StatCard label="Monthly recurring revenue" value={formatCents(mrr)} icon={DollarSign} sub="MRR" color="green" />
+        <StatCard label="Active subscriptions" value={activeCount} icon={Users} color="blue" />
+        <StatCard label="Paid invoices" value={paidInvoicesCount} icon={Receipt} color="indigo" />
+        <StatCard label="Outstanding" value={outstandingInvoicesCount} icon={AlertCircle} sub="Open or draft" color="amber" />
       </div>
 
       {/* Subscriptions */}

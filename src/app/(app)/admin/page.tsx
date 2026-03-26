@@ -30,10 +30,10 @@ export default async function AdminDashboardPage() {
   );
 
   const stats = [
-    { label: 'Total customers', value: customersCount, icon: Users },
-    { label: 'Active services', value: servicesCount, icon: Server },
-    { label: 'Active domains', value: domainsCount, icon: Globe },
-    { label: 'Monthly revenue', value: formatCents(mrr), icon: DollarSign, sub: 'MRR' },
+    { label: 'Total customers', value: customersCount, icon: Users, color: 'blue' as const },
+    { label: 'Active services', value: servicesCount, icon: Server, color: 'cyan' as const },
+    { label: 'Active domains', value: domainsCount, icon: Globe, color: 'purple' as const },
+    { label: 'Monthly revenue', value: formatCents(mrr), icon: DollarSign, sub: 'MRR', color: 'green' as const },
   ];
 
   return (

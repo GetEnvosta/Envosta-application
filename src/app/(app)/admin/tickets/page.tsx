@@ -95,9 +95,9 @@ export default async function AdminTicketsPage({
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatCard label="Open" value={counts.open} icon={AlertCircle} />
-        <StatCard label="In Progress" value={counts.inProgress} icon={Clock} />
-        <StatCard label="Total" value={counts.total} icon={Inbox} />
+        <StatCard label="Open" value={counts.open} icon={AlertCircle} color="amber" />
+        <StatCard label="In Progress" value={counts.inProgress} icon={Clock} color="blue" />
+        <StatCard label="Total" value={counts.total} icon={Inbox} color="gray" />
       </div>
 
       {/* Filter Tabs */}
