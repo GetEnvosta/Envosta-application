@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { NextResponse } from 'next/server';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -19,6 +20,12 @@ function getStripe() {
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  const ip = getClientIp(req);
+  const { allowed } = rateLimit(`signup:${ip}`, 5, 300_000); // 5 signups per 5 minutes
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many signup attempts. Please wait a few minutes.' }, { status: 429 });
+  }
+
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return NextResponse.json({ error: 'Server config: missing SUPABASE_SERVICE_ROLE_KEY' }, { status: 503 });
   }
@@ -48,16 +55,27 @@ export async function POST(req: Request) {
       termsAcceptedAt,
     } = await req.json();
 
-    if (!email || !name) {
-      return NextResponse.json({ error: 'Name and email are required' }, { status: 400 });
+    // Input validation
+    if (!email || typeof email !== 'string' || !email.includes('@') || email.length > 320) {
+      return NextResponse.json({ error: 'Valid email address is required' }, { status: 400 });
     }
-
+    if (!name || typeof name !== 'string' || name.trim().length < 1 || name.length > 200) {
+      return NextResponse.json({ error: 'Name is required (max 200 characters)' }, { status: 400 });
+    }
     if (!termsAccepted) {
       return NextResponse.json({ error: 'You must accept the Terms of Service to continue' }, { status: 400 });
     }
-
-    if (!password || password.length < 8) {
-      return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
+    if (!password || typeof password !== 'string' || password.length < 8 || password.length > 128) {
+      return NextResponse.json({ error: 'Password must be 8–128 characters' }, { status: 400 });
+    }
+    if (plan && typeof plan === 'string' && !['minimum', 'growth', 'performance', ''].includes(plan)) {
+      return NextResponse.json({ error: 'Invalid plan selected' }, { status: 400 });
+    }
+    if (domain && typeof domain === 'string' && domain.length > 253) {
+      return NextResponse.json({ error: 'Domain name too long' }, { status: 400 });
+    }
+    if (billing && !['monthly', 'annual'].includes(billing)) {
+      return NextResponse.json({ error: 'Invalid billing period' }, { status: 400 });
     }
 
     // 1. Create or get Supabase user

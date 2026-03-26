@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createHash } from 'crypto';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,6 +9,12 @@ function md5(input: string): string {
 }
 
 export async function POST(req: Request) {
+  const ip = getClientIp(req);
+  const { allowed } = rateLimit(`domain-check:${ip}`, 15, 60_000); // 15 checks per minute
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+  }
+
   const OPENSRS_USERNAME = process.env.OPENSRS_USERNAME ?? '';
   const OPENSRS_API_KEY = process.env.OPENSRS_API_KEY ?? '';
   const OPENSRS_HOST = process.env.OPENSRS_HOST ?? 'rr-n1-tor.opensrs.net';

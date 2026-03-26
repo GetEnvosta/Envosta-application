@@ -1,14 +1,27 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  const ip = getClientIp(req);
+  const { allowed } = rateLimit(`contact:${ip}`, 5, 60_000); // 5 submissions per minute
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many submissions. Please wait a moment.' }, { status: 429 });
+  }
+
   try {
     const { name, email, subject, message, type } = await req.json();
 
-    if (!email || !message) {
-      return NextResponse.json({ error: 'Email and message are required' }, { status: 400 });
+    if (!email || typeof email !== 'string' || !email.includes('@') || email.length > 320) {
+      return NextResponse.json({ error: 'Valid email is required' }, { status: 400 });
+    }
+    if (!message || typeof message !== 'string' || message.length > 5000) {
+      return NextResponse.json({ error: 'Message is required (max 5000 characters)' }, { status: 400 });
+    }
+    if (name && typeof name === 'string' && name.length > 200) {
+      return NextResponse.json({ error: 'Name too long' }, { status: 400 });
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
