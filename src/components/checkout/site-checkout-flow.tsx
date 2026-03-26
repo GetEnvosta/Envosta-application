@@ -33,10 +33,12 @@ interface Props {
   initialDomain?: string;
   /** Pre-select billing period from URL params */
   initialBilling?: 'monthly' | 'annual';
+  /** Free trial mode: auto-selects Minimum plan, temp domain, 14-day trial */
+  isTrial?: boolean;
 }
 
 /* ── Component ── */
-export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBilling }: Props) {
+export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBilling, isTrial }: Props) {
   const supabase = createClient();
 
   /* State */
@@ -73,9 +75,9 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   // Onboarding
   const [onboardingChoice, setOnboardingChoice] = useState<'self' | 'guided' | null>(null);
 
-  // Steps
-  const publicSteps = ['Account', 'Plan', 'Domain', 'Checkout'];
-  const dashboardSteps = ['Plan', 'Domain', 'Checkout'];
+  // Steps — trial mode skips plan + domain
+  const publicSteps = isTrial ? ['Account', 'Checkout'] : ['Account', 'Plan', 'Domain', 'Checkout'];
+  const dashboardSteps = isTrial ? ['Checkout'] : ['Plan', 'Domain', 'Checkout'];
   const steps = mode === 'public' ? publicSteps : dashboardSteps;
   const [step, _setStep] = useState(1);
 
@@ -109,8 +111,14 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
       const allPlans = (data as Plan[]) ?? [];
       setPlans(allPlans);
 
-      // Pre-select plan from URL param
-      if (initialPlan) {
+      // Pre-select plan from URL param or auto-select Minimum for trial
+      if (isTrial) {
+        const minimum = allPlans.find(p => p.slug === 'minimum');
+        if (minimum) {
+          setSelectedPlan(minimum);
+          setDomainMode('temp');
+        }
+      } else if (initialPlan) {
         const match = allPlans.find(p => p.slug === initialPlan);
         if (match) setSelectedPlan(match);
       }
@@ -200,11 +208,12 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
             name, email, phone, password,
             plan: selectedPlan.slug,
             billing: billingPeriod,
-            domain: selectedDomain || undefined,
+            domain: isTrial ? undefined : (selectedDomain || undefined),
             situation: domainMode === 'existing' ? 'existing' : 'new',
             onboarding: onboardingChoice ?? 'self',
             termsAccepted: true,
             termsAcceptedAt: new Date().toISOString(),
+            trial: isTrial || false,
           }),
         });
         const data = await res.json();

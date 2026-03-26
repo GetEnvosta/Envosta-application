@@ -53,6 +53,7 @@ export async function POST(req: Request) {
       billing, // 'monthly' | 'annual'
       termsAccepted,
       termsAcceptedAt,
+      trial, // boolean — 14-day free trial on Minimum plan
     } = await req.json();
 
     // Input validation
@@ -196,7 +197,7 @@ export async function POST(req: Request) {
     // No charge at checkout — domain gets registered by the webhook,
     // and a yearly renewal subscription with 1-year trial is created.
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: any = {
       customer: customer.stripe_customer_id,
       mode: 'subscription',
       line_items: lineItems,
@@ -206,13 +207,18 @@ export async function POST(req: Request) {
         metadata: {
           supabase_user_id: userId,
           ...(domain && { domain_name: domain }),
+          ...(trial && { is_trial: 'true' }),
         },
+        ...(trial && { trial_period_days: 14 }),
       },
       metadata: {
         supabase_user_id: userId,
         ...(domain && { domain_name: domain }),
+        ...(trial && { is_trial: 'true' }),
       },
-    });
+    };
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     // Create sales ticket for the team
     try {
