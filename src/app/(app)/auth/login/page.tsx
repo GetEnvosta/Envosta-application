@@ -8,24 +8,24 @@ import { Loader2 } from 'lucide-react';
 
 const promos = [
   {
-    tag: 'Managed WordPress Hosting',
-    heading: 'WordPress hosting,\nhandled from day one.',
-    desc: 'Enterprise infrastructure, personal onboarding, and a team that actually knows your site.',
-  },
-  {
     tag: 'Envosta Studio',
-    heading: 'Need a stunning website?\nWe build it for you.',
-    desc: 'Custom WordPress design, development, and launch — handled entirely by our team.',
+    heading: 'We design, build, and\nlaunch your website.',
+    desc: 'Custom WordPress design and development — from concept to live site. You describe it, we create it.',
   },
   {
     tag: 'Enterprise Infrastructure',
-    heading: 'Built on wp.cloud.\nThe same platform behind WordPress.com.',
+    heading: 'Built on wp.cloud.\nThe platform behind WordPress.com.',
     desc: 'Auto-scaling PHP workers, global CDN, daily backups, and 99.99% uptime — included on every plan.',
   },
   {
-    tag: 'White-Glove Onboarding',
-    heading: 'We don\'t just host.\nWe set everything up.',
-    desc: 'DNS, email, SSL, security hardening, performance optimization — all configured before you launch.',
+    tag: 'Guided Onboarding',
+    heading: 'We make sure everything\nis set up right.',
+    desc: 'DNS, email, SSL, security, and performance — our team walks you through it and configures it all.',
+  },
+  {
+    tag: 'Managed WordPress Hosting',
+    heading: 'Your hosting, handled\nfrom day one.',
+    desc: 'Enterprise infrastructure, hands-on support, and a team that actually knows your site.',
   },
 ];
 
@@ -72,7 +72,7 @@ function LoginForm() {
         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 30% 50%, rgba(37,99,235,.15), transparent 60%)' }} />
         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 70% 80%, rgba(37,99,235,.08), transparent 50%)' }} />
 
-        <div className="relative z-10 flex flex-col justify-between p-12 w-full">
+        <div className="relative z-10 flex flex-col p-12 w-full" style={{ minHeight: '100%' }}>
           <div className="flex items-center gap-3">
             <img src="/assets/Logo/envosta-logo-mark.svg" alt="Envosta" style={{ width: 32, height: 32 }} />
             <span style={{ fontSize: '1.2rem', fontWeight: 300, color: '#fff', letterSpacing: '-.5px' }}>
@@ -80,7 +80,8 @@ function LoginForm() {
             </span>
           </div>
 
-          <div style={{ transition: 'opacity .4s ease', opacity: fade ? 1 : 0 }}>
+          <div className="flex-1 flex items-center">
+          <div style={{ transition: 'opacity .4s ease', opacity: fade ? 1 : 0, width: '100%' }}>
             <div style={{ display: 'inline-block', padding: '4px 12px', borderRadius: 20, background: 'rgba(37,99,235,.15)', border: '1px solid rgba(37,99,235,.25)', marginBottom: 20 }}>
               <span style={{ fontSize: '.75rem', fontWeight: 500, color: '#60a5fa', letterSpacing: '.3px' }}>{promo.tag}</span>
             </div>
@@ -90,6 +91,7 @@ function LoginForm() {
             <p style={{ fontSize: '.95rem', color: 'rgba(255,255,255,.45)', lineHeight: 1.7, maxWidth: 400, fontWeight: 300 }}>
               {promo.desc}
             </p>
+          </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>

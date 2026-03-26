@@ -85,7 +85,7 @@ export function GlobeSection() {
       cx = w / 2;
       cy = h / 2 - h * 0.12;
       // On mobile, use width as primary sizing so globe fills the screen
-      globeR = Math.max(1, w < 768 ? w * 0.42 : Math.min(w, h) * 0.38);
+      globeR = Math.max(1, w < 768 ? w * 0.48 : Math.min(w, h) * 0.44);
     }
     resize();
 

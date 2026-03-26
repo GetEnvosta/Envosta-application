@@ -338,7 +338,7 @@ section{position:relative;z-index:1}
 
 
 /* ═══ Infrastructure globe visual ═══ */
-.infra-globe{position:relative;min-height:500px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:visible;padding:0;margin-top:-72px}
+.infra-globe{position:relative;min-height:620px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:visible;padding:0;margin-top:-72px}
 #infra-globe-canvas{position:absolute;inset:0;z-index:1;width:100%;height:100%}
 
 
@@ -384,7 +384,7 @@ section{position:relative;z-index:1}
 .ig-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:360px;margin:24px auto 0}
 }
 @media(max-width:480px){
-.infra-globe{padding:20px 16px;min-height:400px}
+.infra-globe{padding:20px 16px;min-height:480px}
 .ig-hdr{padding:0 16px}
 .ig-trust{padding:0 16px}
 .ig-wrap{max-width:300px;gap:8px;margin:16px auto 0}
