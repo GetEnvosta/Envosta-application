@@ -35,8 +35,12 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   'envosta-news': { bg: 'rgba(99,102,241,.12)', text: '#a5b4fc' },
 };
 
-function readTime(content: string): number {
-  return Math.max(1, Math.ceil((content?.length ?? 0) / 1200));
+function readTime(excerpt: string | null): number {
+  // Estimate from excerpt length — roughly 5 min for a full article
+  const len = excerpt?.length ?? 0;
+  if (len > 200) return 7;
+  if (len > 120) return 5;
+  return 3;
 }
 
 function formatDate(dateStr: string) {
@@ -181,7 +185,7 @@ export default async function BlogPage({ searchParams }: { searchParams: Promise
                     <div className="post-meta">
                       <span>{formatDate(featuredPost.published_at)}</span>
                       <span className="dot" />
-                      <span>{readTime(featuredPost.content)} min read</span>
+                      <span>{readTime(featuredPost.excerpt)} min read</span>
                     </div>
                     <div style={{ marginTop: 20 }}>
                       <span className="read-link">Read article &rarr;</span>
@@ -214,7 +218,7 @@ export default async function BlogPage({ searchParams }: { searchParams: Promise
                           <div className="post-meta">
                             <span>{formatDate(post.published_at)}</span>
                             <span className="dot" />
-                            <span>{readTime(post.content)} min read</span>
+                            <span>{readTime(post.excerpt)} min read</span>
                           </div>
                           <span className="read-link">Read &rarr;</span>
                         </div>
