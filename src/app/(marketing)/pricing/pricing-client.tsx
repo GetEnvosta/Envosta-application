@@ -32,7 +32,11 @@ export default function PricingClient() {
       });
       // Update period labels
       document.querySelectorAll('.period').forEach((el) => {
-        el.textContent = annual ? 'CAD/yr' : 'CAD/mo';
+        el.textContent = annual ? 'CAD/mo' : 'CAD/mo';
+      });
+      // Show/hide "billed annually" note
+      document.querySelectorAll('.annual-note').forEach((el) => {
+        (el as HTMLElement).style.display = annual ? 'block' : 'none';
       });
       // Update Get Started links to include billing period
       document.querySelectorAll<HTMLAnchorElement>('a[href*="/get-started?plan="]').forEach((a) => {

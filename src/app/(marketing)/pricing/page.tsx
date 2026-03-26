@@ -38,6 +38,7 @@ export default function PricingPage() {
         .p-card-price .currency{font-size:1.2rem;font-weight:500;color:var(--t2)}
         .p-card-price .amount{font-size:3rem;font-weight:600;letter-spacing:-1px;line-height:1}
         .p-card-price .period{font-size:.82rem;color:var(--t3);font-weight:400}
+        .annual-note{font-size:.75rem;color:#22c55e;font-weight:500;margin:-2px 0 8px;letter-spacing:.2px}
         .p-card-desc{font-size:.82rem;color:var(--t3);margin-bottom:28px;line-height:1.7;font-weight:300}
         .p-card ul{list-style:none;margin-bottom:32px;flex:1}
         .p-card li{display:flex;align-items:center;gap:10px;font-size:.88rem;color:var(--t2);font-weight:300;padding:6px 0}
@@ -141,6 +142,7 @@ export default function PricingPage() {
             <span className="amount price-val" data-monthly="50" data-annual="42">50</span>
             <span className="period">CAD/mo</span>
           </div>
+          <div className="annual-note" style={{ display: 'none' }}>Billed annually at $500 CAD/yr</div>
           <p className="p-card-desc">Everything you need to launch a fast, secure WordPress site with hands-on support.</p>
           <ul>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>10 GB SSD storage</li>
@@ -165,6 +167,7 @@ export default function PricingPage() {
             <span className="amount price-val" data-monthly="129" data-annual="108">129</span>
             <span className="period">CAD/mo</span>
           </div>
+          <div className="annual-note" style={{ display: 'none' }}>Billed annually at $1,290 CAD/yr</div>
           <p className="p-card-desc">For growing businesses that need more storage, staging, and hands-on support.</p>
           <ul>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>30 GB SSD storage</li>
@@ -190,6 +193,7 @@ export default function PricingPage() {
             <span className="amount price-val" data-monthly="350" data-annual="292">350</span>
             <span className="period">CAD/mo</span>
           </div>
+          <div className="annual-note" style={{ display: 'none' }}>Billed annually at $3,500 CAD/yr</div>
           <p className="p-card-desc">For enterprises that need maximum resources, priority support, and a dedicated team.</p>
           <ul>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>100 GB SSD storage</li>
