@@ -8,6 +8,7 @@ export function GetStartedFlow() {
   const plan = searchParams.get('plan')?.toLowerCase() ?? undefined;
   const domain = searchParams.get('domain') ?? undefined;
   const billing = (searchParams.get('billing') === 'annual' ? 'annual' : 'monthly') as 'monthly' | 'annual';
+  const promo = searchParams.get('promo') ?? undefined;
 
   // No plan param = free trial mode (auto Minimum, temp domain, 14-day trial)
   const isTrial = !plan;
@@ -25,7 +26,7 @@ export function GetStartedFlow() {
             </p>
           </div>
         )}
-        <SiteCheckoutFlow mode="public" initialPlan={plan} initialDomain={domain} initialBilling={billing} isTrial={isTrial} />
+        <SiteCheckoutFlow mode="public" initialPlan={plan} initialDomain={domain} initialBilling={billing} isTrial={isTrial} promoCode={promo} />
       </div>
     </div>
   );

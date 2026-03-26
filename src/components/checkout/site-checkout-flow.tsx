@@ -35,10 +35,12 @@ interface Props {
   initialBilling?: 'monthly' | 'annual';
   /** Free trial mode: auto-selects Minimum plan, temp domain, 14-day trial */
   isTrial?: boolean;
+  /** Stripe promotion code to auto-apply at checkout */
+  promoCode?: string;
 }
 
 /* ── Component ── */
-export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBilling, isTrial }: Props) {
+export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBilling, isTrial, promoCode }: Props) {
   const supabase = createClient();
 
   /* State */
@@ -214,6 +216,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
             termsAccepted: true,
             termsAcceptedAt: new Date().toISOString(),
             trial: isTrial || false,
+            promoCode: promoCode || undefined,
           }),
         });
         const data = await res.json();

@@ -5,6 +5,7 @@ import { DollarSign, Receipt, AlertCircle, Users, ExternalLink } from 'lucide-re
 import { StatCard } from '@/components/admin/stat-card';
 import { InvoiceFilters } from '@/components/admin/invoice-filters';
 import { SubscriptionFilters } from '@/components/admin/subscription-filters';
+import { CouponManager } from '@/components/admin/coupon-manager';
 
 export default async function AdminBillingPage() {
   const [
@@ -68,9 +69,15 @@ export default async function AdminBillingPage() {
       </div>
 
       {/* Invoices */}
-      <div>
+      <div className="mb-8">
         <h2 className="text-sm font-semibold text-gray-900 mb-4">Invoices</h2>
         <InvoiceFilters invoices={taggedInvoices} />
+      </div>
+
+      {/* Promotion Codes */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-900 mb-4">Promotion Codes</h2>
+        <CouponManager />
       </div>
     </div>
   );

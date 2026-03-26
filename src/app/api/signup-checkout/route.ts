@@ -54,6 +54,7 @@ export async function POST(req: Request) {
       termsAccepted,
       termsAcceptedAt,
       trial, // boolean — 14-day free trial on Minimum plan
+      promoCode, // Stripe promotion code (e.g. WELCOME20)
     } = await req.json();
 
     // Input validation
@@ -197,6 +198,17 @@ export async function POST(req: Request) {
     // No charge at checkout — domain gets registered by the webhook,
     // and a yearly renewal subscription with 1-year trial is created.
 
+    // Resolve promo code to Stripe promotion code ID if provided
+    let discounts: any[] | undefined;
+    if (promoCode && typeof promoCode === 'string') {
+      try {
+        const promos = await stripe.promotionCodes.list({ code: promoCode, active: true, limit: 1 });
+        if (promos.data.length > 0) {
+          discounts = [{ promotion_code: promos.data[0].id }];
+        }
+      } catch { /* ignore invalid promo codes */ }
+    }
+
     const sessionParams: any = {
       customer: customer.stripe_customer_id,
       mode: 'subscription',
@@ -216,6 +228,7 @@ export async function POST(req: Request) {
         ...(domain && { domain_name: domain }),
         ...(trial && { is_trial: 'true' }),
       },
+      ...(discounts && { discounts }),
     };
 
     const session = await stripe.checkout.sessions.create(sessionParams);
