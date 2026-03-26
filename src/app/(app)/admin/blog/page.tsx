@@ -2,6 +2,7 @@ import { getAllPosts } from '@/services/blog';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { FileText, Plus, Search } from 'lucide-react';
+import { SeedBlogButton } from './seed-button';
 
 export default async function BlogPostsPage({
   searchParams,
@@ -34,9 +35,12 @@ export default async function BlogPostsPage({
           <h1 className="text-xl font-semibold text-gray-900">Blog Posts</h1>
           <p className="text-sm text-gray-500 mt-0.5">Create and manage blog content.</p>
         </div>
-        <Link href="/admin/blog/new" className="btn-primary inline-flex items-center gap-2">
-          <Plus className="w-4 h-4" /> New Post
-        </Link>
+        <div className="flex items-center gap-2">
+          <SeedBlogButton />
+          <Link href="/admin/blog/new" className="btn-primary inline-flex items-center gap-2">
+            <Plus className="w-4 h-4" /> New Post
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
