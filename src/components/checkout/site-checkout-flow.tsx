@@ -145,8 +145,10 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
         } else if (initialPlan) {
           setStep(2); // Plan only → domain step
         }
-        // Domain only → still need to pick plan first (step 1)
       }
+      // Public mode: step 1 is always Account (user must create account first)
+      // After account step completes, the "next" handler will check if plan
+      // is pre-selected and skip to domain step automatically
       // Public mode always starts at step 1 (account), but after they
       // complete account, the "Choose a Plan" button will skip ahead
       // if plan is already selected
@@ -270,9 +272,9 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   }
 
   /* Step helpers */
-  const planStepNum = mode === 'public' ? 2 : 1;
-  const domainStepNum = mode === 'public' ? 3 : 2;
-  const checkoutStepNum = mode === 'public' ? 4 : 3;
+  const planStepNum = steps.indexOf('Plan') + 1 || 99;
+  const domainStepNum = steps.indexOf('Domain') + 1 || 99;
+  const checkoutStepNum = steps.indexOf('Checkout') + 1;
 
   function goToDomain() { setStep(domainStepNum); }
   function goToCheckout() { setStep(checkoutStepNum); }
