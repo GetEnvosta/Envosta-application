@@ -1,16 +1,36 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-  const host = request.headers.get('host') ?? '';
+function addSecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-  // On envosta.com (marketing site), skip all auth logic — let Next.js serve marketing pages
-  const isMarketingSite = host === 'envosta.com' || host === 'www.envosta.com';
-  if (isMarketingSite) {
-    return NextResponse.next();
+  // Cache control for authenticated pages
+  if (response.headers.get('x-middleware-next')) {
+    response.headers.set('X-DNS-Prefetch-Control', 'on');
   }
 
+  return response;
+}
+
+export async function middleware(request: NextRequest) {
+  const host = request.headers.get('host') ?? '';
+  const { pathname } = request.nextUrl;
+
+  // On envosta.com (marketing site), skip auth — add security headers only
+  const isMarketingSite = host === 'envosta.com' || host === 'www.envosta.com';
+  if (isMarketingSite) {
+    return addSecurityHeaders(NextResponse.next());
+  }
+
+  // No-cache on dashboard/admin/api routes
   let supabaseResponse = NextResponse.next({ request });
+  if (pathname.startsWith('/dashboard') || pathname.startsWith('/admin') || pathname.startsWith('/api')) {
+    supabaseResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,7 +42,12 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+            })
           );
         },
       },
@@ -32,53 +57,39 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   // Protect dashboard routes
-  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+  if (!user && pathname.startsWith('/dashboard')) {
     const url = request.nextUrl.clone();
     url.pathname = '/auth/login';
-    url.searchParams.set('redirect', request.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    url.searchParams.set('redirect', pathname);
+    return addSecurityHeaders(NextResponse.redirect(url));
   }
 
   // Protect admin routes — block during impersonation
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+  if (pathname.startsWith('/admin')) {
     if (!user) {
-      return NextResponse.redirect(new URL('/auth/login', request.url));
+      return addSecurityHeaders(NextResponse.redirect(new URL('/auth/login', request.url)));
     }
-    // Block admin access while impersonating a customer
     const impersonating = request.cookies.get('impersonating_user_id')?.value;
     if (impersonating) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return addSecurityHeaders(NextResponse.redirect(new URL('/dashboard', request.url)));
     }
     const { data: profile } = await supabase
       .from('users').select('role').eq('id', user.id).single();
     if (profile?.role !== 'admin') {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return addSecurityHeaders(NextResponse.redirect(new URL('/dashboard', request.url)));
     }
   }
 
   // Redirect logged-in users away from auth pages (except reset-password)
-  if (user && request.nextUrl.pathname.startsWith('/auth/') && request.nextUrl.pathname !== '/auth/reset-password') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  if (user && pathname.startsWith('/auth/') && pathname !== '/auth/reset-password') {
+    return addSecurityHeaders(NextResponse.redirect(new URL('/dashboard', request.url)));
   }
 
-  return supabaseResponse;
+  return addSecurityHeaders(supabaseResponse);
 }
 
 export const config = {
   matcher: [
-    '/',
-    '/dashboard/:path*',
-    '/admin/:path*',
-    '/auth/:path*',
-    '/features/:path*',
-    '/pricing/:path*',
-    '/support/:path*',
-    '/studio/:path*',
-    '/blog/:path*',
-    '/onboarding/:path*',
-    '/method/:path*',
-    '/careers/:path*',
-    '/affiliate/:path*',
-    '/legal/:path*',
+    '/((?!_next/static|_next/image|assets|favicon.ico).*)',
   ],
 };

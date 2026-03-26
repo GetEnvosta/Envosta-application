@@ -18,8 +18,6 @@ export const WPCLOUD_CLIENT = Deno.env.get("WPCLOUD_CLIENT") ?? "envosta";
  */
 export async function wpcloudPost(path: string, body?: Record<string, unknown>): Promise<{ ok: boolean; status: number; data: any }> {
   const url = `${WPCLOUD_PROXY_URL}${path}`;
-  console.log("wpcloud POST:", url);
-  console.log("wpcloud body:", JSON.stringify(body));
 
   // wp.cloud API uses application/x-www-form-urlencoded for most endpoints
   const formBody = new URLSearchParams();
@@ -89,13 +87,31 @@ export function getCryptoProvider() {
   return Stripe.createSubtleCryptoProvider();
 }
 
+const ALLOWED_ORIGINS = [
+  "https://envosta.com",
+  "https://www.envosta.com",
+  "https://my.envosta.com",
+  "http://localhost:3000",
+];
+
+export function getCorsHeaders(req?: Request): Record<string, string> {
+  const origin = req?.headers.get("origin") ?? "";
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+  };
+}
+
+// Backwards compat — used by functions that don't pass request
 export const cors = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://envosta.com",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-export const json = (data: unknown, status = 200) =>
-  new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } });
+export const json = (data: unknown, status = 200, req?: Request) =>
+  new Response(JSON.stringify(data), { status, headers: { ...(req ? getCorsHeaders(req) : cors), "Content-Type": "application/json" } });
 
 export const error = (msg: string, status = 400) => json({ error: msg }, status);
 
