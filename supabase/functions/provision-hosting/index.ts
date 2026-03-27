@@ -79,14 +79,15 @@ Deno.serve(async (req) => {
 
     if (svc.product_id) {
       const { data: plan } = await sb.from("products")
-        .select("slug, storage_gb, default_php_workers, php_memory_mb")
+        .select("slug, metadata")
         .eq("id", svc.product_id)
         .single();
       if (plan) {
+        const meta = plan.metadata as any ?? {};
         planSlug = plan.slug ?? "minimum";
-        storageGb = plan.storage_gb ?? 25;
-        defaultWorkers = plan.default_php_workers ?? 2;
-        phpMemory = plan.php_memory_mb ?? 512;
+        storageGb = meta.storage_gb ?? 25;
+        defaultWorkers = meta.php_workers_default ?? 2;
+        phpMemory = meta.php_memory_mb ?? 512;
       }
     }
 

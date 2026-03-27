@@ -43,7 +43,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
       name: plan.name,
       slug: plan.slug,
       price_cad: plan.price_cad,
-      price_yearly: plan.price_yearly,
+      price_yearly_cad: plan.price_yearly_cad,
       stripe_product_id: plan.stripe_product_id || null,
       stripe_price_id: plan.stripe_price_id || null,
       stripe_price_id_yearly: plan.stripe_price_id_yearly || null,
@@ -76,7 +76,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
             name: plan.name,
             description: plan.description,
             price_cad: plan.price_cad,
-            price_yearly: plan.price_yearly,
+            price_yearly_cad: plan.price_yearly_cad,
             is_active: plan.is_active,
             stripe_product_id: plan.stripe_product_id,
             stripe_price_id: plan.stripe_price_id,
@@ -148,7 +148,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Stripe — Billing</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="label">Monthly Price (cents CAD)</label><input type="number" className="input" value={plan.price_cad} onChange={e => update('price_cad', parseInt(e.target.value) || 0)} /></div>
-            <div><label className="label">Yearly Price (cents CAD)</label><input type="number" className="input" value={plan.price_yearly ?? 0} onChange={e => update('price_yearly', parseInt(e.target.value) || 0)} /></div>
+            <div><label className="label">Yearly Price (cents CAD)</label><input type="number" className="input" value={plan.price_yearly_cad ?? 0} onChange={e => update('price_yearly_cad', parseInt(e.target.value) || 0)} /></div>
             <div><label className="label">Monthly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id ?? ''} onChange={e => update('stripe_price_id', e.target.value)} placeholder="price_..." /></div>
             <div><label className="label">Yearly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id_yearly ?? ''} onChange={e => update('stripe_price_id_yearly', e.target.value)} placeholder="price_..." /></div>
             <div><label className="label">Product ID</label><input className="input font-mono text-xs" value={plan.stripe_product_id ?? ''} onChange={e => update('stripe_product_id', e.target.value)} placeholder="prod_..." /></div>

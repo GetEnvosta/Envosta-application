@@ -23,7 +23,7 @@ export default async function DashboardPage() {
   const stats = [
     { label: 'Active sites', value: sitesCount, icon: Server, href: '/dashboard/sites' },
     { label: 'Domains', value: domainsCount, icon: Globe, href: '/dashboard/domains' },
-    { label: 'Current plan', value: (subscription as any)?.plans?.name ?? 'No websites created', icon: CreditCard, href: '/dashboard/billing' },
+    { label: 'Current plan', value: (subscription as any)?.products?.name ?? 'No websites created', icon: CreditCard, href: '/dashboard/billing' },
   ];
 
   return (

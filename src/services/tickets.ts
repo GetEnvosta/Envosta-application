@@ -129,7 +129,7 @@ export async function getAdminTicketDetail(id: string) {
       name: (ticket.users as any)?.full_name,
       email: (ticket.users as any)?.email,
       memberSince: (ticket.users as any)?.created_at,
-      plan: (subs as any)?.[0]?.plans?.name ?? null,
+      plan: (subs as any)?.[0]?.products?.name ?? null,
       siteUrl: (ticket.services as any)?.wp_cloud_url,
       siteStatus: (ticket.services as any)?.status,
       onboardingStage: (ticket.services as any)?.onboarding_status,

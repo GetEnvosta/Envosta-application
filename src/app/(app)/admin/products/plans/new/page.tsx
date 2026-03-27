@@ -16,7 +16,7 @@ export default function NewPlanPage() {
     slug: '',
     description: '',
     price_cad: 0,
-    price_yearly: 0,
+    price_yearly_cad: 0,
     storage_gb: 25,
     bandwidth_gb: 50,
     default_php_workers: 4,
@@ -106,7 +106,7 @@ export default function NewPlanPage() {
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Stripe — Billing</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="label">Monthly Price (cents CAD)</label><input type="number" className="input" value={plan.price_cad} onChange={e => update('price_cad', parseInt(e.target.value) || 0)} /></div>
-            <div><label className="label">Yearly Price (cents CAD)</label><input type="number" className="input" value={plan.price_yearly} onChange={e => update('price_yearly', parseInt(e.target.value) || 0)} /></div>
+            <div><label className="label">Yearly Price (cents CAD)</label><input type="number" className="input" value={plan.price_yearly_cad} onChange={e => update('price_yearly_cad', parseInt(e.target.value) || 0)} /></div>
           </div>
           <p className="text-xs text-gray-400 mt-2">Stripe product and price IDs will be created automatically on save.</p>
         </div>

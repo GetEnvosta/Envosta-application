@@ -47,7 +47,7 @@ export default async function SiteDetailPage({
   // Find the domain currently connected to this site
   const connectedDomain = (domains ?? []).find((d: any) => d.site_id === id) ?? null;
 
-  const planName = (site as any).plans?.name ?? 'Unknown';
+  const planName = (site as any).products?.name ?? 'Unknown';
   const planSlug: string = (site as any).plans?.slug ?? '';
   const status: string = site.status ?? 'provisioning';
   // All plans include staging (wp.cloud provides 1 non-billable staging per site)
@@ -137,10 +137,10 @@ export default async function SiteDetailPage({
             <span className="text-xs font-medium uppercase tracking-wider">Storage</span>
           </div>
           <p className="text-sm font-semibold text-gray-900">
-            {((site.disk_usage_mb ?? 0) / 1024).toFixed(1)} GB of {(site.plans as any)?.storage_gb ?? (site.plans as any)?.disk_gb ?? 25} GB
+            {((site.disk_usage_mb ?? 0) / 1024).toFixed(1)} GB of {(site.products as any)?.storage_gb ?? (site.products as any)?.disk_gb ?? 25} GB
           </p>
           <div className="mt-2 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-brand-500 rounded-full" style={{ width: `${Math.min(100, ((site.disk_usage_mb ?? 0) / (((site.plans as any)?.storage_gb ?? 25) * 1024)) * 100)}%` }} />
+            <div className="h-full bg-brand-500 rounded-full" style={{ width: `${Math.min(100, ((site.disk_usage_mb ?? 0) / (((site.products as any)?.storage_gb ?? 25) * 1024)) * 100)}%` }} />
           </div>
         </div>
 

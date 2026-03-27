@@ -20,7 +20,7 @@ export default async function AdminBillingPage() {
   ]);
 
   const mrr = activeSubscriptions.reduce(
-    (sum: number, sub: any) => sum + (sub.plans?.price_cad ?? 0), 0
+    (sum: number, sub: any) => sum + (sub.products?.price_cad ?? 0), 0
   );
 
   const activeCount = allSubscriptions.filter((s: any) => s.status === 'active').length;

@@ -27,8 +27,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url, { status: 301 });
   }
 
-  // On envosta.com (marketing site), skip auth — add security headers only
-  if (host === 'envosta.com') {
+  // Marketing site (envosta.com) or Vercel preview deployments — skip auth
+  const isMarketingSite = host === 'envosta.com' || (!host.startsWith('my.') && !host.startsWith('app.') && !host.includes('localhost'));
+  if (isMarketingSite && !pathname.startsWith('/dashboard') && !pathname.startsWith('/admin') && !pathname.startsWith('/auth')) {
     return addSecurityHeaders(NextResponse.next());
   }
 

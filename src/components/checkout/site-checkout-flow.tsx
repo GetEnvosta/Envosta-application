@@ -17,7 +17,7 @@ interface Plan {
   stripe_price_id: string;
   stripe_price_id_yearly: string;
   price_cad: number;
-  price_yearly: number;
+  price_yearly_cad: number;
   storage_gb: number;
   features: string[];
   onboarding_type: string;
@@ -531,7 +531,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                   <div style={{ fontSize: '.66rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '2px', color: '#2563EB', marginBottom: 6 }}>{plan.name}</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 6 }}>
                     <span style={{ fontSize: '2rem', fontWeight: 600, color: t.text, letterSpacing: '-1px' }}>
-                      ${billingPeriod === 'annual' ? (plan.price_yearly / 100 / 12).toFixed(0) : (plan.price_cad / 100).toFixed(0)}
+                      ${billingPeriod === 'annual' ? (plan.price_yearly_cad / 100 / 12).toFixed(0) : (plan.price_cad / 100).toFixed(0)}
                     </span>
                     <span style={{ fontSize: '.8rem', color: t.textMuted, fontWeight: 300 }}>
                       CAD/{billingPeriod === 'annual' ? 'mo (billed yearly)' : 'mo'}
@@ -750,7 +750,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 <p style={{ fontWeight: 500, color: t.text, fontSize: '.9rem' }}>{selectedPlan.name} Plan</p>
                 <p style={{ fontSize: '.75rem', color: t.textMuted }}>Billed monthly</p>
               </div>
-              <p style={{ fontWeight: 600, color: t.text, fontSize: '.9rem' }}>${billingPeriod === 'annual' ? (selectedPlan.price_yearly / 100).toFixed(2) + ' CAD/yr' : (selectedPlan.price_cad / 100).toFixed(2) + ' CAD/mo'}</p>
+              <p style={{ fontWeight: 600, color: t.text, fontSize: '.9rem' }}>${billingPeriod === 'annual' ? (selectedPlan.price_yearly_cad / 100).toFixed(2) + ' CAD/yr' : (selectedPlan.price_cad / 100).toFixed(2) + ' CAD/mo'}</p>
             </div>
 
             {/* Domain */}

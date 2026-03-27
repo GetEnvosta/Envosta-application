@@ -73,7 +73,7 @@ export default async function SitesPage() {
           <p className="text-sm text-gray-500 mt-1.5 max-w-md mx-auto">
             We&apos;re preparing your WordPress site. This usually takes less than 24 hours.
           </p>
-          {(site as any).subscriptions?.plans?.name && (
+          {(site as any).subscriptions?.products?.name && (
             <p className="text-xs text-gray-400 mt-2">Plan: {(site as any).subscriptions.products?.name}</p>
           )}
           <div className="mt-6 max-w-xs mx-auto">
@@ -90,12 +90,12 @@ export default async function SitesPage() {
         <div key={sub.id} className="card p-8 text-center mb-4">
           <Globe className="w-10 h-10 text-gray-300 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-gray-900">
-            Your {sub.plans?.name ?? 'hosting'} plan is active — site setup coming soon.
+            Your {sub.products?.name ?? 'hosting'} plan is active — site setup coming soon.
           </h3>
           <p className="text-sm text-gray-500 mt-1.5 max-w-md mx-auto">
             We&apos;re reviewing your account and will begin setting up your WordPress site shortly. You&apos;ll be notified when it&apos;s ready.
           </p>
-          <span className="inline-block mt-3 badge-indigo">{sub.plans?.name ?? 'Plan'}</span>
+          <span className="inline-block mt-3 badge-indigo">{sub.products?.name ?? 'Plan'}</span>
         </div>
       ))}
 
@@ -103,7 +103,7 @@ export default async function SitesPage() {
       {allServices.filter((s: any) => s.status !== 'provisioning').length > 0 && (
         <div className="grid grid-cols-1 gap-4">
           {allServices.filter((s: any) => s.status !== 'provisioning').map((site: any) => {
-            const planName = site.plans?.name ?? (site as any).subscriptions?.plans?.name ?? 'Unknown';
+            const planName = site.products?.name ?? (site as any).subscriptions?.products?.name ?? 'Unknown';
             const status: string = site.status ?? 'pending';
             const statusBadge =
               status === 'active'

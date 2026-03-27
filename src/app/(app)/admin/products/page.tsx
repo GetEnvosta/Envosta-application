@@ -133,7 +133,7 @@ export default async function ProductsPage() {
                 <span className="text-gray-700 font-medium">{plan.name}</span>
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500">{formatCents(plan.price_cad)}/mo</span>
-                  {plan.price_yearly > 0 && <span className="text-gray-400">· {formatCents(plan.price_yearly)}/yr</span>}
+                  {plan.price_yearly_cad > 0 && <span className="text-gray-400">· {formatCents(plan.price_yearly_cad)}/yr</span>}
                   {plan.stripe_product_id ? (
                     <CheckCircle className="w-3 h-3 text-green-500" />
                   ) : (

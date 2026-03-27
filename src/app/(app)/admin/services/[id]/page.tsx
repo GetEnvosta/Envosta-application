@@ -85,7 +85,7 @@ export default async function ServiceDetailPage({
           <div className="flex items-center gap-2 text-gray-600">
             <Server className="w-4 h-4 text-gray-400" />
             <span className="text-gray-500">Plan:</span>{' '}
-            {(service.plans as any)?.name ?? '\u2014'}
+            {(service.products as any)?.name ?? '\u2014'}
           </div>
           {service.region && (
             <div className="flex items-center gap-2 text-gray-600">
@@ -263,16 +263,16 @@ export default async function ServiceDetailPage({
       </div>
 
       {/* Resources */}
-      {service.wp_cloud_site_id && (service.plans as any) && (
+      {service.wp_cloud_site_id && (service.products as any) && (
         <div className="mb-6">
           <ResourceControls
             siteId={service.id}
             wpCloudSiteId={service.wp_cloud_site_id}
             currentPlan={{
-              max_php_workers: (service.plans as any).max_php_workers ?? 2,
-              default_php_workers: (service.plans as any).default_php_workers ?? 2,
-              php_memory_mb: (service.plans as any).php_memory_mb ?? 512,
-              slug: (service.plans as any).slug ?? 'unknown',
+              max_php_workers: (service.products as any).max_php_workers ?? 2,
+              default_php_workers: (service.products as any).default_php_workers ?? 2,
+              php_memory_mb: (service.products as any).php_memory_mb ?? 512,
+              slug: (service.products as any).slug ?? 'unknown',
             }}
           />
         </div>
