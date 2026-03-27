@@ -10,6 +10,9 @@ export function GetStartedFlow() {
   const billing = (searchParams.get('billing') === 'annual' ? 'annual' : 'monthly') as 'monthly' | 'annual';
   const promo = searchParams.get('promo') ?? undefined;
 
+  // Auto-select Minimum if no plan specified
+  const effectivePlan = plan ?? 'minimum';
+
   return (
     <div style={{ paddingTop: 100, paddingBottom: 80, minHeight: '100vh' }}>
       <div className="c" style={{ maxWidth: 960, margin: '0 auto' }}>
@@ -18,7 +21,7 @@ export function GetStartedFlow() {
             Start your free trial
           </h1>
           <p style={{ fontSize: '.95rem', color: 'rgba(255,255,255,.45)', fontWeight: 300, maxWidth: 420, margin: '0 auto 16px' }}>
-            14 days free on any plan. No charge until your trial ends. Cancel anytime.
+            14 days free. No charge until your trial ends. Cancel anytime.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -37,7 +40,7 @@ export function GetStartedFlow() {
         </div>
         <SiteCheckoutFlow
           mode="public"
-          initialPlan={plan}
+          initialPlan={effectivePlan}
           initialDomain={domain}
           initialBilling={billing}
           isTrial={true}
