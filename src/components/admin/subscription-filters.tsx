@@ -101,12 +101,12 @@ export function SubscriptionFilters({ subscriptions }: { subscriptions: Subscrip
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map(sub => {
-                const user = (sub.customers as any)?.users;
+                const user = sub.users as any;
                 return (
                   <tr key={sub.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-3">
                       <p className="text-sm font-medium text-gray-900">{user?.full_name || 'Unnamed'}</p>
-                      <p className="text-xs text-gray-500">{user?.email || (sub.customers as any)?.billing_email || '—'}</p>
+                      <p className="text-xs text-gray-500">{user?.email || '—'}</p>
                     </td>
                     <td className="px-5 py-3 text-gray-700">{sub.products?.name || '—'}</td>
                     <td className="px-5 py-3 text-gray-900 font-medium">
