@@ -32,7 +32,7 @@ export function ProvisionButton({ siteId, label }: { siteId: string; label: stri
 
       if (!service) { setError('Service not found'); setLoading(false); return; }
 
-      const planSlug = (service as any).subscriptions?.plans?.slug ?? 'minimum';
+      const planSlug = (service as any).subscriptions?.products?.slug ?? 'minimum';
       const userEmail = (service as any).users?.email ?? 'admin@envosta.com';
       const domainName = (service as any).metadata?.domain_name ?? null;
 

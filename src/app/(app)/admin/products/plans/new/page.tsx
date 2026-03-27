@@ -54,8 +54,8 @@ export default function NewPlanPage() {
       slug: plan.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
       description: plan.description,
       billing: 'monthly',
-      price_cad: plan.price_monthly,
-      price_yearly_cad: plan.price_yearly,
+      price_cad: plan.price_cad,
+      price_yearly_cad: plan.price_yearly_cad,
       is_active: plan.is_active,
       features: plan.features,
       metadata: {

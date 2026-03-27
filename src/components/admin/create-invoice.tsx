@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import { Loader2, Send, DollarSign } from 'lucide-react';
 
-export function CreateInvoiceForm({ customers }: { customers: { id: string; user_id: string; stripe_customer_id: string; billing_email: string | null; users?: { full_name: string | null; email: string } }[] }) {
+export function CreateInvoiceForm({ customers }: { customers: { id: string; full_name: string | null; email: string; stripe_customer_id: string | null }[] }) {
   const [customerId, setCustomerId] = useState('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -84,7 +84,7 @@ export function CreateInvoiceForm({ customers }: { customers: { id: string; user
             <option value="">Select a customer...</option>
             {customers.map(c => (
               <option key={c.id} value={c.stripe_customer_id}>
-                {(c.users as any)?.full_name ?? (c.users as any)?.email ?? c.billing_email ?? c.stripe_customer_id}
+                {c.full_name ?? c.email ?? c.stripe_customer_id}
               </option>
             ))}
           </select>

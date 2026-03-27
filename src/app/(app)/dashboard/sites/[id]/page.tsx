@@ -48,7 +48,7 @@ export default async function SiteDetailPage({
   const connectedDomain = (domains ?? []).find((d: any) => d.site_id === id) ?? null;
 
   const planName = (site as any).products?.name ?? 'Unknown';
-  const planSlug: string = (site as any).plans?.slug ?? '';
+  const planSlug: string = (site as any).products?.slug ?? '';
   const status: string = site.status ?? 'provisioning';
   // All plans include staging (wp.cloud provides 1 non-billable staging per site)
 
