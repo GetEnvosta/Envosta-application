@@ -77,9 +77,9 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   // Onboarding
   const [onboardingChoice, setOnboardingChoice] = useState<'self' | 'guided' | null>(null);
 
-  // Steps — trial mode skips plan + domain
-  const publicSteps = isTrial ? ['Account', 'Checkout'] : ['Account', 'Plan', 'Domain', 'Checkout'];
-  const dashboardSteps = isTrial ? ['Checkout'] : ['Plan', 'Domain', 'Checkout'];
+  // Steps
+  const publicSteps = ['Account', 'Plan', 'Domain', 'Checkout'];
+  const dashboardSteps = ['Plan', 'Domain', 'Checkout'];
   const steps = mode === 'public' ? publicSteps : dashboardSteps;
   const [step, _setStep] = useState(1);
 
@@ -113,14 +113,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
       const allPlans = (data as Plan[]) ?? [];
       setPlans(allPlans);
 
-      // Pre-select plan from URL param or auto-select Minimum for trial
-      if (isTrial) {
-        const minimum = allPlans.find(p => p.slug === 'minimum');
-        if (minimum) {
-          setSelectedPlan(minimum);
-          setDomainMode('temp');
-        }
-      } else if (initialPlan) {
+      // Pre-select plan from URL param
+      if (initialPlan) {
         const match = allPlans.find(p => p.slug === initialPlan);
         if (match) setSelectedPlan(match);
       }
@@ -511,7 +505,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
           </div>
 
           <div className="scf-plans">
-            {plans.map(plan => {
+            {plans.filter(p => !(p.metadata as any)?.custom_pricing).map(plan => {
               const isPopular = plan.slug === 'growth';
               const isSelected = selectedPlan?.id === plan.id;
               return (
@@ -527,26 +521,36 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 >
                   {isPopular && (
                     <div style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)', background: '#2563EB', color: '#fff', fontSize: '.6rem', fontWeight: 600, padding: '3px 12px', borderRadius: 100, letterSpacing: '.5px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                      Most Popular
+                      Recommended
                     </div>
                   )}
-                  <div style={{ fontSize: '.66rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '2px', color: '#2563EB', marginBottom: 6 }}>{plan.name}</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: '.66rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '2px', color: '#2563EB' }}>{plan.name}</span>
+                    {isTrial && <span style={{ fontSize: '.6rem', fontWeight: 600, color: '#22c55e', background: 'rgba(34,197,94,.1)', padding: '2px 8px', borderRadius: 100 }}>14 days free</span>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 4 }}>
                     <span style={{ fontSize: '2rem', fontWeight: 600, color: t.text, letterSpacing: '-1px' }}>
-                      ${billingPeriod === 'annual' ? (plan.price_yearly_cad / 100 / 12).toFixed(0) : (plan.price_cad / 100).toFixed(0)}
+                      ${billingPeriod === 'annual' ? ((plan.price_yearly_cad ?? 0) / 100 / 12).toFixed(0) : (plan.price_cad / 100).toFixed(0)}
                     </span>
                     <span style={{ fontSize: '.8rem', color: t.textMuted, fontWeight: 300 }}>
-                      CAD/{billingPeriod === 'annual' ? 'mo (billed yearly)' : 'mo'}
+                      CAD/{billingPeriod === 'annual' ? 'mo' : 'mo'}
                     </span>
                   </div>
+                  {isTrial && <p style={{ fontSize: '.72rem', color: '#22c55e', fontWeight: 500, marginBottom: 10 }}>Then ${(plan.price_cad / 100).toFixed(0)}/mo after trial</p>}
+                  {!isTrial && <div style={{ marginBottom: 10 }} />}
                   <p style={{ fontSize: '.78rem', color: t.textMuted, lineHeight: 1.6, fontWeight: 300, marginBottom: 16 }}>{plan.description}</p>
                   <div style={{ flex: 1 }}>
-                    {(plan.features as string[]).slice(0, 6).map(f => (
+                    {(Array.isArray(plan.features) ? plan.features : []).slice(0, 6).map((f: string) => (
                       <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
                         <Check style={{ width: 13, height: 13, color: '#22c55e', flexShrink: 0 }} />
                         <span style={{ fontSize: '.76rem', color: t.textSub, fontWeight: 300 }}>{f}</span>
                       </div>
                     ))}
+                  </div>
+                  <div style={{ marginTop: 16, textAlign: 'center' }}>
+                    <span style={{ fontSize: '.8rem', fontWeight: 500, color: isSelected ? '#2563EB' : t.textMuted }}>
+                      {isSelected ? '✓ Selected' : isTrial ? 'Start free trial' : 'Select plan'}
+                    </span>
                   </div>
                 </div>
               );
