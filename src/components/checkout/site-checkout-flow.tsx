@@ -77,12 +77,10 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   // Onboarding
   const [onboardingChoice, setOnboardingChoice] = useState<'self' | 'guided' | null>(null);
 
-  // Steps — trial skips plan (auto-selected) and domain (temp only)
-  const publicSteps = isTrial && initialPlan
-    ? ['Account', 'Checkout']
-    : isTrial
-      ? ['Account', 'Plan', 'Checkout']
-      : ['Account', 'Plan', 'Domain', 'Checkout'];
+  // Steps — trial with plan pre-selected skips plan step
+  const publicSteps = initialPlan
+    ? ['Account', 'Domain', 'Checkout']
+    : ['Account', 'Plan', 'Domain', 'Checkout'];
   const dashboardSteps = ['Plan', 'Domain', 'Checkout'];
   const steps = mode === 'public' ? publicSteps : dashboardSteps;
   const [step, _setStep] = useState(1);
@@ -120,10 +118,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
       // Pre-select plan from URL param
       if (initialPlan) {
         const match = allPlans.find(p => p.slug === initialPlan);
-        if (match) {
-          setSelectedPlan(match);
-          if (isTrial) setDomainMode('temp'); // Trial always uses temp domain
-        }
+        if (match) setSelectedPlan(match);
       }
 
       // Pre-fill domain from URL param and fetch its price
@@ -590,52 +585,50 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
             <ArrowLeft style={{ width: 14, height: 14 }} /> Back
           </button>
           <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 8, color: t.text, textAlign: 'center' }}>
-            {isTrial ? 'Your site domain' : 'What about a domain?'}
+            {isTrial ? 'Need a domain?' : 'What about a domain?'}
           </h2>
           <p style={{ color: t.textSub, marginBottom: 32, fontSize: '.92rem', textAlign: 'center' }}>
             {isTrial
-              ? 'During your trial, your site uses a temporary domain. You can register or connect a domain after your trial.'
+              ? 'Start with a free temporary domain, or register yours now.'
               : 'You can always add or change your domain later.'}
           </p>
 
           {/* Options */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-            {!isTrial && (
-              <>
-                <button
-                  onClick={() => { setDomainMode('new'); setSelectedDomain(''); setDomainResult(null); setTimeout(() => domainRef.current?.focus(), 200); }}
-                  style={{
-                    background: domainMode === 'new' ? dark ? 'rgba(37,99,235,.06)' : 'rgba(37,99,235,.04)' : t.cardBg,
-                    border: `1px solid ${domainMode === 'new' ? '#2563EB' : t.cardBorder}`,
-                    borderRadius: 14, padding: '18px 20px', cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Sparkles style={{ width: 18, height: 18, color: '#2563EB' }} />
-                    <div>
-                      <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>Register a new domain</p>
-                      <p style={{ fontSize: '.75rem', color: t.textMuted }}>Search and add a domain to your order</p>
-                    </div>
-                  </div>
-                </button>
+            <button
+              onClick={() => { setDomainMode('new'); setSelectedDomain(''); setDomainResult(null); setTimeout(() => domainRef.current?.focus(), 200); }}
+              style={{
+                background: domainMode === 'new' ? dark ? 'rgba(37,99,235,.06)' : 'rgba(37,99,235,.04)' : t.cardBg,
+                border: `1px solid ${domainMode === 'new' ? '#2563EB' : t.cardBorder}`,
+                borderRadius: 14, padding: '18px 20px', cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Sparkles style={{ width: 18, height: 18, color: '#2563EB' }} />
+                <div>
+                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>Register a domain {isTrial && <span style={{ fontSize: '.7rem', color: t.textMuted, fontWeight: 400 }}>— from $15 CAD/yr</span>}</p>
+                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>Search and secure your perfect domain name</p>
+                </div>
+              </div>
+            </button>
 
-                <button
-                  onClick={() => { setDomainMode('existing'); setSelectedDomain(''); setDomainResult(null); }}
-                  style={{
-                    background: domainMode === 'existing' ? dark ? 'rgba(37,99,235,.06)' : 'rgba(37,99,235,.04)' : t.cardBg,
-                    border: `1px solid ${domainMode === 'existing' ? '#2563EB' : t.cardBorder}`,
-                    borderRadius: 14, padding: '18px 20px', cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Globe style={{ width: 18, height: 18, color: '#2563EB' }} />
-                    <div>
-                      <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>I already have a domain</p>
-                      <p style={{ fontSize: '.75rem', color: t.textMuted }}>We&apos;ll help you connect or transfer it</p>
-                    </div>
+            {!isTrial && (
+              <button
+                onClick={() => { setDomainMode('existing'); setSelectedDomain(''); setDomainResult(null); }}
+                style={{
+                  background: domainMode === 'existing' ? dark ? 'rgba(37,99,235,.06)' : 'rgba(37,99,235,.04)' : t.cardBg,
+                  border: `1px solid ${domainMode === 'existing' ? '#2563EB' : t.cardBorder}`,
+                  borderRadius: 14, padding: '18px 20px', cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Globe style={{ width: 18, height: 18, color: '#2563EB' }} />
+                  <div>
+                    <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>I already have a domain</p>
+                    <p style={{ fontSize: '.75rem', color: t.textMuted }}>We&apos;ll help you connect or transfer it</p>
                   </div>
-                </button>
-              </>
+                </div>
+              </button>
             )}
 
             <button
