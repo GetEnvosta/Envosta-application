@@ -175,7 +175,7 @@ export async function POST(req: Request) {
     let { data: customer } = await supabaseAdmin
       .from('users')
       .select('stripe_customer_id')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .maybeSingle();
 
     if (!customer?.stripe_customer_id) {
@@ -185,12 +185,9 @@ export async function POST(req: Request) {
         phone: phone || undefined,
         metadata: { supabase_user_id: userId },
       });
-      await supabaseAdmin.from('users').upsert({
-        user_id: userId,
+      await supabaseAdmin.from('users').update({
         stripe_customer_id: sc.id,
-        billing_email: email,
-        billing_name: name,
-      }, { onConflict: 'user_id' });
+      }).eq('id', userId);
       customer = { stripe_customer_id: sc.id };
     }
 

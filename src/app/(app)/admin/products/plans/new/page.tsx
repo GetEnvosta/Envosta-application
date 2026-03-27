@@ -49,9 +49,29 @@ export default function NewPlanPage() {
 
     const supabase = createClient();
     const { data, error: err } = await supabase.from('products').insert({
-      ...plan,
+      type: 'hosting_plan',
+      name: plan.name,
       slug: plan.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+      description: plan.description,
+      billing: 'monthly',
+      price_cad: plan.price_monthly,
+      price_yearly_cad: plan.price_yearly,
+      is_active: plan.is_active,
       features: plan.features,
+      metadata: {
+        php_workers_default: plan.default_php_workers,
+        php_workers_included: plan.max_php_workers,
+        php_memory_mb: plan.php_memory_mb,
+        storage_gb: plan.storage_gb,
+        bandwidth_gb: plan.bandwidth_gb,
+        has_staging: plan.has_staging,
+        has_backups: plan.has_backups,
+        has_cdn: plan.has_cdn,
+        has_waf: plan.has_waf,
+        onboarding_type: plan.onboarding_type,
+        support_type: plan.support_type ?? 'tickets',
+        sites_allowed: plan.sites_allowed,
+      },
     }).select('id').single();
 
     if (err) {
@@ -115,13 +135,13 @@ export default function NewPlanPage() {
         <div className="card p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">wp.cloud — Infrastructure</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div><label className="label">Storage (GB)</label><input type="number" className="input" value={plan.storage_gb} onChange={e => update('storage_gb', parseInt(e.target.value) || 25)} /></div>
-            <div><label className="label">Bandwidth (GB)</label><input type="number" className="input" value={plan.bandwidth_gb} onChange={e => update('bandwidth_gb', parseInt(e.target.value) || 0)} /><p className="text-xs text-gray-400 mt-1">0 = unlimited</p></div>
-            <div><label className="label">Default PHP Workers</label><input type="number" className="input" value={plan.default_php_workers} onChange={e => update('default_php_workers', parseInt(e.target.value) || 2)} /></div>
-            <div><label className="label">Max PHP Workers</label><input type="number" className="input" value={plan.max_php_workers} onChange={e => update('max_php_workers', parseInt(e.target.value) || 2)} /></div>
+            <div><label className="label">Storage (GB)</label><input type="number" className="input" value={plan.metadata?.storage_gb ?? 25} onChange={e => update('storage_gb', parseInt(e.target.value) || 25)} /></div>
+            <div><label className="label">Bandwidth (GB)</label><input type="number" className="input" value={plan.metadata?.bandwidth_gb ?? 50} onChange={e => update('bandwidth_gb', parseInt(e.target.value) || 0)} /><p className="text-xs text-gray-400 mt-1">0 = unlimited</p></div>
+            <div><label className="label">Default PHP Workers</label><input type="number" className="input" value={plan.metadata?.php_workers_default ?? 2} onChange={e => update('default_php_workers', parseInt(e.target.value) || 2)} /></div>
+            <div><label className="label">Max PHP Workers</label><input type="number" className="input" value={plan.metadata?.php_workers_included ?? 4} onChange={e => update('max_php_workers', parseInt(e.target.value) || 2)} /></div>
             <div>
               <label className="label">PHP Memory (MB)</label>
-              <select className="input" value={plan.php_memory_mb} onChange={e => update('php_memory_mb', parseInt(e.target.value))}>
+              <select className="input" value={plan.metadata?.php_memory_mb ?? 512} onChange={e => update('php_memory_mb', parseInt(e.target.value))}>
                 <option value={512}>512 MB</option>
                 <option value={1024}>1024 MB</option>
                 <option value={1536}>1536 MB</option>
@@ -130,13 +150,13 @@ export default function NewPlanPage() {
             </div>
             <div>
               <label className="label">Onboarding Type</label>
-              <select className="input" value={plan.onboarding_type} onChange={e => update('onboarding_type', e.target.value)}>
+              <select className="input" value={plan.metadata?.onboarding_type ?? 'standard'} onChange={e => update('onboarding_type', e.target.value)}>
                 <option value="standard">Standard</option>
                 <option value="guided">Guided</option>
                 <option value="concierge">Concierge</option>
               </select>
             </div>
-            <div><label className="label">Support Response (hours)</label><input type="number" className="input" value={plan.support_response_hours} onChange={e => update('support_response_hours', parseInt(e.target.value) || 48)} /></div>
+            <div><label className="label">Support Response (hours)</label><input type="number" className="input" value={plan.metadata?.support_response_hours ?? 48} onChange={e => update('support_response_hours', parseInt(e.target.value) || 48)} /></div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
