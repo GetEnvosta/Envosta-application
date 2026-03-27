@@ -2,7 +2,7 @@ import { getAllPlans } from '@/services/plans';
 import { formatCents } from '@/lib/utils';
 import { SyncAllPlansButton } from './sync-all-button';
 import Link from 'next/link';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { ArrowLeft, Pencil, Plus } from 'lucide-react';
 
 export default async function AdminPlansPage() {
   const plans = await getAllPlans();
@@ -18,7 +18,12 @@ export default async function AdminPlansPage() {
           <h1 className="text-xl font-semibold text-gray-900">Hosting Plans</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage hosting plans, pricing, and wp.cloud resources.</p>
         </div>
-        <SyncAllPlansButton />
+        <div className="flex items-center gap-2">
+          <SyncAllPlansButton />
+          <Link href="/admin/products/plans/new" className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
+            <Plus className="w-4 h-4" /> Create Plan
+          </Link>
+        </div>
       </div>
 
       <div className="card overflow-hidden">
