@@ -13,12 +13,12 @@ function getSupabase() {
 }
 
 async function getAddons() {
-  const { data } = await getSupabase().from('products').select('*').order('sort_order');
+  const { data } = await getSupabase().from('products').select('*').eq('type', 'plan_addon').order('sort_order');
   return data ?? [];
 }
 
 async function getOneTimeServices() {
-  const { data } = await getSupabase().from('products').select('*').order('sort_order');
+  const { data } = await getSupabase().from('products').select('*').eq('type', 'one_time_service').order('sort_order');
   return data ?? [];
 }
 

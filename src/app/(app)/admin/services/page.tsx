@@ -43,7 +43,7 @@ export default async function ServicesPage({
       </div>
 
       {/* Search + Filter */}
-      <form method="GET" className="flex flex-col sm:flex-row gap-3 mb-6">
+      <form method="GET" className="card p-4 mb-6"><div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -69,7 +69,7 @@ export default async function ServicesPage({
         <button type="submit" className="btn-admin">
           Filter
         </button>
-      </form>
+      </div></form>
 
       {/* Table */}
       <div className="card overflow-hidden">
