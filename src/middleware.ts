@@ -14,15 +14,8 @@ export async function middleware(request: NextRequest) {
   const host = request.headers.get('host') ?? '';
   const { pathname } = request.nextUrl;
 
-  // 301 redirect www to non-www
-  if (host === 'www.envosta.com') {
-    const url = request.nextUrl.clone();
-    url.host = 'envosta.com';
-    return NextResponse.redirect(url, { status: 301 });
-  }
-
-  // Marketing site — skip all auth logic
-  const isAppDomain = host.startsWith('my.') || host.startsWith('app.') || host.includes('localhost:');
+  // Marketing site — skip all auth logic (let Vercel handle domain redirects)
+  const isAppDomain = host.startsWith('my.') || host.startsWith('app.') || host.includes('localhost');
   if (!isAppDomain) {
     return addSecurityHeaders(NextResponse.next());
   }
