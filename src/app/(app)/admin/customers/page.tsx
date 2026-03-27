@@ -24,7 +24,7 @@ export default async function CustomersPage({
       </div>
 
       {/* Search */}
-      <form method="GET" className="card p-4 mb-6">
+      <form method="GET" className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
