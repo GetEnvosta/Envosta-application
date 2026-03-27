@@ -54,6 +54,29 @@ export async function POST(req: Request) {
         sender: 'customer',
         message: `**From:** ${name ?? 'Anonymous'} (${email})\n\n${message}`,
       });
+
+      // Email notification to sales
+      try {
+        const RESEND_KEY = process.env.RESEND_API_KEY;
+        if (RESEND_KEY) {
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'Envosta <noreply@email.envosta.com>',
+              to: 'sales@envosta.com',
+              subject: `New ${type ?? 'contact'} form: ${subject || 'Website inquiry'}`,
+              html: `<div style="font-family:-apple-system,sans-serif;max-width:560px;margin:0 auto;padding:20px">
+                <h2 style="font-size:18px;font-weight:600;margin-bottom:16px">New ${type ?? 'Contact'} Submission</h2>
+                <p style="font-size:14px;color:#555;margin-bottom:4px"><strong>${name ?? 'Anonymous'}</strong> (${email})</p>
+                ${subject ? `<p style="font-size:14px;color:#555;margin-bottom:12px"><strong>Subject:</strong> ${subject}</p>` : ''}
+                <div style="background:#f8f9fb;border-radius:8px;padding:16px;font-size:14px;color:#333;line-height:1.6;white-space:pre-wrap">${message}</div>
+                <p style="margin-top:16px;font-size:13px"><a href="https://my.envosta.com/admin/tickets/${ticket.id}" style="color:#2563EB">View ticket →</a></p>
+              </div>`,
+            }),
+          });
+        }
+      } catch { /* non-blocking */ }
     }
 
     return NextResponse.json({ success: true, ticketId: ticket?.id });

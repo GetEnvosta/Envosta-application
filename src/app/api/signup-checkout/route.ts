@@ -271,6 +271,35 @@ export async function POST(req: Request) {
           sender: 'system',
           message: ticketMessage,
         });
+
+        // Email notification to sales
+        try {
+          const RESEND_KEY = process.env.RESEND_API_KEY;
+          if (RESEND_KEY) {
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                from: 'Envosta <noreply@email.envosta.com>',
+                to: 'sales@envosta.com',
+                subject: `New Signup: ${name} — ${planLabel} plan`,
+                html: `<div style="font-family:-apple-system,sans-serif;max-width:560px;margin:0 auto;padding:20px">
+                  <h2 style="font-size:18px;font-weight:600;margin-bottom:16px">New Signup</h2>
+                  <table style="font-size:14px;line-height:1.6;width:100%">
+                    <tr><td style="color:#888;padding:4px 12px 4px 0">Name</td><td style="font-weight:500">${name}</td></tr>
+                    <tr><td style="color:#888;padding:4px 12px 4px 0">Email</td><td>${email}</td></tr>
+                    ${phone ? `<tr><td style="color:#888;padding:4px 12px 4px 0">Phone</td><td>${phone}</td></tr>` : ''}
+                    <tr><td style="color:#888;padding:4px 12px 4px 0">Plan</td><td style="font-weight:500">${planLabel}</td></tr>
+                    <tr><td style="color:#888;padding:4px 12px 4px 0">Domain</td><td>${domainLabel}</td></tr>
+                    <tr><td style="color:#888;padding:4px 12px 4px 0">Onboarding</td><td>${onboardingLabel}</td></tr>
+                    <tr><td style="color:#888;padding:4px 12px 4px 0">Trial</td><td>${trial ? '14-day free trial' : 'No trial'}</td></tr>
+                  </table>
+                  <p style="margin-top:20px;font-size:13px;color:#aaa"><a href="https://my.envosta.com/admin/tickets/${ticket.id}" style="color:#2563EB">View ticket in admin →</a></p>
+                </div>`,
+              }),
+            });
+          }
+        } catch { /* email notification is non-blocking */ }
       }
 
       // If migrating existing site, create a separate migration ticket
