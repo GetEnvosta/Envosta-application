@@ -83,7 +83,7 @@ export function CreateInvoiceForm({ customers }: { customers: { id: string; full
           <select className="input" value={customerId} onChange={e => setCustomerId(e.target.value)} required>
             <option value="">Select a customer...</option>
             {customers.map(c => (
-              <option key={c.id} value={c.stripe_customer_id}>
+              <option key={c.id} value={c.stripe_customer_id ?? ''}>
                 {c.full_name ?? c.email ?? c.stripe_customer_id}
               </option>
             ))}
