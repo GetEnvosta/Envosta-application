@@ -288,7 +288,52 @@ export async function POST(req: Request) {
         }
       }
 
+      // One-time services
+      const { data: otServices } = await supabase.from('one_time_services').select('*').eq('is_active', true);
+      for (const svc of otServices ?? []) {
+        if (!svc.stripe_product_id || !svc.stripe_price_id) {
+          try {
+            const pid = await upsertProduct(stripe, svc.stripe_product_id, svc.name, svc.description || '', { envosta_service_slug: svc.slug, type: 'one_time_service' });
+            const priceId = await upsertFlexPrice(stripe, svc.stripe_price_id, pid, svc.price_cad, 'one_time', { envosta_service_slug: svc.slug });
+            await supabase.from('one_time_services').update({ stripe_product_id: pid, stripe_price_id: priceId }).eq('id', svc.id);
+            results.push(`Service: ${svc.name} ✓`);
+          } catch (e) { console.error('Service sync error:', e); results.push(`Service: ${svc.name} ✗`); }
+        }
+      }
+
       return NextResponse.json({ success: true, results });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // ONE-TIME SERVICES → Stripe product + one-time price
+    // ═══════════════════════════════════════════════════════
+    if (type === 'one_time_service') {
+      const { name, description, price_cad, is_active, slug } = data;
+
+      const { data: db } = await supabase
+        .from('one_time_services')
+        .select('stripe_product_id, stripe_price_id')
+        .eq('id', id).single();
+
+      const productId = await upsertProduct(
+        stripe, db?.stripe_product_id ?? data.stripe_product_id ?? null,
+        name, description || `${name} — one-time service`,
+        { envosta_service_slug: slug, type: 'one_time_service' }, is_active,
+      );
+
+      const priceId = await upsertFlexPrice(
+        stripe, db?.stripe_price_id ?? data.stripe_price_id ?? null,
+        productId, price_cad, 'one_time', { envosta_service_slug: slug },
+      );
+
+      await supabase.from('one_time_services').update({
+        stripe_product_id: productId,
+        stripe_price_id: priceId,
+      }).eq('id', id);
+
+      return NextResponse.json({
+        success: true, stripe_product_id: productId, stripe_price_id: priceId,
+      });
     }
 
     return NextResponse.json({ error: 'Unknown sync type' }, { status: 400 });

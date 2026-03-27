@@ -1,31 +1,41 @@
 import { getAllPlans, getDomainPricing } from '@/services/plans';
 import { formatCents } from '@/lib/utils';
-import { Settings, Package, Globe, FileText, ArrowRight, CheckCircle, AlertTriangle, Zap, DollarSign } from 'lucide-react';
+import { Settings, Package, Globe, FileText, ArrowRight, CheckCircle, AlertTriangle, Zap, DollarSign, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 
-async function getAddons() {
-  const supabase = createClient(
+function getSupabase() {
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false } },
   );
-  const { data } = await supabase.from('addon_products').select('*').order('sort_order');
+}
+
+async function getAddons() {
+  const { data } = await getSupabase().from('addon_products').select('*').order('sort_order');
+  return data ?? [];
+}
+
+async function getOneTimeServices() {
+  const { data } = await getSupabase().from('one_time_services').select('*').order('sort_order');
   return data ?? [];
 }
 
 export default async function ProductsPage() {
-  const [plans, tlds, addons] = await Promise.all([
+  const [plans, tlds, addons, oneTimeServices] = await Promise.all([
     getAllPlans(),
     getDomainPricing(),
     getAddons(),
+    getOneTimeServices(),
   ]);
 
   const syncedPlans = plans.filter((p: any) => p.stripe_product_id && p.stripe_price_id_monthly).length;
   const syncedTlds = tlds.filter((t: any) => t.stripe_product_id && t.stripe_price_id_yearly).length;
   const syncedAddons = addons.filter((a: any) => a.stripe_product_id && a.stripe_price_id).length;
-  const totalProducts = plans.length + tlds.length + addons.length;
-  const totalSynced = syncedPlans + syncedTlds + syncedAddons;
+  const syncedServices = oneTimeServices.filter((s: any) => s.stripe_product_id && s.stripe_price_id).length;
+  const totalProducts = plans.length + tlds.length + addons.length + oneTimeServices.length;
+  const totalSynced = syncedPlans + syncedTlds + syncedAddons + syncedServices;
   const allSynced = totalSynced === totalProducts;
 
   const totalMRR = plans.reduce((sum: number, p: any) => sum + (p.price_monthly ?? 0), 0);
@@ -49,13 +59,13 @@ export default async function ProductsPage() {
             {allSynced ? 'All products synced to Stripe' : `${totalProducts - totalSynced} product${totalProducts - totalSynced === 1 ? '' : 's'} need Stripe sync`}
           </p>
           <p className={`text-xs mt-0.5 ${allSynced ? 'text-green-600' : 'text-amber-600'}`}>
-            {syncedPlans}/{plans.length} plans · {syncedTlds}/{tlds.length} TLDs · {syncedAddons}/{addons.length} add-ons
+            {syncedPlans}/{plans.length} plans · {syncedTlds}/{tlds.length} TLDs · {syncedAddons}/{addons.length} add-ons · {syncedServices}/{oneTimeServices.length} services
           </p>
         </div>
       </div>
 
       {/* Quick stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-1">
             <Settings className="w-4 h-4 text-gray-400" />
@@ -79,6 +89,14 @@ export default async function ProductsPage() {
           </div>
           <p className="text-lg font-semibold text-gray-900">{addons.length}</p>
           <p className="text-xs text-gray-400">{addons.filter((a: any) => a.is_active).length} active</p>
+        </div>
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Briefcase className="w-4 h-4 text-gray-400" />
+            <span className="text-xs text-gray-500 font-medium">Services</span>
+          </div>
+          <p className="text-lg font-semibold text-gray-900">{oneTimeServices.length}</p>
+          <p className="text-xs text-gray-400">{oneTimeServices.filter((s: any) => s.is_active).length} active</p>
         </div>
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-1">
@@ -189,6 +207,40 @@ export default async function ProductsPage() {
             </div>
           ) : (
             <p className="text-xs text-gray-400">No add-ons configured yet.</p>
+          )}
+        </Link>
+
+        {/* One-Time Services */}
+        <Link href="/admin/products/services" className="card p-6 hover:border-admin-300 transition-colors group">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Briefcase className="w-5 h-5 text-admin-500" />
+              <h2 className="text-base font-semibold text-gray-900">One-Time Services</h2>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-admin-500 transition-colors" />
+          </div>
+          <p className="text-sm text-gray-500 mb-4">Billable one-time services like Studio requests, migrations, and audits.</p>
+          <div className="flex items-center gap-4 text-xs mb-3">
+            <span className="text-gray-500">{oneTimeServices.length} service{oneTimeServices.length === 1 ? '' : 's'}</span>
+            <span className={syncedServices === oneTimeServices.length ? 'text-green-600' : 'text-amber-600'}>
+              {syncedServices}/{oneTimeServices.length} synced
+            </span>
+          </div>
+          {oneTimeServices.length > 0 ? (
+            <div className="space-y-1.5">
+              {oneTimeServices.map((s: any) => (
+                <div key={s.id} className="flex items-center justify-between text-xs">
+                  <span className="text-gray-700 font-medium">{s.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500">{formatCents(s.price_cad)}</span>
+                    <span className="text-gray-400">one-time</span>
+                    {s.stripe_product_id ? <CheckCircle className="w-3 h-3 text-green-500" /> : <AlertTriangle className="w-3 h-3 text-amber-400" />}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">No services configured yet.</p>
           )}
         </Link>
 
