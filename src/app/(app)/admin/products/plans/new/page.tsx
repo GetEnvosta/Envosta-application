@@ -30,6 +30,7 @@ export default function NewPlanPage() {
     has_waf: false,
     is_active: true,
     onboarding_type: 'standard',
+    support_type: 'tickets',
     support_response_hours: 48,
     features: '[]',
   });
