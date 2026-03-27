@@ -25,7 +25,7 @@ export function ProvisionButton({ serviceId, label }: { serviceId: string; label
 
       // Get the service details to pass to provision-hosting
       const { data: service } = await supabase
-        .from('services')
+        .from('sites')
         .select('*, subscriptions(id, plan_id, plans(slug)), users(email, full_name)')
         .eq('id', serviceId)
         .single();

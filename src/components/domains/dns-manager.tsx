@@ -60,7 +60,7 @@ export function DnsManager({ domainId, domainName, initialRecords, serviceId }: 
       // Get site IP from the connected service
       let siteIp = '';
       if (serviceId) {
-        const { data: svc } = await supabase.from('services').select('metadata').eq('id', serviceId).maybeSingle();
+        const { data: svc } = await supabase.from('sites').select('metadata').eq('id', serviceId).maybeSingle();
         siteIp = (svc?.metadata as any)?.site_ip ?? '';
       }
 

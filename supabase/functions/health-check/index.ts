@@ -22,13 +22,13 @@ Deno.serve(async (req) => {
   try {
     // ═══ 1. CHECK SITE IPs ═══
     // Only check sites that have a domain connected (temp domains don't need IP tracking)
-    const { data: sitesWithDomains } = await sb.from("services")
+    const { data: sitesWithDomains } = await sb.from("sites")
       .select("id, label, wp_cloud_site_id, wp_cloud_url, metadata, user_id, domains!inner(id, domain_name, registrar)")
       .eq("status", "active")
       .not("wp_cloud_site_id", "is", null);
 
     // Fallback: if inner join fails, get all active sites
-    const activeSites = sitesWithDomains ?? (await sb.from("services")
+    const activeSites = sitesWithDomains ?? (await sb.from("sites")
       .select("id, label, wp_cloud_site_id, wp_cloud_url, metadata, user_id")
       .eq("status", "active")
       .not("wp_cloud_site_id", "is", null)).data ?? [];
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
 
         if (storedIp && currentIp !== storedIp) {
           // IP changed — update metadata
-          await sb.from("services").update({
+          await sb.from("sites").update({
             metadata: { ...(site.metadata as any), site_ip: currentIp, ip_updated_at: new Date().toISOString() },
           }).eq("id", site.id);
 
@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
     results.push(`Checked ${expiringDomains?.length ?? 0} domains expiring within 30 days`);
 
     // ═══ 3. CHECK STUCK SERVICES ═══
-    const { data: stuckServices } = await sb.from("services")
+    const { data: stuckServices } = await sb.from("sites")
       .select("id, label, status, created_at")
       .eq("status", "provisioning")
       .lt("created_at", new Date(Date.now() - 3600000).toISOString()); // Stuck for > 1 hour

@@ -31,7 +31,7 @@ export default function OneTimeServicesPage() {
 
   async function fetchServices() {
     const supabase = createClient();
-    const { data } = await supabase.from('one_time_services').select('*').order('sort_order');
+    const { data } = await supabase.from('products').select('*').order('sort_order');
     setServices(data ?? []);
     setLoading(false);
   }
@@ -46,7 +46,7 @@ export default function OneTimeServicesPage() {
     setSuccess('');
 
     const supabase = createClient();
-    const { error: err } = await supabase.from('one_time_services').update({
+    const { error: err } = await supabase.from('products').update({
       name: service.name,
       slug: service.slug,
       description: service.description,
@@ -88,7 +88,7 @@ export default function OneTimeServicesPage() {
     if (!newService.name || !newService.slug) return;
     setSaving('new');
     const supabase = createClient();
-    const { data, error: err } = await supabase.from('one_time_services').insert({
+    const { data, error: err } = await supabase.from('products').insert({
       name: newService.name,
       slug: newService.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
       description: newService.description || null,
@@ -109,7 +109,7 @@ export default function OneTimeServicesPage() {
   async function handleDelete(service: Service) {
     if (!confirm(`Delete ${service.name}?`)) return;
     const supabase = createClient();
-    await supabase.from('one_time_services').delete().eq('id', service.id);
+    await supabase.from('products').delete().eq('id', service.id);
     setServices(prev => prev.filter(s => s.id !== service.id));
     setSuccess(`${service.name} deleted`);
   }

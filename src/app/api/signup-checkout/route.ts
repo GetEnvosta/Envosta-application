@@ -149,7 +149,7 @@ export async function POST(req: Request) {
     let priceId: string | null = null;
     if (plan) {
       const { data: planData } = await supabaseAdmin
-        .from('plans')
+        .from('products')
         .select('stripe_price_id_monthly, stripe_price_id_yearly, is_active')
         .eq('slug', plan)
         .single();
@@ -173,7 +173,7 @@ export async function POST(req: Request) {
 
     // 4. Get or create Stripe customer
     let { data: customer } = await supabaseAdmin
-      .from('customers')
+      .from('users')
       .select('stripe_customer_id')
       .eq('user_id', userId)
       .maybeSingle();
@@ -185,7 +185,7 @@ export async function POST(req: Request) {
         phone: phone || undefined,
         metadata: { supabase_user_id: userId },
       });
-      await supabaseAdmin.from('customers').upsert({
+      await supabaseAdmin.from('users').upsert({
         user_id: userId,
         stripe_customer_id: sc.id,
         billing_email: email,

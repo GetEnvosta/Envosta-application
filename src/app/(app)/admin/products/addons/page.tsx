@@ -33,7 +33,7 @@ export default function AddonsPage() {
 
   async function fetchAddons() {
     const supabase = createClient();
-    const { data } = await supabase.from('addon_products').select('*').order('sort_order');
+    const { data } = await supabase.from('products').select('*').order('sort_order');
     setAddons(data ?? []);
     setLoading(false);
   }
@@ -48,7 +48,7 @@ export default function AddonsPage() {
     setSuccess('');
 
     const supabase = createClient();
-    const { error: err } = await supabase.from('addon_products').update({
+    const { error: err } = await supabase.from('products').update({
       name: addon.name,
       slug: addon.slug,
       description: addon.description,
@@ -91,7 +91,7 @@ export default function AddonsPage() {
     if (!newAddon.name || !newAddon.slug) return;
     setSaving('new');
     const supabase = createClient();
-    const { data, error: err } = await supabase.from('addon_products').insert({
+    const { data, error: err } = await supabase.from('products').insert({
       name: newAddon.name,
       slug: newAddon.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
       description: newAddon.description || null,
@@ -113,7 +113,7 @@ export default function AddonsPage() {
   async function handleDelete(addon: Addon) {
     if (!confirm(`Delete ${addon.name}?`)) return;
     const supabase = createClient();
-    await supabase.from('addon_products').delete().eq('id', addon.id);
+    await supabase.from('products').delete().eq('id', addon.id);
     setAddons(prev => prev.filter(a => a.id !== addon.id));
     setSuccess(`${addon.name} deleted`);
   }

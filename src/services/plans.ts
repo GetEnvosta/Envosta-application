@@ -1,91 +1,93 @@
 import { createClient } from '@/lib/supabase-server';
 
-/**
- * All active plans ordered by sort_order.
- */
+// ─── HOSTING PLANS ───────────────────────────────────────
+
 export async function getActivePlans() {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('plans')
+    .from('products')
     .select('*')
+    .eq('type', 'hosting_plan')
     .eq('is_active', true)
     .order('sort_order', { ascending: true });
   return data ?? [];
 }
 
-/**
- * Single plan by id.
- */
+export async function getAllPlans() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('products')
+    .select('*')
+    .eq('type', 'hosting_plan')
+    .order('sort_order', { ascending: true });
+  return data ?? [];
+}
+
 export async function getPlanById(id: string) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('plans')
+    .from('products')
     .select('*')
     .eq('id', id)
     .single();
   return data;
 }
 
-/**
- * Single plan by slug.
- */
 export async function getPlanBySlug(slug: string) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('plans')
+    .from('products')
     .select('*')
+    .eq('type', 'hosting_plan')
     .eq('slug', slug)
     .single();
   return data;
 }
 
-/**
- * All plans ordered by sort_order (regardless of active status, for admin).
- */
-export async function getAllPlans() {
+// ─── DOMAIN TLDs ─────────────────────────────────────────
+
+export async function getDomainPricing() {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('plans')
+    .from('products')
     .select('*')
+    .eq('type', 'domain_tld')
+    .eq('is_active', true)
     .order('sort_order', { ascending: true });
   return data ?? [];
 }
 
-/**
- * All plans ordered by price ascending (for admin billing page).
- */
-export async function getAllPlansByPrice() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('plans')
-    .select('*')
-    .order('price_monthly', { ascending: true });
-  return data ?? [];
-}
-
-/**
- * Get all active domain TLD pricing.
- */
-export async function getDomainPricing() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('domain_pricing')
-    .select('*')
-    .eq('active', true)
-    .order('tld', { ascending: true });
-  return data ?? [];
-}
-
-/**
- * Get pricing for a specific TLD.
- */
 export async function getTldPricing(tld: string) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('domain_pricing')
+    .from('products')
     .select('*')
-    .eq('tld', tld.toLowerCase())
-    .eq('active', true)
+    .eq('type', 'domain_tld')
+    .eq('slug', `tld-${tld.toLowerCase()}`)
+    .eq('is_active', true)
     .single();
   return data;
+}
+
+// ─── ALL PRODUCTS ────────────────────────────────────────
+
+export async function getAllProducts() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('products')
+    .select('*')
+    .order('type', { ascending: true })
+    .order('sort_order', { ascending: true });
+  return data ?? [];
+}
+
+export async function getProductsByType(type: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('products')
+    .select('*')
+    .eq('type', type)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+  return data ?? [];
 }

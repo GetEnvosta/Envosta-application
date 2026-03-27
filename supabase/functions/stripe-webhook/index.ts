@@ -27,12 +27,12 @@ Deno.serve(async (req) => {
       const custStripeId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
 
       // Get our customer record
-      const { data: cust } = await sb.from("customers").select("id,user_id").eq("stripe_customer_id", custStripeId).single();
+      const { data: cust } = await sb.from("users").select("id,user_id").eq("stripe_customer_id", custStripeId).single();
       if (!cust) { console.log("No customer for", custStripeId); return json({ received: true }); }
 
       // Match price to plan
       const priceId = sub.items?.data?.[0]?.price?.id ?? "";
-      const { data: plan } = await sb.from("plans").select("id,slug").or(`stripe_price_id_monthly.eq.${priceId},stripe_price_id_yearly.eq.${priceId}`).maybeSingle();
+      const { data: plan } = await sb.from("products").select("id,slug").or(`stripe_price_id_monthly.eq.${priceId},stripe_price_id_yearly.eq.${priceId}`).maybeSingle();
 
       // Upsert subscription
       const { data: dbSub } = await sb.from("subscriptions").upsert({
@@ -53,20 +53,20 @@ Deno.serve(async (req) => {
       // Skip domain-only subscriptions (type: "domain_renewal" in metadata)
       const isDomainRenewal = sub.metadata?.type === "domain_renewal";
       if (sub.status === "active" && dbSub && plan?.id && !isDomainRenewal) {
-        const { data: existing } = await sb.from("services").select("id").eq("subscription_id", dbSub.id).maybeSingle();
+        const { data: existing } = await sb.from("sites").select("id").eq("subscription_id", dbSub.id).maybeSingle();
         if (!existing) {
           const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.user_id).maybeSingle();
           const name = profile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
           // Get onboarding type from plan
           let onboardingType = "standard";
           if (plan?.id) {
-            const { data: planData } = await sb.from("plans").select("onboarding_type").eq("id", plan.id).maybeSingle();
+            const { data: planData } = await sb.from("products").select("onboarding_type").eq("id", plan.id).maybeSingle();
             if (planData?.onboarding_type) onboardingType = planData.onboarding_type;
           }
 
           const domainFromMeta = sub.metadata?.domain_name ?? null;
 
-          const { data: svc, error: svcErr } = await sb.from("services").insert({
+          const { data: svc, error: svcErr } = await sb.from("sites").insert({
             user_id: cust.user_id,
             subscription_id: dbSub.id,
             plan_id: plan?.id ?? null,
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
                   // trial_end = 1 year from now, then Stripe auto-charges yearly
                   try {
                     const tld = domainFromMeta.split(".").pop()?.toLowerCase() ?? "";
-                    const { data: tldPricing } = await sb.from("domain_pricing")
+                    const { data: tldPricing } = await sb.from("products")
                       .select("stripe_price_id_yearly")
                       .eq("tld", tld).maybeSingle();
 
@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
     else if (event.type === "invoice.paid" || event.type === "invoice.payment_failed" || event.type === "invoice.created") {
       const inv = event.data.object;
       const custStripeId = typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
-      const { data: cust } = await sb.from("customers").select("id,user_id").eq("stripe_customer_id", custStripeId).maybeSingle();
+      const { data: cust } = await sb.from("users").select("id,user_id").eq("stripe_customer_id", custStripeId).maybeSingle();
       if (cust) {
         await sb.from("invoices").upsert({
           customer_id: cust.id,
@@ -351,12 +351,12 @@ Deno.serve(async (req) => {
           const subStripeId = typeof inv.subscription === "string" ? inv.subscription : inv.subscription.id;
           const { data: dbSub } = await sb.from("subscriptions").select("id,plan_id").eq("stripe_subscription_id", subStripeId).maybeSingle();
           if (dbSub) {
-            const { data: existing } = await sb.from("services").select("id").eq("subscription_id", dbSub.id).maybeSingle();
+            const { data: existing } = await sb.from("sites").select("id").eq("subscription_id", dbSub.id).maybeSingle();
             if (!existing) {
               const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.user_id).maybeSingle();
               const name = profile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
-              const planSlug = dbSub.plan_id ? (await sb.from("plans").select("slug").eq("id", dbSub.plan_id).maybeSingle())?.data?.slug : "minimum";
-              await sb.from("services").insert({
+              const planSlug = dbSub.plan_id ? (await sb.from("products").select("slug").eq("id", dbSub.plan_id).maybeSingle())?.data?.slug : "minimum";
+              await sb.from("sites").insert({
                 user_id: cust.user_id, subscription_id: dbSub.id, plan_id: dbSub.plan_id,
                 type: "hosting", label: `${name}-site`, status: "provisioning",
                 server_region: "dca", php_version: "8.4",
@@ -373,7 +373,7 @@ Deno.serve(async (req) => {
       const c = event.data.object;
       const userId = c.metadata?.supabase_user_id;
       if (userId) {
-        await sb.from("customers").upsert({
+        await sb.from("users").upsert({
           user_id: userId, stripe_customer_id: c.id,
           billing_email: c.email, billing_name: c.name,
         }, { onConflict: "user_id" });

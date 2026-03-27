@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       case "get-site": {
         if (!siteId) return error("siteId is required");
         const sb = supabaseAdmin();
-        const { data: svc } = await sb.from("services")
+        const { data: svc } = await sb.from("sites")
           .select("id, wp_cloud_site_id, user_id")
           .eq("id", siteId).single();
         if (!svc || svc.user_id !== user.id) return error("Site not found", 404);
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
       case "list-backups": {
         if (!siteId) return error("siteId is required");
         const sb = supabaseAdmin();
-        const { data: svc } = await sb.from("services")
+        const { data: svc } = await sb.from("sites")
           .select("id, wp_cloud_site_id, user_id")
           .eq("id", siteId).single();
         if (!svc || svc.user_id !== user.id) return error("Site not found", 404);
@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
         if (!siteId) return error("siteId is required");
 
         const sb = supabaseAdmin();
-        const { data: svc } = await sb.from("services")
+        const { data: svc } = await sb.from("sites")
           .select("id, wp_cloud_site_id, wp_cloud_url, user_id, subscription_id")
           .eq("id", siteId).single();
 
@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
 
         // 2. Soft-delete: mark as cancelled (hides from customer dashboard)
         // wp.cloud site stays alive for 30-day recovery window
-        await sb.from("services").update({
+        await sb.from("sites").update({
           status: "cancelled",
           metadata: {
             ...(svc as any).metadata,
@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
         if (!siteId) return error("siteId is required");
 
         const sb = supabaseAdmin();
-        const { data: svc } = await sb.from("services")
+        const { data: svc } = await sb.from("sites")
           .select("id, wp_cloud_site_id, wp_cloud_url, user_id")
           .eq("id", siteId).single();
 
@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
         }
 
         // Update status
-        await sb.from("services").update({
+        await sb.from("sites").update({
           status: "cancelled",
           wp_cloud_site_id: null,
           wp_cloud_url: null,
@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
         if (!allowedKeys.includes(key)) return error(`Invalid key: ${key}. Allowed: ${allowedKeys.join(", ")}`, 400);
 
         const sb = supabaseAdmin();
-        const { data: svc } = await sb.from("services")
+        const { data: svc } = await sb.from("sites")
           .select("id, wp_cloud_site_id, user_id")
           .eq("id", siteId).single();
         if (!svc) return error("Site not found", 404);
@@ -282,7 +282,7 @@ Deno.serve(async (req) => {
         if (!siteId || !domain) return error("siteId and domain are required");
 
         const sb = supabaseAdmin();
-        const { data: svc } = await sb.from("services").select("*").eq("id", siteId).single();
+        const { data: svc } = await sb.from("sites").select("*").eq("id", siteId).single();
         if (!svc) return error("Service not found", 404);
         if (!svc.wp_cloud_site_id) return error("Site not yet provisioned", 400);
 
@@ -315,7 +315,7 @@ Deno.serve(async (req) => {
         }
 
         // 2. Update service record with new URL
-        await sb.from("services").update({
+        await sb.from("sites").update({
           wp_cloud_url: `https://${domain}`,
           metadata: { ...(svc as any).metadata, domain_name: domain },
         }).eq("id", svc.id);
@@ -335,7 +335,7 @@ Deno.serve(async (req) => {
             resolvedIp = ipsResult.data?.ip_address ?? ipsResult.data?.ipv4?.[0] ?? null;
             if (resolvedIp) {
               // Store it for future use
-              await sb.from("services").update({
+              await sb.from("sites").update({
                 metadata: { ...(svc as any).metadata, domain_name: domain, site_ip: resolvedIp },
               }).eq("id", svc.id);
             }
@@ -383,11 +383,11 @@ Deno.serve(async (req) => {
         if (!siteId || !newPlanId) return error("siteId and newPlanId are required");
 
         const sb = supabaseAdmin();
-        const { data: svc } = await sb.from("services").select("*, subscriptions(id, stripe_subscription_id)").eq("id", siteId).single();
+        const { data: svc } = await sb.from("sites").select("*, subscriptions(id, stripe_subscription_id)").eq("id", siteId).single();
         if (!svc) return error("Service not found", 404);
         if (!svc.wp_cloud_site_id) return error("Site not yet provisioned", 400);
 
-        const { data: newPlan } = await sb.from("plans").select("*").eq("id", newPlanId).single();
+        const { data: newPlan } = await sb.from("products").select("*").eq("id", newPlanId).single();
         if (!newPlan) return error("Plan not found", 404);
 
         // 1. Update wp.cloud resources
@@ -434,7 +434,7 @@ Deno.serve(async (req) => {
         }
 
         // 3. Update service + subscription records
-        await sb.from("services").update({ plan_id: newPlan.id }).eq("id", svc.id);
+        await sb.from("sites").update({ plan_id: newPlan.id }).eq("id", svc.id);
         if (sub?.id) {
           await sb.from("subscriptions").update({ plan_id: newPlan.id }).eq("id", sub.id);
         }
@@ -449,14 +449,14 @@ Deno.serve(async (req) => {
         if (!siteId || !addonId) return error("siteId and addonId are required");
 
         const sb = supabaseAdmin();
-        const { data: svc } = await sb.from("services").select("*, subscriptions(id, stripe_subscription_id)").eq("id", siteId).single();
+        const { data: svc } = await sb.from("sites").select("*, subscriptions(id, stripe_subscription_id)").eq("id", siteId).single();
         if (!svc) return error("Service not found", 404);
 
-        const { data: addon } = await sb.from("addon_products").select("*").eq("id", addonId).single();
+        const { data: addon } = await sb.from("products").select("*").eq("id", addonId).single();
         if (!addon) return error("Addon not found", 404);
 
         // Check if already active
-        const { data: existing } = await sb.from("service_addons").select("id").eq("service_id", siteId).eq("addon_id", addonId).eq("status", "active").maybeSingle();
+        const { data: existing } = await sb.from("site_addons").select("id").eq("service_id", siteId).eq("addon_id", addonId).eq("status", "active").maybeSingle();
         if (existing) return error("Addon already active on this site", 409);
 
         let stripeItemId: string | null = null;
@@ -491,7 +491,7 @@ Deno.serve(async (req) => {
         }
 
         // Create service_addon record
-        const { data: sa } = await sb.from("service_addons").insert({
+        const { data: sa } = await sb.from("site_addons").insert({
           service_id: siteId,
           addon_id: addonId,
           status: "active",
@@ -508,8 +508,8 @@ Deno.serve(async (req) => {
         if (!siteId || !removeAddonId) return error("siteId and addonId are required");
 
         const sb = supabaseAdmin();
-        const { data: svc } = await sb.from("services").select("wp_cloud_site_id").eq("id", siteId).single();
-        const { data: sa } = await sb.from("service_addons").select("*, addon_products(*)").eq("service_id", siteId).eq("addon_id", removeAddonId).eq("status", "active").maybeSingle();
+        const { data: svc } = await sb.from("sites").select("wp_cloud_site_id").eq("id", siteId).single();
+        const { data: sa } = await sb.from("site_addons").select("*, addon_products(*)").eq("service_id", siteId).eq("addon_id", removeAddonId).eq("status", "active").maybeSingle();
         if (!sa) return error("Addon not active on this site", 404);
 
         const addon = (sa as any).addon_products;
@@ -537,7 +537,7 @@ Deno.serve(async (req) => {
         }
 
         // Update record
-        await sb.from("service_addons").update({ status: "cancelled", disabled_at: new Date().toISOString() }).eq("id", sa.id);
+        await sb.from("site_addons").update({ status: "cancelled", disabled_at: new Date().toISOString() }).eq("id", sa.id);
 
         await log({ userId: user.id, serviceId: siteId, action: "addon.disabled", message: `${addon?.name ?? "Addon"} disabled` });
         return json({ success: true, addon: addon?.name });

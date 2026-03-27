@@ -48,7 +48,7 @@ export default function NewPlanPage() {
     setError('');
 
     const supabase = createClient();
-    const { data, error: err } = await supabase.from('plans').insert({
+    const { data, error: err } = await supabase.from('products').insert({
       ...plan,
       slug: plan.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
       features: plan.features,

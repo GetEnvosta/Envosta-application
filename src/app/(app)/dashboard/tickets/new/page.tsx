@@ -23,7 +23,7 @@ export default function NewTicketPage() {
     if (ticketType === 'studio') {
       const supabase = createClient();
       supabase
-        .from('services')
+        .from('sites')
         .select('id, label')
         .order('created_at', { ascending: false })
         .then(({ data }) => {

@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
 
     // If an existing service ID is provided, use it (admin triggering provisioning for a queued service)
     if (serviceId) {
-      const { data: existingSvc } = await sb.from("services")
+      const { data: existingSvc } = await sb.from("sites")
         .select("*").eq("id", serviceId).single();
       if (!existingSvc) return error("Service not found", 404);
       if (existingSvc.status === "active") return error("Service is already active", 409);
@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
         if (!sub || !["active", "trialing"].includes(sub.status)) {
           return error("Subscription is not active", 403);
         }
-        const { data: existingSvc } = await sb.from("services")
+        const { data: existingSvc } = await sb.from("sites")
           .select("id, status, wp_cloud_site_id").eq("subscription_id", subscriptionId).maybeSingle();
         if (existingSvc?.wp_cloud_site_id) return error("This subscription already has a provisioned site", 409);
         // If a service exists but isn't provisioned yet, use it
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
 
       if (!svc) {
         const geoAffinity = region ?? "dca";
-        const { data: newSvc, error: svcErr } = await sb.from("services").insert({
+        const { data: newSvc, error: svcErr } = await sb.from("sites").insert({
           user_id: userId,
           subscription_id: subscriptionId ?? null,
           plan_id: planId ?? null,
@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     let planSlug = "minimum";
 
     if (svc.plan_id) {
-      const { data: plan } = await sb.from("plans")
+      const { data: plan } = await sb.from("products")
         .select("slug, storage_gb, default_php_workers, php_memory_mb")
         .eq("id", svc.plan_id)
         .single();
@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
     const ms = Date.now() - t0;
 
     if (!result.ok) {
-      await sb.from("services").update({
+      await sb.from("sites").update({
         status: "failed",
         metadata: { error: result.data, http_status: result.status },
       }).eq("id", svc.id);
@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
       console.error("Failed to fetch site IP (non-fatal):", ipErr);
     }
 
-    await sb.from("services").update({
+    await sb.from("sites").update({
       status: "active",
       wp_cloud_site_id: String(wpSiteId ?? ""),
       wp_cloud_url: wpUrl,

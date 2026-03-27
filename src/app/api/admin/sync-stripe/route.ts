@@ -138,7 +138,7 @@ export async function POST(req: Request) {
         php_memory_mb, onboarding_type, support_response_hours } = data;
 
       const { data: db } = await supabase
-        .from('plans')
+        .from('products')
         .select('stripe_product_id, stripe_price_id_monthly, stripe_price_id_yearly')
         .eq('id', id).single();
 
@@ -165,7 +165,7 @@ export async function POST(req: Request) {
         productId, price_yearly, 'year', { envosta_plan_id: id },
       );
 
-      await supabase.from('plans').update({
+      await supabase.from('products').update({
         stripe_product_id: productId,
         stripe_price_id_monthly: monthlyPriceId,
         stripe_price_id_yearly: yearlyPriceId,
@@ -184,7 +184,7 @@ export async function POST(req: Request) {
       const { tld, renewal_price_cad, active } = data;
 
       const { data: db } = await supabase
-        .from('domain_pricing')
+        .from('products')
         .select('stripe_product_id, stripe_price_id_yearly')
         .eq('id', id).single();
 
@@ -200,7 +200,7 @@ export async function POST(req: Request) {
         productId, renewal_price_cad, 'year', { tld },
       );
 
-      await supabase.from('domain_pricing').update({
+      await supabase.from('products').update({
         stripe_product_id: productId,
         stripe_price_id_yearly: yearlyPriceId,
       }).eq('id', id);
@@ -217,7 +217,7 @@ export async function POST(req: Request) {
       const { name, description, price_cad, billing_type, is_active, slug } = data;
 
       const { data: db } = await supabase
-        .from('addon_products')
+        .from('products')
         .select('stripe_product_id, stripe_price_id')
         .eq('id', id).single();
 
@@ -232,7 +232,7 @@ export async function POST(req: Request) {
         productId, price_cad, billing_type, { envosta_addon_slug: slug },
       );
 
-      await supabase.from('addon_products').update({
+      await supabase.from('products').update({
         stripe_product_id: productId,
         stripe_price_id: priceId,
       }).eq('id', id);
@@ -249,53 +249,53 @@ export async function POST(req: Request) {
       const results: string[] = [];
 
       // Plans
-      const { data: plans } = await supabase.from('plans').select('*').eq('is_active', true);
+      const { data: plans } = await supabase.from('products').select('*').eq('is_active', true);
       for (const plan of plans ?? []) {
         if (!plan.stripe_product_id || !plan.stripe_price_id_monthly || !plan.stripe_price_id_yearly) {
           try {
             const pid = await upsertProduct(stripe, plan.stripe_product_id, `${plan.name} Plan`, plan.description || '', { envosta_plan_id: plan.id, type: 'hosting_plan' });
             const mId = plan.stripe_price_id_monthly || (plan.price_monthly > 0 ? (await stripe.prices.create({ product: pid, unit_amount: plan.price_monthly, currency: 'cad', recurring: { interval: 'month' } })).id : null);
             const yId = plan.stripe_price_id_yearly || (plan.price_yearly > 0 ? (await stripe.prices.create({ product: pid, unit_amount: plan.price_yearly, currency: 'cad', recurring: { interval: 'year' } })).id : null);
-            await supabase.from('plans').update({ stripe_product_id: pid, stripe_price_id_monthly: mId, stripe_price_id_yearly: yId }).eq('id', plan.id);
+            await supabase.from('products').update({ stripe_product_id: pid, stripe_price_id_monthly: mId, stripe_price_id_yearly: yId }).eq('id', plan.id);
             results.push(`Plan: ${plan.name} ✓`);
           } catch (e) { console.error('Plan sync error:', e); results.push(`Plan: ${plan.name} ✗`); }
         }
       }
 
       // TLDs
-      const { data: tlds } = await supabase.from('domain_pricing').select('*').eq('active', true);
+      const { data: tlds } = await supabase.from('products').select('*').eq('active', true);
       for (const tld of tlds ?? []) {
         if (!tld.stripe_product_id || !tld.stripe_price_id_yearly) {
           try {
             const pid = await upsertProduct(stripe, tld.stripe_product_id, `.${tld.tld} Domain Registration`, '', { tld: tld.tld, type: 'domain_registration' });
             const yId = tld.stripe_price_id_yearly || (tld.renewal_price_cad > 0 ? (await stripe.prices.create({ product: pid, unit_amount: tld.renewal_price_cad, currency: 'cad', recurring: { interval: 'year' } })).id : null);
-            await supabase.from('domain_pricing').update({ stripe_product_id: pid, stripe_price_id_yearly: yId }).eq('id', tld.id);
+            await supabase.from('products').update({ stripe_product_id: pid, stripe_price_id_yearly: yId }).eq('id', tld.id);
             results.push(`TLD: .${tld.tld} ✓`);
           } catch (e) { console.error('TLD sync error:', e); results.push(`TLD: .${tld.tld} ✗`); }
         }
       }
 
       // Add-ons
-      const { data: addons } = await supabase.from('addon_products').select('*').eq('is_active', true);
+      const { data: addons } = await supabase.from('products').select('*').eq('is_active', true);
       for (const addon of addons ?? []) {
         if (!addon.stripe_product_id || !addon.stripe_price_id) {
           try {
             const pid = await upsertProduct(stripe, addon.stripe_product_id, addon.name, addon.description || '', { envosta_addon_slug: addon.slug, type: 'addon' });
             const priceId = await upsertFlexPrice(stripe, addon.stripe_price_id, pid, addon.price_cad, addon.billing_type, { envosta_addon_slug: addon.slug });
-            await supabase.from('addon_products').update({ stripe_product_id: pid, stripe_price_id: priceId }).eq('id', addon.id);
+            await supabase.from('products').update({ stripe_product_id: pid, stripe_price_id: priceId }).eq('id', addon.id);
             results.push(`Addon: ${addon.name} ✓`);
           } catch (e) { console.error('Addon sync error:', e); results.push(`Addon: ${addon.name} ✗`); }
         }
       }
 
       // One-time services
-      const { data: otServices } = await supabase.from('one_time_services').select('*').eq('is_active', true);
+      const { data: otServices } = await supabase.from('products').select('*').eq('is_active', true);
       for (const svc of otServices ?? []) {
         if (!svc.stripe_product_id || !svc.stripe_price_id) {
           try {
             const pid = await upsertProduct(stripe, svc.stripe_product_id, svc.name, svc.description || '', { envosta_service_slug: svc.slug, type: 'one_time_service' });
             const priceId = await upsertFlexPrice(stripe, svc.stripe_price_id, pid, svc.price_cad, 'one_time', { envosta_service_slug: svc.slug });
-            await supabase.from('one_time_services').update({ stripe_product_id: pid, stripe_price_id: priceId }).eq('id', svc.id);
+            await supabase.from('products').update({ stripe_product_id: pid, stripe_price_id: priceId }).eq('id', svc.id);
             results.push(`Service: ${svc.name} ✓`);
           } catch (e) { console.error('Service sync error:', e); results.push(`Service: ${svc.name} ✗`); }
         }
@@ -311,7 +311,7 @@ export async function POST(req: Request) {
       const { name, description, price_cad, is_active, slug } = data;
 
       const { data: db } = await supabase
-        .from('one_time_services')
+        .from('products')
         .select('stripe_product_id, stripe_price_id')
         .eq('id', id).single();
 
@@ -326,7 +326,7 @@ export async function POST(req: Request) {
         productId, price_cad, 'one_time', { envosta_service_slug: slug },
       );
 
-      await supabase.from('one_time_services').update({
+      await supabase.from('products').update({
         stripe_product_id: productId,
         stripe_price_id: priceId,
       }).eq('id', id);

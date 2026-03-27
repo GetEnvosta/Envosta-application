@@ -106,7 +106,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   useEffect(() => {
     async function fetchPlans() {
       const { data } = await supabase
-        .from('plans')
+        .from('products')
         .select('*')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
@@ -131,7 +131,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
         setSelectedDomain(initialDomain);
         const tld = initialDomain.split('.').pop()?.toLowerCase() ?? '';
         const { data: pricing } = await supabase
-          .from('domain_pricing')
+          .from('products')
           .select('registration_price_cad')
           .eq('tld', tld)
           .maybeSingle();
@@ -181,7 +181,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
         if (data.available) {
           const tld = domain.split('.').pop()?.toLowerCase() ?? '';
           const { data: pricing } = await supabase
-            .from('domain_pricing')
+            .from('products')
             .select('registration_price_cad')
             .eq('tld', tld)
             .maybeSingle();

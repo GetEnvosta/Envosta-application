@@ -1,115 +1,83 @@
 import { createClient } from '@/lib/supabase-server';
 
 /**
- * Fetch active/trialing subscriptions with plan join for current user.
+ * User's active/trialing subscriptions with product join.
  */
 export async function getUserSubscriptions(userId?: string) {
   const supabase = await createClient();
-
-  if (userId) {
-    const { data: customer } = await supabase
-      .from('customers')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
-    if (!customer) return [];
-
-    const { data } = await supabase
-      .from('subscriptions')
-      .select('*, plans(name, slug)')
-      .eq('customer_id', customer.id)
-      .in('status', ['active', 'trialing'])
-      .order('created_at', { ascending: false });
-    return data ?? [];
-  }
-
-  const { data } = await supabase
+  let query = supabase
     .from('subscriptions')
-    .select('*, plans(name, slug)')
+    .select('*, products(name, slug)')
     .in('status', ['active', 'trialing'])
     .order('created_at', { ascending: false });
+
+  if (userId) query = query.eq('user_id', userId);
+  const { data } = await query;
   return data ?? [];
 }
 
 /**
- * Fetch active/trialing subscriptions with plan + customer + features for billing page.
+ * User's subscriptions with product details for billing page.
  */
 export async function getUserSubscriptionsWithDetails() {
   const supabase = await createClient();
   const { data } = await supabase
     .from('subscriptions')
-    .select('*, plans(name, slug, price_monthly, features), customers(stripe_customer_id)')
+    .select('*, products(name, slug, price_cad, features)')
     .in('status', ['active', 'trialing'])
     .order('created_at', { ascending: false });
   return data ?? [];
 }
 
 /**
- * Fetch a single subscription by id.
+ * Single subscription by id.
  */
 export async function getSubscriptionById(id: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('subscriptions')
-    .select('*, plans(name, slug)')
+    .select('*, products(name, slug)')
     .eq('id', id)
     .single();
   return data;
 }
 
 /**
- * Fetch the first active subscription (for dashboard overview).
+ * First active subscription (for dashboard overview).
  */
 export async function getActiveSubscription(userId?: string) {
   const supabase = await createClient();
-
-  if (userId) {
-    const { data: customer } = await supabase
-      .from('customers')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
-    if (!customer) return null;
-
-    const { data } = await supabase
-      .from('subscriptions')
-      .select('*, plans(name, slug)')
-      .eq('customer_id', customer.id)
-      .eq('status', 'active')
-      .limit(1)
-      .maybeSingle();
-    return data;
-  }
-
-  const { data } = await supabase
+  let query = supabase
     .from('subscriptions')
-    .select('*, plans(name, slug)')
+    .select('*, products(name, slug)')
     .eq('status', 'active')
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  if (userId) query = query.eq('user_id', userId);
+  const { data } = await query.maybeSingle();
   return data;
 }
 
 /**
- * Admin: all active subscriptions with plan price info (for MRR calculation).
+ * Admin: all active subscriptions with product price (for MRR).
  */
 export async function getAllActiveSubscriptions() {
   const supabase = await createClient();
   const { data } = await supabase
     .from('subscriptions')
-    .select('*, plans(price_monthly)')
+    .select('*, products(price_cad)')
     .eq('status', 'active');
   return data ?? [];
 }
 
 /**
- * Admin: all subscriptions with customer + plan info for billing page.
+ * Admin: all subscriptions with user + product info.
  */
 export async function getAllSubscriptionsAdmin() {
   const supabase = await createClient();
   const { data } = await supabase
     .from('subscriptions')
-    .select('*, plans(name, slug, price_monthly), customers(user_id, billing_email, users(full_name, email))')
+    .select('*, products(name, slug, price_cad), users(full_name, email)')
     .order('created_at', { ascending: false })
     .limit(200);
   return data ?? [];

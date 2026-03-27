@@ -103,7 +103,7 @@ export async function getAdminTicketDetail(id: string) {
     .select(`
       *,
       users(id, full_name, email, created_at),
-      services(id, label, wp_cloud_url, status, onboarding_status, plans(name, slug)),
+      sites(id, label, wp_cloud_url, status, products(name, slug)),
       ticket_messages(id, sender, message, is_draft, created_at)
     `)
     .eq('id', id)
@@ -121,7 +121,7 @@ export async function getAdminTicketDetail(id: string) {
 
     const { data: subs } = await supabase
       .from('subscriptions')
-      .select('plans(name)')
+      .select('products(name)')
       .eq('status', 'active')
       .limit(1);
 

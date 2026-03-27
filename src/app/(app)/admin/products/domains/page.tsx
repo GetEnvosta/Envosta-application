@@ -38,7 +38,7 @@ export default function DomainPricingPage() {
   async function fetchPricing() {
     const supabase = createClient();
     const { data } = await supabase
-      .from('domain_pricing')
+      .from('products')
       .select('*')
       .order('tld', { ascending: true });
     setPricing(data ?? []);
@@ -70,7 +70,7 @@ export default function DomainPricingPage() {
 
     const supabase = createClient();
     const { error: err } = await supabase
-      .from('domain_pricing')
+      .from('products')
       .update({
         registration_price_cad: item.registration_price_cad,
         renewal_price_cad: item.renewal_price_cad,
@@ -126,7 +126,7 @@ export default function DomainPricingPage() {
 
     const supabase = createClient();
     const { error: err } = await supabase
-      .from('domain_pricing')
+      .from('products')
       .delete()
       .eq('id', item.id);
 
@@ -146,7 +146,7 @@ export default function DomainPricingPage() {
 
     const supabase = createClient();
     const { data, error: err } = await supabase
-      .from('domain_pricing')
+      .from('products')
       .insert({
         tld: newTld.toLowerCase().replace('.', '').trim(),
         registration_price_cad: displayToCents(newReg || '15'),

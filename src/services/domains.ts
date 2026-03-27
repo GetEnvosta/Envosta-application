@@ -21,7 +21,7 @@ export async function getUserDomainsForSite(userId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('domains')
-    .select('id, domain_name, service_id')
+    .select('id, domain_name, site_id')
     .eq('user_id', userId)
     .order('domain_name', { ascending: true });
   return data ?? [];

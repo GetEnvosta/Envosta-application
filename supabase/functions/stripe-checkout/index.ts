@@ -29,15 +29,15 @@ Deno.serve(async (req) => {
     // ---- Studio Request (price from addon_products table) ----
     if (studioRequest) {
       // Get or create customer
-      let { data: customer } = await sb.from("customers").select("*").eq("user_id", user.id).single();
+      let { data: customer } = await sb.from("users").select("*").eq("user_id", user.id).single();
       if (!customer) {
         const sc = await stripe.customers.create({ email: user.email ?? "", metadata: { supabase_user_id: user.id } });
-        const { data: newCust } = await sb.from("customers").insert({ user_id: user.id, stripe_customer_id: sc.id, billing_email: user.email }).select().single();
+        const { data: newCust } = await sb.from("users").insert({ user_id: user.id, stripe_customer_id: sc.id, billing_email: user.email }).select().single();
         customer = newCust;
       }
 
       // Get studio request price from DB
-      const { data: studioAddon } = await sb.from("addon_products").select("price_cad, stripe_price_id, name").eq("slug", "studio-request").maybeSingle();
+      const { data: studioAddon } = await sb.from("products").select("price_cad, stripe_price_id, name").eq("slug", "studio-request").maybeSingle();
       const studioPrice = studioAddon?.price_cad ?? 25000;
       const studioName = studioAddon?.name ?? "Studio Request";
 
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
     if (!priceId && !domainName) return error("priceId or domainName is required");
 
     // Get or create Stripe customer
-    let { data: customer } = await sb.from("customers")
+    let { data: customer } = await sb.from("users")
       .select("*").eq("user_id", user.id).single();
 
     if (!customer) {
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
         email: user.email ?? "",
         metadata: { supabase_user_id: user.id },
       });
-      const { data: newCust } = await sb.from("customers").insert({
+      const { data: newCust } = await sb.from("users").insert({
         user_id: user.id, stripe_customer_id: sc.id, billing_email: user.email,
       }).select().single();
       customer = newCust;
@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
     // Domain-only purchases (no plan) still need a charge:
     if (domainName && !priceId) {
       const tld = domainName.split(".").pop()?.toLowerCase() ?? "";
-      const { data: tldPricing } = await sb.from("domain_pricing")
+      const { data: tldPricing } = await sb.from("products")
         .select("stripe_price_id_yearly, registration_price_cad")
         .eq("tld", tld).maybeSingle();
 

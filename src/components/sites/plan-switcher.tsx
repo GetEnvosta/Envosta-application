@@ -31,7 +31,7 @@ export function PlanSwitcher({
   useEffect(() => {
     const supabase = createClient();
     supabase
-      .from('plans')
+      .from('products')
       .select('id, name, slug, price_monthly, storage_gb, default_php_workers, php_memory_mb, bandwidth_gb')
       .eq('is_active', true)
       .order('sort_order', { ascending: true })

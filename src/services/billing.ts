@@ -1,54 +1,37 @@
 import { createClient } from '@/lib/supabase-server';
 
 /**
- * Invoices for current user, ordered by created_at desc.
+ * Invoices for a user, ordered by created_at desc.
  */
 export async function getUserInvoices(limit: number = 20, userId?: string) {
   const supabase = await createClient();
-
-  if (userId) {
-    // Invoices are linked via customer_id, not user_id — look up customer first
-    const { data: customer } = await supabase
-      .from('customers')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (!customer) return [];
-
-    const { data } = await supabase
-      .from('invoices')
-      .select('*')
-      .eq('customer_id', customer.id)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    return data ?? [];
-  }
-
-  // No userId filter — relies on RLS
-  const { data } = await supabase
+  let query = supabase
     .from('invoices')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit);
+
+  if (userId) {
+    query = query.eq('user_id', userId);
+  }
+
+  const { data } = await query;
   return data ?? [];
 }
 
 /**
- * Customer record with payment method info for a given user.
- * Fetches card details from Stripe if a customer exists.
+ * User info with payment method from Stripe.
  */
 export async function getCustomerInfo(userId: string) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('customers')
+    .from('users')
     .select('*')
-    .eq('user_id', userId)
+    .eq('id', userId)
     .maybeSingle();
 
   if (!data?.stripe_customer_id) return data;
 
-  // Fetch payment method from Stripe
   try {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) return data;
@@ -69,7 +52,6 @@ export async function getCustomerInfo(userId: string) {
       };
     }
 
-    // Fallback: check default source
     const src = customer.default_source;
     if (src?.last4) {
       return {
@@ -80,14 +62,14 @@ export async function getCustomerInfo(userId: string) {
       };
     }
   } catch (e) {
-    console.error('Failed to fetch payment method from Stripe:', e);
+    console.error('Failed to fetch payment method:', e);
   }
 
   return data;
 }
 
 /**
- * Admin: billing stats (paid/outstanding invoice counts).
+ * Admin: billing stats.
  */
 export async function getAdminBillingStats() {
   const supabase = await createClient();
@@ -106,26 +88,27 @@ export async function getAdminBillingStats() {
 }
 
 /**
- * Admin: recent invoices with customer/user joins.
+ * Admin: recent invoices with user info.
  */
 export async function getAdminRecentInvoices(limit: number = 30) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('invoices')
-    .select('*, customers(user_id, users(full_name, email))')
+    .select('*, users(full_name, email)')
     .order('created_at', { ascending: false })
     .limit(limit);
   return data ?? [];
 }
 
 /**
- * Admin: all customers with user info (for invoice dropdown).
+ * Admin: all users with stripe_customer_id (for invoice dropdown).
  */
 export async function getAllCustomersWithUsers() {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('customers')
-    .select('id, user_id, stripe_customer_id, billing_email, users(full_name, email)')
-    .order('created_at', { ascending: false });
+    .from('users')
+    .select('id, full_name, email, stripe_customer_id')
+    .not('stripe_customer_id', 'is', null)
+    .order('full_name', { ascending: true });
   return data ?? [];
 }

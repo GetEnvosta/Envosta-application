@@ -24,7 +24,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
 
   async function fetchPlan(id: string) {
     const supabase = createClient();
-    const { data } = await supabase.from('plans').select('*').eq('id', id).single();
+    const { data } = await supabase.from('products').select('*').eq('id', id).single();
     setPlan(data);
     setLoading(false);
   }
@@ -39,7 +39,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
     setSuccess('');
 
     const supabase = createClient();
-    const { error: err } = await supabase.from('plans').update({
+    const { error: err } = await supabase.from('products').update({
       name: plan.name,
       slug: plan.slug,
       price_monthly: plan.price_monthly,

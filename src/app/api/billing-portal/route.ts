@@ -18,7 +18,7 @@ export async function POST() {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
-  const { data: customer } = await sb.from('customers').select('stripe_customer_id').eq('user_id', user.id).maybeSingle();
+  const { data: customer } = await sb.from('users').select('stripe_customer_id').eq('user_id', user.id).maybeSingle();
 
   if (!customer?.stripe_customer_id) {
     return NextResponse.json({ error: 'No billing account found' }, { status: 404 });

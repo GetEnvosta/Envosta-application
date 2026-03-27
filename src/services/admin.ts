@@ -11,7 +11,7 @@ export async function getDashboardCounts() {
     { count: domainsCount },
   ] = await Promise.all([
     supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'customer'),
-    supabase.from('services').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+    supabase.from('sites').select('id', { count: 'exact', head: true }).eq('status', 'active'),
     supabase.from('domains').select('id', { count: 'exact', head: true }).eq('status', 'registered'),
   ]);
 
@@ -78,7 +78,7 @@ export async function getUserDashboardCounts(userId: string) {
     { count: sitesCount },
     { count: domainsCount },
   ] = await Promise.all([
-    supabase.from('services').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+    supabase.from('sites').select('id', { count: 'exact', head: true }).eq('user_id', userId),
     supabase.from('domains').select('id', { count: 'exact', head: true }).eq('user_id', userId),
   ]);
 
@@ -94,7 +94,7 @@ export async function getUserDashboardCounts(userId: string) {
 export async function getRecentUserServices(userId: string, limit: number = 5) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('services')
+    .from('sites')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
@@ -141,8 +141,8 @@ export async function getCustomerRelatedData(userId: string) {
     { data: logs },
   ] = await Promise.all([
     supabase
-      .from('services')
-      .select('*, plans(name)')
+      .from('sites')
+      .select('*, products(name)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false }),
     supabase
@@ -152,7 +152,7 @@ export async function getCustomerRelatedData(userId: string) {
       .order('created_at', { ascending: false }),
     supabase
       .from('subscriptions')
-      .select('*, plans(name, price_monthly)')
+      .select('*, products(name, price_cad)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false }),
     supabase

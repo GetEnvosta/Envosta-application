@@ -64,7 +64,7 @@ export function EditPlanForm({ plan }: { plan: Plan }) {
 
     const supabase = createClient();
     const { error } = await supabase
-      .from('plans')
+      .from('products')
       .update({
         name,
         description: description || null,
