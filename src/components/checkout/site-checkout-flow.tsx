@@ -583,47 +583,53 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
             <ArrowLeft style={{ width: 14, height: 14 }} /> Back
           </button>
           <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 8, color: t.text, textAlign: 'center' }}>
-            What about a domain?
+            {isTrial ? 'Your site domain' : 'What about a domain?'}
           </h2>
           <p style={{ color: t.textSub, marginBottom: 32, fontSize: '.92rem', textAlign: 'center' }}>
-            You can always add or change your domain later.
+            {isTrial
+              ? 'During your trial, your site uses a temporary domain. You can register or connect a domain after your trial.'
+              : 'You can always add or change your domain later.'}
           </p>
 
           {/* Options */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-            <button
-              onClick={() => { setDomainMode('new'); setSelectedDomain(''); setDomainResult(null); setTimeout(() => domainRef.current?.focus(), 200); }}
-              style={{
-                background: domainMode === 'new' ? dark ? 'rgba(37,99,235,.06)' : 'rgba(37,99,235,.04)' : t.cardBg,
-                border: `1px solid ${domainMode === 'new' ? '#2563EB' : t.cardBorder}`,
-                borderRadius: 14, padding: '18px 20px', cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Sparkles style={{ width: 18, height: 18, color: '#2563EB' }} />
-                <div>
-                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>Register a new domain</p>
-                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>Search and add a domain to your order</p>
-                </div>
-              </div>
-            </button>
+            {!isTrial && (
+              <>
+                <button
+                  onClick={() => { setDomainMode('new'); setSelectedDomain(''); setDomainResult(null); setTimeout(() => domainRef.current?.focus(), 200); }}
+                  style={{
+                    background: domainMode === 'new' ? dark ? 'rgba(37,99,235,.06)' : 'rgba(37,99,235,.04)' : t.cardBg,
+                    border: `1px solid ${domainMode === 'new' ? '#2563EB' : t.cardBorder}`,
+                    borderRadius: 14, padding: '18px 20px', cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Sparkles style={{ width: 18, height: 18, color: '#2563EB' }} />
+                    <div>
+                      <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>Register a new domain</p>
+                      <p style={{ fontSize: '.75rem', color: t.textMuted }}>Search and add a domain to your order</p>
+                    </div>
+                  </div>
+                </button>
 
-            <button
-              onClick={() => { setDomainMode('existing'); setSelectedDomain(''); setDomainResult(null); }}
-              style={{
-                background: domainMode === 'existing' ? dark ? 'rgba(37,99,235,.06)' : 'rgba(37,99,235,.04)' : t.cardBg,
-                border: `1px solid ${domainMode === 'existing' ? '#2563EB' : t.cardBorder}`,
-                borderRadius: 14, padding: '18px 20px', cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Globe style={{ width: 18, height: 18, color: '#2563EB' }} />
-                <div>
-                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>I already have a domain</p>
-                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>We&apos;ll help you connect or transfer it</p>
-                </div>
-              </div>
-            </button>
+                <button
+                  onClick={() => { setDomainMode('existing'); setSelectedDomain(''); setDomainResult(null); }}
+                  style={{
+                    background: domainMode === 'existing' ? dark ? 'rgba(37,99,235,.06)' : 'rgba(37,99,235,.04)' : t.cardBg,
+                    border: `1px solid ${domainMode === 'existing' ? '#2563EB' : t.cardBorder}`,
+                    borderRadius: 14, padding: '18px 20px', cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Globe style={{ width: 18, height: 18, color: '#2563EB' }} />
+                    <div>
+                      <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>I already have a domain</p>
+                      <p style={{ fontSize: '.75rem', color: t.textMuted }}>We&apos;ll help you connect or transfer it</p>
+                    </div>
+                  </div>
+                </button>
+              </>
+            )}
 
             <button
               onClick={() => { setDomainMode('temp'); setSelectedDomain(''); goToCheckout(); }}
