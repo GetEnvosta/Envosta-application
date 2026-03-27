@@ -1,4 +1,3 @@
-import { getAllPlans, getDomainPricing } from '@/services/plans';
 import { formatCents } from '@/lib/utils';
 import { Settings, Package, Globe, FileText, ArrowRight, CheckCircle, AlertTriangle, Zap, DollarSign, Briefcase } from 'lucide-react';
 import Link from 'next/link';
@@ -12,23 +11,15 @@ function getSupabase() {
   );
 }
 
-async function getAddons() {
-  const { data } = await getSupabase().from('products').select('*').eq('type', 'plan_addon').order('sort_order');
-  return data ?? [];
-}
-
-async function getOneTimeServices() {
-  const { data } = await getSupabase().from('products').select('*').eq('type', 'one_time_service').order('sort_order');
-  return data ?? [];
-}
-
 export default async function ProductsPage() {
-  const [plans, tlds, addons, oneTimeServices] = await Promise.all([
-    getAllPlans(),
-    getDomainPricing(),
-    getAddons(),
-    getOneTimeServices(),
-  ]);
+  // Single query for all products — filter client-side
+  const { data: allProducts } = await getSupabase().from('products').select('*').order('sort_order');
+  const products = allProducts ?? [];
+
+  const plans = products.filter(p => p.type === 'hosting_plan');
+  const tlds = products.filter(p => p.type === 'domain_tld');
+  const addons = products.filter(p => p.type === 'plan_addon');
+  const oneTimeServices = products.filter(p => p.type === 'one_time_service');
 
   const syncedPlans = plans.filter((p: any) => p.stripe_product_id && p.stripe_price_id).length;
   const syncedTlds = tlds.filter((t: any) => t.stripe_product_id && t.stripe_price_id_yearly).length;
