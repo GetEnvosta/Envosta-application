@@ -18,6 +18,20 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://envosta.com' },
 };
 
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    { '@type': 'Question', name: 'What happens after I sign up?', acceptedAnswer: { '@type': 'Answer', text: 'A conversation. We learn about your business, then build everything — design, structure, security, performance. When it\'s ready, you step in and make it yours. Most sites go live within a week.' } },
+    { '@type': 'Question', name: 'How involved do I need to be during setup?', acceptedAnswer: { '@type': 'Answer', text: 'One call. You tell us about your business. We handle the rest — theme, SEO, security, forms, and everything in between. You come back when it\'s time to add your content and go live.' } },
+    { '@type': 'Question', name: 'What do I need to provide?', acceptedAnswer: { '@type': 'Answer', text: 'The more we understand about your business, the better your starting point. Share your logo, brand colors, photos, and any details about your services — we use all of it to shape the structure, layout, and flow of your site.' } },
+    { '@type': 'Question', name: 'What infrastructure does my site run on?', acceptedAnswer: { '@type': 'Answer', text: 'wp.cloud — the same enterprise platform behind WordPress.com and WordPress VIP. 99.99% uptime, sub-200ms response times, global CDN, automated security, and daily backups. All included.' } },
+    { '@type': 'Question', name: 'Can I update my own site after launch?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. The visual editor makes it simple — add pages, swap images, edit text. No code. And if you ever need a hand, we\'re right here.' } },
+    { '@type': 'Question', name: 'What if I need help after my site is live?', acceptedAnswer: { '@type': 'Answer', text: 'We don\'t disappear after launch. Every plan includes ongoing support, managed updates, and security monitoring. Something breaks, you need changes — just reach out.' } },
+    { '@type': 'Question', name: 'What if I want to leave?', acceptedAnswer: { '@type': 'Answer', text: 'You own everything — your domain, your content, your theme, your data. There\'s no lock-in, no proprietary formats, no exit fees. Your site is yours.' } },
+  ],
+};
+
 export default async function HomePage() {
   // If accessed from the app domain, redirect to dashboard
   const host = (await headers()).get('host') ?? '';
@@ -26,6 +40,7 @@ export default async function HomePage() {
   }
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <ScrollReveal />
 
       {/* ═══ SECTION 1 — HERO ═══ */}

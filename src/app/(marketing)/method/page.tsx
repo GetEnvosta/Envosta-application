@@ -4,27 +4,6 @@ import { useEffect } from 'react';
 
 export default function MethodPage() {
   useEffect(() => {
-    // Set page title
-    document.title = 'The ENVOSTA Method – From Idea to Authority | Envosta';
-
-    // Set meta description
-    let metaDesc = document.querySelector('meta[name="description"]');
-    if (!metaDesc) {
-      metaDesc = document.createElement('meta');
-      metaDesc.setAttribute('name', 'description');
-      document.head.appendChild(metaDesc);
-    }
-    metaDesc.setAttribute('content', 'Seven phases. One clear path. The ENVOSTA Method gets your site live faster, performing better, and built to grow from day one.');
-
-    // Set canonical
-    let canonical = document.querySelector('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement('link');
-      canonical.setAttribute('rel', 'canonical');
-      document.head.appendChild(canonical);
-    }
-    canonical.setAttribute('href', 'https://envosta.com/method');
-
     // Scroll reveal
     const revealElements = document.querySelectorAll('.rv');
     const observers: IntersectionObserver[] = [];
