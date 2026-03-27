@@ -18,9 +18,8 @@ interface Plan {
   stripe_price_id_yearly: string;
   price_cad: number;
   price_yearly_cad: number;
-  storage_gb: number;
-  features: string[];
-  onboarding_type: string;
+  features: string[] | any;
+  metadata: any;
   sort_order: number;
 }
 
