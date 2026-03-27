@@ -9,10 +9,7 @@ interface Plan {
   name: string;
   slug: string;
   price_cad: number;
-  storage_gb: number;
-  default_php_workers: number;
-  php_memory_mb: number;
-  bandwidth_gb: number;
+  metadata: any;
 }
 
 export function PlanSwitcher({
