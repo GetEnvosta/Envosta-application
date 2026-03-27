@@ -20,9 +20,15 @@ export async function middleware(request: NextRequest) {
   const host = request.headers.get('host') ?? '';
   const { pathname } = request.nextUrl;
 
+  // 301 redirect www to non-www
+  if (host === 'www.envosta.com') {
+    const url = request.nextUrl.clone();
+    url.host = 'envosta.com';
+    return NextResponse.redirect(url, { status: 301 });
+  }
+
   // On envosta.com (marketing site), skip auth — add security headers only
-  const isMarketingSite = host === 'envosta.com' || host === 'www.envosta.com';
-  if (isMarketingSite) {
+  if (host === 'envosta.com') {
     return addSecurityHeaders(NextResponse.next());
   }
 

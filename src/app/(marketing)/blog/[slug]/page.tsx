@@ -72,10 +72,15 @@ export default async function BlogPostPage({ params }: PageProps) {
     image: post.featured_image_url || undefined,
     datePublished: post.published_at,
     dateModified: post.updated_at || post.published_at,
+    author: {
+      '@type': 'Person',
+      name: (post as any).author || 'Envosta Team',
+    },
     publisher: {
       '@type': 'Organization',
       name: 'Envosta',
       url: 'https://envosta.com',
+      logo: { '@type': 'ImageObject', url: 'https://envosta.com/assets/Logo/envosta-logo-mark-dark.svg' },
     },
     mainEntityOfPage: {
       '@type': 'WebPage',

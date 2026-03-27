@@ -2,10 +2,18 @@ import type { Metadata } from 'next';
 import PricingClient from './pricing-client';
 
 export const metadata: Metadata = {
-  title: 'Plans & Pricing',
-  description:
-    'Simple, transparent pricing plans for managed WordPress hosting. Choose Minimum, Growth, or Performance — every plan includes a personal consultation, free SSL, global CDN, and daily backups.',
+  title: 'Plans & Pricing — Envosta Managed WordPress Hosting',
+  description: 'Simple, transparent pricing for managed WordPress hosting. Minimum $50/mo, Growth $129/mo, Performance $350/mo CAD. Free SSL, CDN, backups, and personal onboarding on every plan.',
   alternates: { canonical: 'https://envosta.com/pricing' },
+  openGraph: {
+    title: 'Plans & Pricing — Envosta Managed WordPress Hosting',
+    description: 'From $50 CAD/mo. Enterprise wp.cloud hosting with personal onboarding, free SSL, CDN, and daily backups.',
+    url: 'https://envosta.com/pricing',
+  },
+  twitter: {
+    title: 'Envosta Pricing — Managed WordPress from $50 CAD/mo',
+    description: 'Enterprise hosting with personal onboarding. Minimum, Growth, and Performance plans.',
+  },
 };
 
 export default function PricingPage() {

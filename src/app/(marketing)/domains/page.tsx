@@ -6,9 +6,18 @@ import { DomainSearch } from '@/components/marketing/domain-search';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Domain Names',
-  description: 'Register the perfect domain for your business. .com, .ca, .io, and 20+ TLDs available with free WHOIS privacy and easy DNS management.',
-  alternates: { canonical: '/domains' },
+  title: 'Domain Registration — .com, .ca, .io & More | Envosta',
+  description: 'Register the perfect domain for your business. 20+ TLDs from $15 CAD/yr with free WHOIS privacy, auto-DNS setup, and easy management from your Envosta dashboard.',
+  alternates: { canonical: 'https://envosta.com/domains' },
+  openGraph: {
+    title: 'Domain Registration — .com, .ca, .io & More',
+    description: '20+ TLDs from $15 CAD/yr. Free WHOIS privacy, auto-DNS, and one-click connection to your hosting.',
+    url: 'https://envosta.com/domains',
+  },
+  twitter: {
+    title: 'Domain Registration from $15 CAD/yr — Envosta',
+    description: '20+ TLDs with free WHOIS privacy and auto-DNS setup.',
+  },
 };
 
 export default async function DomainsPage() {
