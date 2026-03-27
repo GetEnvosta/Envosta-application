@@ -11,8 +11,8 @@ interface Subscription {
   current_period_end: string | null;
   cancel_at_period_end: boolean;
   created_at: string;
-  plans?: { name: string; slug: string; price_cad: number } | null;
-  customers?: { user_id: string; billing_email: string | null; users?: { full_name: string | null; email: string } } | null;
+  products?: { name: string; slug: string; price_cad: number } | null;
+  users?: { full_name: string | null; email: string } | null;
 }
 
 const STATUS_FILTERS = [
