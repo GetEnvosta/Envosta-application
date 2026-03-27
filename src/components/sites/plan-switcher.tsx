@@ -32,7 +32,7 @@ export function PlanSwitcher({
     const supabase = createClient();
     supabase
       .from('products')
-      .select('id, name, slug, price_cad, storage_gb, default_php_workers, php_memory_mb, bandwidth_gb')
+      .select('id, name, slug, price_cad, metadata')
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
       .then(({ data }) => {
@@ -123,10 +123,10 @@ export function PlanSwitcher({
                 <span className="text-xs font-normal text-gray-500">/mo</span>
               </p>
               <div className="mt-2 space-y-1 text-xs text-gray-500">
-                <p>{plan.storage_gb} GB storage</p>
-                <p>{plan.default_php_workers} PHP workers</p>
-                <p>{plan.php_memory_mb} MB memory</p>
-                <p>{plan.bandwidth_gb > 0 ? `${plan.bandwidth_gb} GB bandwidth` : 'Unlimited bandwidth'}</p>
+                <p>{plan.metadata?.storage_gb} GB storage</p>
+                <p>{plan.metadata?.php_workers_default} PHP workers</p>
+                <p>{plan.metadata?.php_memory_mb} MB memory</p>
+                <p>{plan.metadata?.bandwidth_gb > 0 ? `${plan.metadata?.bandwidth_gb} GB bandwidth` : 'Unlimited bandwidth'}</p>
               </div>
               {!isCurrent && !switching && (
                 <div className="mt-3 flex items-center gap-1 text-xs font-medium text-brand-600">

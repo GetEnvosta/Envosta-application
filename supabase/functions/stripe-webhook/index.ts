@@ -60,8 +60,8 @@ Deno.serve(async (req) => {
           // Get onboarding type from plan
           let onboardingType = "standard";
           if (plan?.id) {
-            const { data: planData } = await sb.from("products").select("onboarding_type").eq("id", plan.id).maybeSingle();
-            if (planData?.onboarding_type) onboardingType = planData.onboarding_type;
+            const { data: planData } = await sb.from("products").select("metadata").eq("id", plan.id).maybeSingle();
+            if ((planData?.metadata as any)?.onboarding_type) onboardingType = (planData.metadata as any).onboarding_type;
           }
 
           const domainFromMeta = sub.metadata?.domain_name ?? null;

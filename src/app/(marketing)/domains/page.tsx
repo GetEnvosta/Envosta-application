@@ -127,7 +127,7 @@ export default async function DomainsPage() {
               <div key={tld.id} className="tld-card">
                 <div className="tld-name">.{tld.tld}</div>
                 <div className="tld-price">
-                  ${(tld.registration_price_cad / 100).toFixed(2)} <span>/yr</span>
+                  ${((tld.metadata?.registration_price_cad ?? tld.price_cad) / 100).toFixed(2)} <span>/yr</span>
                 </div>
               </div>
             ))}

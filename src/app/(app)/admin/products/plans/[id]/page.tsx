@@ -38,6 +38,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
     setError('');
     setSuccess('');
 
+    const meta = plan.metadata ?? {};
     const supabase = createClient();
     const { error: err } = await supabase.from('products').update({
       name: plan.name,
@@ -47,19 +48,24 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
       stripe_product_id: plan.stripe_product_id || null,
       stripe_price_id: plan.stripe_price_id || null,
       stripe_price_id_yearly: plan.stripe_price_id_yearly || null,
-      storage_gb: plan.storage_gb,
-      max_php_workers: plan.max_php_workers,
-      default_php_workers: plan.default_php_workers,
-      php_memory_mb: plan.php_memory_mb,
-      has_staging: plan.has_staging,
-      has_cdn: plan.has_cdn,
-      has_waf: plan.has_waf,
-      has_backups: plan.has_backups,
-      onboarding_type: plan.onboarding_type,
-      support_response_hours: plan.support_response_hours,
       is_active: plan.is_active,
       description: plan.description,
       features: plan.features,
+      metadata: {
+        ...meta,
+        storage_gb: plan.metadata?.storage_gb ?? meta.storage_gb,
+        php_workers_default: plan.metadata?.php_workers_default ?? meta.php_workers_default,
+        php_workers_included: plan.metadata?.php_workers_included ?? meta.php_workers_included,
+        php_memory_mb: plan.metadata?.php_memory_mb ?? meta.php_memory_mb,
+        has_staging: plan.metadata?.has_staging ?? meta.has_staging,
+        has_cdn: plan.metadata?.has_cdn ?? meta.has_cdn,
+        has_waf: plan.metadata?.has_waf ?? meta.has_waf,
+        has_backups: plan.metadata?.has_backups ?? meta.has_backups,
+        onboarding_type: plan.metadata?.onboarding_type ?? meta.onboarding_type,
+        support_type: plan.metadata?.support_type ?? meta.support_type,
+        support_response_hours: plan.metadata?.support_response_hours ?? meta.support_response_hours,
+        sites_allowed: plan.metadata?.sites_allowed ?? meta.sites_allowed,
+      },
     }).eq('id', planId);
 
     if (err) { setError(err.message); setSaving(false); return; }
@@ -81,13 +87,13 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
             stripe_product_id: plan.stripe_product_id,
             stripe_price_id: plan.stripe_price_id,
             stripe_price_id_yearly: plan.stripe_price_id_yearly,
-            storage_gb: plan.storage_gb,
+            storage_gb: plan.metadata?.storage_gb,
             bandwidth_gb: plan.bandwidth_gb,
-            default_php_workers: plan.default_php_workers,
-            max_php_workers: plan.max_php_workers,
-            php_memory_mb: plan.php_memory_mb,
-            onboarding_type: plan.onboarding_type,
-            support_response_hours: plan.support_response_hours,
+            default_php_workers: plan.metadata?.php_workers_default,
+            max_php_workers: plan.metadata?.php_workers_included,
+            php_memory_mb: plan.metadata?.php_memory_mb,
+            onboarding_type: plan.metadata?.onboarding_type,
+            support_response_hours: plan.metadata?.support_response_hours,
           },
         }),
       });
@@ -159,19 +165,19 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
         <div className="card p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">wp.cloud — Infrastructure</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div><label className="label">Storage (GB)</label><input type="number" className="input" value={plan.storage_gb ?? plan.disk_gb ?? 25} onChange={e => update('storage_gb', parseInt(e.target.value) || 25)} /></div>
-            <div><label className="label">Default PHP Workers</label><input type="number" className="input" value={plan.default_php_workers ?? 2} onChange={e => update('default_php_workers', parseInt(e.target.value) || 2)} /></div>
-            <div><label className="label">Max PHP Workers</label><input type="number" className="input" value={plan.max_php_workers ?? 2} onChange={e => update('max_php_workers', parseInt(e.target.value) || 2)} /></div>
-            <div><label className="label">PHP Memory (MB)</label><input type="number" className="input" value={plan.php_memory_mb ?? 512} onChange={e => update('php_memory_mb', parseInt(e.target.value) || 512)} /></div>
+            <div><label className="label">Storage (GB)</label><input type="number" className="input" value={plan.metadata?.storage_gb ?? plan.metadata?.storage_gb ?? 25} onChange={e => update('storage_gb', parseInt(e.target.value) || 25)} /></div>
+            <div><label className="label">Default PHP Workers</label><input type="number" className="input" value={plan.metadata?.php_workers_default ?? 2} onChange={e => update('default_php_workers', parseInt(e.target.value) || 2)} /></div>
+            <div><label className="label">Max PHP Workers</label><input type="number" className="input" value={plan.metadata?.php_workers_included ?? 2} onChange={e => update('max_php_workers', parseInt(e.target.value) || 2)} /></div>
+            <div><label className="label">PHP Memory (MB)</label><input type="number" className="input" value={plan.metadata?.php_memory_mb ?? 512} onChange={e => update('php_memory_mb', parseInt(e.target.value) || 512)} /></div>
             <div>
               <label className="label">Onboarding Type</label>
-              <select className="input" value={plan.onboarding_type ?? 'standard'} onChange={e => update('onboarding_type', e.target.value)}>
+              <select className="input" value={plan.metadata?.onboarding_type ?? 'standard'} onChange={e => update('onboarding_type', e.target.value)}>
                 <option value="standard">Standard</option>
                 <option value="guided">Guided</option>
                 <option value="concierge">Concierge</option>
               </select>
             </div>
-            <div><label className="label">Support Response (hours)</label><input type="number" className="input" value={plan.support_response_hours ?? 48} onChange={e => update('support_response_hours', parseInt(e.target.value) || 48)} /></div>
+            <div><label className="label">Support Response (hours)</label><input type="number" className="input" value={plan.metadata?.support_response_hours ?? 48} onChange={e => update('support_response_hours', parseInt(e.target.value) || 48)} /></div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">

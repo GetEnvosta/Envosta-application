@@ -171,7 +171,7 @@ export default async function ServiceDetailPage({
           Change Plan
         </h2>
         <p className="text-sm text-gray-500 mb-4">Upgrade or downgrade this site&apos;s hosting plan. Updates wp.cloud resources and Stripe billing.</p>
-        <PlanSwitcher siteId={service.id} currentPlanId={service.plan_id} />
+        <PlanSwitcher siteId={service.id} currentPlanId={service.product_id} />
       </div>
 
       {/* Add-ons */}

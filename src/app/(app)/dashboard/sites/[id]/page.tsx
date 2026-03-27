@@ -201,7 +201,7 @@ export default async function SiteDetailPage({
           Change Plan
         </h2>
         <p className="text-sm text-gray-500 mb-4">Upgrade or downgrade your hosting plan. Changes take effect immediately with prorated billing.</p>
-        <PlanSwitcher siteId={id} currentPlanId={site.plan_id} />
+        <PlanSwitcher siteId={id} currentPlanId={site.product_id} />
       </div>
 
       {/* Add-ons */}

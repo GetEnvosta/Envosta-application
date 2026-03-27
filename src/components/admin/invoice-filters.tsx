@@ -11,7 +11,7 @@ interface Invoice {
   status: string;
   currency: string;
   created_at: string;
-  customers?: { users?: { full_name: string | null; email: string } };
+  users?: { full_name: string | null; email: string };
   _category: string;
 }
 
@@ -77,7 +77,7 @@ export function InvoiceFilters({ invoices }: { invoices: Invoice[] }) {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((inv) => {
-                const user = (inv.customers as any)?.users;
+                const user = inv.users as any;
                 return (
                   <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-3 font-medium text-gray-900">{inv.description || '\u2014'}</td>

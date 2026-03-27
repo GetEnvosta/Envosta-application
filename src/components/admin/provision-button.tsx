@@ -26,7 +26,7 @@ export function ProvisionButton({ siteId, label }: { siteId: string; label: stri
       // Get the service details to pass to provision-hosting
       const { data: service } = await supabase
         .from('sites')
-        .select('*, subscriptions(id, plan_id, plans(slug)), users(email, full_name)')
+        .select('*, subscriptions(id, product_id, products(slug)), users(email, full_name)')
         .eq('id', siteId)
         .single();
 
@@ -50,7 +50,7 @@ export function ProvisionButton({ siteId, label }: { siteId: string; label: stri
             label: service.label,
             region: service.server_region ?? 'dca',
             phpVersion: service.php_version ?? '8.4',
-            planId: service.plan_id,
+            planId: service.product_id,
             adminEmail: userEmail,
             ...(domainName && { domainName }),
           }),

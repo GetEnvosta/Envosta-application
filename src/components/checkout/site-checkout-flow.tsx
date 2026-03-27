@@ -132,10 +132,11 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
         const tld = initialDomain.split('.').pop()?.toLowerCase() ?? '';
         const { data: pricing } = await supabase
           .from('products')
-          .select('registration_price_cad')
-          .eq('tld', tld)
+          .select('price_cad, metadata')
+          .eq('type', 'domain_tld')
+          .eq('slug', `tld-${tld}`)
           .maybeSingle();
-        if (pricing?.registration_price_cad) setDomainPriceCents(pricing.registration_price_cad);
+        if (pricing) setDomainPriceCents((pricing.metadata as any)?.registration_price_cad ?? pricing.price_cad);
       }
 
       // Skip to the right step based on what's pre-filled
@@ -182,10 +183,11 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
           const tld = domain.split('.').pop()?.toLowerCase() ?? '';
           const { data: pricing } = await supabase
             .from('products')
-            .select('registration_price_cad')
-            .eq('tld', tld)
+            .select('price_cad, metadata')
+            .eq('type', 'domain_tld')
+            .eq('slug', `tld-${tld}`)
             .maybeSingle();
-          setDomainPriceCents(pricing?.registration_price_cad ?? null);
+          setDomainPriceCents(pricing ? ((pricing.metadata as any)?.registration_price_cad ?? pricing.price_cad) : null);
         }
       } else {
         setDomainError(data.error ?? 'Could not check availability');

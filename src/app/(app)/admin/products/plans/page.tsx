@@ -51,10 +51,10 @@ export default async function AdminPlansPage() {
                 <tr key={plan.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-3.5 font-medium text-gray-900">{plan.name}</td>
                   <td className="px-5 py-3.5 text-gray-700">{formatCents(plan.price_cad)}</td>
-                  <td className="px-5 py-3.5 text-gray-700">{plan.storage_gb ?? plan.disk_gb} GB</td>
-                  <td className="px-5 py-3.5 text-gray-700">{plan.default_php_workers}</td>
-                  <td className="px-5 py-3.5 text-gray-700">{plan.php_memory_mb} MB</td>
-                  <td className="px-5 py-3.5 text-gray-700 capitalize">{plan.onboarding_type}</td>
+                  <td className="px-5 py-3.5 text-gray-700">{plan.metadata?.storage_gb ?? plan.metadata?.disk_gb} GB</td>
+                  <td className="px-5 py-3.5 text-gray-700">{plan.metadata?.php_workers_default}</td>
+                  <td className="px-5 py-3.5 text-gray-700">{plan.metadata?.php_memory_mb} MB</td>
+                  <td className="px-5 py-3.5 text-gray-700 capitalize">{plan.metadata?.onboarding_type}</td>
                   <td className="px-5 py-3.5">
                     <span className={plan.is_active ? 'badge-green' : 'badge-gray'}>
                       {plan.is_active ? 'Active' : 'Inactive'}
