@@ -7,12 +7,6 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-
-  // Cache control for authenticated pages
-  if (response.headers.get('x-middleware-next')) {
-    response.headers.set('X-DNS-Prefetch-Control', 'on');
-  }
-
   return response;
 }
 
@@ -27,14 +21,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url, { status: 301 });
   }
 
-  // Marketing site (envosta.com) or Vercel preview deployments — skip auth
-  const isMarketingSite = host === 'envosta.com' || (!host.startsWith('my.') && !host.startsWith('app.') && !host.includes('localhost'));
-  if (isMarketingSite && !pathname.startsWith('/dashboard') && !pathname.startsWith('/admin') && !pathname.startsWith('/auth')) {
+  // Marketing site — skip all auth logic
+  const isAppDomain = host.startsWith('my.') || host.startsWith('app.') || host.includes('localhost:');
+  if (!isAppDomain) {
     return addSecurityHeaders(NextResponse.next());
   }
 
-  // No-cache on dashboard/admin/api routes
+  // Everything below is for the app domain (my.envosta.com / localhost)
   let supabaseResponse = NextResponse.next({ request });
+
   if (pathname.startsWith('/dashboard') || pathname.startsWith('/admin') || pathname.startsWith('/api')) {
     supabaseResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   }
