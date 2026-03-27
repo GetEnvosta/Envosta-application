@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
         // Cancel domain renewal subscriptions using stored Stripe sub IDs
         const { data: linkedDomains } = await sb.from("domains")
           .select("domain_name, metadata")
-          .eq("service_id", siteId);
+          .eq("site_id", siteId);
 
         if (linkedDomains?.length) {
           try {
@@ -157,8 +157,8 @@ Deno.serve(async (req) => {
 
         // 4. Unlink domains (but don't delete them)
         await sb.from("domains")
-          .update({ service_id: null })
-          .eq("service_id", siteId);
+          .update({ site_id: null })
+          .eq("site_id", siteId);
 
         await log({
           userId: svc.user_id, serviceId: svc.id,
@@ -288,13 +288,13 @@ Deno.serve(async (req) => {
 
         // Check if domain is already connected to a different site
         const { data: existingLink } = await sb.from("domains")
-          .select("service_id, domain_name")
+          .select("site_id, domain_name")
           .eq("domain_name", domain)
           .eq("user_id", svc.user_id)
-          .not("service_id", "is", null)
+          .not("site_id", "is", null)
           .maybeSingle();
 
-        if (existingLink && existingLink.service_id && existingLink.service_id !== siteId) {
+        if (existingLink && existingLink.site_id && existingLink.site_id !== siteId) {
           return error(`This domain is already connected to another site. Disconnect it first.`, 409);
         }
 
@@ -322,7 +322,7 @@ Deno.serve(async (req) => {
 
         // 3. Link domain record to this service
         await sb.from("domains")
-          .update({ service_id: svc.id })
+          .update({ site_id: svc.id })
           .eq("domain_name", domain)
           .eq("user_id", svc.user_id);
 
@@ -406,7 +406,7 @@ Deno.serve(async (req) => {
 
         // 2. Update Stripe subscription price
         const sub = (svc as any).subscriptions;
-        if (sub?.stripe_subscription_id && newPlan.stripe_price_id_monthly) {
+        if (sub?.stripe_subscription_id && newPlan.stripe_price_id) {
           try {
             const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
             // Get current subscription to find the item ID
@@ -424,9 +424,9 @@ Deno.serve(async (req) => {
                   Authorization: `Basic ${btoa(stripeKey + ":")}`,
                   "Content-Type": "application/x-www-form-urlencoded",
                 },
-                body: `items[0][id]=${itemId}&items[0][price]=${newPlan.stripe_price_id_monthly}&proration_behavior=create_prorations`,
+                body: `items[0][id]=${itemId}&items[0][price]=${newPlan.stripe_price_id}&proration_behavior=create_prorations`,
               });
-              console.log("Stripe subscription updated to:", newPlan.stripe_price_id_monthly);
+              console.log("Stripe subscription updated to:", newPlan.stripe_price_id);
             }
           } catch (stripeErr) {
             console.error("Stripe update failed (wp.cloud updated):", stripeErr);
@@ -434,9 +434,9 @@ Deno.serve(async (req) => {
         }
 
         // 3. Update service + subscription records
-        await sb.from("sites").update({ plan_id: newPlan.id }).eq("id", svc.id);
+        await sb.from("sites").update({ product_id: newPlan.id }).eq("id", svc.id);
         if (sub?.id) {
-          await sb.from("subscriptions").update({ plan_id: newPlan.id }).eq("id", sub.id);
+          await sb.from("subscriptions").update({ product_id: newPlan.id }).eq("id", sub.id);
         }
 
         await log({ userId: user.id, serviceId: svc.id, action: "hosting.plan_change", message: `Changed to ${newPlan.name} (${newPlan.slug})` });
@@ -456,7 +456,7 @@ Deno.serve(async (req) => {
         if (!addon) return error("Addon not found", 404);
 
         // Check if already active
-        const { data: existing } = await sb.from("site_addons").select("id").eq("service_id", siteId).eq("addon_id", addonId).eq("status", "active").maybeSingle();
+        const { data: existing } = await sb.from("site_addons").select("id").eq("site_id", siteId).eq("product_id", addonId).eq("status", "active").maybeSingle();
         if (existing) return error("Addon already active on this site", 409);
 
         let stripeItemId: string | null = null;
@@ -492,8 +492,8 @@ Deno.serve(async (req) => {
 
         // Create service_addon record
         const { data: sa } = await sb.from("site_addons").insert({
-          service_id: siteId,
-          addon_id: addonId,
+          site_id: siteId,
+          product_id: addonId,
           status: "active",
           stripe_subscription_item_id: stripeItemId,
         }).select("id").single();
@@ -509,10 +509,10 @@ Deno.serve(async (req) => {
 
         const sb = supabaseAdmin();
         const { data: svc } = await sb.from("sites").select("wp_cloud_site_id").eq("id", siteId).single();
-        const { data: sa } = await sb.from("site_addons").select("*, addon_products(*)").eq("service_id", siteId).eq("addon_id", removeAddonId).eq("status", "active").maybeSingle();
+        const { data: sa } = await sb.from("site_addons").select("*, products(*)").eq("site_id", siteId).eq("product_id", removeAddonId).eq("status", "active").maybeSingle();
         if (!sa) return error("Addon not active on this site", 404);
 
-        const addon = (sa as any).addon_products;
+        const addon = (sa as any).products;
 
         // Remove from Stripe subscription
         if (sa.stripe_subscription_item_id) {

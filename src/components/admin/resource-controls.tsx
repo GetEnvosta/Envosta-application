@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 
 interface ResourceControlsProps {
-  serviceId: string;
+  siteId: string;
   wpCloudSiteId: string;
   currentPlan: {
     max_php_workers: number;
@@ -17,7 +17,7 @@ interface ResourceControlsProps {
 const PHP_MEMORY_OPTIONS = [512, 1024, 1536, 2048];
 
 export function ResourceControls({
-  serviceId,
+  siteId,
   wpCloudSiteId,
   currentPlan,
 }: ResourceControlsProps) {
@@ -59,7 +59,7 @@ export function ResourceControls({
           },
           body: JSON.stringify({
             action: 'update-meta',
-            siteId: serviceId,
+            siteId: siteId,
             key,
             value: String(value),
           }),

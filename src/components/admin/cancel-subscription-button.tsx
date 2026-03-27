@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase-browser';
 import { Loader2, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export function CancelSubscriptionButton({ serviceId, siteName }: { serviceId: string; siteName: string }) {
+export function CancelSubscriptionButton({ siteId, siteName }: { siteId: string; siteName: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -30,7 +30,7 @@ export function CancelSubscriptionButton({ serviceId, siteName }: { serviceId: s
             'Authorization': `Bearer ${session.access_token}`,
             'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
           },
-          body: JSON.stringify({ action: 'delete-site', siteId: serviceId }),
+          body: JSON.stringify({ action: 'delete-site', siteId: siteId }),
         }
       );
 

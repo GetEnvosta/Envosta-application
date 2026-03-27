@@ -50,7 +50,7 @@ export default async function AdminPlansPage() {
               ) : plans.map((plan: any) => (
                 <tr key={plan.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-3.5 font-medium text-gray-900">{plan.name}</td>
-                  <td className="px-5 py-3.5 text-gray-700">{formatCents(plan.price_monthly)}</td>
+                  <td className="px-5 py-3.5 text-gray-700">{formatCents(plan.price_cad)}</td>
                   <td className="px-5 py-3.5 text-gray-700">{plan.storage_gb ?? plan.disk_gb} GB</td>
                   <td className="px-5 py-3.5 text-gray-700">{plan.default_php_workers}</td>
                   <td className="px-5 py-3.5 text-gray-700">{plan.php_memory_mb} MB</td>
@@ -61,8 +61,8 @@ export default async function AdminPlansPage() {
                     </span>
                   </td>
                   <td className="px-5 py-3.5">
-                    <span className={plan.stripe_price_id_monthly ? 'badge-green' : 'badge-yellow'}>
-                      {plan.stripe_price_id_monthly ? 'Synced' : 'Not synced'}
+                    <span className={plan.stripe_price_id ? 'badge-green' : 'badge-yellow'}>
+                      {plan.stripe_price_id ? 'Synced' : 'Not synced'}
                     </span>
                   </td>
                   <td className="px-5 py-3.5">

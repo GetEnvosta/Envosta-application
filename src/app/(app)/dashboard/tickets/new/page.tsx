@@ -14,7 +14,7 @@ export default function NewTicketPage() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [priority, setPriority] = useState('medium');
-  const [serviceId, setServiceId] = useState('');
+  const [siteId, setServiceId] = useState('');
   const [services, setServices] = useState<{ id: string; label: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -58,7 +58,7 @@ export default function NewTicketPage() {
           subject,
           status: 'open',
           priority: ticketType === 'support' ? priority : 'medium',
-          service_id: ticketType === 'studio' && serviceId ? serviceId : null,
+          site_id: ticketType === 'studio' && siteId ? siteId : null,
           contact_name: user.user_metadata?.full_name ?? null,
           contact_email: user.email,
         })
@@ -156,7 +156,7 @@ export default function NewTicketPage() {
                 <label className="label">Site</label>
                 <select
                   className="input"
-                  value={serviceId}
+                  value={siteId}
                   onChange={(e) => setServiceId(e.target.value)}
                 >
                   <option value="">Select a site (optional)</option>

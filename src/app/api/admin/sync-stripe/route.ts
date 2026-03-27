@@ -133,13 +133,13 @@ export async function POST(req: Request) {
     // HOSTING PLANS → Stripe product + monthly/yearly prices
     // ═══════════════════════════════════════════════════════
     if (type === 'plan') {
-      const { name, description, price_monthly, price_yearly, is_active,
+      const { name, description, price_cad, price_yearly, is_active,
         storage_gb, bandwidth_gb, default_php_workers, max_php_workers,
         php_memory_mb, onboarding_type, support_response_hours } = data;
 
       const { data: db } = await supabase
         .from('products')
-        .select('stripe_product_id, stripe_price_id_monthly, stripe_price_id_yearly')
+        .select('stripe_product_id, stripe_price_id, stripe_price_id_yearly')
         .eq('id', id).single();
 
       const metadata = {
@@ -156,8 +156,8 @@ export async function POST(req: Request) {
       );
 
       const monthlyPriceId = await upsertPrice(
-        stripe, db?.stripe_price_id_monthly ?? data.stripe_price_id_monthly ?? null,
-        productId, price_monthly, 'month', { envosta_plan_id: id },
+        stripe, db?.stripe_price_id ?? data.stripe_price_id ?? null,
+        productId, price_cad, 'month', { envosta_plan_id: id },
       );
 
       const yearlyPriceId = await upsertPrice(
@@ -167,13 +167,13 @@ export async function POST(req: Request) {
 
       await supabase.from('products').update({
         stripe_product_id: productId,
-        stripe_price_id_monthly: monthlyPriceId,
+        stripe_price_id: monthlyPriceId,
         stripe_price_id_yearly: yearlyPriceId,
       }).eq('id', id);
 
       return NextResponse.json({
         success: true, stripe_product_id: productId,
-        stripe_price_id_monthly: monthlyPriceId, stripe_price_id_yearly: yearlyPriceId,
+        stripe_price_id: monthlyPriceId, stripe_price_id_yearly: yearlyPriceId,
       });
     }
 
@@ -251,12 +251,12 @@ export async function POST(req: Request) {
       // Plans
       const { data: plans } = await supabase.from('products').select('*').eq('is_active', true);
       for (const plan of plans ?? []) {
-        if (!plan.stripe_product_id || !plan.stripe_price_id_monthly || !plan.stripe_price_id_yearly) {
+        if (!plan.stripe_product_id || !plan.stripe_price_id || !plan.stripe_price_id_yearly) {
           try {
             const pid = await upsertProduct(stripe, plan.stripe_product_id, `${plan.name} Plan`, plan.description || '', { envosta_plan_id: plan.id, type: 'hosting_plan' });
-            const mId = plan.stripe_price_id_monthly || (plan.price_monthly > 0 ? (await stripe.prices.create({ product: pid, unit_amount: plan.price_monthly, currency: 'cad', recurring: { interval: 'month' } })).id : null);
+            const mId = plan.stripe_price_id || (plan.price_cad > 0 ? (await stripe.prices.create({ product: pid, unit_amount: plan.price_cad, currency: 'cad', recurring: { interval: 'month' } })).id : null);
             const yId = plan.stripe_price_id_yearly || (plan.price_yearly > 0 ? (await stripe.prices.create({ product: pid, unit_amount: plan.price_yearly, currency: 'cad', recurring: { interval: 'year' } })).id : null);
-            await supabase.from('products').update({ stripe_product_id: pid, stripe_price_id_monthly: mId, stripe_price_id_yearly: yId }).eq('id', plan.id);
+            await supabase.from('products').update({ stripe_product_id: pid, stripe_price_id: mId, stripe_price_id_yearly: yId }).eq('id', plan.id);
             results.push(`Plan: ${plan.name} ✓`);
           } catch (e) { console.error('Plan sync error:', e); results.push(`Plan: ${plan.name} ✗`); }
         }

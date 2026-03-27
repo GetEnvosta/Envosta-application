@@ -45,7 +45,7 @@ export default async function SiteDetailPage({
   if (!site) notFound();
 
   // Find the domain currently connected to this site
-  const connectedDomain = (domains ?? []).find((d: any) => d.service_id === id) ?? null;
+  const connectedDomain = (domains ?? []).find((d: any) => d.site_id === id) ?? null;
 
   const planName = (site as any).plans?.name ?? 'Unknown';
   const planSlug: string = (site as any).plans?.slug ?? '';
@@ -272,7 +272,7 @@ export default async function SiteDetailPage({
         <p className="text-sm text-gray-500 mb-4">
           Cancel your subscription and remove this site from your dashboard. Your site data is preserved for 30 days — contact support to restore it.
         </p>
-        <DeleteSiteButton serviceId={site.id} siteName={site.label} />
+        <DeleteSiteButton siteId={site.id} siteName={site.label} />
       </div>
     </div>
   );

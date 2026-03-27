@@ -74,7 +74,7 @@ export default async function SitesPage() {
             We&apos;re preparing your WordPress site. This usually takes less than 24 hours.
           </p>
           {(site as any).subscriptions?.plans?.name && (
-            <p className="text-xs text-gray-400 mt-2">Plan: {(site as any).subscriptions.plans.name}</p>
+            <p className="text-xs text-gray-400 mt-2">Plan: {(site as any).subscriptions.products?.name}</p>
           )}
           <div className="mt-6 max-w-xs mx-auto">
             <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">

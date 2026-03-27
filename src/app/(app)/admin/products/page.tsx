@@ -30,7 +30,7 @@ export default async function ProductsPage() {
     getOneTimeServices(),
   ]);
 
-  const syncedPlans = plans.filter((p: any) => p.stripe_product_id && p.stripe_price_id_monthly).length;
+  const syncedPlans = plans.filter((p: any) => p.stripe_product_id && p.stripe_price_id).length;
   const syncedTlds = tlds.filter((t: any) => t.stripe_product_id && t.stripe_price_id_yearly).length;
   const syncedAddons = addons.filter((a: any) => a.stripe_product_id && a.stripe_price_id).length;
   const syncedServices = oneTimeServices.filter((s: any) => s.stripe_product_id && s.stripe_price_id).length;
@@ -38,7 +38,7 @@ export default async function ProductsPage() {
   const totalSynced = syncedPlans + syncedTlds + syncedAddons + syncedServices;
   const allSynced = totalSynced === totalProducts;
 
-  const totalMRR = plans.reduce((sum: number, p: any) => sum + (p.price_monthly ?? 0), 0);
+  const totalMRR = plans.reduce((sum: number, p: any) => sum + (p.price_cad ?? 0), 0);
 
   return (
     <div>
@@ -72,7 +72,7 @@ export default async function ProductsPage() {
             <span className="text-xs text-gray-500 font-medium">Plans</span>
           </div>
           <p className="text-lg font-semibold text-gray-900">{plans.length}</p>
-          <p className="text-xs text-gray-400">{formatCents(Math.min(...plans.map((p: any) => p.price_monthly)))} – {formatCents(Math.max(...plans.map((p: any) => p.price_monthly)))}/mo</p>
+          <p className="text-xs text-gray-400">{formatCents(Math.min(...plans.map((p: any) => p.price_cad)))} – {formatCents(Math.max(...plans.map((p: any) => p.price_cad)))}/mo</p>
         </div>
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-1">
@@ -132,7 +132,7 @@ export default async function ProductsPage() {
               <div key={plan.id} className="flex items-center justify-between text-xs">
                 <span className="text-gray-700 font-medium">{plan.name}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-500">{formatCents(plan.price_monthly)}/mo</span>
+                  <span className="text-gray-500">{formatCents(plan.price_cad)}/mo</span>
                   {plan.price_yearly > 0 && <span className="text-gray-400">· {formatCents(plan.price_yearly)}/yr</span>}
                   {plan.stripe_product_id ? (
                     <CheckCircle className="w-3 h-3 text-green-500" />

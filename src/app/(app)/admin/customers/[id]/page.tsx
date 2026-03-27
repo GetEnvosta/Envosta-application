@@ -139,7 +139,7 @@ export default async function CustomerDetailPage({
                         </Link>
                       </td>
                       <td className="px-5 py-3 text-gray-600">
-                        {(s.plans as any)?.name ?? '\u2014'}
+                        {s.products?.name ?? '\u2014'}
                       </td>
                       <td className="px-5 py-3">
                         <span className={statusColor(s.status)}>{s.status}</span>

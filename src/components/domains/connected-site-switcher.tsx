@@ -82,7 +82,7 @@ export function ConnectedSiteSwitcher({
       // Disconnect — just unlink in DB
       const { error } = await supabase
         .from('domains')
-        .update({ service_id: null })
+        .update({ site_id: null })
         .eq('id', domainId);
 
       if (error) {

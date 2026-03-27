@@ -266,7 +266,7 @@ export default async function ServiceDetailPage({
       {service.wp_cloud_site_id && (service.plans as any) && (
         <div className="mb-6">
           <ResourceControls
-            serviceId={service.id}
+            siteId={service.id}
             wpCloudSiteId={service.wp_cloud_site_id}
             currentPlan={{
               max_php_workers: (service.plans as any).max_php_workers ?? 2,
@@ -284,14 +284,14 @@ export default async function ServiceDetailPage({
         {service.status === 'active' && (
           <div className="mb-4">
             <p className="text-sm text-gray-500 mb-2">Cancel the subscription, stop billing, and soft-delete the site (30-day recovery).</p>
-            <CancelSubscriptionButton serviceId={service.id} siteName={service.label} />
+            <CancelSubscriptionButton siteId={service.id} siteName={service.label} />
           </div>
         )}
         <p className="text-sm text-gray-500 mb-4">
           Permanently delete this site from wp.cloud and remove all associated data.
         </p>
         <DeleteSiteButton
-          serviceId={service.id}
+          siteId={service.id}
           siteName={service.label}
           redirectTo="/admin/services"
           isAdmin={true}

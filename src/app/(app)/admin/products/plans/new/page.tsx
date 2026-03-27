@@ -15,7 +15,7 @@ export default function NewPlanPage() {
     name: '',
     slug: '',
     description: '',
-    price_monthly: 0,
+    price_cad: 0,
     price_yearly: 0,
     storage_gb: 25,
     bandwidth_gb: 50,
@@ -105,7 +105,7 @@ export default function NewPlanPage() {
         <div className="card p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Stripe — Billing</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label className="label">Monthly Price (cents CAD)</label><input type="number" className="input" value={plan.price_monthly} onChange={e => update('price_monthly', parseInt(e.target.value) || 0)} /></div>
+            <div><label className="label">Monthly Price (cents CAD)</label><input type="number" className="input" value={plan.price_cad} onChange={e => update('price_cad', parseInt(e.target.value) || 0)} /></div>
             <div><label className="label">Yearly Price (cents CAD)</label><input type="number" className="input" value={plan.price_yearly} onChange={e => update('price_yearly', parseInt(e.target.value) || 0)} /></div>
           </div>
           <p className="text-xs text-gray-400 mt-2">Stripe product and price IDs will be created automatically on save.</p>

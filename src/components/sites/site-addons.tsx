@@ -33,7 +33,7 @@ export function SiteAddons({ siteId }: { siteId: string }) {
       const supabase = createClient();
       const [{ data: allAddons }, { data: svcAddons }] = await Promise.all([
         supabase.from('products').select('*').eq('is_active', true).order('sort_order'),
-        supabase.from('site_addons').select('*').eq('service_id', siteId).eq('status', 'active'),
+        supabase.from('site_addons').select('*').eq('site_id', siteId).eq('status', 'active'),
       ]);
       setAddons(allAddons ?? []);
       const map: Record<string, ServiceAddon> = {};

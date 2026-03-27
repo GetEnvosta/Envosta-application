@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
           // Find connected OpenSRS domain and update DNS
           const { data: domain } = await sb.from("domains")
             .select("id, domain_name, registrar")
-            .eq("service_id", site.id)
+            .eq("site_id", site.id)
             .eq("registrar", "opensrs")
             .maybeSingle();
 

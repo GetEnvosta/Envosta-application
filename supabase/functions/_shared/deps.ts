@@ -123,7 +123,7 @@ export async function log(p: {
   try {
     const sb = supabaseAdmin();
     await sb.from("logs").insert({
-      user_id: p.userId, service_id: p.serviceId, level: p.level ?? "info",
+      user_id: p.userId, site_id: p.serviceId, level: p.level ?? "info",
       action: p.action, message: p.message, request_payload: p.req,
       response_payload: p.res, ip_address: p.ip, user_agent: p.ua, duration_ms: p.ms,
     });

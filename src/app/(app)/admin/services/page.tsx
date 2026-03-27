@@ -127,7 +127,7 @@ export default async function ServicesPage({
                       {(s.users as any)?.email ?? '\u2014'}
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">
-                      {(s.plans as any)?.name ?? '\u2014'}
+                      {s.products?.name ?? '\u2014'}
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">
                       {s.region ?? '\u2014'}
@@ -141,7 +141,7 @@ export default async function ServicesPage({
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         {s.status === 'provisioning' && (
-                          <ProvisionButton serviceId={s.id} label={s.label} />
+                          <ProvisionButton siteId={s.id} label={s.label} />
                         )}
                         <Link href={`/admin/services/${s.id}`} className="text-xs text-admin-600 hover:text-admin-700">
                           View

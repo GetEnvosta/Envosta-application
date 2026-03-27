@@ -8,7 +8,7 @@ interface Plan {
   id: string;
   name: string;
   description: string | null;
-  price_monthly: number;
+  price_cad: number;
   price_yearly: number;
   storage_gb: number;
   bandwidth_gb: number;
@@ -26,7 +26,7 @@ interface Plan {
   onboarding_type: string;
   support_response_hours: number;
   stripe_product_id?: string | null;
-  stripe_price_id_monthly?: string | null;
+  stripe_price_id?: string | null;
   stripe_price_id_yearly?: string | null;
   disk_gb?: number; // alias for storage_gb in some places
 }
@@ -38,7 +38,7 @@ export function EditPlanForm({ plan }: { plan: Plan }) {
 
   const [name, setName] = useState(plan.name);
   const [description, setDescription] = useState(plan.description ?? '');
-  const [priceMonthly, setPriceMonthly] = useState(plan.price_monthly);
+  const [priceMonthly, setPriceMonthly] = useState(plan.price_cad);
   const [priceYearly, setPriceYearly] = useState(plan.price_yearly);
   const [storageGb, setStorageGb] = useState(plan.storage_gb ?? plan.disk_gb ?? 25);
   const [bandwidthGb, setBandwidthGb] = useState(plan.bandwidth_gb);
@@ -55,7 +55,7 @@ export function EditPlanForm({ plan }: { plan: Plan }) {
   const [onboardingType, setOnboardingType] = useState(plan.onboarding_type ?? 'standard');
   const [supportResponseHours, setSupportResponseHours] = useState(plan.support_response_hours ?? 48);
   const [stripeProductId, setStripeProductId] = useState(plan.stripe_product_id ?? '');
-  const [stripeMonthlyId, setStripeMonthlyId] = useState(plan.stripe_price_id_monthly ?? '');
+  const [stripeMonthlyId, setStripeMonthlyId] = useState(plan.stripe_price_id ?? '');
   const [stripeYearlyId, setStripeYearlyId] = useState(plan.stripe_price_id_yearly ?? '');
 
   async function handleSave() {
@@ -68,7 +68,7 @@ export function EditPlanForm({ plan }: { plan: Plan }) {
       .update({
         name,
         description: description || null,
-        price_monthly: priceMonthly,
+        price_cad: priceMonthly,
         price_yearly: priceYearly,
         storage_gb: storageGb,
         disk_gb: storageGb,
@@ -87,7 +87,7 @@ export function EditPlanForm({ plan }: { plan: Plan }) {
         onboarding_type: onboardingType,
         support_response_hours: supportResponseHours,
         stripe_product_id: stripeProductId || null,
-        stripe_price_id_monthly: stripeMonthlyId || null,
+        stripe_price_id: stripeMonthlyId || null,
         stripe_price_id_yearly: stripeYearlyId || null,
       })
       .eq('id', plan.id);
@@ -110,11 +110,11 @@ export function EditPlanForm({ plan }: { plan: Plan }) {
           data: {
             name,
             description: description || null,
-            price_monthly: priceMonthly,
+            price_cad: priceMonthly,
             price_yearly: priceYearly,
             is_active: isActive,
             stripe_product_id: plan.stripe_product_id,
-            stripe_price_id_monthly: plan.stripe_price_id_monthly,
+            stripe_price_id: plan.stripe_price_id,
             stripe_price_id_yearly: plan.stripe_price_id_yearly,
           },
         }),
@@ -123,10 +123,10 @@ export function EditPlanForm({ plan }: { plan: Plan }) {
       if (res.ok && result.stripe_product_id) {
         // Update local state with new Stripe IDs
         setStripeProductId(result.stripe_product_id);
-        setStripeMonthlyId(result.stripe_price_id_monthly ?? '');
+        setStripeMonthlyId(result.stripe_price_id ?? '');
         setStripeYearlyId(result.stripe_price_id_yearly ?? '');
         plan.stripe_product_id = result.stripe_product_id;
-        plan.stripe_price_id_monthly = result.stripe_price_id_monthly;
+        plan.stripe_price_id = result.stripe_price_id;
         plan.stripe_price_id_yearly = result.stripe_price_id_yearly;
       }
     } catch (e) {

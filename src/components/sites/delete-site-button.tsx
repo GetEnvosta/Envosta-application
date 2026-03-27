@@ -10,8 +10,8 @@ import Modal from '@/components/ui/modal';
  * Customer delete: soft-delete (cancels billing, hides from dashboard, wp.cloud site kept 30 days)
  * Admin delete: hard-delete (permanently removes from wp.cloud, no recovery)
  */
-export function DeleteSiteButton({ serviceId, siteName, redirectTo = '/dashboard/sites', isAdmin = false }: {
-  serviceId: string;
+export function DeleteSiteButton({ siteId, siteName, redirectTo = '/dashboard/sites', isAdmin = false }: {
+  siteId: string;
   siteName: string;
   redirectTo?: string;
   isAdmin?: boolean;
@@ -41,7 +41,7 @@ export function DeleteSiteButton({ serviceId, siteName, redirectTo = '/dashboard
             'Authorization': `Bearer ${session.access_token}`,
             'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
           },
-          body: JSON.stringify({ action, siteId: serviceId }),
+          body: JSON.stringify({ action, siteId: siteId }),
         }
       );
 

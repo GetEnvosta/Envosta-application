@@ -23,7 +23,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
   if (!domain) redirect('/dashboard/domains');
 
   // Find the service linked to this domain
-  const connectedService = services.find((s: any) => s.id === domain.service_id) ?? null;
+  const connectedService = services.find((s: any) => s.id === domain.site_id) ?? null;
 
   return (
     <div>
@@ -66,7 +66,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
         const isDefault = ns.length === 0 || (ns.length <= 2 && ns.every((n: string) => n.includes('opensrs.net')));
         return isDefault ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <DnsManager domainId={domain.id} domainName={domain.domain_name} initialRecords={domain.dns_records} serviceId={domain.service_id} />
+            <DnsManager domainId={domain.id} domainName={domain.domain_name} initialRecords={domain.dns_records} siteId={domain.site_id} />
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 opacity-60">
@@ -114,7 +114,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
         <ConnectedSiteSwitcher
           domainId={domain.id}
           domainName={domain.domain_name}
-          currentServiceId={domain.service_id}
+          currentServiceId={domain.site_id}
           services={services ?? []}
         />
       </div>

@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase-browser';
 import { Loader2, Rocket } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export function ProvisionButton({ serviceId, label }: { serviceId: string; label: string }) {
+export function ProvisionButton({ siteId, label }: { siteId: string; label: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -27,7 +27,7 @@ export function ProvisionButton({ serviceId, label }: { serviceId: string; label
       const { data: service } = await supabase
         .from('sites')
         .select('*, subscriptions(id, plan_id, plans(slug)), users(email, full_name)')
-        .eq('id', serviceId)
+        .eq('id', siteId)
         .single();
 
       if (!service) { setError('Service not found'); setLoading(false); return; }
@@ -46,7 +46,7 @@ export function ProvisionButton({ serviceId, label }: { serviceId: string; label
             'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
           },
           body: JSON.stringify({
-            serviceId: service.id,
+            siteId: service.id,
             label: service.label,
             region: service.server_region ?? 'dca',
             phpVersion: service.php_version ?? '8.4',

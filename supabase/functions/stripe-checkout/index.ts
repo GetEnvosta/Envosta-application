@@ -26,14 +26,14 @@ Deno.serve(async (req) => {
     const stripe = getStripe();
     const sb = supabaseAdmin();
 
-    // ---- Studio Request (price from addon_products table) ----
+    // ---- Studio Request (price from products table) ----
     if (studioRequest) {
       // Get or create customer
-      let { data: customer } = await sb.from("users").select("*").eq("user_id", user.id).single();
-      if (!customer) {
+      let { data: customer } = await sb.from("users").select("*").eq("id", user.id).single();
+      if (!customer?.stripe_customer_id) {
         const sc = await stripe.customers.create({ email: user.email ?? "", metadata: { supabase_user_id: user.id } });
-        const { data: newCust } = await sb.from("users").insert({ user_id: user.id, stripe_customer_id: sc.id, billing_email: user.email }).select().single();
-        customer = newCust;
+        await sb.from("users").update({ stripe_customer_id: sc.id }).eq("id", user.id);
+        customer = { ...customer, stripe_customer_id: sc.id };
       }
 
       // Get studio request price from DB
@@ -103,17 +103,15 @@ Deno.serve(async (req) => {
 
     // Get or create Stripe customer
     let { data: customer } = await sb.from("users")
-      .select("*").eq("user_id", user.id).single();
+      .select("*").eq("id", user.id).single();
 
-    if (!customer) {
+    if (!customer?.stripe_customer_id) {
       const sc = await stripe.customers.create({
         email: user.email ?? "",
         metadata: { supabase_user_id: user.id },
       });
-      const { data: newCust } = await sb.from("users").insert({
-        user_id: user.id, stripe_customer_id: sc.id, billing_email: user.email,
-      }).select().single();
-      customer = newCust;
+      await sb.from("users").update({ stripe_customer_id: sc.id }).eq("id", user.id);
+      customer = { ...customer, stripe_customer_id: sc.id };
     }
 
     // Build line items

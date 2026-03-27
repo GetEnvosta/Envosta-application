@@ -11,7 +11,7 @@ interface Subscription {
   current_period_end: string | null;
   cancel_at_period_end: boolean;
   created_at: string;
-  plans?: { name: string; slug: string; price_monthly: number } | null;
+  plans?: { name: string; slug: string; price_cad: number } | null;
   customers?: { user_id: string; billing_email: string | null; users?: { full_name: string | null; email: string } } | null;
 }
 
@@ -36,10 +36,10 @@ export function SubscriptionFilters({ subscriptions }: { subscriptions: Subscrip
   const [active, setActive] = useState('all');
   const [planFilter, setPlanFilter] = useState('all');
 
-  const plans = Array.from(new Set(subscriptions.map(s => (s.plans as any)?.name).filter(Boolean)));
+  const plans = Array.from(new Set(subscriptions.map(s => s.products?.name).filter(Boolean)));
 
   let filtered = active === 'all' ? subscriptions : subscriptions.filter(s => s.status === active);
-  if (planFilter !== 'all') filtered = filtered.filter(s => (s.plans as any)?.name === planFilter);
+  if (planFilter !== 'all') filtered = filtered.filter(s => s.products?.name === planFilter);
 
   const counts: Record<string, number> = { all: subscriptions.length };
   for (const sub of subscriptions) {
@@ -108,9 +108,9 @@ export function SubscriptionFilters({ subscriptions }: { subscriptions: Subscrip
                       <p className="text-sm font-medium text-gray-900">{user?.full_name || 'Unnamed'}</p>
                       <p className="text-xs text-gray-500">{user?.email || (sub.customers as any)?.billing_email || '—'}</p>
                     </td>
-                    <td className="px-5 py-3 text-gray-700">{(sub.plans as any)?.name || '—'}</td>
+                    <td className="px-5 py-3 text-gray-700">{sub.products?.name || '—'}</td>
                     <td className="px-5 py-3 text-gray-900 font-medium">
-                      {(sub.plans as any)?.price_monthly ? formatCents((sub.plans as any).price_monthly) + '/mo' : '—'}
+                      {sub.products?.price_cad ? formatCents(sub.products.price_cad) + '/mo' : '—'}
                     </td>
                     <td className="px-5 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[sub.status] ?? 'bg-gray-100 text-gray-600'}`}>

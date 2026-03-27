@@ -27,17 +27,17 @@ Deno.serve(async (req) => {
       const custStripeId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
 
       // Get our customer record
-      const { data: cust } = await sb.from("users").select("id,user_id").eq("stripe_customer_id", custStripeId).single();
+      const { data: cust } = await sb.from("users").select("id, full_name, email").eq("stripe_customer_id", custStripeId).single();
       if (!cust) { console.log("No customer for", custStripeId); return json({ received: true }); }
 
       // Match price to plan
       const priceId = sub.items?.data?.[0]?.price?.id ?? "";
-      const { data: plan } = await sb.from("products").select("id,slug").or(`stripe_price_id_monthly.eq.${priceId},stripe_price_id_yearly.eq.${priceId}`).maybeSingle();
+      const { data: plan } = await sb.from("products").select("id,slug").or(`stripe_price_id.eq.${priceId},stripe_price_id_yearly.eq.${priceId}`).maybeSingle();
 
       // Upsert subscription
       const { data: dbSub } = await sb.from("subscriptions").upsert({
-        customer_id: cust.id,
-        plan_id: plan?.id ?? null,
+        user_id: cust.id,
+        product_id: plan?.id ?? null,
         stripe_subscription_id: sub.id,
         stripe_price_id: priceId,
         status: sub.status,
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       if (sub.status === "active" && dbSub && plan?.id && !isDomainRenewal) {
         const { data: existing } = await sb.from("sites").select("id").eq("subscription_id", dbSub.id).maybeSingle();
         if (!existing) {
-          const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.user_id).maybeSingle();
+          const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.id).maybeSingle();
           const name = profile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
           // Get onboarding type from plan
           let onboardingType = "standard";
@@ -67,9 +67,9 @@ Deno.serve(async (req) => {
           const domainFromMeta = sub.metadata?.domain_name ?? null;
 
           const { data: svc, error: svcErr } = await sb.from("sites").insert({
-            user_id: cust.user_id,
+            user_id: cust.id,
             subscription_id: dbSub.id,
-            plan_id: plan?.id ?? null,
+            product_id: plan?.id ?? null,
             type: "hosting",
             label: `${name}-site`,
             status: "provisioning",
@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
 
           // Send welcome email
           if (svc && !svcErr) {
-            const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.user_id).maybeSingle();
+            const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.id).maybeSingle();
             if (userProfile?.email) {
               const planName = plan?.slug ? plan.slug.charAt(0).toUpperCase() + plan.slug.slice(1) : "Hosting";
               const email = welcomeEmail(userProfile.full_name ?? "there", planName, "https://my.envosta.com/dashboard");
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
           // Auto-register domain at OpenSRS if domain was purchased with the plan
           if (domainFromMeta && svc) {
             const { data: existingDomain } = await sb.from("domains")
-              .select("id, status").eq("domain_name", domainFromMeta).eq("user_id", cust.user_id).maybeSingle();
+              .select("id, status").eq("domain_name", domainFromMeta).eq("user_id", cust.id).maybeSingle();
 
             if (!existingDomain) {
               // Call register-domain Edge Function to register at OpenSRS
@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
                     domainName: domainFromMeta,
                     serviceId: svc.id,
                     years: 1,
-                    userId: cust.user_id,
+                    userId: cust.id,
                   }),
                 });
                 const regData = await regRes.json();
@@ -121,9 +121,9 @@ Deno.serve(async (req) => {
                 if (regRes.ok) {
                   // Link domain to service
                   await sb.from("domains")
-                    .update({ service_id: svc.id })
+                    .update({ site_id: svc.id })
                     .eq("domain_name", domainFromMeta)
-                    .eq("user_id", cust.user_id);
+                    .eq("user_id", cust.id);
 
                   // Create yearly renewal subscription — first year free (already paid at checkout)
                   // trial_end = 1 year from now, then Stripe auto-charges yearly
@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
                         items: [{ price: tldPricing.stripe_price_id_yearly }],
                         trial_end: oneYearFromNow,
                         metadata: {
-                          supabase_user_id: cust.user_id,
+                          supabase_user_id: cust.id,
                           domain_name: domainFromMeta,
                           type: "domain_renewal",
                         },
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
                       await sb.from("domains")
                         .update({ metadata: { renewal_stripe_subscription_id: renewalSub.id, dns_setup: "pending" } })
                         .eq("domain_name", domainFromMeta)
-                        .eq("user_id", cust.user_id);
+                        .eq("user_id", cust.id);
 
                       console.log("Domain renewal subscription created:", renewalSub.id, "for:", domainFromMeta);
                     }
@@ -162,9 +162,9 @@ Deno.serve(async (req) => {
                   // Registration failed but don't fail the whole webhook
                   // Create a pending record so admin can retry
                   await sb.from("domains").insert({
-                    user_id: cust.user_id,
+                    user_id: cust.id,
                     domain_name: domainFromMeta,
-                    service_id: svc.id,
+                    site_id: svc.id,
                     status: "pending_registration",
                     registrar: "opensrs",
                     metadata: { registration_error: regData.error ?? "Unknown error" },
@@ -174,9 +174,9 @@ Deno.serve(async (req) => {
               } catch (regErr) {
                 console.error("Domain registration error (non-fatal):", regErr);
                 await sb.from("domains").insert({
-                  user_id: cust.user_id,
+                  user_id: cust.id,
                   domain_name: domainFromMeta,
-                  service_id: svc.id,
+                  site_id: svc.id,
                   status: "pending_registration",
                   registrar: "opensrs",
                   metadata: { registration_error: String(regErr) },
@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
               }
             } else {
               // Link existing domain to the new service
-              await sb.from("domains").update({ service_id: svc.id }).eq("id", existingDomain.id);
+              await sb.from("domains").update({ site_id: svc.id }).eq("id", existingDomain.id);
               console.log("Existing domain linked:", domainFromMeta, "→", svc.id);
             }
           }
@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
                   region: "dca",
                   phpVersion: "8.4",
                   planId: plan?.id ?? null,
-                  userId: cust.user_id,
+                  userId: cust.id,
                   ...(domainFromMeta && { domainName: domainFromMeta }),
                 }),
               });
@@ -267,10 +267,10 @@ Deno.serve(async (req) => {
     else if (event.type === "invoice.paid" || event.type === "invoice.payment_failed" || event.type === "invoice.created") {
       const inv = event.data.object;
       const custStripeId = typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
-      const { data: cust } = await sb.from("users").select("id,user_id").eq("stripe_customer_id", custStripeId).maybeSingle();
+      const { data: cust } = await sb.from("users").select("id, full_name, email").eq("stripe_customer_id", custStripeId).maybeSingle();
       if (cust) {
         await sb.from("invoices").upsert({
-          customer_id: cust.id,
+          user_id: cust.id,
           stripe_invoice_id: inv.id,
           status: inv.status === "paid" ? "paid" : inv.status === "open" ? "open" : "draft",
           amount_due: inv.amount_due ?? 0,
@@ -291,7 +291,7 @@ Deno.serve(async (req) => {
           const alreadySent = (existingInv?.metadata as any)?.email_sent;
 
           if (!alreadySent) {
-            const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.user_id).maybeSingle();
+            const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.id).maybeSingle();
             if (userProfile?.email) {
               const amount = `$${(inv.amount_paid / 100).toFixed(2)} ${(inv.currency ?? "cad").toUpperCase()}`;
               const desc = inv.description ?? `Invoice ${inv.number ?? ""}`;
@@ -319,7 +319,7 @@ Deno.serve(async (req) => {
               const { data: domainRecord } = await sb.from("domains")
                 .select("id, status")
                 .eq("domain_name", domainToRenew)
-                .eq("user_id", cust.user_id)
+                .eq("user_id", cust.id)
                 .maybeSingle();
 
               if (!domainRecord) {
@@ -349,15 +349,15 @@ Deno.serve(async (req) => {
         // Fallback: create service if invoice.paid and no service exists yet
         if (event.type === "invoice.paid" && inv.subscription) {
           const subStripeId = typeof inv.subscription === "string" ? inv.subscription : inv.subscription.id;
-          const { data: dbSub } = await sb.from("subscriptions").select("id,plan_id").eq("stripe_subscription_id", subStripeId).maybeSingle();
+          const { data: dbSub } = await sb.from("subscriptions").select("id,product_id").eq("stripe_subscription_id", subStripeId).maybeSingle();
           if (dbSub) {
             const { data: existing } = await sb.from("sites").select("id").eq("subscription_id", dbSub.id).maybeSingle();
             if (!existing) {
-              const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.user_id).maybeSingle();
+              const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.id).maybeSingle();
               const name = profile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
-              const planSlug = dbSub.plan_id ? (await sb.from("products").select("slug").eq("id", dbSub.plan_id).maybeSingle())?.data?.slug : "minimum";
+              const planSlug = dbSub.product_id ? (await sb.from("products").select("slug").eq("id", dbSub.product_id).maybeSingle())?.data?.slug : "minimum";
               await sb.from("sites").insert({
-                user_id: cust.user_id, subscription_id: dbSub.id, plan_id: dbSub.plan_id,
+                user_id: cust.id, subscription_id: dbSub.id, product_id: dbSub.product_id,
                 type: "hosting", label: `${name}-site`, status: "provisioning",
                 server_region: "dca", php_version: "8.4",
                 metadata: { auto_provisioned: true, plan_slug: planSlug ?? "minimum", via: "invoice.paid" },
@@ -373,11 +373,10 @@ Deno.serve(async (req) => {
       const c = event.data.object;
       const userId = c.metadata?.supabase_user_id;
       if (userId) {
-        await sb.from("users").upsert({
-          user_id: userId, stripe_customer_id: c.id,
-          billing_email: c.email, billing_name: c.name,
-        }, { onConflict: "user_id" });
-        console.log("Customer upserted:", c.id);
+        await sb.from("users").update({
+          stripe_customer_id: c.id,
+        }).eq("id", userId);
+        console.log("User stripe_customer_id updated:", c.id);
       }
     }
 

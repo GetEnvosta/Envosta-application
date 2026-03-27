@@ -150,7 +150,7 @@ export async function POST(req: Request) {
     if (plan) {
       const { data: planData } = await supabaseAdmin
         .from('products')
-        .select('stripe_price_id_monthly, stripe_price_id_yearly, is_active')
+        .select('stripe_price_id, stripe_price_id_yearly, is_active')
         .eq('slug', plan)
         .single();
       if (planData && !planData.is_active) {
@@ -162,7 +162,7 @@ export async function POST(req: Request) {
         }
         priceId = planData.stripe_price_id_yearly;
       } else {
-        priceId = planData?.stripe_price_id_monthly ?? null;
+        priceId = planData?.stripe_price_id ?? null;
       }
     }
 

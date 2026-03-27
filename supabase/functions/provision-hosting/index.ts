@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
         const { data: newSvc, error: svcErr } = await sb.from("sites").insert({
           user_id: userId,
           subscription_id: subscriptionId ?? null,
-          plan_id: planId ?? null,
+          product_id: planId ?? null,
           type: "hosting",
           label,
           status: "provisioning",
@@ -77,10 +77,10 @@ Deno.serve(async (req) => {
     let phpMemory = 512;
     let planSlug = "minimum";
 
-    if (svc.plan_id) {
+    if (svc.product_id) {
       const { data: plan } = await sb.from("products")
         .select("slug, storage_gb, default_php_workers, php_memory_mb")
-        .eq("id", svc.plan_id)
+        .eq("id", svc.product_id)
         .single();
       if (plan) {
         planSlug = plan.slug ?? "minimum";
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
         php_memory_limit: phpMemory,
       },
       persist_data: {
-        envosta_service_id: svc.id,
+        envosta_site_id: svc.id,
         envosta_user_id: userId,
         envosta_plan: planSlug,
       },
@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
     // Link domain if provided
     if (domainName) {
       await sb.from("domains")
-        .update({ service_id: svc.id })
+        .update({ site_id: svc.id })
         .eq("user_id", userId)
         .eq("domain_name", domainName);
     }

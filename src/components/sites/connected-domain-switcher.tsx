@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 interface Domain {
   id: string;
   domain_name: string;
-  service_id: string | null;
+  site_id: string | null;
 }
 
 export function ConnectedDomainSwitcher({
@@ -39,7 +39,7 @@ export function ConnectedDomainSwitcher({
     if (previousId) {
       await supabase
         .from('domains')
-        .update({ service_id: null })
+        .update({ site_id: null })
         .eq('id', previousId);
     }
 
@@ -99,7 +99,7 @@ export function ConnectedDomainSwitcher({
 
   // Available domains: those not connected to another site, or the currently connected one
   const availableDomains = domains.filter(
-    (d) => !d.service_id || d.service_id === siteId
+    (d) => !d.site_id || d.site_id === siteId
   );
 
   return (

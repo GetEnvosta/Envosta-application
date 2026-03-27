@@ -42,10 +42,10 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
     const { error: err } = await supabase.from('products').update({
       name: plan.name,
       slug: plan.slug,
-      price_monthly: plan.price_monthly,
+      price_cad: plan.price_cad,
       price_yearly: plan.price_yearly,
       stripe_product_id: plan.stripe_product_id || null,
-      stripe_price_id_monthly: plan.stripe_price_id_monthly || null,
+      stripe_price_id: plan.stripe_price_id || null,
       stripe_price_id_yearly: plan.stripe_price_id_yearly || null,
       storage_gb: plan.storage_gb,
       max_php_workers: plan.max_php_workers,
@@ -75,11 +75,11 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
           data: {
             name: plan.name,
             description: plan.description,
-            price_monthly: plan.price_monthly,
+            price_cad: plan.price_cad,
             price_yearly: plan.price_yearly,
             is_active: plan.is_active,
             stripe_product_id: plan.stripe_product_id,
-            stripe_price_id_monthly: plan.stripe_price_id_monthly,
+            stripe_price_id: plan.stripe_price_id,
             stripe_price_id_yearly: plan.stripe_price_id_yearly,
             storage_gb: plan.storage_gb,
             bandwidth_gb: plan.bandwidth_gb,
@@ -96,7 +96,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
         setPlan((prev: any) => ({
           ...prev,
           stripe_product_id: syncData.stripe_product_id,
-          stripe_price_id_monthly: syncData.stripe_price_id_monthly,
+          stripe_price_id: syncData.stripe_price_id,
           stripe_price_id_yearly: syncData.stripe_price_id_yearly,
         }));
         setSuccess('Plan saved & synced to Stripe');
@@ -147,9 +147,9 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
         <div className="card p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Stripe — Billing</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label className="label">Monthly Price (cents CAD)</label><input type="number" className="input" value={plan.price_monthly} onChange={e => update('price_monthly', parseInt(e.target.value) || 0)} /></div>
+            <div><label className="label">Monthly Price (cents CAD)</label><input type="number" className="input" value={plan.price_cad} onChange={e => update('price_cad', parseInt(e.target.value) || 0)} /></div>
             <div><label className="label">Yearly Price (cents CAD)</label><input type="number" className="input" value={plan.price_yearly ?? 0} onChange={e => update('price_yearly', parseInt(e.target.value) || 0)} /></div>
-            <div><label className="label">Monthly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id_monthly ?? ''} onChange={e => update('stripe_price_id_monthly', e.target.value)} placeholder="price_..." /></div>
+            <div><label className="label">Monthly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id ?? ''} onChange={e => update('stripe_price_id', e.target.value)} placeholder="price_..." /></div>
             <div><label className="label">Yearly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id_yearly ?? ''} onChange={e => update('stripe_price_id_yearly', e.target.value)} placeholder="price_..." /></div>
             <div><label className="label">Product ID</label><input className="input font-mono text-xs" value={plan.stripe_product_id ?? ''} onChange={e => update('stripe_product_id', e.target.value)} placeholder="prod_..." /></div>
           </div>

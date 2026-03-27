@@ -8,7 +8,7 @@ interface Plan {
   id: string;
   name: string;
   slug: string;
-  price_monthly: number;
+  price_cad: number;
   storage_gb: number;
   default_php_workers: number;
   php_memory_mb: number;
@@ -32,7 +32,7 @@ export function PlanSwitcher({
     const supabase = createClient();
     supabase
       .from('products')
-      .select('id, name, slug, price_monthly, storage_gb, default_php_workers, php_memory_mb, bandwidth_gb')
+      .select('id, name, slug, price_cad, storage_gb, default_php_workers, php_memory_mb, bandwidth_gb')
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
       .then(({ data }) => {
@@ -119,7 +119,7 @@ export function PlanSwitcher({
               )}
               <p className="text-sm font-semibold text-gray-900">{plan.name}</p>
               <p className="text-lg font-bold text-gray-900 mt-1">
-                ${(plan.price_monthly / 100).toFixed(0)}
+                ${(plan.price_cad / 100).toFixed(0)}
                 <span className="text-xs font-normal text-gray-500">/mo</span>
               </p>
               <div className="mt-2 space-y-1 text-xs text-gray-500">
@@ -131,7 +131,7 @@ export function PlanSwitcher({
               {!isCurrent && !switching && (
                 <div className="mt-3 flex items-center gap-1 text-xs font-medium text-brand-600">
                   <Zap className="w-3 h-3" />
-                  {plan.price_monthly > (plans.find(p => p.id === currentPlanId)?.price_monthly ?? 0)
+                  {plan.price_cad > (plans.find(p => p.id === currentPlanId)?.price_cad ?? 0)
                     ? 'Upgrade' : 'Downgrade'}
                 </div>
               )}

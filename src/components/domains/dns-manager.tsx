@@ -30,11 +30,11 @@ function formatTtl(seconds: number): string {
   return `${seconds / 86400} day`;
 }
 
-export function DnsManager({ domainId, domainName, initialRecords, serviceId }: {
+export function DnsManager({ domainId, domainName, initialRecords, siteId }: {
   domainId: string;
   domainName: string;
   initialRecords?: any[];
-  serviceId?: string | null;
+  siteId?: string | null;
 }) {
   // Convert stored DNS records to display format
   const storedRecords: DnsRecord[] = (initialRecords ?? []).map((r: any, i: number) => ({
@@ -59,8 +59,8 @@ export function DnsManager({ domainId, domainName, initialRecords, serviceId }: 
 
       // Get site IP from the connected service
       let siteIp = '';
-      if (serviceId) {
-        const { data: svc } = await supabase.from('sites').select('metadata').eq('id', serviceId).maybeSingle();
+      if (siteId) {
+        const { data: svc } = await supabase.from('sites').select('metadata').eq('id', siteId).maybeSingle();
         siteIp = (svc?.metadata as any)?.site_ip ?? '';
       }
 
