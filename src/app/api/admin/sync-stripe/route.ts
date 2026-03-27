@@ -133,7 +133,7 @@ export async function POST(req: Request) {
     // HOSTING PLANS → Stripe product + monthly/yearly prices
     // ═══════════════════════════════════════════════════════
     if (type === 'plan') {
-      const { name, description, price_cad, price_yearly, is_active,
+      const { name, description, price_cad, price_yearly_cad, is_active,
         storage_gb, bandwidth_gb, default_php_workers, max_php_workers,
         php_memory_mb, onboarding_type, support_response_hours } = data;
 
@@ -162,7 +162,7 @@ export async function POST(req: Request) {
 
       const yearlyPriceId = await upsertPrice(
         stripe, db?.stripe_price_id_yearly ?? data.stripe_price_id_yearly ?? null,
-        productId, price_yearly, 'year', { envosta_plan_id: id },
+        productId, price_yearly_cad, 'year', { envosta_plan_id: id },
       );
 
       await supabase.from('products').update({
@@ -255,7 +255,7 @@ export async function POST(req: Request) {
           try {
             const pid = await upsertProduct(stripe, plan.stripe_product_id, `${plan.name} Plan`, plan.description || '', { envosta_plan_id: plan.id, type: 'hosting_plan' });
             const mId = plan.stripe_price_id || (plan.price_cad > 0 ? (await stripe.prices.create({ product: pid, unit_amount: plan.price_cad, currency: 'cad', recurring: { interval: 'month' } })).id : null);
-            const yId = plan.stripe_price_id_yearly || (plan.price_yearly > 0 ? (await stripe.prices.create({ product: pid, unit_amount: plan.price_yearly, currency: 'cad', recurring: { interval: 'year' } })).id : null);
+            const yId = plan.stripe_price_id_yearly || (plan.price_yearly_cad > 0 ? (await stripe.prices.create({ product: pid, unit_amount: plan.price_yearly_cad, currency: 'cad', recurring: { interval: 'year' } })).id : null);
             await supabase.from('products').update({ stripe_product_id: pid, stripe_price_id: mId, stripe_price_id_yearly: yId }).eq('id', plan.id);
             results.push(`Plan: ${plan.name} ✓`);
           } catch (e) { console.error('Plan sync error:', e); results.push(`Plan: ${plan.name} ✗`); }
