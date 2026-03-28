@@ -52,7 +52,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [hasAccount, setHasAccount] = useState<boolean | null>(null);
+  // hasAccount removed — go straight to form with "Sign in" link
 
   // Plan
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
@@ -355,44 +355,6 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
          ════════════════════════════════════════════ */}
       {mode === 'public' && step === 1 && (
         <div style={{ textAlign: 'center', maxWidth: 440, margin: '0 auto' }}>
-          {hasAccount === null && (
-            <>
-              <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 12, color: t.text }}>
-                Welcome to Envosta
-              </h2>
-              <p style={{ color: t.textSub, marginBottom: 32, fontSize: '.92rem' }}>
-                Do you already have an account?
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <a
-                  href={`https://my.envosta.com/auth/login?redirect=${encodeURIComponent(`/dashboard/add-site${initialPlan || initialDomain ? '?' : ''}${initialPlan ? `plan=${initialPlan}` : ''}${initialPlan && initialDomain ? '&' : ''}${initialDomain ? `domain=${initialDomain}` : ''}`)}`}
-                  style={{
-                    padding: '14px 24px', background: t.cardBorder, border: `1px solid ${t.inputBorder}`,
-                    borderRadius: 12, color: t.text, fontSize: '.9rem', fontWeight: 500, textDecoration: 'none',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'border-color .2s',
-                  }}
-                >
-                  <User style={{ width: 18, height: 18 }} /> I have an account — Sign in
-                </a>
-                <button
-                  onClick={() => setHasAccount(false)}
-                  style={{
-                    padding: '14px 24px', background: t.btnBg, color: t.btnColor, borderRadius: 12, border: 'none',
-                    fontSize: '.9rem', fontWeight: 500, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  }}
-                >
-                  <Sparkles style={{ width: 18, height: 18 }} /> Create an account
-                </button>
-              </div>
-            </>
-          )}
-
-          {hasAccount === false && (
-            <>
-              <button onClick={() => setHasAccount(null)} style={{ background: 'none', border: 'none', color: t.textMuted, cursor: 'pointer', marginBottom: 20, fontSize: '.82rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <ArrowLeft style={{ width: 14, height: 14 }} /> Back
-              </button>
               <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 12, color: t.text }}>
                 Create your account
               </h2>
@@ -459,8 +421,10 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
               <p style={{ fontSize: '.7rem', color: t.textMuted, marginTop: 16, lineHeight: 1.6 }}>
                 By continuing you agree to our <a href="/legal/terms" style={{ color: t.textSub, textDecoration: 'underline' }}>Terms</a> and <a href="/legal/privacy" style={{ color: t.textSub, textDecoration: 'underline' }}>Privacy Policy</a>.
               </p>
-            </>
-          )}
+              <p style={{ fontSize: '.82rem', color: t.textMuted, marginTop: 20 }}>
+                Already have an account?{' '}
+                <a href="https://my.envosta.com/auth/login" style={{ color: t.accent, textDecoration: 'underline' }}>Sign in</a>
+              </p>
         </div>
       )}
 
@@ -592,22 +556,24 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
 
           {/* Options */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-            {/* Temp domain — first option */}
+            {/* Temp domain — first option, recommended */}
             <button
               onClick={() => { setDomainMode('temp'); setSelectedDomain(''); goToCheckout(); }}
               style={{
-                background: domainMode === 'temp' ? dark ? 'rgba(34,197,94,.06)' : 'rgba(34,197,94,.04)' : t.cardBg,
-                border: `1px solid ${domainMode === 'temp' ? '#22c55e' : t.cardBorder}`,
-                borderRadius: 14, padding: '18px 20px', cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
+                background: dark ? 'rgba(34,197,94,.06)' : 'rgba(34,197,94,.03)',
+                border: '2px solid rgba(34,197,94,.3)',
+                borderRadius: 14, padding: '20px 22px', cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
+                position: 'relative',
               }}
             >
+              <div style={{ position: 'absolute', top: -10, left: 20, background: '#22c55e', color: '#fff', fontSize: '.6rem', fontWeight: 600, padding: '3px 10px', borderRadius: 100, letterSpacing: '.5px', textTransform: 'uppercase' }}>Recommended</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Globe style={{ width: 18, height: 18, color: '#22c55e' }} />
                 <div>
-                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>Start with a free temporary domain</p>
-                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>Get started instantly — add a custom domain anytime</p>
+                  <p style={{ fontWeight: 600, color: t.text, fontSize: '.9rem' }}>Start with a free temporary domain</p>
+                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>Get started instantly — add a custom domain anytime from your dashboard</p>
                 </div>
-                <span style={{ marginLeft: 'auto', fontSize: '.72rem', fontWeight: 600, color: '#22c55e', background: 'rgba(34,197,94,.1)', padding: '3px 10px', borderRadius: 100 }}>Free</span>
+                <span style={{ marginLeft: 'auto', fontSize: '.75rem', fontWeight: 600, color: '#22c55e', background: 'rgba(34,197,94,.1)', padding: '4px 12px', borderRadius: 100, whiteSpace: 'nowrap' }}>Free</span>
               </div>
             </button>
 
