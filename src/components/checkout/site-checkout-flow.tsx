@@ -769,9 +769,9 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: `1px solid ${t.cardBorder}` }}>
                 <div>
                   <p style={{ fontWeight: 500, color: t.text, fontSize: '.9rem' }}>{selectedDomain}</p>
-                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>Domain registration — first year included</p>
+                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>Domain registration — billed yearly</p>
                 </div>
-                <p style={{ fontWeight: 600, color: '#22c55e', fontSize: '.9rem' }}>Free</p>
+                <p style={{ fontWeight: 600, color: t.text, fontSize: '.9rem' }}>{domainPriceCents ? `$${(domainPriceCents / 100).toFixed(2)} CAD/yr` : '—'}</p>
               </div>
             )}
 

@@ -196,9 +196,10 @@ export async function POST(req: Request) {
       { price: priceId, quantity: 1 },
     ];
 
-    // Domain registration is free with first year of hosting plan.
-    // No charge at checkout — domain gets registered by the webhook,
-    // and a yearly renewal subscription with 1-year trial is created.
+    // Domain registration is handled post-checkout by the webhook.
+    // The webhook registers the domain at OpenSRS and creates a
+    // separate yearly subscription for domain renewal billing.
+    // Domain cost is shown on the checkout summary but charged separately.
 
     // Resolve promo code to Stripe promotion code ID if provided
     let discounts: any[] | undefined;
