@@ -432,8 +432,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                   )}
                 </div>
                 <div>
-                  <label style={{ fontSize: '.78rem', color: t.textSub, marginBottom: 6, display: 'block' }}>Phone <span style={{ color: t.textMuted }}>(optional)</span></label>
-                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 (555) 123-4567" style={inputStyle} />
+{/* Phone removed — collected during onboarding instead */}
                 </div>
                 <button
                   onClick={() => {
