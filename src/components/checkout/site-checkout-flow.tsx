@@ -76,10 +76,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   // Onboarding
   const [onboardingChoice, setOnboardingChoice] = useState<'self' | 'guided' | null>(null);
 
-  // Steps — trial with plan pre-selected skips plan step
-  const publicSteps = initialPlan
-    ? ['Account', 'Domain', 'Checkout']
-    : ['Account', 'Plan', 'Domain', 'Checkout'];
+  // Steps — always show all steps, pre-selection just auto-advances
+  const publicSteps = ['Account', 'Plan', 'Domain', 'Checkout'];
   const dashboardSteps = ['Plan', 'Domain', 'Checkout'];
   const steps = mode === 'public' ? publicSteps : dashboardSteps;
   const [step, _setStep] = useState(1);
@@ -594,6 +592,26 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
 
           {/* Options */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+            {/* Temp domain — first option */}
+            <button
+              onClick={() => { setDomainMode('temp'); setSelectedDomain(''); goToCheckout(); }}
+              style={{
+                background: domainMode === 'temp' ? dark ? 'rgba(34,197,94,.06)' : 'rgba(34,197,94,.04)' : t.cardBg,
+                border: `1px solid ${domainMode === 'temp' ? '#22c55e' : t.cardBorder}`,
+                borderRadius: 14, padding: '18px 20px', cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Globe style={{ width: 18, height: 18, color: '#22c55e' }} />
+                <div>
+                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>Start with a free temporary domain</p>
+                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>Get started instantly — add a custom domain anytime</p>
+                </div>
+                <span style={{ marginLeft: 'auto', fontSize: '.72rem', fontWeight: 600, color: '#22c55e', background: 'rgba(34,197,94,.1)', padding: '3px 10px', borderRadius: 100 }}>Free</span>
+              </div>
+            </button>
+
+            {/* Register new domain */}
             <button
               onClick={() => { setDomainMode('new'); setSelectedDomain(''); setDomainResult(null); setTimeout(() => domainRef.current?.focus(), 200); }}
               style={{
@@ -605,12 +623,14 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Sparkles style={{ width: 18, height: 18, color: '#2563EB' }} />
                 <div>
-                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>Register a domain {isTrial && <span style={{ fontSize: '.7rem', color: t.textMuted, fontWeight: 400 }}>— from $15 CAD/yr</span>}</p>
+                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>Register a domain</p>
                   <p style={{ fontSize: '.75rem', color: t.textMuted }}>Search and secure your perfect domain name</p>
                 </div>
+                <span style={{ marginLeft: 'auto', fontSize: '.72rem', fontWeight: 500, color: t.textMuted }}>from $15/yr</span>
               </div>
             </button>
 
+            {/* Existing domain — only for non-trial */}
             {!isTrial && (
               <button
                 onClick={() => { setDomainMode('existing'); setSelectedDomain(''); setDomainResult(null); }}
@@ -629,18 +649,6 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 </div>
               </button>
             )}
-
-            <button
-              onClick={() => { setDomainMode('temp'); setSelectedDomain(''); goToCheckout(); }}
-              style={{
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                padding: '8px 0', textAlign: 'center',
-              }}
-            >
-              <span style={{ fontSize: '.82rem', color: t.textMuted, textDecoration: 'underline', textUnderlineOffset: '3px' }}>
-                Use a temporary domain for now
-              </span>
-            </button>
           </div>
 
           {/* New domain search */}
@@ -853,7 +861,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
           >
             {checkoutLoading ? (
               <>
-                <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Redirecting to payment...
+                <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Setting up secure payment...
               </>
             ) : (
               <>Continue to Payment <ArrowRight style={{ width: 16, height: 16 }} /></>
