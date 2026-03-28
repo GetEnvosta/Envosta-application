@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@stripe/react-stripe-js": "^6.0.0",
     "@stripe/stripe-js": "^4.0.0",
     "@supabase/ssr": "^0.5.0",
     "@supabase/supabase-js": "^2.43.0",
