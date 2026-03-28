@@ -109,6 +109,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
       const { data } = await supabase
         .from('products')
         .select('*')
+        .eq('type', 'hosting_plan')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
       const allPlans = (data as Plan[]) ?? [];
