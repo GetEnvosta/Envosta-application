@@ -671,114 +671,114 @@ export default async function HomePage() {
 
               {/* D1 FOREGROUND — 6 large */}
               <div className="int-fl int-fl-lg int-d1 int-fa1" style={{ top: '16%', left: '10%' }}>
-                <img loading="lazy" src="/assets/images/logos/stripe.svg" alt="Stripe" width="32" height="32" style={{ borderRadius: '6px' }} />
+                <img loading="lazy" src="/assets/Brands/Stripe.jpeg" alt="Stripe" width="32" height="32" style={{ borderRadius: '6px' }} />
                 <div><div className="int-fl-name">Stripe</div><div className="int-fl-desc">Payments</div></div>
               </div>
 
               <div className="int-fl int-fl-lg int-d1 int-fa3" style={{ top: '18%', left: '72%' }}>
-                <img loading="lazy" src="/assets/images/logos/google-analytics.svg" alt="Google Analytics" width="32" height="32" />
+                <img loading="lazy" src="/assets/Brands/Analytics.png" alt="Google Analytics" width="32" height="32" />
                 <div><div className="int-fl-name">Google Analytics</div><div className="int-fl-desc">Tracking</div></div>
               </div>
 
               <div className="int-fl int-fl-lg int-d1 int-fa4" style={{ top: '68%', left: '16%' }}>
-                <img loading="lazy" src="/assets/images/logos/hubspot.svg" alt="HubSpot" width="32" height="32" />
+                <img loading="lazy" src="/assets/Brands/Hubspot.svg" alt="HubSpot" width="32" height="32" />
                 <div><div className="int-fl-name">HubSpot</div><div className="int-fl-desc">CRM</div></div>
               </div>
 
               <div className="int-fl int-fl-lg int-d1 int-fa2" style={{ top: '72%', left: '76%' }}>
-                <img loading="lazy" src="/assets/images/logos/zapier.svg" alt="Zapier" width="32" height="32" style={{ borderRadius: '6px' }} />
+                <img loading="lazy" src="/assets/Brands/Zapier.jpeg" alt="Zapier" width="32" height="32" style={{ borderRadius: '6px' }} />
                 <div><div className="int-fl-name">Zapier</div><div className="int-fl-desc">Automation</div></div>
               </div>
 
               <div className="int-fl int-fl-lg int-d1 int-fa5" style={{ top: '42%', left: '84%' }}>
-                <img loading="lazy" src="/assets/images/logos/microsoft365.svg" alt="Microsoft 365" width="32" height="32" />
+                <img loading="lazy" src="/assets/Brands/Microsoft.svg" alt="Microsoft 365" width="32" height="32" />
                 <div><div className="int-fl-name">Microsoft 365</div><div className="int-fl-desc">Productivity</div></div>
               </div>
 
               <div className="int-fl int-fl-lg int-d1 int-fa6" style={{ top: '44%', left: '6%' }}>
-                <img loading="lazy" src="/assets/images/logos/paypal.svg" alt="PayPal" width="32" height="32" style={{ borderRadius: '6px' }} />
+                <img loading="lazy" src="/assets/Brands/PayPal.svg" alt="PayPal" width="32" height="32" style={{ borderRadius: '6px' }} />
                 <div><div className="int-fl-name">PayPal</div><div className="int-fl-desc">Payments</div></div>
               </div>
 
               {/* D2 MID — 8 medium */}
               <div className="int-fl int-fl-md int-d2 int-fa2" style={{ top: '8%', left: '40%' }}>
-                <img loading="lazy" src="/assets/images/logos/meta.svg" alt="Meta" width="26" height="26" />
-                <div><div className="int-fl-name">Meta Pixel</div></div>
+                <img loading="lazy" src="/assets/Brands/SalesForce.svg" alt="Meta" width="26" height="26" />
+                <div><div className="int-fl-name">SalesForce</div></div>
               </div>
 
               <div className="int-fl int-fl-md int-d2 int-fa5" style={{ top: '32%', left: '28%' }}>
-                <img loading="lazy" src="/assets/images/logos/square.svg" alt="Square" width="26" height="26" />
-                <div><div className="int-fl-name">Square</div></div>
+                <img loading="lazy" src="/assets/Brands/Google.svg" alt="Square" width="26" height="26" />
+                <div><div className="int-fl-name">Google</div></div>
               </div>
 
               <div className="int-fl int-fl-md int-d2 int-fa1" style={{ top: '30%', left: '56%' }}>
-                <img loading="lazy" src="/assets/images/logos/instagram.svg" alt="Instagram" width="26" height="26" />
+                <img loading="lazy" src="/assets/Brands/Instagram.svg" alt="Instagram" width="26" height="26" />
                 <div><div className="int-fl-name">Instagram</div></div>
               </div>
 
               <div className="int-fl int-fl-md int-d2 int-fa3" style={{ top: '88%', left: '42%' }}>
-                <img loading="lazy" src="/assets/images/logos/jetpack.svg" alt="Jetpack" width="26" height="26" style={{ borderRadius: '6px' }} />
+                <img loading="lazy" src="/assets/Brands/JetPack.jpeg" alt="Jetpack" width="26" height="26" style={{ borderRadius: '6px' }} />
                 <div><div className="int-fl-name">Jetpack</div></div>
               </div>
 
               <div className="int-fl int-fl-md int-d2 int-fa6" style={{ top: '60%', left: '52%' }}>
-                <img loading="lazy" src="/assets/images/logos/intuit.svg" alt="Intuit" width="26" height="26" style={{ borderRadius: '6px' }} />
-                <div><div className="int-fl-name">Intuit</div></div>
+                <img loading="lazy" src="/assets/Brands/SalesForce.svg" alt="Intuit" width="26" height="26" style={{ borderRadius: '6px' }} />
+                <div><div className="int-fl-name">SalesForce</div></div>
               </div>
 
               <div className="int-fl int-fl-md int-d2 int-fa4" style={{ top: '10%', left: '62%' }}>
-                <img loading="lazy" src="/assets/images/logos/stripe.svg" alt="Stripe" width="26" height="26" style={{ borderRadius: '6px' }} />
-                <div><div className="int-fl-name">Shopify</div></div>
+                <img loading="lazy" src="/assets/Brands/Stripe.jpeg" alt="Stripe" width="26" height="26" style={{ borderRadius: '6px' }} />
+                <div><div className="int-fl-name">WooCommerce</div></div>
               </div>
 
               <div className="int-fl int-fl-md int-d2 int-fa1" style={{ top: '84%', left: '68%' }}>
-                <img loading="lazy" src="/assets/images/logos/google-analytics.svg" alt="Google Analytics" width="26" height="26" />
+                <img loading="lazy" src="/assets/Brands/Analytics.png" alt="Google Analytics" width="26" height="26" />
                 <div><div className="int-fl-name">Search Console</div></div>
               </div>
 
               <div className="int-fl int-fl-md int-d2 int-fa5" style={{ top: '56%', left: '34%' }}>
-                <img loading="lazy" src="/assets/images/logos/meta.svg" alt="Meta" width="26" height="26" />
+                <img loading="lazy" src="/assets/Brands/SalesForce.svg" alt="Meta" width="26" height="26" />
                 <div><div className="int-fl-name">Facebook</div></div>
               </div>
 
               {/* D3 BACKGROUND — 8 small */}
               <div className="int-fl int-fl-sm int-d3 int-fa4" style={{ top: '24%', left: '45%' }}>
-                <img loading="lazy" src="/assets/images/logos/paypal.svg" alt="PayPal" width="20" height="20" style={{ borderRadius: '5px' }} />
-                <div><div className="int-fl-name">Mailchimp</div></div>
+                <img loading="lazy" src="/assets/Brands/PayPal.svg" alt="PayPal" width="20" height="20" style={{ borderRadius: '5px' }} />
+                <div><div className="int-fl-name">HubSpot</div></div>
               </div>
 
               <div className="int-fl int-fl-sm int-d3 int-fa6" style={{ top: '6%', left: '20%' }}>
-                <img loading="lazy" src="/assets/images/logos/square.svg" alt="Square" width="20" height="20" />
+                <img loading="lazy" src="/assets/Brands/Google.svg" alt="Square" width="20" height="20" />
                 <div><div className="int-fl-name">Slack</div></div>
               </div>
 
               <div className="int-fl int-fl-sm int-d3 int-fa2" style={{ top: '50%', left: '66%' }}>
-                <img loading="lazy" src="/assets/images/logos/hubspot.svg" alt="HubSpot" width="20" height="20" />
+                <img loading="lazy" src="/assets/Brands/Hubspot.svg" alt="HubSpot" width="20" height="20" />
                 <div><div className="int-fl-name">Salesforce</div></div>
               </div>
 
               <div className="int-fl int-fl-sm int-d3 int-fa3" style={{ top: '78%', left: '92%' }}>
-                <img loading="lazy" src="/assets/images/logos/instagram.svg" alt="Instagram" width="20" height="20" />
+                <img loading="lazy" src="/assets/Brands/Instagram.svg" alt="Instagram" width="20" height="20" />
                 <div><div className="int-fl-name">TikTok</div></div>
               </div>
 
               <div className="int-fl int-fl-sm int-d3 int-fa5" style={{ top: '92%', left: '16%' }}>
-                <img loading="lazy" src="/assets/images/logos/microsoft365.svg" alt="Microsoft 365" width="20" height="20" />
+                <img loading="lazy" src="/assets/Brands/Microsoft.svg" alt="Microsoft 365" width="20" height="20" />
                 <div><div className="int-fl-name">Google Ads</div></div>
               </div>
 
               <div className="int-fl int-fl-sm int-d3 int-fa1" style={{ top: '38%', left: '92%' }}>
-                <img loading="lazy" src="/assets/images/logos/zapier.svg" alt="Zapier" width="20" height="20" style={{ borderRadius: '5px' }} />
+                <img loading="lazy" src="/assets/Brands/Zapier.jpeg" alt="Zapier" width="20" height="20" style={{ borderRadius: '5px' }} />
                 <div><div className="int-fl-name">Airtable</div></div>
               </div>
 
               <div className="int-fl int-fl-sm int-d3 int-fa4" style={{ top: '74%', left: '44%' }}>
-                <img loading="lazy" src="/assets/images/logos/jetpack.svg" alt="Jetpack" width="20" height="20" style={{ borderRadius: '5px' }} />
+                <img loading="lazy" src="/assets/Brands/JetPack.jpeg" alt="Jetpack" width="20" height="20" style={{ borderRadius: '5px' }} />
                 <div><div className="int-fl-name">Calendly</div></div>
               </div>
 
               <div className="int-fl int-fl-sm int-d3 int-fa6" style={{ top: '6%', left: '88%' }}>
-                <img loading="lazy" src="/assets/images/logos/intuit.svg" alt="Intuit" width="20" height="20" style={{ borderRadius: '5px' }} />
+                <img loading="lazy" src="/assets/Brands/SalesForce.svg" alt="Intuit" width="20" height="20" style={{ borderRadius: '5px' }} />
                 <div><div className="int-fl-name">QuickBooks</div></div>
               </div>
 
