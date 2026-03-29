@@ -1,7 +1,8 @@
 import { formatCents } from '@/lib/utils';
-import { Settings, Package, Globe, FileText, ArrowRight, CheckCircle, AlertTriangle, Zap, DollarSign, Briefcase } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Plus, Pencil, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
+import { ProductsClient } from './products-client';
 
 function getSupabase() {
   return createClient(
@@ -11,246 +12,145 @@ function getSupabase() {
   );
 }
 
-export default async function ProductsPage() {
-  // Single query for all products — filter client-side
-  const { data: allProducts } = await getSupabase().from('products').select('*').order('sort_order');
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) {
+  const params = await searchParams;
+  const typeFilter = params.type ?? 'all';
+
+  const { data: allProducts } = await getSupabase()
+    .from('products')
+    .select('*')
+    .order('type')
+    .order('sort_order', { ascending: true });
+
   const products = allProducts ?? [];
 
-  const plans = products.filter(p => p.type === 'hosting_plan');
-  const tlds = products.filter(p => p.type === 'domain_tld');
-  const addons = products.filter(p => p.type === 'plan_addon');
-  const oneTimeServices = products.filter(p => p.type === 'one_time_service');
+  const counts: Record<string, number> = {
+    all: products.length,
+    hosting_plan: products.filter(p => p.type === 'hosting_plan').length,
+    domain_tld: products.filter(p => p.type === 'domain_tld').length,
+    plan_addon: products.filter(p => p.type === 'plan_addon').length,
+    one_time_service: products.filter(p => p.type === 'one_time_service').length,
+  };
 
-  const syncedPlans = plans.filter((p: any) => p.stripe_product_id && p.stripe_price_id).length;
-  const syncedTlds = tlds.filter((t: any) => t.stripe_product_id && t.stripe_price_id_yearly).length;
-  const syncedAddons = addons.filter((a: any) => a.stripe_product_id && a.stripe_price_id).length;
-  const syncedServices = oneTimeServices.filter((s: any) => s.stripe_product_id && s.stripe_price_id).length;
-  const totalProducts = plans.length + tlds.length + addons.length + oneTimeServices.length;
-  const totalSynced = syncedPlans + syncedTlds + syncedAddons + syncedServices;
-  const allSynced = totalSynced === totalProducts;
-
-  const totalMRR = plans.reduce((sum: number, p: any) => sum + (p.price_cad ?? 0), 0);
+  const filtered = typeFilter === 'all' ? products : products.filter(p => p.type === typeFilter);
+  const synced = products.filter(p => p.stripe_product_id && p.stripe_price_id).length;
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Products</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage all products, pricing, and Stripe integration.</p>
-      </div>
-
-      {/* Sync status banner */}
-      <div className={`rounded-xl border p-4 mb-6 flex items-center gap-3 ${allSynced ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
-        {allSynced ? (
-          <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
-        ) : (
-          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-        )}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <p className={`text-sm font-medium ${allSynced ? 'text-green-800' : 'text-amber-800'}`}>
-            {allSynced ? 'All products synced to Stripe' : `${totalProducts - totalSynced} product${totalProducts - totalSynced === 1 ? '' : 's'} need Stripe sync`}
+          <h1 className="text-xl font-semibold text-gray-900">Products</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {synced}/{products.length} synced to Stripe · {products.filter(p => p.is_active).length} active
           </p>
-          <p className={`text-xs mt-0.5 ${allSynced ? 'text-green-600' : 'text-amber-600'}`}>
-            {syncedPlans}/{plans.length} plans · {syncedTlds}/{tlds.length} TLDs · {syncedAddons}/{addons.length} add-ons · {syncedServices}/{oneTimeServices.length} services
-          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <ProductsClient />
+          <Link href="/admin/products/plans/new" className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
+            <Plus className="w-4 h-4" /> New Product
+          </Link>
         </div>
       </div>
 
-      {/* Quick stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
-        <div className="card p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Settings className="w-4 h-4 text-gray-400" />
-            <span className="text-xs text-gray-500 font-medium">Plans</span>
-          </div>
-          <p className="text-lg font-semibold text-gray-900">{plans.length}</p>
-          <p className="text-xs text-gray-400">{formatCents(Math.min(...plans.map((p: any) => p.price_cad)))} – {formatCents(Math.max(...plans.map((p: any) => p.price_cad)))}/mo</p>
-        </div>
-        <div className="card p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Globe className="w-4 h-4 text-gray-400" />
-            <span className="text-xs text-gray-500 font-medium">Domain TLDs</span>
-          </div>
-          <p className="text-lg font-semibold text-gray-900">{tlds.length}</p>
-          <p className="text-xs text-gray-400">{tlds.filter((t: any) => t.active).length} active</p>
-        </div>
-        <div className="card p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Zap className="w-4 h-4 text-gray-400" />
-            <span className="text-xs text-gray-500 font-medium">Add-ons</span>
-          </div>
-          <p className="text-lg font-semibold text-gray-900">{addons.length}</p>
-          <p className="text-xs text-gray-400">{addons.filter((a: any) => a.is_active).length} active</p>
-        </div>
-        <div className="card p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Briefcase className="w-4 h-4 text-gray-400" />
-            <span className="text-xs text-gray-500 font-medium">Services</span>
-          </div>
-          <p className="text-lg font-semibold text-gray-900">{oneTimeServices.length}</p>
-          <p className="text-xs text-gray-400">{oneTimeServices.filter((s: any) => s.is_active).length} active</p>
-        </div>
-        <div className="card p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <DollarSign className="w-4 h-4 text-gray-400" />
-            <span className="text-xs text-gray-500 font-medium">Stripe Sync</span>
-          </div>
-          <p className="text-lg font-semibold text-gray-900">{totalSynced}/{totalProducts}</p>
-          <p className={`text-xs ${allSynced ? 'text-green-500' : 'text-amber-500'}`}>{allSynced ? 'Fully synced' : 'Needs attention'}</p>
-        </div>
+      {/* Type filter tabs */}
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {[
+          { key: 'all', label: 'All' },
+          { key: 'hosting_plan', label: 'Hosting Plans' },
+          { key: 'domain_tld', label: 'Domain TLDs' },
+          { key: 'plan_addon', label: 'Plan Add-ons' },
+          { key: 'one_time_service', label: 'One-Time Services' },
+        ].map(tab => (
+          <Link
+            key={tab.key}
+            href={tab.key === 'all' ? '/admin/products' : `/admin/products?type=${tab.key}`}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              typeFilter === tab.key
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {tab.label} <span className="ml-1 opacity-60">{counts[tab.key] ?? 0}</span>
+          </Link>
+        ))}
       </div>
 
-      {/* Category cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Products table */}
+      <div className="card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50/50">
+              <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Billing</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stripe</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="p-8 text-center text-sm text-gray-400">No products found.</td>
+              </tr>
+            ) : filtered.map((product: any) => {
+              const typeBadge: Record<string, { bg: string; text: string; label: string }> = {
+                hosting_plan: { bg: 'bg-blue-50', text: 'text-blue-700', label: 'Plan' },
+                domain_tld: { bg: 'bg-purple-50', text: 'text-purple-700', label: 'Domain' },
+                plan_addon: { bg: 'bg-amber-50', text: 'text-amber-700', label: 'Add-on' },
+                one_time_service: { bg: 'bg-cyan-50', text: 'text-cyan-700', label: 'Service' },
+              };
+              const badge = typeBadge[product.type] ?? typeBadge.hosting_plan;
+              const meta = product.metadata ?? {};
 
-        {/* Hosting Plans */}
-        <Link href="/admin/products/plans" className="card p-6 hover:border-admin-300 transition-colors group">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Settings className="w-5 h-5 text-admin-500" />
-              <h2 className="text-base font-semibold text-gray-900">Hosting Plans</h2>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-admin-500 transition-colors" />
-          </div>
-          <p className="text-sm text-gray-500 mb-4">Pricing, wp.cloud resources, Stripe billing, and plan features.</p>
-          <div className="flex items-center gap-4 text-xs mb-3">
-            <span className="text-gray-500">{plans.length} plans</span>
-            <span className={syncedPlans === plans.length ? 'text-green-600' : 'text-amber-600'}>
-              {syncedPlans}/{plans.length} synced
-            </span>
-          </div>
-          <div className="space-y-1.5">
-            {plans.map((plan: any) => (
-              <div key={plan.id} className="flex items-center justify-between text-xs">
-                <span className="text-gray-700 font-medium">{plan.name}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-500">{formatCents(plan.price_cad)}/mo</span>
-                  {plan.price_yearly_cad > 0 && <span className="text-gray-400">· {formatCents(plan.price_yearly_cad)}/yr</span>}
-                  {plan.stripe_product_id ? (
-                    <CheckCircle className="w-3 h-3 text-green-500" />
-                  ) : (
-                    <AlertTriangle className="w-3 h-3 text-amber-400" />
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Link>
-
-        {/* Domain TLDs */}
-        <Link href="/admin/products/domains" className="card p-6 hover:border-admin-300 transition-colors group">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Globe className="w-5 h-5 text-admin-500" />
-              <h2 className="text-base font-semibold text-gray-900">Domain TLDs</h2>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-admin-500 transition-colors" />
-          </div>
-          <p className="text-sm text-gray-500 mb-4">Registration, renewal, and transfer pricing for each TLD.</p>
-          <div className="flex items-center gap-4 text-xs mb-3">
-            <span className="text-gray-500">{tlds.length} TLDs</span>
-            <span className={syncedTlds === tlds.length ? 'text-green-600' : 'text-amber-600'}>
-              {syncedTlds}/{tlds.length} synced
-            </span>
-          </div>
-          <div className="flex gap-1.5 flex-wrap">
-            {tlds.map((tld: any) => (
-              <span key={tld.id} className={`text-xs px-2 py-0.5 rounded-full ${tld.stripe_price_id_yearly ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-600'}`}>
-                .{tld.tld}
-              </span>
-            ))}
-          </div>
-        </Link>
-
-        {/* Plan Add-ons */}
-        <Link href="/admin/products/addons" className="card p-6 hover:border-admin-300 transition-colors group">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-admin-500" />
-              <h2 className="text-base font-semibold text-gray-900">Plan Add-ons</h2>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-admin-500 transition-colors" />
-          </div>
-          <p className="text-sm text-gray-500 mb-4">Per-site infrastructure add-ons and one-time service products.</p>
-          <div className="flex items-center gap-4 text-xs mb-3">
-            <span className="text-gray-500">{addons.length} product{addons.length === 1 ? '' : 's'}</span>
-            <span className={syncedAddons === addons.length ? 'text-green-600' : 'text-amber-600'}>
-              {syncedAddons}/{addons.length} synced
-            </span>
-          </div>
-          {addons.length > 0 ? (
-            <div className="space-y-1.5">
-              {addons.map((addon: any) => (
-                <div key={addon.id} className="flex items-center justify-between text-xs">
-                  <span className="text-gray-700 font-medium">{addon.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500">
-                      {formatCents(addon.price_cad)}{addon.billing_type === 'monthly' ? '/mo' : addon.billing_type === 'yearly' ? '/yr' : ''}
+              return (
+                <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-5 py-3.5">
+                    <p className="font-medium text-gray-900">{product.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{product.slug}</p>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
+                      {badge.label}
                     </span>
-                    <span className="text-gray-400 capitalize">{addon.billing_type.replace('_', '-')}</span>
-                    {addon.stripe_product_id ? (
-                      <CheckCircle className="w-3 h-3 text-green-500" />
-                    ) : (
-                      <AlertTriangle className="w-3 h-3 text-amber-400" />
+                  </td>
+                  <td className="px-5 py-3.5 text-gray-700">
+                    {product.price_cad > 0 ? formatCents(product.price_cad) : product.type === 'hosting_plan' ? 'Custom' : '—'}
+                    {product.price_yearly_cad > 0 && product.billing === 'monthly' && (
+                      <span className="text-xs text-gray-400 ml-1">/ {formatCents(product.price_yearly_cad)}/yr</span>
                     )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-gray-400">No add-ons configured yet.</p>
-          )}
-        </Link>
-
-        {/* One-Time Services */}
-        <Link href="/admin/products/services" className="card p-6 hover:border-admin-300 transition-colors group">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-admin-500" />
-              <h2 className="text-base font-semibold text-gray-900">One-Time Services</h2>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-admin-500 transition-colors" />
-          </div>
-          <p className="text-sm text-gray-500 mb-4">Billable one-time services like Studio requests, migrations, and audits.</p>
-          <div className="flex items-center gap-4 text-xs mb-3">
-            <span className="text-gray-500">{oneTimeServices.length} service{oneTimeServices.length === 1 ? '' : 's'}</span>
-            <span className={syncedServices === oneTimeServices.length ? 'text-green-600' : 'text-amber-600'}>
-              {syncedServices}/{oneTimeServices.length} synced
-            </span>
-          </div>
-          {oneTimeServices.length > 0 ? (
-            <div className="space-y-1.5">
-              {oneTimeServices.map((s: any) => (
-                <div key={s.id} className="flex items-center justify-between text-xs">
-                  <span className="text-gray-700 font-medium">{s.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500">{formatCents(s.price_cad)}</span>
-                    <span className="text-gray-400">one-time</span>
-                    {s.stripe_product_id ? <CheckCircle className="w-3 h-3 text-green-500" /> : <AlertTriangle className="w-3 h-3 text-amber-400" />}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-gray-400">No services configured yet.</p>
-          )}
-        </Link>
-
-        {/* Custom Invoices */}
-        <Link href="/admin/products/invoices" className="card p-6 hover:border-admin-300 transition-colors group">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-admin-500" />
-              <h2 className="text-base font-semibold text-gray-900">Custom Invoices</h2>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-admin-500 transition-colors" />
-          </div>
-          <p className="text-sm text-gray-500 mb-4">Send one-time invoices for custom work, migrations, or ad-hoc charges.</p>
-          <div className="space-y-1.5 text-xs text-gray-500">
-            <p>Create invoices via Stripe Checkout — any amount, any description.</p>
-            <p>Customer receives a payment link. No Stripe product needed.</p>
-          </div>
-        </Link>
-
+                  </td>
+                  <td className="px-5 py-3.5 text-gray-500 capitalize text-xs">{product.billing?.replace('_', ' ')}</td>
+                  <td className="px-5 py-3.5">
+                    <span className={product.is_active ? 'badge-green' : 'badge-gray'}>
+                      {product.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    {product.stripe_product_id ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+                    )}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <Link
+                      href={`/admin/products/plans/${product.id}`}
+                      className="text-xs text-admin-600 hover:text-admin-700 font-medium inline-flex items-center gap-1"
+                    >
+                      <Pencil className="w-3 h-3" /> Edit
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
