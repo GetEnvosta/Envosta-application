@@ -197,16 +197,8 @@ Deno.serve(async (req) => {
 
     const sb = supabaseAdmin();
 
-    // Block domain registration for trial users (unless called from webhook via bodyUserId)
-    const isInternalCall = !!bodyUserId;
-    if (!isInternalCall) {
-      const { data: activeSub } = await sb.from("subscriptions")
-        .select("status").eq("user_id", userId)
-        .in("status", ["active"]).limit(1).maybeSingle();
-      if (!activeSub) {
-        return json({ error: "Domain registration requires an active paid plan. Upgrade from your trial to register domains." }, 403);
-      }
-    }
+    // Domain registration is allowed for any authenticated user (it's a paid product).
+    // The restriction is on CONNECTING a domain to a trialing site — handled in site-info.
 
     // REGISTER
     const parts = domainName.split(".");

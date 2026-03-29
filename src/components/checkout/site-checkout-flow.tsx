@@ -213,7 +213,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
             onboarding: onboardingChoice ?? 'self',
             termsAccepted: true,
             termsAcceptedAt: new Date().toISOString(),
-            trial: isTrial && domainMode !== 'new' ? true : false, // Domain purchase ends trial
+            trial: isTrial || false, // Trial stays active — domain is a separate purchase, not tied to hosting trial
             promoCode: promoCode || undefined,
           }),
         });
@@ -550,8 +550,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
           </h2>
           <p style={{ color: t.textSub, marginBottom: 32, fontSize: '.92rem', textAlign: 'center' }}>
             {isTrial
-              ? 'Start with a free temporary domain, or register yours now.'
-              : 'You can always add or change your domain later.'}
+              ? 'Start free with a temporary domain, or register yours now. Domains can be connected to your site after your trial.'
+              : 'Register a domain or start with a temporary one. You can always change this later.'}
           </p>
 
           {/* Options */}
@@ -591,7 +591,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 <div>
                   <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>Register a domain</p>
                   <p style={{ fontSize: '.75rem', color: t.textMuted }}>
-                    {isTrial ? 'Purchasing a domain will start your paid plan immediately' : 'Search and secure your perfect domain name'}
+                    {isTrial ? 'Register now — can be connected after your trial ends, or purchase to start your plan immediately' : 'Search and secure your perfect domain name'}
                   </p>
                 </div>
                 <span style={{ marginLeft: 'auto', fontSize: '.72rem', fontWeight: 500, color: t.textMuted }}>from $15/yr</span>

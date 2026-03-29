@@ -286,6 +286,14 @@ Deno.serve(async (req) => {
         if (!svc) return error("Service not found", 404);
         if (!svc.wp_cloud_site_id) return error("Site not yet provisioned", 400);
 
+        // Block connecting domains to trialing sites
+        if (svc.subscription_id) {
+          const { data: sub } = await sb.from("subscriptions").select("status").eq("id", svc.subscription_id).maybeSingle();
+          if (sub?.status === "trialing") {
+            return error("Cannot connect a domain to a site on a free trial. Upgrade to a paid plan or wait until your trial ends.", 403);
+          }
+        }
+
         // Check if domain is already connected to a different site
         const { data: existingLink } = await sb.from("domains")
           .select("site_id, domain_name")
