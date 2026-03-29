@@ -128,12 +128,13 @@ Deno.serve(async (req) => {
     // Domain-only purchases (no plan) still need a charge:
     if (domainName && !priceId) {
       const tld = domainName.split(".").pop()?.toLowerCase() ?? "";
-      const { data: tldPricing } = await sb.from("products")
-        .select("stripe_price_id_yearly, registration_price_cad")
-        .eq("tld", tld).maybeSingle();
+      const { data: tldProduct } = await sb.from("products")
+        .select("stripe_price_id, price_cad, metadata")
+        .eq("type", "domain_tld")
+        .eq("slug", `tld-${tld}`).maybeSingle();
 
-      if (tldPricing?.stripe_price_id_yearly) {
-        line_items.push({ price: tldPricing.stripe_price_id_yearly, quantity: 1 });
+      if (tldProduct?.stripe_price_id) {
+        line_items.push({ price: tldProduct.stripe_price_id, quantity: 1 });
       } else {
         line_items.push({
           price_data: {

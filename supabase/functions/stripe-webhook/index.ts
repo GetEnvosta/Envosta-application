@@ -125,21 +125,19 @@ Deno.serve(async (req) => {
                     .eq("domain_name", domainFromMeta)
                     .eq("user_id", cust.id);
 
-                  // Create yearly renewal subscription — first year free (already paid at checkout)
-                  // trial_end = 1 year from now, then Stripe auto-charges yearly
+                  // Create yearly domain subscription — charges immediately
                   try {
                     const tld = domainFromMeta.split(".").pop()?.toLowerCase() ?? "";
-                    const { data: tldPricing } = await sb.from("products")
-                      .select("stripe_price_id_yearly")
-                      .eq("tld", tld).maybeSingle();
+                    const { data: tldProduct } = await sb.from("products")
+                      .select("stripe_price_id, price_cad")
+                      .eq("type", "domain_tld")
+                      .eq("slug", `tld-${tld}`).maybeSingle();
 
-                    if (tldPricing?.stripe_price_id_yearly) {
+                    if (tldProduct?.stripe_price_id) {
                       const stripe = getStripe();
-                      const oneYearFromNow = Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60);
                       const renewalSub = await stripe.subscriptions.create({
                         customer: custStripeId,
-                        items: [{ price: tldPricing.stripe_price_id_yearly }],
-                        trial_end: oneYearFromNow,
+                        items: [{ price: tldProduct.stripe_price_id }],
                         metadata: {
                           supabase_user_id: cust.id,
                           domain_name: domainFromMeta,
