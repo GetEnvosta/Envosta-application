@@ -23,6 +23,7 @@ export function PlanSwitcher({
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState(currentPlanId);
+  const [customPrice, setCustomPrice] = useState('');
   const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export function PlanSwitcher({
     supabase
       .from('products')
       .select('id, name, slug, price_cad, metadata')
+      .eq('type', 'hosting_plan')
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
       .then(({ data }) => {
@@ -43,7 +45,15 @@ export function PlanSwitcher({
 
     const plan = plans.find(p => p.id === newPlanId);
     if (!plan) return;
-    if (!confirm(`Switch to the ${plan.name} plan? Your billing will be prorated.`)) return;
+    const isCustom = plan.metadata?.custom_pricing;
+    if (isCustom && !customPrice) {
+      setStatus({ type: 'error', message: 'Enter a custom monthly price for Enterprise.' });
+      return;
+    }
+    const confirmMsg = isCustom
+      ? `Switch to Enterprise at $${customPrice}/mo CAD? This will update billing.`
+      : `Switch to the ${plan.name} plan? Your billing will be prorated.`;
+    if (!confirm(confirmMsg)) return;
 
     setSwitching(true);
     setStatus(null);
@@ -67,6 +77,7 @@ export function PlanSwitcher({
             action: 'change-plan',
             siteId,
             newPlanId,
+            ...(plan.metadata?.custom_pricing && customPrice ? { customPriceCad: Math.round(parseFloat(customPrice) * 100) } : {}),
           }),
         }
       );
@@ -115,10 +126,27 @@ export function PlanSwitcher({
                 </span>
               )}
               <p className="text-sm font-semibold text-gray-900">{plan.name}</p>
-              <p className="text-lg font-bold text-gray-900 mt-1">
-                ${(plan.price_cad / 100).toFixed(0)}
-                <span className="text-xs font-normal text-gray-500">/mo</span>
-              </p>
+              {plan.metadata?.custom_pricing ? (
+                <div className="mt-1">
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-500 text-sm">$</span>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={customPrice}
+                      onChange={e => { e.stopPropagation(); setCustomPrice(e.target.value); }}
+                      onClick={e => e.stopPropagation()}
+                      className="w-20 text-lg font-bold text-gray-900 border-b border-gray-300 focus:border-brand-500 outline-none bg-transparent"
+                    />
+                    <span className="text-xs text-gray-500">/mo CAD</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-lg font-bold text-gray-900 mt-1">
+                  ${(plan.price_cad / 100).toFixed(0)}
+                  <span className="text-xs font-normal text-gray-500">/mo</span>
+                </p>
+              )}
               <div className="mt-2 space-y-1 text-xs text-gray-500">
                 <p>{plan.metadata?.storage_gb} GB storage</p>
                 <p>{plan.metadata?.php_workers_default} PHP workers</p>
