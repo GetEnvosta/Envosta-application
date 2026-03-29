@@ -33,7 +33,7 @@ export default function AddonsPage() {
 
   async function fetchAddons() {
     const supabase = createClient();
-    const { data } = await supabase.from('products').select('*').order('sort_order');
+    const { data } = await supabase.from('products').select('*').eq('type', 'plan_addon').order('sort_order');
     setAddons(data ?? []);
     setLoading(false);
   }

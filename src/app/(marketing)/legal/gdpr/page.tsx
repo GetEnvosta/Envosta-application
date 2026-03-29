@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function GdprPage() {
   return (
     <>
-      <section className="page-hero">
+      <section className="legal-hero">
         <div className="c">
           <h1>GDPR Compliance</h1>
           <p>How Envosta protects your data and upholds your rights under the General Data Protection Regulation.</p>

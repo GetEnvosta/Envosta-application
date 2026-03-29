@@ -76,8 +76,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   // Onboarding
   const [onboardingChoice, setOnboardingChoice] = useState<'self' | 'guided' | null>(null);
 
-  // Steps — always show all steps, pre-selection just auto-advances
-  const publicSteps = ['Account', 'Plan', 'Domain', 'Checkout'];
+  // Steps — public signup skips plan (auto-selected from URL or defaults to Minimum)
+  const publicSteps = ['Account', 'Domain', 'Checkout'];
   const dashboardSteps = ['Plan', 'Domain', 'Checkout'];
   const steps = mode === 'public' ? publicSteps : dashboardSteps;
   const [step, _setStep] = useState(1);

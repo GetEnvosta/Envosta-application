@@ -10,7 +10,7 @@ export default function TermsPage() {
   return (
     <div className="legal-zone">
 
-      <section className="page-hero">
+      <section className="legal-hero">
         <div className="c">
           <div className="page-hero-inner">
             <h1>Terms of Service</h1>

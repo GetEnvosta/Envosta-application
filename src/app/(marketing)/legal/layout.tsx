@@ -5,18 +5,18 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
     <>
       <style>{`
         /* ── Page Hero — white document header ── */
-        .page-hero {
+        .legal-hero {
           padding: 120px 0 40px;
           position: relative;
           background: #fff;
         }
-        .page-hero .c {
+        .legal-hero .c {
           position: relative;
           z-index: 1;
           max-width: 844px;
           margin: 0 auto;
         }
-        .page-hero h1 {
+        .legal-hero h1 {
           font-family: 'Inter', sans-serif;
           font-size: 1.8rem;
           font-weight: 500;
@@ -25,25 +25,25 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
           margin-bottom: 8px;
           color: #111827;
         }
-        .page-hero p {
+        .legal-hero p {
           font-size: 0.9rem;
           color: #4b5563;
           line-height: 1.7;
           font-weight: 300;
           margin-top: 4px;
         }
-        .page-hero .meta {
+        .legal-hero .meta {
           font-size: 0.78rem;
           color: #9ca3af;
           margin-top: 10px;
           font-weight: 400;
         }
-        .page-hero .divider {
+        .legal-hero .divider {
           border: none;
           border-top: 1px solid #e5e7eb;
           margin-top: 32px;
         }
-        .page-hero-inner {
+        .legal-hero-inner {
           max-width: 780px;
           margin: 0 auto;
         }
@@ -256,7 +256,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
 
         /* ── Responsive ── */
         @media (max-width: 768px) {
-          .page-hero {
+          .legal-hero {
             padding: 100px 0 32px;
           }
           .legal-wrap {

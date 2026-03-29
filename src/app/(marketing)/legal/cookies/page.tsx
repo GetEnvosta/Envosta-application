@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function CookiesPage() {
   return (
     <>
-      <section className="page-hero">
+      <section className="legal-hero">
         <div className="c">
           <h1>Cookie Policy</h1>
           <p>Learn how Envosta uses cookies and similar technologies to provide, protect, and improve our services.</p>

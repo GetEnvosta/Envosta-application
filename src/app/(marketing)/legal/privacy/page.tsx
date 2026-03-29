@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <>
-      <section className="page-hero">
+      <section className="legal-hero">
         <div className="c">
           <h1>Privacy Policy</h1>
           <p>This policy explains what data we collect, how we use it, and the choices you have regarding your personal information.</p>

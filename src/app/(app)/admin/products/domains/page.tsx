@@ -40,7 +40,8 @@ export default function DomainPricingPage() {
     const { data } = await supabase
       .from('products')
       .select('*')
-      .order('tld', { ascending: true });
+      .eq('type', 'domain_tld')
+      .order('sort_order', { ascending: true });
     setPricing(data ?? []);
     setLoading(false);
   }

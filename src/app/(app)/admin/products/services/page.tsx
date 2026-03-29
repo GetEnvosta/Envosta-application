@@ -31,7 +31,7 @@ export default function OneTimeServicesPage() {
 
   async function fetchServices() {
     const supabase = createClient();
-    const { data } = await supabase.from('products').select('*').order('sort_order');
+    const { data } = await supabase.from('products').select('*').eq('type', 'one_time_service').order('sort_order');
     setServices(data ?? []);
     setLoading(false);
   }
