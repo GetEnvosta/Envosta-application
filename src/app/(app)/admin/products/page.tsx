@@ -18,7 +18,7 @@ export default async function ProductsPage({
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
   const params = await searchParams;
-  const typeFilter = params.type ?? 'all';
+  const typeFilter = params.type ?? 'hosting_plan';
 
   const { data: allProducts } = await getSupabase()
     .from('products')
@@ -54,10 +54,9 @@ export default async function ProductsPage({
       {/* Type filter tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
         {[
-          { key: 'all', label: 'All' },
           { key: 'hosting_plan', label: 'Hosting Plans' },
-          { key: 'domain_tld', label: 'Domain TLDs' },
           { key: 'plan_addon', label: 'Plan Add-ons' },
+          { key: 'domain_tld', label: 'Domain TLDs' },
           { key: 'one_time_service', label: 'One-Time Services' },
         ].map(tab => (
           <Link
