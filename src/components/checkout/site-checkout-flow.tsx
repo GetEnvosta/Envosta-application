@@ -1,12 +1,16 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import Link from 'next/link';
 import {
   ArrowRight, ArrowLeft, Globe, Sparkles, Check, Search,
   Loader2, ChevronRight, LayoutGrid, CreditCard, User, Calendar,
 } from 'lucide-react';
+import { loadStripe } from '@stripe/stripe-js';
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 /* ── Types ── */
 interface Plan {
@@ -68,7 +72,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   const domainRef = useRef<HTMLInputElement>(null);
 
   // Checkout
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  // checkoutLoading removed — Stripe Embedded Checkout handles its own loading
   const [checkoutError, setCheckoutError] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>(initialBilling ?? 'monthly');
@@ -192,15 +196,15 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
     setDomainChecking(false);
   }
 
-  /* Checkout */
-  async function handleCheckout() {
-    if (!selectedPlan) return;
-    setCheckoutLoading(true);
+  /* Checkout — creates Stripe embedded session */
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+
+  const fetchClientSecret = useCallback(async () => {
+    if (!selectedPlan) return '';
     setCheckoutError('');
 
     try {
       if (mode === 'public') {
-        // Public: create account + checkout via API route
         const res = await fetch('/api/signup-checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -213,33 +217,24 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
             onboarding: onboardingChoice ?? 'self',
             termsAccepted: true,
             termsAcceptedAt: new Date().toISOString(),
-            trial: isTrial || false, // Trial stays active — domain is a separate purchase, not tied to hosting trial
+            trial: isTrial || false,
             promoCode: promoCode || undefined,
           }),
         });
         const data = await res.json();
         if (!res.ok) {
           setCheckoutError(data.error ?? 'Something went wrong');
-          setCheckoutLoading(false);
-          return;
+          return '';
         }
-
-        if (data.url) { window.location.href = data.url; return; }
-        if (data.redirect) { window.location.href = data.redirect; return; }
+        return data.clientSecret ?? '';
       } else {
-        // Dashboard: use authenticated Stripe checkout
+        // Dashboard: use authenticated Stripe checkout (still redirect for now)
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          setCheckoutError('Please log in first');
-          setCheckoutLoading(false);
-          return;
-        }
+        if (!session) { setCheckoutError('Please log in first'); return ''; }
         const body: Record<string, unknown> = {
           priceId: billingPeriod === 'annual' ? selectedPlan.stripe_price_id_yearly : selectedPlan.stripe_price_id,
         };
-        if (selectedDomain) {
-          body.domainName = selectedDomain;
-        }
+        if (selectedDomain) body.domainName = selectedDomain;
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/stripe-checkout`,
           {
@@ -253,19 +248,15 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
           },
         );
         const data = await res.json();
-        if (!res.ok || !data?.url) {
-          setCheckoutError(data?.error ?? 'Checkout failed');
-          setCheckoutLoading(false);
-          return;
-        }
-        window.location.href = data.url;
+        if (data?.url) { window.location.href = data.url; return ''; }
+        setCheckoutError(data?.error ?? 'Checkout failed');
+        return '';
       }
     } catch (e: any) {
-      console.error('Checkout error:', e);
-      setCheckoutError(e?.message ?? 'Something went wrong. Please try again.');
-      setCheckoutLoading(false);
+      setCheckoutError(e?.message ?? 'Something went wrong.');
+      return '';
     }
-  }
+  }, [selectedPlan, name, email, password, billingPeriod, selectedDomain, domainMode, onboardingChoice, isTrial, promoCode, mode]);
 
   /* Step helpers */
   const planStepNum = steps.indexOf('Plan') + 1 || 99;
@@ -398,14 +389,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 <button
                   onClick={() => {
                     if (!(name && email && password.length >= 8 && password === confirmPassword)) return;
-                    // Skip steps that are already pre-filled
-                    if (selectedPlan && selectedDomain) {
-                      setStep(checkoutStepNum); // Both pre-filled → checkout
-                    } else if (selectedPlan) {
-                      setStep(domainStepNum); // Plan pre-filled → domain step
-                    } else {
-                      setStep(planStepNum); // Nothing pre-filled → plan step
-                    }
+                    // Public flow: always go to domain step (plan is pre-selected)
+                    setStep(domainStepNum);
                   }}
                   disabled={!name || !email || password.length < 8 || password !== confirmPassword}
                   style={{
@@ -718,124 +703,38 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
       )}
 
       {/* ════════════════════════════════════════════
-          STEP: CHECKOUT SUMMARY
+          STEP: PAYMENT (Stripe Embedded Checkout)
          ════════════════════════════════════════════ */}
       {step === checkoutStepNum && selectedPlan && (
-        <div style={{ maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ maxWidth: 600, margin: '0 auto' }}>
           <button onClick={() => setStep(domainStepNum)} style={{ background: 'none', border: 'none', color: t.textMuted, cursor: 'pointer', marginBottom: 16, fontSize: '.82rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <ArrowLeft style={{ width: 14, height: 14 }} /> Back
           </button>
 
-          <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 24, color: t.text, textAlign: 'center' }}>
-            Order summary
+          <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 8, color: t.text, textAlign: 'center' }}>
+            Complete your signup
           </h2>
+          <p style={{ color: t.textSub, marginBottom: 24, fontSize: '.88rem', textAlign: 'center' }}>
+            {isTrial
+              ? `${selectedPlan.name} Plan — 14-day free trial. You won't be charged today.`
+              : `${selectedPlan.name} Plan — $${(selectedPlan.price_cad / 100).toFixed(0)} CAD/mo`}
+            {selectedDomain && domainMode === 'new' ? ` + ${selectedDomain}` : ''}
+          </p>
 
-          <div style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, borderRadius: 18, padding: '28px 24px' }}>
-            {/* Plan */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: `1px solid ${t.cardBorder}` }}>
-              <div>
-                <p style={{ fontWeight: 500, color: t.text, fontSize: '.9rem' }}>{selectedPlan.name} Plan</p>
-                <p style={{ fontSize: '.75rem', color: t.textMuted }}>Billed monthly</p>
-              </div>
-              <p style={{ fontWeight: 600, color: t.text, fontSize: '.9rem' }}>${billingPeriod === 'annual' ? (selectedPlan.price_yearly_cad / 100).toFixed(2) + ' CAD/yr' : (selectedPlan.price_cad / 100).toFixed(2) + ' CAD/mo'}</p>
+          {checkoutError && <p style={{ color: '#ef4444', fontSize: '.82rem', marginBottom: 16, textAlign: 'center' }}>{checkoutError}</p>}
+
+          {mode === 'public' ? (
+            <div id="checkout-embed" style={{ minHeight: 300 }}>
+              <EmbeddedCheckoutProvider stripe={stripePromise} options={{ fetchClientSecret }}>
+                <EmbeddedCheckout />
+              </EmbeddedCheckoutProvider>
             </div>
-
-            {/* Domain */}
-            {selectedDomain && domainMode === 'new' && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: `1px solid ${t.cardBorder}` }}>
-                <div>
-                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.9rem' }}>{selectedDomain}</p>
-                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>Domain registration — billed yearly</p>
-                </div>
-                <p style={{ fontWeight: 600, color: t.text, fontSize: '.9rem' }}>{domainPriceCents ? `$${(domainPriceCents / 100).toFixed(2)} CAD/yr` : '—'}</p>
-              </div>
-            )}
-
-            {selectedDomain && domainMode === 'existing' && (
-              <div style={{ padding: '16px 0', borderBottom: `1px solid ${t.cardBorder}` }}>
-                <p style={{ fontSize: '.82rem', color: t.textSub }}>
-                  Domain: <strong style={{ color: t.text }}>{selectedDomain}</strong>
-                  <span style={{ color: t.textMuted, marginLeft: 8, fontSize: '.75rem' }}>DNS setup after checkout</span>
-                </p>
-              </div>
-            )}
-
-            {!selectedDomain && (
-              <div style={{ padding: '16px 0', borderBottom: `1px solid ${t.cardBorder}` }}>
-                <p style={{ fontSize: '.82rem', color: t.textMuted }}>Temporary domain — add a custom domain anytime</p>
-              </div>
-            )}
-
-            {/* Onboarding preference */}
-            <div style={{ padding: '16px 0' }}>
-              <p style={{ fontSize: '.8rem', color: t.textSub, marginBottom: 12, fontWeight: 500 }}>After setup, would you like help?</p>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button
-                  onClick={() => setOnboardingChoice('self')}
-                  style={{
-                    flex: 1, padding: '12px 14px', borderRadius: 10, cursor: 'pointer', textAlign: 'center', transition: 'all .2s',
-                    background: onboardingChoice === 'self' ? dark ? 'rgba(37,99,235,.08)' : 'rgba(37,99,235,.04)' : t.cardBg,
-                    border: `1px solid ${onboardingChoice === 'self' ? '#2563EB' : t.cardBorder}`,
-                  }}
-                >
-                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.82rem' }}>I&apos;ll take it from here</p>
-                  <p style={{ fontSize: '.68rem', color: t.textMuted, marginTop: 2 }}>Self-guided setup</p>
-                </button>
-                <button
-                  onClick={() => setOnboardingChoice('guided')}
-                  style={{
-                    flex: 1, padding: '12px 14px', borderRadius: 10, cursor: 'pointer', textAlign: 'center', transition: 'all .2s',
-                    background: onboardingChoice === 'guided' ? dark ? 'rgba(37,99,235,.08)' : 'rgba(37,99,235,.04)' : t.cardBg,
-                    border: `1px solid ${onboardingChoice === 'guided' ? '#2563EB' : t.cardBorder}`,
-                  }}
-                >
-                  <p style={{ fontWeight: 500, color: t.text, fontSize: '.82rem' }}>I&apos;d like onboarding</p>
-                  <p style={{ fontSize: '.68rem', color: t.textMuted, marginTop: 2 }}>Book a call with our team</p>
-                </button>
-              </div>
-              {onboardingChoice === 'guided' && (
-                <div style={{ marginTop: 12, padding: '12px 16px', background: 'rgba(37,99,235,.04)', border: '1px solid rgba(37,99,235,.12)', borderRadius: 10 }}>
-                  <p style={{ fontSize: '.78rem', color: t.textSub, lineHeight: 1.6 }}>
-                    After checkout, we&apos;ll send you a link to book your onboarding call. We&apos;ll walk through your goals, set everything up, and get your site ready to launch.
-                  </p>
-                </div>
-              )}
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <Loader2 style={{ width: 24, height: 24, animation: 'spin 1s linear infinite', margin: '0 auto 16px', color: t.textMuted }} />
+              <p style={{ color: t.textMuted, fontSize: '.88rem' }}>Redirecting to secure checkout...</p>
             </div>
-          </div>
-
-          {/* Terms acceptance */}
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 20, cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={termsAccepted}
-              onChange={e => setTermsAccepted(e.target.checked)}
-              style={{ marginTop: 3, accentColor: '#2563EB' }}
-            />
-            <span style={{ fontSize: '.78rem', color: t.textSub, lineHeight: 1.6 }}>
-              I agree to the <a href="/legal/terms" target="_blank" style={{ color: t.accent, textDecoration: 'underline' }}>Terms of Service</a> and <a href="/legal/terms#domain-registration" target="_blank" style={{ color: t.accent, textDecoration: 'underline' }}>Domain Registration Agreement</a>.
-            </span>
-          </label>
-
-          {/* Checkout button */}
-          <button
-            onClick={handleCheckout}
-            disabled={checkoutLoading || !termsAccepted}
-            style={{
-              width: '100%', padding: '16px', background: t.btnBg, color: t.btnColor, borderRadius: 100, border: 'none',
-              fontSize: '.9rem', fontWeight: 600, cursor: 'pointer', marginTop: 16,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              opacity: (checkoutLoading || !termsAccepted) ? 0.4 : 1,
-            }}
-          >
-            {checkoutLoading ? (
-              <>
-                <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Setting up secure payment...
-              </>
-            ) : (
-              <>Continue to Payment <ArrowRight style={{ width: 16, height: 16 }} /></>
-            )}
-          </button>
-          {checkoutError && <p style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 12, textAlign: 'center' }}>{checkoutError}</p>}
+          )}
         </div>
       )}
     </div>
