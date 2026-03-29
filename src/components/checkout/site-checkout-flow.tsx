@@ -76,11 +76,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   // Onboarding
   const [onboardingChoice, setOnboardingChoice] = useState<'self' | 'guided' | null>(null);
 
-  // Steps
-  // Trial (CTA "Get Started"): Account → Checkout (temp domain auto, skip domain step)
-  // Paid (pricing page): Account → Domain → Checkout
-  // Dashboard: Plan → Domain → Checkout
-  const publicSteps = isTrial ? ['Account', 'Checkout'] : ['Account', 'Domain', 'Checkout'];
+  // Steps — all public flows show domain step
+  const publicSteps = ['Account', 'Domain', 'Checkout'];
   const dashboardSteps = ['Plan', 'Domain', 'Checkout'];
   const steps = mode === 'public' ? publicSteps : dashboardSteps;
   const [step, _setStep] = useState(1);
@@ -119,10 +116,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
       // Pre-select plan from URL param
       if (initialPlan) {
         const match = allPlans.find(p => p.slug === initialPlan);
-        if (match) {
-          setSelectedPlan(match);
-          if (isTrial) setDomainMode('temp'); // Trial uses temp domain automatically
-        }
+        if (match) setSelectedPlan(match);
       }
 
       // Pre-fill domain from URL param and fetch its price
@@ -219,7 +213,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
             onboarding: onboardingChoice ?? 'self',
             termsAccepted: true,
             termsAcceptedAt: new Date().toISOString(),
-            trial: isTrial || false,
+            trial: isTrial && domainMode !== 'new' ? true : false, // Domain purchase ends trial
             promoCode: promoCode || undefined,
           }),
         });
@@ -596,7 +590,9 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 <Sparkles style={{ width: 18, height: 18, color: '#2563EB' }} />
                 <div>
                   <p style={{ fontWeight: 500, color: t.text, fontSize: '.88rem' }}>Register a domain</p>
-                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>Search and secure your perfect domain name</p>
+                  <p style={{ fontSize: '.75rem', color: t.textMuted }}>
+                    {isTrial ? 'Purchasing a domain will start your paid plan immediately' : 'Search and secure your perfect domain name'}
+                  </p>
                 </div>
                 <span style={{ marginLeft: 'auto', fontSize: '.72rem', fontWeight: 500, color: t.textMuted }}>from $15/yr</span>
               </div>

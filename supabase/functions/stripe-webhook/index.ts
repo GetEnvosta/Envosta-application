@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       // Auto-create service record for active subscriptions with a hosting plan
       // Skip domain-only subscriptions (type: "domain_renewal" in metadata)
       const isDomainRenewal = sub.metadata?.type === "domain_renewal";
-      if (sub.status === "active" && dbSub && plan?.id && !isDomainRenewal) {
+      if ((sub.status === "active" || sub.status === "trialing") && dbSub && plan?.id && !isDomainRenewal) {
         const { data: existing } = await sb.from("sites").select("id").eq("subscription_id", dbSub.id).maybeSingle();
         if (!existing) {
           const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.id).maybeSingle();
