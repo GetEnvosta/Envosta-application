@@ -1,19 +1,36 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase-browser';
 import { SiteCheckoutFlow } from '@/components/checkout/site-checkout-flow';
 
 export function GetStartedFlow() {
   const searchParams = useSearchParams();
+  const [checking, setChecking] = useState(true);
+
+  // If already logged in, redirect to dashboard add-site
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        const params = new URLSearchParams(window.location.search);
+        window.location.href = `/dashboard/add-site${params.toString() ? '?' + params.toString() : ''}`;
+      } else {
+        setChecking(false);
+      }
+    });
+  }, []);
   const plan = searchParams.get('plan')?.toLowerCase() ?? undefined;
   const domain = searchParams.get('domain') ?? undefined;
   const billing = (searchParams.get('billing') === 'annual' ? 'annual' : 'monthly') as 'monthly' | 'annual';
   const promo = searchParams.get('promo') ?? undefined;
 
   // Trial only when no plan param (CTA "Get Started" clicks)
-  // Pricing page sends ?plan=growth which means paid, no trial
   const isTrial = !plan;
   const effectivePlan = plan ?? 'minimum';
+
+  if (checking) return <div style={{ minHeight: '100vh' }} />;
 
   return (
     <div style={{ paddingTop: 100, paddingBottom: 80, minHeight: '100vh' }}>
