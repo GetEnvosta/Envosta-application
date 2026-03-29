@@ -76,8 +76,11 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   // Onboarding
   const [onboardingChoice, setOnboardingChoice] = useState<'self' | 'guided' | null>(null);
 
-  // Steps — public signup skips plan (auto-selected from URL or defaults to Minimum)
-  const publicSteps = ['Account', 'Domain', 'Checkout'];
+  // Steps
+  // Trial (CTA "Get Started"): Account → Checkout (temp domain auto, skip domain step)
+  // Paid (pricing page): Account → Domain → Checkout
+  // Dashboard: Plan → Domain → Checkout
+  const publicSteps = isTrial ? ['Account', 'Checkout'] : ['Account', 'Domain', 'Checkout'];
   const dashboardSteps = ['Plan', 'Domain', 'Checkout'];
   const steps = mode === 'public' ? publicSteps : dashboardSteps;
   const [step, _setStep] = useState(1);
@@ -116,7 +119,10 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
       // Pre-select plan from URL param
       if (initialPlan) {
         const match = allPlans.find(p => p.slug === initialPlan);
-        if (match) setSelectedPlan(match);
+        if (match) {
+          setSelectedPlan(match);
+          if (isTrial) setDomainMode('temp'); // Trial uses temp domain automatically
+        }
       }
 
       // Pre-fill domain from URL param and fetch its price
