@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { RefreshCw, Plus, ChevronDown } from 'lucide-react';
-import { createClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
 
 export function ProductsClient() {
@@ -44,17 +43,21 @@ export function ProductsClient() {
   async function quickCreate(type: string, name: string, slug: string, billing: string, price: number) {
     setCreating(true);
     setShowMenu(false);
-    const supabase = createClient();
-    const { data, error } = await supabase.from('products').insert({
-      type, name, slug, billing, price_cad: price, is_active: true,
-      metadata: type === 'hosting_plan' ? { php_workers_default: 2, php_workers_included: 4, php_memory_mb: 512, storage_gb: 25, has_staging: true, has_backups: true, has_cdn: true, has_waf: true, onboarding_type: 'standard', support_type: 'tickets', sites_allowed: 1 } : {},
-      features: type === 'hosting_plan' ? '[]' : '[]',
-    }).select('id').single();
-
-    if (data?.id) {
-      router.push(`/admin/products/plans/${data.id}`);
-    } else {
-      setResult(error?.message ?? 'Failed to create');
+    try {
+      const res = await fetch('/api/admin/create-product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, name, slug, billing, price_cad: price }),
+      });
+      const data = await res.json();
+      if (data.id) {
+        router.push(`/admin/products/plans/${data.id}`);
+      } else {
+        setResult(data.error ?? 'Failed to create');
+        setCreating(false);
+      }
+    } catch {
+      setResult('Failed to create');
       setCreating(false);
     }
   }
