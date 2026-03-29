@@ -212,14 +212,12 @@ export async function POST(req: Request) {
       } catch { /* ignore invalid promo codes */ }
     }
 
-    const returnUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://my.envosta.com'}/auth/login?checkout=success&email=${encodeURIComponent(email)}`;
     const sessionParams: any = {
       customer: customer.stripe_customer_id,
       mode: 'subscription',
       line_items: lineItems,
-      ui_mode: 'embedded',
-      return_url: `${returnUrl}&session_id={CHECKOUT_SESSION_ID}`,
-      redirect_on_completion: 'always',
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://my.envosta.com'}/auth/login?checkout=success&email=${encodeURIComponent(email)}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://envosta.com'}/get-started?plan=${plan}`,
       subscription_data: {
         metadata: {
           supabase_user_id: userId,
@@ -343,7 +341,7 @@ export async function POST(req: Request) {
       // Non-fatal — don't block checkout if ticket creation fails
     }
 
-    return NextResponse.json({ clientSecret: session.client_secret });
+    return NextResponse.json({ url: session.url });
 
   } catch (e: any) {
     console.error('Signup checkout error:', e);

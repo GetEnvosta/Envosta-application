@@ -1,16 +1,12 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import Link from 'next/link';
 import {
   ArrowRight, ArrowLeft, Globe, Sparkles, Check, Search,
   Loader2, ChevronRight, LayoutGrid, CreditCard, User, Calendar,
 } from 'lucide-react';
-import { loadStripe } from '@stripe/stripe-js';
-import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 /* ── Types ── */
 interface Plan {
@@ -197,10 +193,11 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   }
 
   /* Checkout — creates Stripe embedded session */
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
-  const fetchClientSecret = useCallback(async () => {
-    if (!selectedPlan) return '';
+  async function handleCheckout() {
+    if (!selectedPlan) return;
+    setCheckoutLoading(true);
     setCheckoutError('');
 
     try {
@@ -222,15 +219,11 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
           }),
         });
         const data = await res.json();
-        if (!res.ok) {
-          setCheckoutError(data.error ?? 'Something went wrong');
-          return '';
-        }
-        return data.clientSecret ?? '';
+        if (!res.ok) { setCheckoutError(data.error ?? 'Something went wrong'); setCheckoutLoading(false); return; }
+        if (data.url) { window.location.href = data.url; return; }
       } else {
-        // Dashboard: use authenticated Stripe checkout (still redirect for now)
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) { setCheckoutError('Please log in first'); return ''; }
+        if (!session) { setCheckoutError('Please log in first'); setCheckoutLoading(false); return; }
         const body: Record<string, unknown> = {
           priceId: billingPeriod === 'annual' ? selectedPlan.stripe_price_id_yearly : selectedPlan.stripe_price_id,
         };
@@ -248,15 +241,14 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
           },
         );
         const data = await res.json();
-        if (data?.url) { window.location.href = data.url; return ''; }
+        if (data?.url) { window.location.href = data.url; return; }
         setCheckoutError(data?.error ?? 'Checkout failed');
-        return '';
       }
     } catch (e: any) {
       setCheckoutError(e?.message ?? 'Something went wrong.');
-      return '';
     }
-  }, [selectedPlan, name, email, password, billingPeriod, selectedDomain, domainMode, onboardingChoice, isTrial, promoCode, mode]);
+    setCheckoutLoading(false);
+  }
 
   /* Step helpers */
   const planStepNum = steps.indexOf('Plan') + 1 || 99;
@@ -721,20 +713,32 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
             {selectedDomain && domainMode === 'new' ? ` + ${selectedDomain}` : ''}
           </p>
 
+          {/* Terms */}
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20, cursor: 'pointer' }}>
+            <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} style={{ marginTop: 3, accentColor: '#2563EB' }} />
+            <span style={{ fontSize: '.78rem', color: t.textSub, lineHeight: 1.6 }}>
+              I agree to the <a href="/legal/terms" target="_blank" style={{ color: t.accent, textDecoration: 'underline' }}>Terms of Service</a> and <a href="/legal/privacy" target="_blank" style={{ color: t.accent, textDecoration: 'underline' }}>Privacy Policy</a>.
+            </span>
+          </label>
+
           {checkoutError && <p style={{ color: '#ef4444', fontSize: '.82rem', marginBottom: 16, textAlign: 'center' }}>{checkoutError}</p>}
 
-          {mode === 'public' ? (
-            <div id="checkout-embed" style={{ minHeight: 300 }}>
-              <EmbeddedCheckoutProvider stripe={stripePromise} options={{ fetchClientSecret }}>
-                <EmbeddedCheckout />
-              </EmbeddedCheckoutProvider>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <Loader2 style={{ width: 24, height: 24, animation: 'spin 1s linear infinite', margin: '0 auto 16px', color: t.textMuted }} />
-              <p style={{ color: t.textMuted, fontSize: '.88rem' }}>Redirecting to secure checkout...</p>
-            </div>
-          )}
+          <button
+            onClick={handleCheckout}
+            disabled={checkoutLoading || !termsAccepted}
+            style={{
+              width: '100%', padding: '16px', background: t.btnBg, color: t.btnColor, borderRadius: 100, border: 'none',
+              fontSize: '.9rem', fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              opacity: (checkoutLoading || !termsAccepted) ? 0.4 : 1,
+            }}
+          >
+            {checkoutLoading ? (
+              <><Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Setting up secure payment...</>
+            ) : (
+              <><CreditCard style={{ width: 16, height: 16 }} /> Continue to Payment</>
+            )}
+          </button>
         </div>
       )}
     </div>
