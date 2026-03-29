@@ -272,21 +272,7 @@ export default async function ServiceDetailPage({
         </div>
       </div>
 
-      {/* Resources */}
-      {service.wp_cloud_site_id && (service.products as any) && (
-        <div className="mb-6">
-          <ResourceControls
-            siteId={service.id}
-            wpCloudSiteId={service.wp_cloud_site_id}
-            currentPlan={{
-              max_php_workers: (service.products as any).max_php_workers ?? 2,
-              default_php_workers: (service.products as any).default_php_workers ?? 2,
-              php_memory_mb: (service.products as any).php_memory_mb ?? 512,
-              slug: (service.products as any).slug ?? 'unknown',
-            }}
-          />
-        </div>
-      )}
+      {/* Old resource controls removed — using new version above */}
 
       {/* Danger Zone */}
       <div className="rounded-xl border border-red-200 bg-white p-6">
