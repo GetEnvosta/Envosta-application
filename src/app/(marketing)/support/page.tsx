@@ -28,7 +28,7 @@ export default function SupportPage() {
         .rv{opacity:0;transform:translateY(20px);transition:opacity .6s,transform .6s}.rv.v{opacity:1;transform:none}
 
         /* ═══ HERO ═══ */
-        .hero{padding:160px 0 80px;position:relative;overflow:hidden;display:flex;align-items:center}
+        .hero{padding:160px 0 80px;position:relative;overflow:hidden}
         .hero-overlay{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(37,99,235,.15),transparent 65%);z-index:0}
         .hero .c{position:relative;z-index:2;text-align:center}
         .hero-text{max-width:720px;margin:0 auto}
