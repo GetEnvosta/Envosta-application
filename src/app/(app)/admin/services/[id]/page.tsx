@@ -164,6 +164,16 @@ export default async function ServiceDetailPage({
         </div>
       )}
 
+      {/* wp.cloud Resource Controls */}
+      <div className="mb-6">
+        <ResourceControls
+          siteId={service.id}
+          wpCloudSiteId={service.wp_cloud_site_id}
+          config={service.config ?? {}}
+          planMetadata={(service.products as any)?.metadata ?? {}}
+        />
+      </div>
+
       {/* Change Plan */}
       <div className="card p-6 mb-6">
         <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
