@@ -158,10 +158,22 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
         <div className="card p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Stripe — Billing</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label className="label">Monthly Price (cents CAD)</label><input type="number" className="input" value={plan.price_cad} onChange={e => update('price_cad', parseInt(e.target.value) || 0)} /></div>
-            <div><label className="label">Yearly Price (cents CAD)</label><input type="number" className="input" value={plan.price_yearly_cad ?? 0} onChange={e => update('price_yearly_cad', parseInt(e.target.value) || 0)} /></div>
-            <div><label className="label">Monthly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id ?? ''} onChange={e => update('stripe_price_id', e.target.value)} placeholder="price_..." /></div>
-            <div><label className="label">Yearly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id_yearly ?? ''} onChange={e => update('stripe_price_id_yearly', e.target.value)} placeholder="price_..." /></div>
+            <div>
+              <label className="label">Billing Type</label>
+              <select className="input" value={plan.billing ?? 'monthly'} onChange={e => update('billing', e.target.value)}>
+                <option value="monthly">Monthly (recurring)</option>
+                <option value="yearly">Yearly (recurring)</option>
+                <option value="one_time">One-Time (single charge)</option>
+              </select>
+            </div>
+            <div><label className="label">{plan.billing === 'one_time' ? 'Price (cents CAD)' : 'Monthly Price (cents CAD)'}</label><input type="number" className="input" value={plan.price_cad} onChange={e => update('price_cad', parseInt(e.target.value) || 0)} /></div>
+            {plan.billing === 'monthly' && (
+              <div><label className="label">Yearly Price (cents CAD)</label><input type="number" className="input" value={plan.price_yearly_cad ?? 0} onChange={e => update('price_yearly_cad', parseInt(e.target.value) || 0)} /></div>
+            )}
+            <div><label className="label">Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id ?? ''} onChange={e => update('stripe_price_id', e.target.value)} placeholder="price_..." /></div>
+            {plan.billing === 'monthly' && (
+              <div><label className="label">Yearly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id_yearly ?? ''} onChange={e => update('stripe_price_id_yearly', e.target.value)} placeholder="price_..." /></div>
+            )}
             <div><label className="label">Product ID</label><input className="input font-mono text-xs" value={plan.stripe_product_id ?? ''} onChange={e => update('stripe_product_id', e.target.value)} placeholder="prod_..." /></div>
           </div>
         </div>

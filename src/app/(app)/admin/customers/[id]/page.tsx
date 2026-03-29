@@ -1,6 +1,7 @@
 import { getCustomerById, getCustomerRelatedData } from '@/services/admin';
 import { cn, formatDate, formatDateTime, statusColor } from '@/lib/utils';
 import Link from 'next/link';
+import { QuickInvoice } from '@/components/admin/quick-invoice';
 import {
   ArrowLeft,
   Building2,
@@ -96,6 +97,13 @@ export default async function CustomerDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Quick Invoice */}
+      {user.stripe_customer_id && (
+        <div className="mb-6">
+          <QuickInvoice stripeCustomerId={user.stripe_customer_id} customerName={user.full_name || user.email} />
+        </div>
+      )}
 
       {/* Services + Domains */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
