@@ -1,5 +1,5 @@
 import { formatCents } from '@/lib/utils';
-import { CheckCircle, AlertTriangle, Plus, Pencil, RefreshCw } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import { ProductsClient } from './products-client';
@@ -48,12 +48,7 @@ export default async function ProductsPage({
             {synced}/{products.length} synced to Stripe · {products.filter(p => p.is_active).length} active
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <ProductsClient />
-          <Link href="/admin/products/plans/new" className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
-            <Plus className="w-4 h-4" /> New Product
-          </Link>
-        </div>
+        <ProductsClient />
       </div>
 
       {/* Type filter tabs */}
