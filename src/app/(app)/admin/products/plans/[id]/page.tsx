@@ -125,8 +125,13 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
         <ArrowLeft className="w-4 h-4" /> Back to Products
       </Link>
 
-      <h1 className="text-xl font-semibold text-gray-900 mb-1">Edit Plan: {plan.name}</h1>
-      <p className="text-sm text-gray-500 mb-6">Update plan configuration, pricing, and features.</p>
+      <h1 className="text-xl font-semibold text-gray-900 mb-1">Edit: {plan.name}</h1>
+      <p className="text-sm text-gray-500 mb-6">
+        {plan.type === 'hosting_plan' ? 'Hosting plan — pricing, wp.cloud specs, and features.' :
+         plan.type === 'domain_tld' ? 'Domain TLD — pricing and OpenSRS configuration.' :
+         plan.type === 'plan_addon' ? 'Plan add-on — per-site recurring billing.' :
+         'One-time service — single charge product.'}
+      </p>
 
       {error && <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700 mb-4">{error}</div>}
       {success && <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-700 mb-4">{success}</div>}
@@ -161,7 +166,32 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
           </div>
         </div>
 
-        {/* wp.cloud — Infrastructure */}
+        {/* Domain TLD — OpenSRS Config (domain_tld only) */}
+        {plan.type === 'domain_tld' && (
+          <div className="card p-6">
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">OpenSRS — Domain Configuration</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div><label className="label">TLD (e.g. com, ca, io)</label><input className="input font-mono" value={plan.metadata?.tld ?? ''} onChange={e => update('metadata', { ...plan.metadata, tld: e.target.value })} placeholder="com" /></div>
+              <div><label className="label">Registration Price (cents CAD)</label><input type="number" className="input" value={plan.metadata?.registration_price_cad ?? plan.price_cad ?? 0} onChange={e => update('metadata', { ...plan.metadata, registration_price_cad: parseInt(e.target.value) || 0 })} /></div>
+              <div><label className="label">Transfer Price (cents CAD)</label><input type="number" className="input" value={plan.metadata?.transfer_price_cad ?? 0} onChange={e => update('metadata', { ...plan.metadata, transfer_price_cad: parseInt(e.target.value) || 0 })} /></div>
+            </div>
+          </div>
+        )}
+
+        {/* Plan Add-on Config (plan_addon only) */}
+        {plan.type === 'plan_addon' && (
+          <div className="card p-6">
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">wp.cloud — Add-on Configuration</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div><label className="label">wp.cloud Config Key</label><input className="input font-mono" value={plan.metadata?.wpcloud_key ?? ''} onChange={e => update('metadata', { ...plan.metadata, wpcloud_key: e.target.value })} placeholder="e.g. php_workers" /></div>
+              <div><label className="label">Increment per Unit</label><input type="number" className="input" value={plan.metadata?.increment ?? 1} onChange={e => update('metadata', { ...plan.metadata, increment: parseInt(e.target.value) || 1 })} /></div>
+              <div><label className="label">Unit Label</label><input className="input" value={plan.metadata?.unit_label ?? ''} onChange={e => update('metadata', { ...plan.metadata, unit_label: e.target.value })} placeholder="e.g. 2 workers" /></div>
+            </div>
+          </div>
+        )}
+
+        {/* wp.cloud — Infrastructure (hosting_plan only) */}
+        {plan.type === 'hosting_plan' && (
         <div className="card p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">wp.cloud — Infrastructure</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -196,7 +226,10 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
           </div>
         </div>
 
-        {/* Marketing — Plan Card Features */}
+        )}
+
+        {/* Marketing — Plan Card Features (hosting_plan only) */}
+        {plan.type === 'hosting_plan' && (
         <div className="card p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Marketing — Plan Card Features</h2>
           <textarea
@@ -209,6 +242,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
           />
           <p className="text-xs text-gray-400 mt-1">JSON array of feature strings.</p>
         </div>
+        )}
 
         <button onClick={handleSave} disabled={saving} className="btn-admin inline-flex items-center gap-2">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}

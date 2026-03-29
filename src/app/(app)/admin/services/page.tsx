@@ -1,3 +1,4 @@
+export const revalidate = 5;
 import { getAllServices } from '@/services/sites';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';

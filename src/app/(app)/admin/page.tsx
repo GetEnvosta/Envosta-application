@@ -1,3 +1,4 @@
+export const revalidate = 5;
 import { getDashboardCounts, getRecentCustomers, getRecentActivity } from '@/services/admin';
 import { getAllActiveSubscriptions } from '@/services/subscriptions';
 import { getRecentTicketsByType } from '@/services/tickets';

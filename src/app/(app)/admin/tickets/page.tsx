@@ -1,3 +1,4 @@
+export const revalidate = 5;
 import { getAllTickets, getTicketCounts } from '@/services/tickets';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';

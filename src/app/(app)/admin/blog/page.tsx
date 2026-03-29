@@ -1,3 +1,4 @@
+export const revalidate = 5;
 import { getAllPosts } from '@/services/blog';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';

@@ -1,3 +1,4 @@
+export const revalidate = 5;
 import { getAllDomains } from '@/services/domains';
 import { formatDate, statusColor } from '@/lib/utils';
 import { Globe, Search, DollarSign, ExternalLink } from 'lucide-react';

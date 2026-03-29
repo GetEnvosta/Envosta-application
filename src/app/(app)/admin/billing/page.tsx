@@ -1,3 +1,4 @@
+export const revalidate = 5;
 import { getAllActiveSubscriptions, getAllSubscriptionsAdmin } from '@/services/subscriptions';
 import { getAdminBillingStats, getAdminRecentInvoices } from '@/services/billing';
 import { formatCents } from '@/lib/utils';

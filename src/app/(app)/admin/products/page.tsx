@@ -1,3 +1,4 @@
+export const revalidate = 5;
 import { formatCents } from '@/lib/utils';
 import { CheckCircle, AlertTriangle, Pencil } from 'lucide-react';
 import Link from 'next/link';

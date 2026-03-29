@@ -1,3 +1,4 @@
+export const revalidate = 5;
 import { getAllCustomers } from '@/services/admin';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';

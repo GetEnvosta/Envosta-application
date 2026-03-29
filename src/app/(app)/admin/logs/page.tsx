@@ -1,3 +1,4 @@
+export const revalidate = 5;
 import { getAdminLogs } from '@/services/admin';
 import { formatDateTime } from '@/lib/utils';
 import { ScrollText, Search } from 'lucide-react';
