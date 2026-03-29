@@ -671,7 +671,7 @@ export default async function HomePage() {
 
               {/* D1 FOREGROUND — 6 large */}
               <div className="int-fl int-fl-lg int-d1 int-fa1" style={{ top: '16%', left: '10%' }}>
-                <img loading="lazy" src="/assets/images/logos/stripe.jpeg" alt="Stripe" width="32" height="32" style={{ borderRadius: '6px' }} />
+                <img loading="lazy" src="/assets/images/logos/stripe.svg" alt="Stripe" width="32" height="32" style={{ borderRadius: '6px' }} />
                 <div><div className="int-fl-name">Stripe</div><div className="int-fl-desc">Payments</div></div>
               </div>
 
@@ -686,7 +686,7 @@ export default async function HomePage() {
               </div>
 
               <div className="int-fl int-fl-lg int-d1 int-fa2" style={{ top: '72%', left: '76%' }}>
-                <img loading="lazy" src="/assets/images/logos/zapier.jpeg" alt="Zapier" width="32" height="32" style={{ borderRadius: '6px' }} />
+                <img loading="lazy" src="/assets/images/logos/zapier.svg" alt="Zapier" width="32" height="32" style={{ borderRadius: '6px' }} />
                 <div><div className="int-fl-name">Zapier</div><div className="int-fl-desc">Automation</div></div>
               </div>
 
@@ -696,7 +696,7 @@ export default async function HomePage() {
               </div>
 
               <div className="int-fl int-fl-lg int-d1 int-fa6" style={{ top: '44%', left: '6%' }}>
-                <img loading="lazy" src="/assets/images/logos/paypal.jpeg" alt="PayPal" width="32" height="32" style={{ borderRadius: '6px' }} />
+                <img loading="lazy" src="/assets/images/logos/paypal.svg" alt="PayPal" width="32" height="32" style={{ borderRadius: '6px' }} />
                 <div><div className="int-fl-name">PayPal</div><div className="int-fl-desc">Payments</div></div>
               </div>
 
@@ -717,17 +717,17 @@ export default async function HomePage() {
               </div>
 
               <div className="int-fl int-fl-md int-d2 int-fa3" style={{ top: '88%', left: '42%' }}>
-                <img loading="lazy" src="/assets/images/logos/jetpack.jpeg" alt="Jetpack" width="26" height="26" style={{ borderRadius: '6px' }} />
+                <img loading="lazy" src="/assets/images/logos/jetpack.svg" alt="Jetpack" width="26" height="26" style={{ borderRadius: '6px' }} />
                 <div><div className="int-fl-name">Jetpack</div></div>
               </div>
 
               <div className="int-fl int-fl-md int-d2 int-fa6" style={{ top: '60%', left: '52%' }}>
-                <img loading="lazy" src="/assets/images/logos/intuit.png" alt="Intuit" width="26" height="26" style={{ borderRadius: '6px' }} />
+                <img loading="lazy" src="/assets/images/logos/intuit.svg" alt="Intuit" width="26" height="26" style={{ borderRadius: '6px' }} />
                 <div><div className="int-fl-name">Intuit</div></div>
               </div>
 
               <div className="int-fl int-fl-md int-d2 int-fa4" style={{ top: '10%', left: '62%' }}>
-                <img loading="lazy" src="/assets/images/logos/stripe.jpeg" alt="Stripe" width="26" height="26" style={{ borderRadius: '6px' }} />
+                <img loading="lazy" src="/assets/images/logos/stripe.svg" alt="Stripe" width="26" height="26" style={{ borderRadius: '6px' }} />
                 <div><div className="int-fl-name">Shopify</div></div>
               </div>
 
@@ -743,7 +743,7 @@ export default async function HomePage() {
 
               {/* D3 BACKGROUND — 8 small */}
               <div className="int-fl int-fl-sm int-d3 int-fa4" style={{ top: '24%', left: '45%' }}>
-                <img loading="lazy" src="/assets/images/logos/paypal.jpeg" alt="PayPal" width="20" height="20" style={{ borderRadius: '5px' }} />
+                <img loading="lazy" src="/assets/images/logos/paypal.svg" alt="PayPal" width="20" height="20" style={{ borderRadius: '5px' }} />
                 <div><div className="int-fl-name">Mailchimp</div></div>
               </div>
 
@@ -768,17 +768,17 @@ export default async function HomePage() {
               </div>
 
               <div className="int-fl int-fl-sm int-d3 int-fa1" style={{ top: '38%', left: '92%' }}>
-                <img loading="lazy" src="/assets/images/logos/zapier.jpeg" alt="Zapier" width="20" height="20" style={{ borderRadius: '5px' }} />
+                <img loading="lazy" src="/assets/images/logos/zapier.svg" alt="Zapier" width="20" height="20" style={{ borderRadius: '5px' }} />
                 <div><div className="int-fl-name">Airtable</div></div>
               </div>
 
               <div className="int-fl int-fl-sm int-d3 int-fa4" style={{ top: '74%', left: '44%' }}>
-                <img loading="lazy" src="/assets/images/logos/jetpack.jpeg" alt="Jetpack" width="20" height="20" style={{ borderRadius: '5px' }} />
+                <img loading="lazy" src="/assets/images/logos/jetpack.svg" alt="Jetpack" width="20" height="20" style={{ borderRadius: '5px' }} />
                 <div><div className="int-fl-name">Calendly</div></div>
               </div>
 
               <div className="int-fl int-fl-sm int-d3 int-fa6" style={{ top: '6%', left: '88%' }}>
-                <img loading="lazy" src="/assets/images/logos/intuit.png" alt="Intuit" width="20" height="20" style={{ borderRadius: '5px' }} />
+                <img loading="lazy" src="/assets/images/logos/intuit.svg" alt="Intuit" width="20" height="20" style={{ borderRadius: '5px' }} />
                 <div><div className="int-fl-name">QuickBooks</div></div>
               </div>
 
