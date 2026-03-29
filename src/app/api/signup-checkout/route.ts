@@ -21,7 +21,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   const ip = getClientIp(req);
-  const { allowed } = rateLimit(`signup:${ip}`, 5, 300_000); // 5 signups per 5 minutes
+  const { allowed } = rateLimit(`signup:${ip}`, 30, 300_000); // 30 signups per 5 minutes
   if (!allowed) {
     return NextResponse.json({ error: 'Too many signup attempts. Please wait a few minutes.' }, { status: 429 });
   }
