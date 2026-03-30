@@ -26,11 +26,11 @@ export function TicketSidebar({
   async function handleUpdate(field: string, value: any) {
     setSaving(true);
     try {
-      const supabase = createClient();
-      await supabase
-        .from('tickets')
-        .update({ [field]: value, updated_at: new Date().toISOString() })
-        .eq('id', ticket.id);
+      await fetch('/api/admin/delete-ticket', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: ticket.id, [field]: value, updated_at: new Date().toISOString() }),
+      });
       router.refresh();
     } catch (err) {
       console.error(`Failed to update ${field}:`, err);
@@ -207,11 +207,19 @@ export function TicketSidebar({
             if (!confirm(`Delete ticket "${ticket.subject}"? This will also delete all messages. This cannot be undone.`)) return;
             setSaving(true);
             try {
-              const supabase = createClient();
-              await supabase.from('ticket_messages').delete().eq('ticket_id', ticket.id);
-              await supabase.from('tickets').delete().eq('id', ticket.id);
-              router.push('/admin/tickets');
-              router.refresh();
+              const res = await fetch('/api/admin/delete-ticket', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: ticket.id }),
+              });
+              if (res.ok) {
+                router.push('/admin/tickets');
+                router.refresh();
+              } else {
+                const data = await res.json();
+                console.error('Failed to delete ticket:', data.error);
+                setSaving(false);
+              }
             } catch (err) {
               console.error('Failed to delete ticket:', err);
               setSaving(false);
