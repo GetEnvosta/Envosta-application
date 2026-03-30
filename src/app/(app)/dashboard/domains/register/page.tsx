@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase-browser';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Search, Loader2, Check, X, ArrowRightLeft, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
@@ -23,30 +22,12 @@ export default function RegisterDomainPage() {
     if (q) setDomain(q);
   }, [searchParams]);
 
-  async function callFunction(body: any, requireAuth = true) {
-    const supabase = createClient();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    };
-
-    if (requireAuth) {
-      let token = '';
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        token = session.access_token;
-      } else {
-        const { data: { session: refreshed } } = await supabase.auth.refreshSession();
-        if (!refreshed) { setError('Please log in again'); return null; }
-        token = refreshed.access_token;
-      }
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
-      { method: 'POST', headers, body: JSON.stringify(body) }
-    );
+  async function callFunction(body: any) {
+    const res = await fetch('/api/domains', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
     return res.json();
   }
 
@@ -58,7 +39,7 @@ export default function RegisterDomainPage() {
     setAvailable(null);
 
     try {
-      const data = await callFunction({ action: 'check', domainName: domain.toLowerCase().trim() }, false);
+      const data = await callFunction({ action: 'check', domainName: domain.toLowerCase().trim() });
       if (!data || data.error) { setError(data?.error ?? 'Check failed'); return; }
 
       if (isTransfer) {
