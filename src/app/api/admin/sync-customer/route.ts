@@ -55,7 +55,8 @@ export async function POST(req: Request) {
   // 1. Sync subscriptions
   const subs = await stripe.subscriptions.list({ customer: customerId, limit: 100, status: 'all' });
   for (const sub of subs.data) {
-    const planPriceId = sub.items.data[0]?.price?.id;
+    const s = sub as any;
+    const planPriceId = s.items?.data?.[0]?.price?.id;
     // Find matching product by any Stripe price ID
     let productId: string | null = null;
     if (planPriceId) {
@@ -67,19 +68,19 @@ export async function POST(req: Request) {
     }
 
     // Map Stripe status to our status
-    let status = sub.status;
+    let status: string = s.status;
     if (status === 'incomplete_expired' || status === 'incomplete') status = 'past_due';
 
     await sb.from('subscriptions').upsert({
-      stripe_subscription_id: sub.id,
+      stripe_subscription_id: s.id,
       user_id: userId,
       product_id: productId,
       status,
-      current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
-      cancel_at_period_end: sub.cancel_at_period_end,
-      ...(sub.trial_end && { trial_end: new Date(sub.trial_end * 1000).toISOString() }),
-      ...(sub.canceled_at && { cancelled_at: new Date(sub.canceled_at * 1000).toISOString() }),
+      current_period_start: new Date(s.current_period_start * 1000).toISOString(),
+      current_period_end: new Date(s.current_period_end * 1000).toISOString(),
+      cancel_at_period_end: s.cancel_at_period_end,
+      ...(s.trial_end && { trial_end: new Date(s.trial_end * 1000).toISOString() }),
+      ...(s.canceled_at && { cancelled_at: new Date(s.canceled_at * 1000).toISOString() }),
     }, { onConflict: 'stripe_subscription_id' });
     subsCount++;
   }
