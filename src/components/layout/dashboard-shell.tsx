@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { createClient } from '@/lib/supabase-browser';
 import { cn } from '@/lib/utils';
 import {
   Globe, Globe2, CreditCard, Mail, MessageCircle, Users,
@@ -67,8 +66,7 @@ function AvatarDropdown({ user }: { user: DashboardUser }) {
   }, []);
 
   async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut({ scope: 'global' });
+    await fetch('/auth/signout', { method: 'POST' });
     window.location.href = '/auth/login';
   }
 

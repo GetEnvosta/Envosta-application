@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { createClient } from '@/lib/supabase-browser';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Users, Server, Globe, CreditCard, ScrollText,
@@ -33,8 +32,7 @@ export function AdminShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut({ scope: 'global' });
+    await fetch('/auth/signout', { method: 'POST' });
     window.location.href = '/auth/login';
   }
 
