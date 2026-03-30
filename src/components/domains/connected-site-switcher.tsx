@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 interface Service {
   id: string;
   label: string;
+  status?: string;
+  isTrialing?: boolean;
 }
 
 export function ConnectedSiteSwitcher({
@@ -103,8 +105,8 @@ export function ConnectedSiteSwitcher({
           >
             <option value="">Not connected</option>
             {services.map((svc) => (
-              <option key={svc.id} value={svc.id}>
-                {svc.label}
+              <option key={svc.id} value={svc.id} disabled={svc.isTrialing}>
+                {svc.label}{svc.isTrialing ? ' (Can\'t connect on free trial)' : ''}
               </option>
             ))}
           </select>

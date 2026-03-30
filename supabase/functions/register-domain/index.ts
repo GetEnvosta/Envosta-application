@@ -445,8 +445,9 @@ Deno.serve(async (req) => {
         return error(`Nameserver update failed: ${parsed.responseText}`, 502);
       }
 
+      const { data: domRec } = await sb.from("domains").select("metadata").eq("user_id", userId).eq("domain_name", domainName).maybeSingle();
       await sb.from("domains")
-        .update({ metadata: { nameservers } })
+        .update({ metadata: { ...(domRec?.metadata as any ?? {}), nameservers } })
         .eq("user_id", userId)
         .eq("domain_name", domainName);
 
@@ -509,10 +510,11 @@ Deno.serve(async (req) => {
         return error(`DNS setup failed: ${parsed.responseText}`, 502);
       }
 
+      const { data: dnsRec } = await sb.from("domains").select("metadata").eq("user_id", userId).eq("domain_name", domainName).maybeSingle();
       await sb.from("domains")
         .update({
           status: "registered",
-          metadata: { dns_records: records, dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() },
+          metadata: { ...(dnsRec?.metadata as any ?? {}), dns_records: records, dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() },
         })
         .eq("user_id", userId)
         .eq("domain_name", domainName);
@@ -539,11 +541,10 @@ Deno.serve(async (req) => {
         <item key="attributes">
           <dt_assoc>
             <item key="domain">${domainName}</item>
-            <item key="data">
-              <dt_assoc>
-                <item key="auto_renew">${autoRenew ? 1 : 0}</item>
-              </dt_assoc>
-            </item>
+            <item key="affect_domains">1</item>
+            <item key="data">opaque</item>
+            <item key="auto_renew">${autoRenew ? 1 : 0}</item>
+            <item key="let_expire">${autoRenew ? 0 : 1}</item>
           </dt_assoc>
         </item>
       </dt_assoc>

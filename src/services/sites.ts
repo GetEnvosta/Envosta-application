@@ -80,10 +80,15 @@ export async function getUserServicesList(userId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('sites')
-    .select('id, label')
+    .select('id, label, status, subscriptions(status)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
-  return data ?? [];
+  return (data ?? []).map((s: any) => ({
+    id: s.id,
+    label: s.label,
+    status: s.status,
+    isTrialing: s.subscriptions?.status === 'trialing',
+  }));
 }
 
 /**
