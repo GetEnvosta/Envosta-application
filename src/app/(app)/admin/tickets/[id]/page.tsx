@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { ArrowLeft, MessageSquare } from 'lucide-react';
 import { TicketReplyForm } from '@/components/admin/ticket-reply-form';
 import { TicketSidebar } from '@/components/admin/ticket-sidebar';
-import { OnboardingControls } from '@/components/admin/onboarding-controls';
 import { StudioProgressBar, StudioStageAdvancer } from '@/components/admin/studio-progress';
+import { SalesProgressBar, SalesStageAdvancer } from '@/components/admin/sales-progress';
 
 function typeBadge(type: string) {
   switch (type) {
@@ -81,6 +81,14 @@ export default async function AdminTicketDetailPage({
         </>
       )}
 
+      {/* Sales pipeline tracker */}
+      {ticket.type === 'sales' && (
+        <>
+          <SalesProgressBar currentStage={(ticket.metadata as any)?.sales_stage ?? 'inquiry'} />
+          <SalesStageAdvancer ticketId={ticket.id} currentStage={(ticket.metadata as any)?.sales_stage ?? 'inquiry'} />
+        </>
+      )}
+
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column - messages */}
@@ -132,17 +140,6 @@ export default async function AdminTicketDetailPage({
               </div>
             )}
           </div>
-
-          {/* Onboarding controls for sales tickets */}
-          {ticket.type === 'sales' && (
-            <OnboardingControls
-              ticketId={ticket.id}
-              currentStatus={(ticket.metadata as any)?.onboarding_status ?? 'not_started'}
-              onboardingType={(ticket.metadata as any)?.onboarding ?? 'self'}
-              callDate={(ticket.metadata as any)?.onboarding_call_date ?? null}
-              notes={(ticket.metadata as any)?.onboarding_notes ?? null}
-            />
-          )}
 
           {/* Reply form */}
           <TicketReplyForm ticketId={ticket.id} ticketStatus={ticket.status} />

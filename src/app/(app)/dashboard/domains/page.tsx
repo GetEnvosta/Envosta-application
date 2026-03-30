@@ -50,10 +50,16 @@ export default async function DomainsPage() {
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{d.domain_name}</p>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className={statusColor(d.status)}>{d.status}</span>
-                      <span className="text-xs text-gray-400">
-                        Expires {formatDate(d.expiry_date)}
+                      <span className={statusColor(d.status)}>
+                        {d.status === 'transferring' ? 'Transfer in progress' : d.status}
                       </span>
+                      {d.status === 'transferring' ? (
+                        <span className="text-xs text-gray-400">Typically completes in 5-7 days</span>
+                      ) : (
+                        <span className="text-xs text-gray-400">
+                          Expires {formatDate(d.expiry_date)}
+                        </span>
+                      )}
                       {d.auto_renew && (
                         <span className="text-xs text-gray-400 flex items-center gap-1">
                           <svg className="w-3 h-3 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">

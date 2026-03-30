@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
 import { formatDate } from '@/lib/utils';
-import { Save, Loader2, User, Mail, Globe, Calendar, Tag, Ticket, CircleDot, Layers } from 'lucide-react';
+import { Save, Loader2, User, Mail, Globe, Calendar, Tag, Ticket, CircleDot, Layers, Trash2 } from 'lucide-react';
 
 const STATUSES = ['open', 'in-progress', 'resolved', 'closed'] as const;
 const PRIORITIES = ['low', 'normal', 'high', 'urgent'] as const;
@@ -197,6 +197,31 @@ export function TicketSidebar({
         >
           {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
           Save Notes
+        </button>
+      </div>
+
+      {/* Delete Ticket */}
+      <div className="card p-5 border-red-100">
+        <button
+          onClick={async () => {
+            if (!confirm(`Delete ticket "${ticket.subject}"? This will also delete all messages. This cannot be undone.`)) return;
+            setSaving(true);
+            try {
+              const supabase = createClient();
+              await supabase.from('ticket_messages').delete().eq('ticket_id', ticket.id);
+              await supabase.from('tickets').delete().eq('id', ticket.id);
+              router.push('/admin/tickets');
+              router.refresh();
+            } catch (err) {
+              console.error('Failed to delete ticket:', err);
+              setSaving(false);
+            }
+          }}
+          disabled={saving}
+          className="w-full text-sm text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg py-2 px-3 transition-colors inline-flex items-center justify-center gap-1.5"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Delete Ticket
         </button>
       </div>
     </div>

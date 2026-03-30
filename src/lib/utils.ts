@@ -29,7 +29,7 @@ export function formatDateTime(date: string | null) {
 export function statusColor(status: string) {
   const map: Record<string, string> = {
     active: 'badge-green', provisioning: 'badge-blue', pending: 'badge-yellow',
-    registered: 'badge-green', pending_dns: 'badge-yellow',
+    registered: 'badge-green', pending_dns: 'badge-yellow', transferring: 'badge-blue',
     suspended: 'badge-yellow', cancelled: 'badge-gray',
     failed: 'badge-red', expired: 'badge-red',
     past_due: 'badge-red', trialing: 'badge-blue',
