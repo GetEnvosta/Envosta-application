@@ -58,10 +58,14 @@ export default function RegisterDomainPage() {
     setSubmitting(true);
     setError('');
     try {
-      const data = await callFunction({ action: 'register', domainName: domain.toLowerCase().trim(), years: 1 });
-      if (!data || data.error) { setError(data?.error ?? 'Registration failed'); return; }
-      router.push('/dashboard/domains');
-      router.refresh();
+      const res = await fetch('/api/domain-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domainName: domain.toLowerCase().trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) { setError(data?.error ?? 'Checkout failed'); return; }
+      window.location.href = data.url;
     } catch {
       setError('Connection error — please try again');
     } finally {

@@ -66,7 +66,9 @@ Deno.serve(async (req) => {
 
       // Auto-create site for active subscriptions with a hosting plan
       const isDomainRenewal = sub.metadata?.type === "domain_renewal";
-      if ((sub.status === "active" || sub.status === "trialing") && dbSub && plan?.id && !isDomainRenewal) {
+      const isDomainPurchase = sub.metadata?.is_domain_purchase === "true";
+      const isDomainTld = plan?.type === "domain_tld";
+      if ((sub.status === "active" || sub.status === "trialing") && dbSub && plan?.id && !isDomainRenewal && !isDomainPurchase && !isDomainTld) {
         const { data: existing } = await sb.from("sites").select("id").eq("subscription_id", dbSub.id).maybeSingle();
         if (!existing) {
           const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.id).maybeSingle();
@@ -220,6 +222,55 @@ Deno.serve(async (req) => {
           }
         } else {
           console.log("Site already exists:", existing.id);
+        }
+      }
+
+      // Handle standalone domain purchases (no site creation, just register the domain)
+      if ((isDomainPurchase || isDomainTld) && dbSub && (sub.status === "active" || sub.status === "trialing")) {
+        const domainFromMeta = sub.metadata?.domain_name ?? null;
+        if (domainFromMeta) {
+          const { data: existingDomain } = await sb.from("domains")
+            .select("id").eq("domain_name", domainFromMeta).eq("user_id", cust.id).maybeSingle();
+
+          if (!existingDomain) {
+            try {
+              console.log("Domain purchase — registering:", domainFromMeta);
+              const regRes = await fetch(`${SUPABASE_URL}/functions/v1/register-domain`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                },
+                body: JSON.stringify({
+                  action: "register",
+                  domainName: domainFromMeta,
+                  years: 1,
+                  userId: cust.id,
+                }),
+              });
+              const regData = await regRes.json();
+              console.log("Domain purchase registration result:", regRes.status, JSON.stringify(regData));
+
+              // Store the subscription ID on the domain for renewal tracking
+              if (regRes.ok) {
+                await sb.from("domains").update({
+                  metadata: { renewal_stripe_subscription_id: sub.id },
+                }).eq("domain_name", domainFromMeta).eq("user_id", cust.id);
+              }
+            } catch (regErr) {
+              console.error("Domain purchase registration error:", regErr);
+              await sb.from("domains").insert({
+                user_id: cust.id,
+                domain_name: domainFromMeta,
+                tld: domainFromMeta.split(".").pop() ?? "",
+                status: "pending",
+                registrar: "opensrs",
+                metadata: { registration_error: String(regErr), renewal_stripe_subscription_id: sub.id },
+              });
+            }
+          } else {
+            console.log("Domain already exists for user:", domainFromMeta);
+          }
         }
       }
     }
