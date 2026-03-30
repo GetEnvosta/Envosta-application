@@ -2,7 +2,7 @@ export const revalidate = 5;
 import { getAllServices } from '@/services/sites';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { Search, Server, ExternalLink } from 'lucide-react';
+import { Search, Server, ExternalLink, Globe } from 'lucide-react';
 import { ProvisionButton } from '@/components/admin/provision-button';
 import { ImpersonateButton } from '@/components/admin/impersonate-button';
 
@@ -88,6 +88,9 @@ export default async function ServicesPage({
                   Plan
                 </th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Domain
+                </th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
                   Region
                 </th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -104,7 +107,7 @@ export default async function ServicesPage({
             <tbody className="divide-y divide-gray-100">
               {(!services || services.length === 0) ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center">
+                  <td colSpan={8} className="px-5 py-12 text-center">
                     <Server className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                     <p className="text-sm text-gray-400">
                       {q || status
@@ -129,6 +132,20 @@ export default async function ServicesPage({
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">
                       {s.products?.name ?? '\u2014'}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {(() => {
+                        const domains = (s as any).domains as any[] | null;
+                        const domain = domains?.[0];
+                        return domain ? (
+                          <span className="text-xs font-medium text-gray-700 inline-flex items-center gap-1">
+                            <Globe className="w-3 h-3 text-gray-400" />
+                            {domain.domain_name}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">&mdash;</span>
+                        );
+                      })()}
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">
                       {s.region ?? '\u2014'}

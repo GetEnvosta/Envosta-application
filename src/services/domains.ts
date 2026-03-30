@@ -61,7 +61,7 @@ export async function getAllDomains(filters?: { q?: string; status?: string }) {
 
   let query = supabase
     .from('domains')
-    .select('*, users(full_name, email)')
+    .select('*, users(full_name, email), sites(id, label, status)')
     .order('created_at', { ascending: false })
     .limit(50);
 

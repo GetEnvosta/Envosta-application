@@ -1,4 +1,4 @@
-import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, cors, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, getStripe, cors, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, domainRegisteredEmail } from "../_shared/email.ts";
 import { opensrsRequest, parseResponse, setDnsZone, buildWpCloudDnsRecords, setDomainLock, getDomainLockStatus, getDomainAuthCode, createNameserver, registryAddNs, type DnsRecord } from "../_shared/opensrs.ts";
 
@@ -470,7 +470,7 @@ Deno.serve(async (req) => {
     // ═══ UPDATE DNS — custom records from frontend ═════════
     if (action === "update-dns") {
       const { records: rawRecords } = body;
-      if (!Array.isArray(rawRecords) || rawRecords.length === 0) {
+      if (!Array.isArray(rawRecords)) {
         return error("records array is required");
       }
 
@@ -613,6 +613,27 @@ Deno.serve(async (req) => {
         .update({ auto_renew: autoRenew })
         .eq("user_id", userId)
         .eq("domain_name", domainName);
+
+      // Sync Stripe renewal subscription: pause when off, resume when on
+      try {
+        const { data: domRec } = await sb.from("domains").select("metadata").eq("user_id", userId).eq("domain_name", domainName).maybeSingle();
+        const renewalSubId = (domRec?.metadata as any)?.renewal_stripe_subscription_id;
+        if (renewalSubId) {
+          const stripe = getStripe();
+          if (autoRenew) {
+            // Resume: set back to active
+            await stripe.subscriptions.resume(renewalSubId, { billing_cycle_anchor: "unchanged" });
+            console.log("Stripe renewal subscription resumed:", renewalSubId);
+          } else {
+            // Pause: cancel at period end so they keep access until expiry
+            await stripe.subscriptions.update(renewalSubId, { cancel_at_period_end: true });
+            console.log("Stripe renewal subscription set to cancel at period end:", renewalSubId);
+          }
+        }
+      } catch (stripeErr) {
+        // Non-fatal — OpenSRS is the source of truth, Stripe sync is best-effort
+        console.error("Stripe renewal sync failed (non-fatal):", stripeErr);
+      }
 
       await log({ userId, action: "domain.auto_renew.updated", message: `${domainName}: ${autoRenew ? "enabled" : "disabled"}`, ms });
       return json({ domainName, autoRenew, success: true });
