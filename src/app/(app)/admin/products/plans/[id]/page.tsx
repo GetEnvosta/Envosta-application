@@ -39,40 +39,45 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
     setSuccess('');
 
     const meta = plan.metadata ?? {};
-    const supabase = createClient();
-    const { error: err } = await supabase.from('products').update({
-      name: plan.name,
-      slug: plan.slug,
-      price_cad: plan.price_cad,
-      price_yearly_cad: plan.price_yearly_cad,
-      price_2yr_cad: plan.price_2yr_cad || 0,
-      price_3yr_cad: plan.price_3yr_cad || 0,
-      stripe_product_id: plan.stripe_product_id || null,
-      stripe_price_id: plan.stripe_price_id || null,
-      stripe_price_id_yearly: plan.stripe_price_id_yearly || null,
-      stripe_price_id_2yr: plan.stripe_price_id_2yr || null,
-      stripe_price_id_3yr: plan.stripe_price_id_3yr || null,
-      is_active: plan.is_active,
-      description: plan.description,
-      features: plan.features,
-      metadata: {
-        ...meta,
-        storage_gb: plan.metadata?.storage_gb ?? meta.storage_gb,
-        php_workers_default: plan.metadata?.php_workers_default ?? meta.php_workers_default,
-        php_workers_included: plan.metadata?.php_workers_included ?? meta.php_workers_included,
-        php_memory_mb: plan.metadata?.php_memory_mb ?? meta.php_memory_mb,
-        has_staging: plan.metadata?.has_staging ?? meta.has_staging,
-        has_cdn: plan.metadata?.has_cdn ?? meta.has_cdn,
-        has_waf: plan.metadata?.has_waf ?? meta.has_waf,
-        has_backups: plan.metadata?.has_backups ?? meta.has_backups,
-        onboarding_type: plan.metadata?.onboarding_type ?? meta.onboarding_type,
-        support_type: plan.metadata?.support_type ?? meta.support_type,
-        support_response_hours: plan.metadata?.support_response_hours ?? meta.support_response_hours,
-        sites_allowed: plan.metadata?.sites_allowed ?? meta.sites_allowed,
-      },
-    }).eq('id', planId);
+    const saveRes = await fetch('/api/admin/create-product', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: planId,
+        name: plan.name,
+        slug: plan.slug,
+        price_cad: plan.price_cad,
+        price_yearly_cad: plan.price_yearly_cad,
+        price_2yr_cad: plan.price_2yr_cad || 0,
+        price_3yr_cad: plan.price_3yr_cad || 0,
+        stripe_product_id: plan.stripe_product_id || null,
+        stripe_price_id: plan.stripe_price_id || null,
+        stripe_price_id_yearly: plan.stripe_price_id_yearly || null,
+        stripe_price_id_2yr: plan.stripe_price_id_2yr || null,
+        stripe_price_id_3yr: plan.stripe_price_id_3yr || null,
+        is_active: plan.is_active,
+        description: plan.description,
+        features: plan.features,
+        metadata: {
+          ...meta,
+          storage_gb: plan.metadata?.storage_gb ?? meta.storage_gb,
+          php_workers_default: plan.metadata?.php_workers_default ?? meta.php_workers_default,
+          php_workers_included: plan.metadata?.php_workers_included ?? meta.php_workers_included,
+          php_memory_mb: plan.metadata?.php_memory_mb ?? meta.php_memory_mb,
+          has_staging: plan.metadata?.has_staging ?? meta.has_staging,
+          has_cdn: plan.metadata?.has_cdn ?? meta.has_cdn,
+          has_waf: plan.metadata?.has_waf ?? meta.has_waf,
+          has_backups: plan.metadata?.has_backups ?? meta.has_backups,
+          onboarding_type: plan.metadata?.onboarding_type ?? meta.onboarding_type,
+          support_type: plan.metadata?.support_type ?? meta.support_type,
+          support_response_hours: plan.metadata?.support_response_hours ?? meta.support_response_hours,
+          sites_allowed: plan.metadata?.sites_allowed ?? meta.sites_allowed,
+        },
+      }),
+    });
+    const saveData = await saveRes.json();
 
-    if (err) { setError(err.message); setSaving(false); return; }
+    if (!saveRes.ok) { setError(saveData.error ?? 'Save failed'); setSaving(false); return; }
 
     // Sync to Stripe
     try {
