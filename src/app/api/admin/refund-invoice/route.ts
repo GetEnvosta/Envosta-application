@@ -38,14 +38,16 @@ export async function POST(req: Request) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
 
     // Get the Stripe invoice to find the payment intent
-    const stripeInvoice = await stripe.invoices.retrieve(invoice.stripe_invoice_id);
+    const stripeInvoice = await stripe.invoices.retrieve(invoice.stripe_invoice_id) as any;
     if (!stripeInvoice.payment_intent) {
       return NextResponse.json({ error: 'No payment found for this invoice' }, { status: 400 });
     }
 
     // Create refund
     const refund = await stripe.refunds.create({
-      payment_intent: stripeInvoice.payment_intent as string,
+      payment_intent: typeof stripeInvoice.payment_intent === 'string'
+        ? stripeInvoice.payment_intent
+        : stripeInvoice.payment_intent.id,
     });
 
     // Update invoice status in DB
