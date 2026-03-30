@@ -2,10 +2,12 @@ import { getCustomerById, getCustomerRelatedData } from '@/services/admin';
 import { cn, formatDate, formatDateTime, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { QuickInvoice } from '@/components/admin/quick-invoice';
+import { ProvisionSiteButton } from '@/components/admin/provision-site-button';
 import {
   ArrowLeft,
   Building2,
   Clock,
+  CreditCard,
   Globe,
   Mail,
   Phone,
@@ -102,6 +104,47 @@ export default async function CustomerDetailPage({
       {user.stripe_customer_id && (
         <div className="mb-6">
           <QuickInvoice stripeCustomerId={user.stripe_customer_id} customerName={user.full_name || user.email} />
+        </div>
+      )}
+
+      {/* Subscriptions */}
+      {subscriptions && subscriptions.length > 0 && (
+        <div className="card overflow-hidden mb-6">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-900">Subscriptions ({subscriptions.length})</h2>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {subscriptions.map((sub: any) => {
+              const hasSite = services.some((s: any) => s.subscription_id === sub.id);
+              return (
+                <div key={sub.id} className="px-5 py-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{sub.products?.name ?? 'Unknown plan'}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className={statusColor(sub.status)}>{sub.status}</span>
+                      <span className="text-xs text-gray-400">{sub.billing_period}</span>
+                      {hasSite ? (
+                        <span className="text-xs text-emerald-600">Site linked</span>
+                      ) : (
+                        <span className="text-xs text-amber-600">No site</span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    {!hasSite && (sub.status === 'active' || sub.status === 'trialing') && (
+                      <ProvisionSiteButton
+                        subscriptionId={sub.id}
+                        userId={user.id}
+                        planId={sub.product_id}
+                        planName={sub.products?.name ?? 'Unknown'}
+                      />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
