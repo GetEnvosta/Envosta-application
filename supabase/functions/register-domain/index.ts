@@ -536,12 +536,12 @@ Deno.serve(async (req) => {
     <data_block>
       <dt_assoc>
         <item key="protocol">XCP</item>
-        <item key="object">DOMAIN</item>
-        <item key="action">MODIFY</item>
+        <item key="object">domain</item>
+        <item key="action">modify</item>
+        <item key="domain">${domainName}</item>
         <item key="attributes">
           <dt_assoc>
-            <item key="domain">${domainName}</item>
-            <item key="affect_domains">1</item>
+            <item key="affect_domains">0</item>
             <item key="data">expire_action</item>
             <item key="auto_renew">${autoRenew ? 1 : 0}</item>
             <item key="let_expire">${autoRenew ? 0 : 1}</item>
@@ -586,14 +586,14 @@ Deno.serve(async (req) => {
     <data_block>
       <dt_assoc>
         <item key="protocol">XCP</item>
-        <item key="object">DOMAIN</item>
-        <item key="action">MODIFY</item>
+        <item key="object">domain</item>
+        <item key="action">modify</item>
+        <item key="domain">${domainName}</item>
         <item key="attributes">
           <dt_assoc>
-            <item key="domain">${domainName}</item>
-            <item key="affect_domains">1</item>
+            <item key="affect_domains">0</item>
             <item key="data">whois_privacy_state</item>
-            <item key="whois_privacy_state">${state}</item>
+            <item key="state">${state}</item>
           </dt_assoc>
         </item>
       </dt_assoc>
