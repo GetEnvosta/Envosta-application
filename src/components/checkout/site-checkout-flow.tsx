@@ -227,12 +227,22 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
       } else {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { setCheckoutError('Please log in first'); setCheckoutLoading(false); return; }
-        const body: Record<string, unknown> = {
-          priceId: billingPeriod === 'annual' ? selectedPlan.stripe_price_id_yearly : selectedPlan.stripe_price_id,
-        };
+        const priceId = billingPeriod === 'annual' ? selectedPlan.stripe_price_id_yearly : selectedPlan.stripe_price_id;
+        if (!priceId) {
+          setCheckoutError(`No Stripe price configured for this plan (${selectedPlan.name}, ${billingPeriod}). Sync the product in admin first.`);
+          setCheckoutLoading(false);
+          return;
+        }
+        const body: Record<string, unknown> = { priceId };
         if (selectedDomain) body.domainName = selectedDomain;
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        if (!supabaseUrl) {
+          setCheckoutError('Configuration error: Supabase URL not set');
+          setCheckoutLoading(false);
+          return;
+        }
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/stripe-checkout`,
+          `${supabaseUrl}/functions/v1/stripe-checkout`,
           {
             method: 'POST',
             headers: {
@@ -248,7 +258,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
         setCheckoutError(data?.error ?? 'Checkout failed');
       }
     } catch (e: any) {
-      setCheckoutError(e?.message ?? 'Something went wrong.');
+      console.error('Checkout error:', e);
+      setCheckoutError(`Checkout error: ${e?.message ?? 'Network request failed. Check browser console.'}`);
     }
     setCheckoutLoading(false);
   }
