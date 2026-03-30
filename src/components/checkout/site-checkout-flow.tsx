@@ -88,14 +88,17 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
     window.history.pushState({ step: n }, '', undefined);
   }
 
-  // Listen for browser back/forward
+  // Listen for browser back/forward — keep user within the flow
   useEffect(() => {
     function onPopState(e: PopStateEvent) {
-      if (e.state?.step) {
+      if (e.state?.step && e.state.step >= 1) {
         _setStep(e.state.step);
+      } else {
+        // Prevent navigating away — push them back to step 1
+        window.history.pushState({ step: 1 }, '', undefined);
+        _setStep(1);
       }
     }
-    // Set initial history state
     window.history.replaceState({ step: 1 }, '', undefined);
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
@@ -375,29 +378,30 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                     <p style={{ fontSize: '.72rem', color: '#ef4444', marginTop: 4 }}>Passwords don&apos;t match</p>
                   )}
                 </div>
-                <div>
-{/* Phone removed — collected during onboarding instead */}
-                </div>
+                {/* Terms of Service */}
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', marginTop: 4 }}>
+                  <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} style={{ marginTop: 3, accentColor: '#2563EB' }} />
+                  <span style={{ fontSize: '.78rem', color: t.textSub, lineHeight: 1.6 }}>
+                    I agree to the <a href="/legal/terms" target="_blank" style={{ color: t.accent, textDecoration: 'underline' }}>Terms of Service</a> and <a href="/legal/privacy" target="_blank" style={{ color: t.accent, textDecoration: 'underline' }}>Privacy Policy</a>.
+                  </span>
+                </label>
+
                 <button
                   onClick={() => {
-                    if (!(name && email && password.length >= 8 && password === confirmPassword)) return;
-                    // Public flow: always go to domain step (plan is pre-selected)
+                    if (!(name && email && password.length >= 8 && password === confirmPassword && termsAccepted)) return;
                     setStep(domainStepNum);
                   }}
-                  disabled={!name || !email || password.length < 8 || password !== confirmPassword}
+                  disabled={!name || !email || password.length < 8 || password !== confirmPassword || !termsAccepted}
                   style={{
                     padding: '14px 24px', background: t.btnBg, color: t.btnColor, borderRadius: 100, border: 'none',
                     fontSize: '.88rem', fontWeight: 500, cursor: 'pointer', marginTop: 8,
-                    opacity: (!name || !email || password.length < 8 || password !== confirmPassword) ? 0.5 : 1,
+                    opacity: (!name || !email || password.length < 8 || password !== confirmPassword || !termsAccepted) ? 0.5 : 1,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}
                 >
                   {selectedPlan && selectedDomain ? 'Continue to Checkout' : selectedPlan ? 'Set Up Your Domain' : 'Choose a Plan'} <ArrowRight style={{ width: 16, height: 16 }} />
                 </button>
               </div>
-              <p style={{ fontSize: '.7rem', color: t.textMuted, marginTop: 16, lineHeight: 1.6 }}>
-                By continuing you agree to our <a href="/legal/terms" style={{ color: t.textSub, textDecoration: 'underline' }}>Terms</a> and <a href="/legal/privacy" style={{ color: t.textSub, textDecoration: 'underline' }}>Privacy Policy</a>.
-              </p>
               <p style={{ fontSize: '.82rem', color: t.textMuted, marginTop: 20 }}>
                 Already have an account?{' '}
                 <a href="https://my.envosta.com/auth/login" style={{ color: t.accent, textDecoration: 'underline' }}>Sign in</a>
