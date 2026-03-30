@@ -34,7 +34,7 @@ export function AdminShell({
 
   async function handleSignOut() {
     const supabase = createClient();
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'global' });
     window.location.href = '/auth/login';
   }
 
