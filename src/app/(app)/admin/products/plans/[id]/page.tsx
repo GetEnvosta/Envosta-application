@@ -45,9 +45,13 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
       slug: plan.slug,
       price_cad: plan.price_cad,
       price_yearly_cad: plan.price_yearly_cad,
+      price_2yr_cad: plan.price_2yr_cad || 0,
+      price_3yr_cad: plan.price_3yr_cad || 0,
       stripe_product_id: plan.stripe_product_id || null,
       stripe_price_id: plan.stripe_price_id || null,
       stripe_price_id_yearly: plan.stripe_price_id_yearly || null,
+      stripe_price_id_2yr: plan.stripe_price_id_2yr || null,
+      stripe_price_id_3yr: plan.stripe_price_id_3yr || null,
       is_active: plan.is_active,
       description: plan.description,
       features: plan.features,
@@ -104,8 +108,10 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
           stripe_product_id: syncData.stripe_product_id,
           stripe_price_id: syncData.stripe_price_id,
           stripe_price_id_yearly: syncData.stripe_price_id_yearly,
+          stripe_price_id_2yr: syncData.stripe_price_id_2yr,
+          stripe_price_id_3yr: syncData.stripe_price_id_3yr,
         }));
-        setSuccess('Plan saved & synced to Stripe');
+        setSuccess('Product saved & synced to Stripe');
       } else {
         setSuccess('Plan saved (Stripe sync: ' + (syncData.error ?? 'failed') + ')');
       }
@@ -157,25 +163,97 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
         {/* Stripe — Billing */}
         <div className="card p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Stripe — Billing</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
             <div>
               <label className="label">Billing Type</label>
-              <select className="input" value={plan.billing ?? 'monthly'} onChange={e => update('billing', e.target.value)}>
-                <option value="monthly">Monthly (recurring)</option>
-                <option value="yearly">Yearly (recurring)</option>
-                <option value="one_time">One-Time (single charge)</option>
-              </select>
+              <div className="input bg-gray-50 text-gray-600 cursor-default">
+                {plan.billing === 'monthly' ? 'Monthly (recurring)' : plan.billing === 'yearly' ? 'Yearly (recurring)' : 'One-Time (single charge)'}
+              </div>
             </div>
-            <div><label className="label">{plan.billing === 'one_time' ? 'Price (cents CAD)' : 'Monthly Price (cents CAD)'}</label><input type="number" className="input" value={plan.price_cad} onChange={e => update('price_cad', parseInt(e.target.value) || 0)} /></div>
-            {plan.billing === 'monthly' && (
-              <div><label className="label">Yearly Price (cents CAD)</label><input type="number" className="input" value={plan.price_yearly_cad ?? 0} onChange={e => update('price_yearly_cad', parseInt(e.target.value) || 0)} /></div>
-            )}
-            <div><label className="label">Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id ?? ''} onChange={e => update('stripe_price_id', e.target.value)} placeholder="price_..." /></div>
-            {plan.billing === 'monthly' && (
-              <div><label className="label">Yearly Price ID</label><input className="input font-mono text-xs" value={plan.stripe_price_id_yearly ?? ''} onChange={e => update('stripe_price_id_yearly', e.target.value)} placeholder="price_..." /></div>
-            )}
-            <div><label className="label">Product ID</label><input className="input font-mono text-xs" value={plan.stripe_product_id ?? ''} onChange={e => update('stripe_product_id', e.target.value)} placeholder="prod_..." /></div>
+            <div><label className="label">Stripe Product ID</label><input className="input font-mono text-xs" value={plan.stripe_product_id ?? ''} onChange={e => update('stripe_product_id', e.target.value)} placeholder="prod_..." /></div>
           </div>
+
+          {/* Pricing tiers table */}
+          {plan.billing === 'one_time' ? (
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="grid grid-cols-[140px_1fr_1fr] text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-gray-200">
+                <div className="px-4 py-2.5">Cycle</div>
+                <div className="px-4 py-2.5">Stripe Price ID</div>
+                <div className="px-4 py-2.5">Price (CAD)</div>
+              </div>
+              <div className="grid grid-cols-[140px_1fr_1fr] items-center">
+                <div className="px-4 py-3 text-sm font-medium text-gray-700">One-Time</div>
+                <div className="px-4 py-2"><input className="input font-mono text-xs" value={plan.stripe_price_id ?? ''} onChange={e => update('stripe_price_id', e.target.value)} placeholder="price_..." /></div>
+                <div className="px-4 py-2 flex items-center gap-2">
+                  <input type="number" className="input w-28" value={plan.price_cad} onChange={e => update('price_cad', parseInt(e.target.value) || 0)} />
+                  <span className="text-xs text-gray-400 whitespace-nowrap">{plan.price_cad > 0 ? `$${(plan.price_cad / 100).toFixed(2)}` : '—'}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="grid grid-cols-[140px_1fr_1fr] text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-gray-200">
+                <div className="px-4 py-2.5">Billing Cycle</div>
+                <div className="px-4 py-2.5">Stripe Price ID</div>
+                <div className="px-4 py-2.5">Price (cents CAD)</div>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {/* Monthly — only for monthly billing */}
+                {plan.billing === 'monthly' && (
+                  <div className="grid grid-cols-[140px_1fr_1fr] items-center">
+                    <div className="px-4 py-3 text-sm font-medium text-gray-700">Monthly</div>
+                    <div className="px-4 py-2"><input className="input font-mono text-xs" value={plan.stripe_price_id ?? ''} onChange={e => update('stripe_price_id', e.target.value)} placeholder="price_..." /></div>
+                    <div className="px-4 py-2 flex items-center gap-2">
+                      <input type="number" className="input w-28" value={plan.price_cad} onChange={e => update('price_cad', parseInt(e.target.value) || 0)} />
+                      <span className="text-xs text-gray-400 whitespace-nowrap">{plan.price_cad > 0 ? `$${(plan.price_cad / 100).toFixed(2)}/mo` : '—'}</span>
+                    </div>
+                  </div>
+                )}
+                {/* 1 Year */}
+                <div className="grid grid-cols-[140px_1fr_1fr] items-center">
+                  <div className="px-4 py-3 text-sm font-medium text-gray-700">1 Year</div>
+                  <div className="px-4 py-2">
+                    <input className="input font-mono text-xs"
+                      value={plan.billing === 'yearly' ? (plan.stripe_price_id ?? '') : (plan.stripe_price_id_yearly ?? '')}
+                      onChange={e => plan.billing === 'yearly' ? update('stripe_price_id', e.target.value) : update('stripe_price_id_yearly', e.target.value)}
+                      placeholder="price_..."
+                    />
+                  </div>
+                  <div className="px-4 py-2 flex items-center gap-2">
+                    <input type="number" className="input w-28"
+                      value={plan.billing === 'yearly' ? (plan.price_cad ?? 0) : (plan.price_yearly_cad ?? 0)}
+                      onChange={e => {
+                        const v = parseInt(e.target.value) || 0;
+                        plan.billing === 'yearly' ? update('price_cad', v) : update('price_yearly_cad', v);
+                      }}
+                    />
+                    <span className="text-xs text-gray-400 whitespace-nowrap">
+                      {(() => { const yr = plan.billing === 'yearly' ? plan.price_cad : plan.price_yearly_cad; return yr > 0 ? `$${(yr / 100).toFixed(2)}/yr` : '—'; })()}
+                    </span>
+                  </div>
+                </div>
+                {/* 2 Years */}
+                <div className="grid grid-cols-[140px_1fr_1fr] items-center">
+                  <div className="px-4 py-3 text-sm font-medium text-gray-700">2 Years</div>
+                  <div className="px-4 py-2"><input className="input font-mono text-xs" value={plan.stripe_price_id_2yr ?? ''} onChange={e => update('stripe_price_id_2yr', e.target.value)} placeholder="price_..." /></div>
+                  <div className="px-4 py-2 flex items-center gap-2">
+                    <input type="number" className="input w-28" value={plan.price_2yr_cad ?? 0} onChange={e => update('price_2yr_cad', parseInt(e.target.value) || 0)} />
+                    <span className="text-xs text-gray-400 whitespace-nowrap">{plan.price_2yr_cad > 0 ? `$${(plan.price_2yr_cad / 100).toFixed(2)}/2yr` : '—'}</span>
+                  </div>
+                </div>
+                {/* 3 Years */}
+                <div className="grid grid-cols-[140px_1fr_1fr] items-center">
+                  <div className="px-4 py-3 text-sm font-medium text-gray-700">3 Years</div>
+                  <div className="px-4 py-2"><input className="input font-mono text-xs" value={plan.stripe_price_id_3yr ?? ''} onChange={e => update('stripe_price_id_3yr', e.target.value)} placeholder="price_..." /></div>
+                  <div className="px-4 py-2 flex items-center gap-2">
+                    <input type="number" className="input w-28" value={plan.price_3yr_cad ?? 0} onChange={e => update('price_3yr_cad', parseInt(e.target.value) || 0)} />
+                    <span className="text-xs text-gray-400 whitespace-nowrap">{plan.price_3yr_cad > 0 ? `$${(plan.price_3yr_cad / 100).toFixed(2)}/3yr` : '—'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Domain TLD — OpenSRS Config (domain_tld only) */}

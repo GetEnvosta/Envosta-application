@@ -102,7 +102,9 @@ export async function POST(req: Request) {
 
       for (const product of products ?? []) {
         const needsSync = !product.stripe_product_id || !product.stripe_price_id
-          || (product.billing === 'monthly' && product.price_yearly_cad && !product.stripe_price_id_yearly);
+          || (product.billing === 'monthly' && product.price_yearly_cad && !product.stripe_price_id_yearly)
+          || (product.price_2yr_cad > 0 && !product.stripe_price_id_2yr)
+          || (product.price_3yr_cad > 0 && !product.stripe_price_id_3yr);
 
         if (needsSync) {
           try {
@@ -174,16 +176,39 @@ async function syncProduct(stripe: Stripe, supabase: any, product: any) {
   // Create or update prices based on billing type
   let priceId = product.stripe_price_id;
   let yearlyPriceId = product.stripe_price_id_yearly;
+  let price2yrId = product.stripe_price_id_2yr;
+  let price3yrId = product.stripe_price_id_3yr;
+
+  const pMeta = { envosta_product_id: product.id };
 
   if (product.billing === 'monthly') {
-    priceId = await upsertPrice(stripe, priceId, productId, product.price_cad, 'month', { envosta_product_id: product.id });
-    if (product.price_yearly_cad && product.price_yearly_cad > 0) {
-      yearlyPriceId = await upsertPrice(stripe, yearlyPriceId, productId, product.price_yearly_cad, 'year', { envosta_product_id: product.id });
+    // Monthly price
+    priceId = await upsertPrice(stripe, priceId, productId, product.price_cad, 'month', pMeta);
+    // 1-year price (billed yearly)
+    if (product.price_yearly_cad > 0) {
+      yearlyPriceId = await upsertPrice(stripe, yearlyPriceId, productId, product.price_yearly_cad, 'year', { ...pMeta, tier: '1yr' });
+    }
+    // 2-year price (billed every year, customer commits to 2yr)
+    if (product.price_2yr_cad > 0) {
+      price2yrId = await upsertPrice(stripe, price2yrId, productId, product.price_2yr_cad, 'year', { ...pMeta, tier: '2yr' });
+    }
+    // 3-year price (billed every year, customer commits to 3yr)
+    if (product.price_3yr_cad > 0) {
+      price3yrId = await upsertPrice(stripe, price3yrId, productId, product.price_3yr_cad, 'year', { ...pMeta, tier: '3yr' });
     }
   } else if (product.billing === 'yearly') {
-    priceId = await upsertPrice(stripe, priceId, productId, product.price_cad, 'year', { envosta_product_id: product.id });
+    // 1-year price
+    priceId = await upsertPrice(stripe, priceId, productId, product.price_cad, 'year', pMeta);
+    // 2-year price
+    if (product.price_2yr_cad > 0) {
+      price2yrId = await upsertPrice(stripe, price2yrId, productId, product.price_2yr_cad, 'year', { ...pMeta, tier: '2yr' });
+    }
+    // 3-year price
+    if (product.price_3yr_cad > 0) {
+      price3yrId = await upsertPrice(stripe, price3yrId, productId, product.price_3yr_cad, 'year', { ...pMeta, tier: '3yr' });
+    }
   } else if (product.billing === 'one_time') {
-    priceId = await upsertPrice(stripe, priceId, productId, product.price_cad, null, { envosta_product_id: product.id });
+    priceId = await upsertPrice(stripe, priceId, productId, product.price_cad, null, pMeta);
   }
 
   // Save Stripe IDs back to DB
@@ -191,6 +216,8 @@ async function syncProduct(stripe: Stripe, supabase: any, product: any) {
     stripe_product_id: productId,
     stripe_price_id: priceId,
     stripe_price_id_yearly: yearlyPriceId,
+    stripe_price_id_2yr: price2yrId,
+    stripe_price_id_3yr: price3yrId,
   }).eq('id', product.id);
 
   return {
@@ -198,5 +225,7 @@ async function syncProduct(stripe: Stripe, supabase: any, product: any) {
     stripe_product_id: productId,
     stripe_price_id: priceId,
     stripe_price_id_yearly: yearlyPriceId,
+    stripe_price_id_2yr: price2yrId,
+    stripe_price_id_3yr: price3yrId,
   };
 }

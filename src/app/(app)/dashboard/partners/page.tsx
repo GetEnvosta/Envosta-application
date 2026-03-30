@@ -7,7 +7,7 @@ import { CheckCircle, Handshake, Loader2 } from 'lucide-react';
 const PARTNER_TYPES = [
   { value: 'sales', label: 'Sales Partner', description: 'Refer businesses to Envosta and earn recurring commissions on every customer you bring in.' },
   { value: 'agency', label: 'Agency Partner', description: 'Build client sites on Envosta. Get priority support, bulk pricing, and a dedicated account manager.' },
-  { value: 'referral', label: 'Referral Program', description: 'Share Envosta with a friend and they get 6 months of free hosting. Simple as that.' },
+  { value: 'referral', label: 'Referral Program', description: 'Share Envosta with a friend. Simple as that.' },
 ];
 
 export default function PartnersPage() {
@@ -126,11 +126,6 @@ export default function PartnersPage() {
               ))}
             </select>
             <p className="text-xs text-gray-500 mt-1.5">{selectedType.description}</p>
-            {type === 'referral' && (
-              <div className="mt-2 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-medium px-3 py-1 rounded-full">
-                🎁 Your friend gets 6 months free hosting
-              </div>
-            )}
           </div>
 
           {/* Common Fields */}
