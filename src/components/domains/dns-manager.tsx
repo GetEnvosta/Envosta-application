@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { Plus, Pencil, Trash2, X, Loader2, Save, Wand2, Settings2, Server, ExternalLink } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { Plus, Pencil, Trash2, X, Loader2, Save, Wand2, Settings2, Server, ExternalLink, Copy, Check } from 'lucide-react';
 import { createClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
 
@@ -59,6 +59,16 @@ export function DnsManager({ domainId, domainName, initialRecords, siteId, initi
   // Custom nameserver inputs (for external DNS)
   const [customNs, setCustomNs] = useState<string[]>(usingEnvosta ? ['', ''] : ns);
   const [nsError, setNsError] = useState('');
+
+  // Site IP for required records reference
+  const [siteIp, setSiteIp] = useState<string | null>(null);
+  useEffect(() => {
+    if (!siteId) return;
+    const supabase = createClient();
+    supabase.from('sites').select('metadata').eq('id', siteId).maybeSingle().then(({ data }) => {
+      setSiteIp((data?.metadata as any)?.site_ip ?? null);
+    });
+  }, [siteId]);
 
   // DNS records state
   const storedRecords: DnsRecord[] = (initialRecords ?? []).map((r: any, i: number) => ({
@@ -378,12 +388,32 @@ export function DnsManager({ domainId, domainName, initialRecords, siteId, initi
             </div>
           </div>
 
-          <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
-            <p className="text-sm font-medium text-blue-900">DNS records are managed at your provider</p>
-            <p className="text-sm text-blue-700 mt-1">
-              Since you are using external nameservers, manage your DNS records (A, CNAME, MX, TXT, etc.) through your DNS provider&apos;s dashboard.
-              To manage DNS records directly through Envosta, switch to <strong>Envosta DNS</strong> above.
+          {/* Required records reference */}
+          <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4">
+            <p className="text-sm font-semibold text-blue-900 mb-1">Required DNS Records</p>
+            <p className="text-xs text-blue-700 mb-3">
+              Add these records at your DNS provider to connect your site.{!siteIp && ' Connect a site to see the required IP address.'}
             </p>
+            <div className="overflow-x-auto rounded-lg border border-blue-200 bg-white">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-blue-50 border-b border-blue-200">
+                    <th className="text-left font-medium text-blue-800 px-3 py-2">Type</th>
+                    <th className="text-left font-medium text-blue-800 px-3 py-2">Name</th>
+                    <th className="text-left font-medium text-blue-800 px-3 py-2">Value</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-blue-100">
+                  <RequiredRow type="A" name="@" value={siteIp ?? 'your-site-ip'} />
+                  <RequiredRow type="A" name="www" value={siteIp ?? 'your-site-ip'} />
+                  <RequiredRow type="TXT" name="@" value="v=spf1 include:_spf.wpcloud.com ~all" />
+                  <RequiredRow type="CNAME" name="wpcloud1._domainkey" value="wpcloud1._domainkey.wpcloud.com" />
+                  <RequiredRow type="CNAME" name="wpcloud2._domainkey" value="wpcloud2._domainkey.wpcloud.com" />
+                  <RequiredRow type="TXT" name="_dmarc" value="v=DMARC1; p=none;" />
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[11px] text-blue-600 mt-2">The A records are required. SPF, DKIM, and DMARC records are recommended for email deliverability.</p>
           </div>
         </div>
       )}
@@ -552,5 +582,30 @@ export function DnsManager({ domainId, domainName, initialRecords, siteId, initi
         </div>
       )}
     </div>
+  );
+}
+
+function RequiredRow({ type, name, value }: { type: string; name: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  function copy() {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+  return (
+    <tr className="hover:bg-blue-50/30">
+      <td className="px-3 py-2">
+        <span className="inline-flex items-center rounded bg-blue-100 px-1.5 py-0.5 font-mono font-medium text-blue-800">{type}</span>
+      </td>
+      <td className="px-3 py-2 font-mono text-gray-900">{name}</td>
+      <td className="px-3 py-2 font-mono text-gray-600">
+        <div className="flex items-center gap-1.5">
+          <span className="truncate max-w-[260px]">{value}</span>
+          <button onClick={copy} className="p-0.5 rounded hover:bg-blue-100 text-gray-400 hover:text-blue-600 shrink-0">
+            {copied ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 }
