@@ -1,15 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
-import { Receipt } from 'lucide-react';
+import { Receipt, RotateCcw, Loader2 } from 'lucide-react';
 
 interface Invoice {
   id: string;
   description: string | null;
-  amount_due: number;
+  amount_cad: number;
   status: string;
-  currency: string;
+  hosted_invoice_url: string | null;
   created_at: string;
   users?: { full_name: string | null; email: string };
   _category: string;
@@ -25,6 +26,29 @@ const FILTERS = [
 
 export function InvoiceFilters({ invoices }: { invoices: Invoice[] }) {
   const [active, setActive] = useState('all');
+  const [refunding, setRefunding] = useState<string | null>(null);
+  const router = useRouter();
+
+  async function handleRefund(invoiceId: string) {
+    if (!confirm('Issue a full refund for this invoice? This cannot be undone.')) return;
+    setRefunding(invoiceId);
+    try {
+      const res = await fetch('/api/admin/refund-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        router.refresh();
+      } else {
+        alert(data.error ?? 'Refund failed');
+      }
+    } catch {
+      alert('Refund failed');
+    }
+    setRefunding(null);
+  }
 
   const filtered = active === 'all' ? invoices : invoices.filter(i => i._category === active);
 
@@ -73,6 +97,8 @@ export function InvoiceFilters({ invoices }: { invoices: Invoice[] }) {
                 <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                 <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice</th>
+                <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -82,9 +108,29 @@ export function InvoiceFilters({ invoices }: { invoices: Invoice[] }) {
                   <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-3 font-medium text-gray-900">{inv.description || '\u2014'}</td>
                     <td className="px-5 py-3 text-gray-500">{user?.full_name || user?.email || '\u2014'}</td>
-                    <td className="px-5 py-3 text-gray-900 font-medium">{formatCents(inv.amount_due ?? 0, inv.currency)}</td>
+                    <td className="px-5 py-3 text-gray-900 font-medium">{formatCents(inv.amount_cad ?? 0, 'cad')}</td>
                     <td className="px-5 py-3"><span className={statusColor(inv.status)}>{inv.status}</span></td>
                     <td className="px-5 py-3 text-gray-500 text-xs">{formatDate(inv.created_at)}</td>
+                    <td className="px-5 py-3">
+                      {inv.hosted_invoice_url ? (
+                        <a href={inv.hosted_invoice_url} target="_blank" rel="noopener noreferrer"
+                          className="text-xs text-admin-600 hover:text-admin-700 font-medium">
+                          View
+                        </a>
+                      ) : <span className="text-gray-400">—</span>}
+                    </td>
+                    <td className="px-5 py-3">
+                      {inv.status === 'paid' && (
+                        <button
+                          onClick={() => handleRefund(inv.id)}
+                          disabled={refunding === inv.id}
+                          className="text-xs text-red-400 hover:text-red-600 font-medium inline-flex items-center gap-1"
+                        >
+                          {refunding === inv.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+                          Refund
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

@@ -72,7 +72,7 @@ export default async function BillingPage() {
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Description</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Amount</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Status</th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3 hidden sm:table-cell">Invoice</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Invoice</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -80,15 +80,15 @@ export default async function BillingPage() {
                   <tr key={inv.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{formatDate(inv.created_at)}</td>
                     <td className="px-5 py-3.5 text-sm text-gray-900">{inv.description ?? 'Invoice'}</td>
-                    <td className="px-5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{formatCents(inv.amount_due, inv.currency)}</td>
+                    <td className="px-5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{formatCents(inv.amount_cad, 'cad')}</td>
                     <td className="px-5 py-3.5">
                       <span className={statusColor(inv.status)}>{inv.status}</span>
                     </td>
-                    <td className="px-5 py-3.5 hidden sm:table-cell">
-                      {inv.invoice_url ? (
-                        <a href={inv.invoice_url} target="_blank" rel="noopener noreferrer"
+                    <td className="px-5 py-3.5">
+                      {inv.hosted_invoice_url ? (
+                        <a href={inv.hosted_invoice_url} target="_blank" rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700">
-                          Download <ExternalLink className="w-3.5 h-3.5" />
+                          <FileText className="w-3.5 h-3.5" /> Download
                         </a>
                       ) : (
                         <span className="text-sm text-gray-400">—</span>
