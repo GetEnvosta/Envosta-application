@@ -542,9 +542,12 @@ Deno.serve(async (req) => {
           <dt_assoc>
             <item key="domain">${domainName}</item>
             <item key="affect_domains">1</item>
-            <item key="data">opaque</item>
-            <item key="auto_renew">${autoRenew ? 1 : 0}</item>
-            <item key="let_expire">${autoRenew ? 0 : 1}</item>
+            <item key="data">
+              <dt_assoc>
+                <item key="auto_renew">${autoRenew ? 1 : 0}</item>
+                <item key="let_expire">${autoRenew ? 0 : 1}</item>
+              </dt_assoc>
+            </item>
           </dt_assoc>
         </item>
       </dt_assoc>
@@ -587,12 +590,16 @@ Deno.serve(async (req) => {
       <dt_assoc>
         <item key="protocol">XCP</item>
         <item key="object">DOMAIN</item>
-        <item key="action">SW_REGISTER</item>
+        <item key="action">MODIFY</item>
         <item key="attributes">
           <dt_assoc>
             <item key="domain">${domainName}</item>
-            <item key="reg_type">whois_privacy</item>
-            <item key="handle">process</item>
+            <item key="affect_domains">1</item>
+            <item key="data">
+              <dt_assoc>
+                <item key="whois_privacy_state">${state}</item>
+              </dt_assoc>
+            </item>
           </dt_assoc>
         </item>
       </dt_assoc>
@@ -600,36 +607,7 @@ Deno.serve(async (req) => {
   </body>
 </OPS_envelope>`;
 
-      // OpenSRS uses SW_REGISTER to enable and MODIFY to disable WHOIS privacy
-      let responseXml: string;
-      if (enabled) {
-        responseXml = await opensrsRequest(xml);
-      } else {
-        // Disable via MODIFY with whois_privacy_state = disable
-        const disableXml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
-<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
-<OPS_envelope>
-  <header><version>0.9</version></header>
-  <body>
-    <data_block>
-      <dt_assoc>
-        <item key="protocol">XCP</item>
-        <item key="object">DOMAIN</item>
-        <item key="action">MODIFY</item>
-        <item key="attributes">
-          <dt_assoc>
-            <item key="domain">${domainName}</item>
-            <item key="affect_domains">1</item>
-            <item key="data">whois_privacy_state</item>
-            <item key="whois_privacy_state">${state}</item>
-          </dt_assoc>
-        </item>
-      </dt_assoc>
-    </data_block>
-  </body>
-</OPS_envelope>`;
-        responseXml = await opensrsRequest(disableXml);
-      }
+      const responseXml = await opensrsRequest(xml);
 
       const parsed = parseResponse(responseXml);
       const ms = Date.now() - t0;
