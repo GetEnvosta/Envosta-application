@@ -70,18 +70,11 @@ export function DnsManager({ domainId, domainName, initialRecords, siteId }: {
         return;
       }
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          },
-          body: JSON.stringify({ action: 'setup-dns', domainName, siteIp }),
-        }
-      );
+      const res = await fetch('/api/domains', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'setup-dns', domainName, siteIp }),
+      });
       const data = await res.json();
       if (res.ok) {
         setSetupMsg(`DNS configured: ${data.records} records set for ${siteIp}`);

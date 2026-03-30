@@ -129,8 +129,9 @@ function buildRegisterXml(domain: string, years: number, contact: ContactInfo): 
             <item key="custom_nameservers">1</item>
             <item key="nameserver_list">
               <dt_array>
-                <item key="0"><dt_assoc><item key="name">ns1.opensrs.net</item><item key="sortorder">1</item></dt_assoc></item>
-                <item key="1"><dt_assoc><item key="name">ns2.opensrs.net</item><item key="sortorder">2</item></dt_assoc></item>
+                <item key="0"><dt_assoc><item key="name">ns1.systemdns.com</item><item key="sortorder">1</item></dt_assoc></item>
+                <item key="1"><dt_assoc><item key="name">ns2.systemdns.com</item><item key="sortorder">2</item></dt_assoc></item>
+                <item key="2"><dt_assoc><item key="name">ns3.systemdns.com</item><item key="sortorder">3</item></dt_assoc></item>
               </dt_array>
             </item>
             <item key="f_whois_privacy">1</item>

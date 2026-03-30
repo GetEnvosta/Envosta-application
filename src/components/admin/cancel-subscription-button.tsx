@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase-browser';
 import { Loader2, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -17,22 +16,11 @@ export function CancelSubscriptionButton({ siteId, siteName }: { siteId: string;
     setError('');
 
     try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setError('Not authenticated'); setLoading(false); return; }
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          },
-          body: JSON.stringify({ action: 'delete-site', siteId: siteId }),
-        }
-      );
+      const res = await fetch('/api/site-actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete-site', siteId: siteId }),
+      });
 
       const data = await res.json();
       if (!res.ok) {

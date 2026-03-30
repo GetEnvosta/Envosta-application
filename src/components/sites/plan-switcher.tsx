@@ -60,27 +60,16 @@ export function PlanSwitcher({
     setSelectedPlanId(newPlanId);
 
     try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setStatus({ type: 'error', message: 'Not authenticated' }); setSwitching(false); return; }
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          },
-          body: JSON.stringify({
-            action: 'change-plan',
-            siteId,
-            newPlanId,
-            ...(plan.metadata?.custom_pricing && customPrice ? { customPriceCad: Math.round(parseFloat(customPrice) * 100) } : {}),
-          }),
-        }
-      );
+      const res = await fetch('/api/site-actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'change-plan',
+          siteId,
+          newPlanId,
+          ...(plan.metadata?.custom_pricing && customPrice ? { customPriceCad: Math.round(parseFloat(customPrice) * 100) } : {}),
+        }),
+      });
 
       const data = await res.json();
       if (res.ok) {

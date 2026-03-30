@@ -54,27 +54,19 @@ export function ResourceControls({ siteId, wpCloudSiteId, config, planMetadata }
     // 2. Call wp.cloud to update the site (via site-info Edge Function)
     if (wpCloudSiteId) {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session?.access_token}`,
-              apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        const res = await fetch('/api/site-actions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update-meta',
+            siteId,
+            meta: {
+              default_php_conns: phpWorkers,
+              php_memory_limit: `${phpMemory}M`,
+              burst_php_conns: bursting ? 1 : 0,
             },
-            body: JSON.stringify({
-              action: 'update-meta',
-              siteId,
-              meta: {
-                default_php_conns: phpWorkers,
-                php_memory_limit: `${phpMemory}M`,
-                burst_php_conns: bursting ? 1 : 0,
-              },
-            }),
-          }
-        );
+          }),
+        });
         if (!res.ok) {
           const data = await res.json();
           setErrorMsg(`DB updated but wp.cloud failed: ${data.error ?? 'unknown'}`);

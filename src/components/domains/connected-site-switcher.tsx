@@ -38,27 +38,17 @@ export function ConnectedSiteSwitcher({
     if (newServiceId) {
       // Call update-domain to update wp.cloud + DNS + DB
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) { setSaving(false); return; }
-
         setStatus('Updating domain on wp.cloud...');
 
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-              'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            },
-            body: JSON.stringify({
-              action: 'update-domain',
-              siteId: newServiceId,
-              domain: domainName,
-            }),
-          }
-        );
+        const res = await fetch('/api/site-actions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update-domain',
+            siteId: newServiceId,
+            domain: domainName,
+          }),
+        });
 
         const data = await res.json();
 

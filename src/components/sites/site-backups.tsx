@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase-browser';
 import { Loader2, Download, RotateCcw, HardDrive, Plus } from 'lucide-react';
 
 interface Backup {
@@ -25,22 +24,11 @@ export function SiteBackups({ siteId, wpCloudSiteId }: { siteId: string; wpCloud
 
   async function fetchBackups() {
     try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setLoading(false); return; }
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          },
-          body: JSON.stringify({ action: 'list-backups', siteId }),
-        }
-      );
+      const res = await fetch('/api/site-actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'list-backups', siteId }),
+      });
       const data = await res.json();
       if (res.ok && Array.isArray(data.backups)) {
         setBackups(data.backups.map((b: any) => ({
@@ -60,10 +48,6 @@ export function SiteBackups({ siteId, wpCloudSiteId }: { siteId: string; wpCloud
     setMessage('');
 
     try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
       // For create-backup, we call a different approach
       if (action === 'create') {
         setMessage('Backup creation requested. This may take a few minutes.');

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase-browser';
 import { Loader2, Lock, ShieldCheck, ShieldAlert, RefreshCw } from 'lucide-react';
 
 export function SslStatus({ siteId, domain }: { siteId: string; domain: string | null }) {
@@ -17,22 +16,11 @@ export function SslStatus({ siteId, domain }: { siteId: string; domain: string |
 
   async function fetchSsl() {
     try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setLoading(false); return; }
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          },
-          body: JSON.stringify({ action: 'ssl-info', siteId, domain }),
-        }
-      );
+      const res = await fetch('/api/site-actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'ssl-info', siteId, domain }),
+      });
       const data = await res.json();
       if (res.ok) setSsl(data);
     } catch { /* non-fatal */ }
@@ -43,23 +31,12 @@ export function SslStatus({ siteId, domain }: { siteId: string; domain: string |
     setRetrying(true);
     setError('');
     try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
       // ssl-retry endpoint
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          },
-          body: JSON.stringify({ action: 'ssl-info', siteId, domain }),
-        }
-      );
+      const res = await fetch('/api/site-actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'ssl-info', siteId, domain }),
+      });
       const data = await res.json();
       if (res.ok) setSsl(data);
     } catch {

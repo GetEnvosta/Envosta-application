@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase-browser';
 import { Loader2 } from 'lucide-react';
 
 export function AutoRenewToggle({
@@ -21,26 +20,15 @@ export function AutoRenewToggle({
     setError('');
 
     try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setError('Not authenticated'); setLoading(false); return; }
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          },
-          body: JSON.stringify({
-            action: 'set-auto-renew',
-            domainName,
-            autoRenew: newValue,
-          }),
-        }
-      );
+      const res = await fetch('/api/domains', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'set-auto-renew',
+          domainName,
+          autoRenew: newValue,
+        }),
+      });
 
       const data = await res.json();
       if (!res.ok) {

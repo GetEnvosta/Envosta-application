@@ -63,7 +63,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
       {/* DNS Management */}
       {(() => {
         const ns = Array.isArray((domain.metadata as any)?.nameservers) ? (domain.metadata as any)?.nameservers : [];
-        const isDefault = ns.length === 0 || (ns.length <= 2 && ns.every((n: string) => n.includes('opensrs.net')));
+        const isDefault = ns.length === 0 || ns.every((n: string) => n.includes('systemdns.com'));
         return isDefault ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <DnsManager domainId={domain.id} domainName={domain.domain_name} initialRecords={(domain.metadata as any)?.dns_records} siteId={domain.site_id} />
@@ -75,7 +75,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
               <p className="text-sm text-amber-800 font-medium">Custom nameservers detected</p>
               <p className="text-sm text-amber-700 mt-1">
                 DNS records can only be managed when using Envosta&apos;s default nameservers
-                (<span className="font-mono text-xs">ns1.envosta.com</span>, <span className="font-mono text-xs">ns2.envosta.com</span>).
+                (<span className="font-mono text-xs">ns1.systemdns.com</span>, <span className="font-mono text-xs">ns2.systemdns.com</span>, <span className="font-mono text-xs">ns3.systemdns.com</span>).
                 Switch back to our default nameservers to manage your DNS records here.
               </p>
             </div>

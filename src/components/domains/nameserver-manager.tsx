@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
 import { Loader2, RotateCcw, Save, Plus, X } from 'lucide-react';
 
-const DEFAULT_NAMESERVERS = ['ns1.opensrs.net', 'ns2.opensrs.net'];
+const DEFAULT_NAMESERVERS = ['ns1.systemdns.com', 'ns2.systemdns.com', 'ns3.systemdns.com'];
 
 export function NameserverManager({ domainName, currentNameservers }: {
   domainName: string;
@@ -18,9 +18,8 @@ export function NameserverManager({ domainName, currentNameservers }: {
   const [success, setSuccess] = useState('');
   const router = useRouter();
 
-  const isDefault = nameservers.length === 2
-    && nameservers[0] === DEFAULT_NAMESERVERS[0]
-    && nameservers[1] === DEFAULT_NAMESERVERS[1];
+  const isDefault = nameservers.length === DEFAULT_NAMESERVERS.length
+    && nameservers.every((ns, i) => ns === DEFAULT_NAMESERVERS[i]);
 
   function updateNs(index: number, value: string) {
     const updated = [...nameservers];
@@ -66,20 +65,10 @@ export function NameserverManager({ domainName, currentNameservers }: {
     setSuccess('');
 
     try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setError('Not authenticated'); setSaving(false); return; }
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          },
-          body: JSON.stringify({
+      const res = await fetch('/api/domains', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
             action: 'update-nameservers',
             domainName,
             nameservers: filtered,
