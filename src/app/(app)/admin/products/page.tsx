@@ -141,7 +141,7 @@ export default async function ProductsPage({
                       >
                         <Pencil className="w-3 h-3" /> Edit
                       </Link>
-                      <DeleteProductButton productId={product.id} productName={product.name} />
+                      {!product.stripe_product_id && <DeleteProductButton productId={product.id} productName={product.name} />}
                     </div>
                   </td>
                 </tr>
