@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Trash2, Check } from 'lucide-react';
 import Link from 'next/link';
 
 export default function EditPlanPage({ params }: { params: Promise<{ id: string }> }) {
   const [plan, setPlan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savePhase, setSavePhase] = useState<'idle' | 'saving' | 'syncing' | 'done'>('idle');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [planId, setPlanId] = useState('');
@@ -35,6 +36,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
 
   async function handleSave() {
     setSaving(true);
+    setSavePhase('saving');
     setError('');
     setSuccess('');
 
@@ -77,9 +79,10 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
     });
     const saveData = await saveRes.json();
 
-    if (!saveRes.ok) { setError(saveData.error ?? 'Save failed'); setSaving(false); return; }
+    if (!saveRes.ok) { setError(saveData.error ?? 'Save failed'); setSaving(false); setSavePhase('idle'); return; }
 
     // Sync to Stripe
+    setSavePhase('syncing');
     try {
       const syncRes = await fetch('/api/admin/sync-stripe', {
         method: 'POST',
@@ -123,8 +126,9 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
     } catch {
       setSuccess('Plan saved (Stripe sync failed)');
     }
-    setTimeout(() => setSuccess(''), 5000);
+    setSavePhase('done');
     setSaving(false);
+    setTimeout(() => { setSuccess(''); setSavePhase('idle'); }, 3000);
   }
 
   if (loading) return <div className="animate-pulse space-y-4"><div className="h-8 w-48 bg-gray-200 rounded" /><div className="card p-6 space-y-3">{[1,2,3,4,5].map(i => <div key={i} className="h-10 bg-gray-100 rounded" />)}</div></div>;
@@ -340,9 +344,15 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
         )}
 
         <div className="flex items-center gap-4">
-          <button onClick={handleSave} disabled={saving} className="btn-admin inline-flex items-center gap-2">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save Changes
+          <button onClick={handleSave} disabled={saving} className={`inline-flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-lg transition-all ${
+            savePhase === 'done'
+              ? 'bg-emerald-600 text-white'
+              : 'btn-admin'
+          }`}>
+            {savePhase === 'saving' && <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>}
+            {savePhase === 'syncing' && <><Loader2 className="w-4 h-4 animate-spin" /> Syncing to Stripe...</>}
+            {savePhase === 'done' && <><Check className="w-4 h-4" /> Saved</>}
+            {savePhase === 'idle' && <><Save className="w-4 h-4" /> Save Changes</>}
           </button>
 
           {!plan.stripe_product_id && (
