@@ -35,19 +35,20 @@ async function upsertProduct(
 async function upsertPrice(
   stripe: Stripe, priceId: string | null, productId: string,
   amount: number, interval: 'month' | 'year' | null, metadata: Record<string, string> = {},
+  intervalCount = 1,
 ): Promise<string | null> {
   if (amount <= 0) return priceId;
 
   if (priceId) {
     const existing = await stripe.prices.retrieve(priceId);
-    if (existing.unit_amount === amount) return priceId;
+    if (existing.unit_amount === amount && existing.recurring?.interval_count === intervalCount) return priceId;
     await stripe.prices.update(priceId, { active: false });
   }
 
   const params: Stripe.PriceCreateParams = {
     product: productId, unit_amount: amount, currency: 'cad', metadata,
   };
-  if (interval) params.recurring = { interval };
+  if (interval) params.recurring = { interval, interval_count: intervalCount };
 
   const price = await stripe.prices.create(params);
   return price.id;
@@ -184,28 +185,28 @@ async function syncProduct(stripe: Stripe, supabase: any, product: any) {
   if (product.billing === 'monthly') {
     // Monthly price
     priceId = await upsertPrice(stripe, priceId, productId, product.price_cad, 'month', pMeta);
-    // 1-year price (billed yearly)
+    // 1-year price
     if (product.price_yearly_cad > 0) {
       yearlyPriceId = await upsertPrice(stripe, yearlyPriceId, productId, product.price_yearly_cad, 'year', { ...pMeta, tier: '1yr' });
     }
-    // 2-year price (billed every year, customer commits to 2yr)
+    // 2-year price (billed every 2 years)
     if (product.price_2yr_cad > 0) {
-      price2yrId = await upsertPrice(stripe, price2yrId, productId, product.price_2yr_cad, 'year', { ...pMeta, tier: '2yr' });
+      price2yrId = await upsertPrice(stripe, price2yrId, productId, product.price_2yr_cad, 'year', { ...pMeta, tier: '2yr' }, 2);
     }
-    // 3-year price (billed every year, customer commits to 3yr)
+    // 3-year price (billed every 3 years)
     if (product.price_3yr_cad > 0) {
-      price3yrId = await upsertPrice(stripe, price3yrId, productId, product.price_3yr_cad, 'year', { ...pMeta, tier: '3yr' });
+      price3yrId = await upsertPrice(stripe, price3yrId, productId, product.price_3yr_cad, 'year', { ...pMeta, tier: '3yr' }, 3);
     }
   } else if (product.billing === 'yearly') {
     // 1-year price
     priceId = await upsertPrice(stripe, priceId, productId, product.price_cad, 'year', pMeta);
-    // 2-year price
+    // 2-year price (billed every 2 years)
     if (product.price_2yr_cad > 0) {
-      price2yrId = await upsertPrice(stripe, price2yrId, productId, product.price_2yr_cad, 'year', { ...pMeta, tier: '2yr' });
+      price2yrId = await upsertPrice(stripe, price2yrId, productId, product.price_2yr_cad, 'year', { ...pMeta, tier: '2yr' }, 2);
     }
-    // 3-year price
+    // 3-year price (billed every 3 years)
     if (product.price_3yr_cad > 0) {
-      price3yrId = await upsertPrice(stripe, price3yrId, productId, product.price_3yr_cad, 'year', { ...pMeta, tier: '3yr' });
+      price3yrId = await upsertPrice(stripe, price3yrId, productId, product.price_3yr_cad, 'year', { ...pMeta, tier: '3yr' }, 3);
     }
   } else if (product.billing === 'one_time') {
     priceId = await upsertPrice(stripe, priceId, productId, product.price_cad, null, pMeta);
