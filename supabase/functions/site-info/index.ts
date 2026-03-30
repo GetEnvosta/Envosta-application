@@ -224,7 +224,7 @@ Deno.serve(async (req) => {
         if (!siteId) return error("siteId is required");
         if (!key || value === undefined) return error("key and value are required");
 
-        const allowedKeys = ["default_php_conns", "burst_php_conns", "php_memory_limit"];
+        const allowedKeys = ["default_php_conns", "burst_php_conns", "php_memory_limit", "jetpack_backup", "page_optimize", "jetpack_waf", "has_staging"];
         if (!allowedKeys.includes(key)) return error(`Invalid key: ${key}. Allowed: ${allowedKeys.join(", ")}`, 400);
 
         const sb = supabaseAdmin();

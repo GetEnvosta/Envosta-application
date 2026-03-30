@@ -76,6 +76,10 @@ Deno.serve(async (req) => {
     let defaultWorkers = 2;
     let phpMemory = 512;
     let planSlug = "minimum";
+    let hasBackups = true;
+    let hasCdn = true;
+    let hasWaf = true;
+    let hasStaging = true;
 
     if (svc.product_id) {
       const { data: plan } = await sb.from("products")
@@ -88,6 +92,10 @@ Deno.serve(async (req) => {
         storageGb = meta.storage_gb ?? 25;
         defaultWorkers = meta.php_workers_default ?? 2;
         phpMemory = meta.php_memory_mb ?? 512;
+        hasBackups = meta.has_backups ?? true;
+        hasCdn = meta.has_cdn ?? true;
+        hasWaf = meta.has_waf ?? true;
+        hasStaging = meta.has_staging ?? true;
       }
     }
 
@@ -188,6 +196,52 @@ Deno.serve(async (req) => {
       provisioned_at: new Date().toISOString(),
       metadata: { wp_cloud_response: wpResponse, job_id: wpResponse?.job_id, domain_name: domainName ?? null, site_ip: siteIp },
     }).eq("id", svc.id);
+
+    // Apply plan features (backups, CDN, WAF, staging) via wp.cloud site-meta
+    const wpSiteIdStr = String(wpSiteId ?? "");
+    if (wpSiteIdStr) {
+      const featureUpdates: Array<{ key: string; value: string; label: string }> = [];
+
+      // Backups — enable/disable automated backups
+      featureUpdates.push({ key: "jetpack_backup", value: hasBackups ? "1" : "0", label: "backups" });
+
+      // CDN — enable/disable page optimization / CDN
+      featureUpdates.push({ key: "page_optimize", value: hasCdn ? "1" : "0", label: "CDN" });
+
+      // WAF — enable/disable web application firewall
+      featureUpdates.push({ key: "jetpack_waf", value: hasWaf ? "1" : "0", label: "WAF" });
+
+      // Staging — enable/disable staging environment
+      if (hasStaging) {
+        featureUpdates.push({ key: "has_staging", value: "1", label: "staging" });
+      }
+
+      for (const feat of featureUpdates) {
+        try {
+          const featRes = await wpcloudPost(
+            `/api/v1.0/site-meta/${wpSiteIdStr}/${feat.key}/update`,
+            { value: feat.value },
+          );
+          console.log(`Feature ${feat.label} (${feat.key}=${feat.value}):`, featRes.status);
+        } catch (featErr) {
+          // Non-fatal — log but don't fail provisioning
+          console.error(`Feature ${feat.label} setup failed (non-fatal):`, featErr);
+        }
+      }
+
+      // Store applied features in site config
+      await sb.from("sites").update({
+        config: {
+          storage_gb: storageGb,
+          php_workers: defaultWorkers,
+          php_memory_mb: phpMemory,
+          has_backups: hasBackups,
+          has_cdn: hasCdn,
+          has_waf: hasWaf,
+          has_staging: hasStaging,
+        },
+      }).eq("id", svc.id);
+    }
 
     // Link domain if provided
     if (domainName) {

@@ -294,19 +294,19 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
         <div className="card p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">wp.cloud — Infrastructure</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div><label className="label">Storage (GB)</label><input type="number" className="input" value={plan.metadata?.storage_gb ?? plan.metadata?.storage_gb ?? 25} onChange={e => update('storage_gb', parseInt(e.target.value) || 25)} /></div>
-            <div><label className="label">Default PHP Workers</label><input type="number" className="input" value={plan.metadata?.php_workers_default ?? 2} onChange={e => update('default_php_workers', parseInt(e.target.value) || 2)} /></div>
-            <div><label className="label">Max PHP Workers</label><input type="number" className="input" value={plan.metadata?.php_workers_included ?? 2} onChange={e => update('max_php_workers', parseInt(e.target.value) || 2)} /></div>
-            <div><label className="label">PHP Memory (MB)</label><input type="number" className="input" value={plan.metadata?.php_memory_mb ?? 512} onChange={e => update('php_memory_mb', parseInt(e.target.value) || 512)} /></div>
+            <div><label className="label">Storage (GB)</label><input type="number" className="input" value={plan.metadata?.storage_gb ?? 25} onChange={e => update('metadata', { ...plan.metadata, storage_gb: parseInt(e.target.value) || 25 })} /></div>
+            <div><label className="label">Default PHP Workers</label><input type="number" className="input" value={plan.metadata?.php_workers_default ?? 2} onChange={e => update('metadata', { ...plan.metadata, php_workers_default: parseInt(e.target.value) || 2 })} /></div>
+            <div><label className="label">Max PHP Workers</label><input type="number" className="input" value={plan.metadata?.php_workers_included ?? 2} onChange={e => update('metadata', { ...plan.metadata, php_workers_included: parseInt(e.target.value) || 2 })} /></div>
+            <div><label className="label">PHP Memory (MB)</label><input type="number" className="input" value={plan.metadata?.php_memory_mb ?? 512} onChange={e => update('metadata', { ...plan.metadata, php_memory_mb: parseInt(e.target.value) || 512 })} /></div>
             <div>
               <label className="label">Onboarding Type</label>
-              <select className="input" value={plan.metadata?.onboarding_type ?? 'standard'} onChange={e => update('onboarding_type', e.target.value)}>
+              <select className="input" value={plan.metadata?.onboarding_type ?? 'standard'} onChange={e => update('metadata', { ...plan.metadata, onboarding_type: e.target.value })}>
                 <option value="standard">Standard</option>
                 <option value="guided">Guided</option>
                 <option value="concierge">Concierge</option>
               </select>
             </div>
-            <div><label className="label">Support Response (hours)</label><input type="number" className="input" value={plan.metadata?.support_response_hours ?? 48} onChange={e => update('support_response_hours', parseInt(e.target.value) || 48)} /></div>
+            <div><label className="label">Support Response (hours)</label><input type="number" className="input" value={plan.metadata?.support_response_hours ?? 48} onChange={e => update('metadata', { ...plan.metadata, support_response_hours: parseInt(e.target.value) || 48 })} /></div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
@@ -317,7 +317,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
               { key: 'has_waf', label: 'WAF' },
             ].map(f => (
               <label key={f.key} className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={plan[f.key] ?? false} onChange={e => update(f.key, e.target.checked)}
+                <input type="checkbox" checked={plan.metadata?.[f.key] ?? false} onChange={e => update('metadata', { ...plan.metadata, [f.key]: e.target.checked })}
                   className="w-4 h-4 rounded border-gray-300 text-admin-600 focus:ring-admin-500" />
                 <span className="text-sm text-gray-700">{f.label}</span>
               </label>
