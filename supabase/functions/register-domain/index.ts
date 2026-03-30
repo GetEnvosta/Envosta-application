@@ -277,7 +277,7 @@ Deno.serve(async (req) => {
 
       const { data: domain, error: domErr } = await sb.from("domains").insert({
         user_id: userId, site_id: serviceId ?? null, domain_name: domainName,
-        tld, status: "pending_dns", registrar: "opensrs",
+        tld, status: "pending", registrar: "opensrs",
         metadata: { agreement_acceptance: agreementAcceptance },
       }).select().single();
       if (domErr) return error(domErr.message, 500);
