@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
 import { Loader2, Trash2, AlertTriangle } from 'lucide-react';
 import Modal from '@/components/ui/modal';
@@ -28,30 +27,11 @@ export function DeleteSiteButton({ siteId, siteName, redirectTo = '/dashboard/si
     setError('');
 
     try {
-      const supabase = createClient();
-      let token = '';
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        token = session.access_token;
-      } else {
-        // Session cookie may be stale — try refreshing
-        const { data: { session: refreshed } } = await supabase.auth.refreshSession();
-        if (!refreshed) { setError('Not authenticated — please sign in again'); setLoading(false); return; }
-        token = refreshed.access_token;
-      }
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          },
-          body: JSON.stringify({ action, siteId: siteId }),
-        }
-      );
+      const res = await fetch('/api/admin/delete-site', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, siteId }),
+      });
 
       const data = await res.json();
 
@@ -83,15 +63,13 @@ export function DeleteSiteButton({ siteId, siteName, redirectTo = '/dashboard/si
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={isAdmin ? 'Permanently Delete Site' : 'Cancel Site'}>
         <div className="space-y-4">
           {isAdmin ? (
-            <>
-              <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-red-800">This is permanent and cannot be undone.</p>
-                  <p className="text-sm text-red-700 mt-1">This will permanently delete <strong>{siteName}</strong> from wp.cloud. All files, database, and backups will be destroyed.</p>
-                </div>
+            <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-800">This is permanent and cannot be undone.</p>
+                <p className="text-sm text-red-700 mt-1">This will permanently delete <strong>{siteName}</strong> from wp.cloud. All files, database, and backups will be destroyed.</p>
               </div>
-            </>
+            </div>
           ) : (
             <>
               <p className="text-sm text-gray-600">

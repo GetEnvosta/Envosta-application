@@ -1,4 +1,4 @@
-import { supabaseAdmin, supabaseForUser, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, WPCLOUD_PROXY_URL, WPCLOUD_API_KEY, WPCLOUD_PROXY_SECRET, cors, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, WPCLOUD_PROXY_URL, WPCLOUD_API_KEY, WPCLOUD_PROXY_SECRET, cors, json, error, log } from "../_shared/deps.ts";
 
 /**
  * Site management actions via wp.cloud Atomic API (routed through static IP proxy).
@@ -23,10 +23,21 @@ Deno.serve(async (req) => {
       return json(result.data);
     }
 
-    // All other actions require auth
-    const userSb = supabaseForUser(req);
-    const { data: { user }, error: authErr } = await userSb.auth.getUser();
-    if (authErr || !user) return error("Unauthorized", 401);
+    // All other actions require auth (user JWT or service role key)
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const bearerToken = authHeader.replace("Bearer ", "");
+    const isServiceRole = bearerToken === SUPABASE_SERVICE_ROLE_KEY;
+
+    let user: { id: string; email?: string } | null = null;
+    if (isServiceRole) {
+      // Service role = trusted admin API call, create a synthetic admin user
+      user = { id: "service-role", email: "admin@envosta.com" };
+    } else {
+      const userSb = supabaseForUser(req);
+      const { data, error: authErr } = await userSb.auth.getUser();
+      if (authErr || !data.user) return error("Unauthorized", 401);
+      user = data.user;
+    }
 
     switch (action) {
       // Get available datacenters
@@ -90,10 +101,12 @@ Deno.serve(async (req) => {
 
         if (!svc) return error("Site not found", 404);
 
-        // Check admin or owner
-        const { data: profile } = await sb.from("users").select("role").eq("id", user.id).single();
-        const isAdmin = profile?.role === "admin";
-        if (!isAdmin && svc.user_id !== user.id) return error("Forbidden", 403);
+        // Check admin or owner (service role = admin)
+        const isAdmin = isServiceRole || (await (async () => {
+          const { data: p } = await sb.from("users").select("role").eq("id", user!.id).single();
+          return p?.role === "admin";
+        })());
+        if (!isAdmin && svc.user_id !== user!.id) return error("Forbidden", 403);
 
         // 1. Cancel the linked Stripe subscription (stops billing)
         if (svc.subscription_id) {
@@ -181,9 +194,11 @@ Deno.serve(async (req) => {
 
         if (!svc) return error("Site not found", 404);
 
-        // Admin only
-        const { data: adminProfile } = await sb.from("users").select("role").eq("id", user.id).single();
-        if (adminProfile?.role !== "admin") return error("Admin access required", 403);
+        // Admin only (service role = admin)
+        if (!isServiceRole) {
+          const { data: adminProfile } = await sb.from("users").select("role").eq("id", user!.id).single();
+          if (adminProfile?.role !== "admin") return error("Admin access required", 403);
+        }
 
         // Delete from wp.cloud
         if (svc.wp_cloud_site_id) {
@@ -234,14 +249,13 @@ Deno.serve(async (req) => {
         if (!svc) return error("Site not found", 404);
         if (!svc.wp_cloud_site_id) return error("Site has no wp.cloud ID", 400);
 
-        // Check admin or owner
-        const userSbCheck = supabaseForUser(req);
-        const { data: { user: authUser } } = await userSbCheck.auth.getUser();
-        if (!authUser) return error("Unauthorized", 401);
-
-        const { data: profile } = await sb.from("users").select("role").eq("id", authUser.id).single();
-        const isAdmin = profile?.role === "admin";
-        if (!isAdmin && svc.user_id !== authUser.id) return error("Forbidden", 403);
+        // Check admin or owner (service role = admin)
+        if (!isServiceRole) {
+          if (svc.user_id !== user!.id) {
+            const { data: profile } = await sb.from("users").select("role").eq("id", user!.id).single();
+            if (profile?.role !== "admin") return error("Forbidden", 403);
+          }
+        }
 
         // POST to wp.cloud: /api/v1.0/site-meta/{wp_cloud_site_id}/{key}/update
         // Content-Type: application/x-www-form-urlencoded, body: value={value}
