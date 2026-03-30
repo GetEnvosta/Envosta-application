@@ -26,7 +26,7 @@ export async function getTicketById(id: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('tickets')
-    .select('*, ticket_messages(id, sender, message, is_draft, created_at), services(label, wp_cloud_url, status), users(full_name, email)')
+    .select('*, ticket_messages(id, sender, message, created_at), users(full_name, email)')
     .eq('id', id)
     .single();
   return data;
@@ -50,7 +50,7 @@ export async function getAllTickets(filters?: { type?: string; status?: string; 
     query = query.eq('status', filters.status);
   }
   if (filters?.q) {
-    query = query.or(`subject.ilike.%${filters.q}%,contact_name.ilike.%${filters.q}%,contact_email.ilike.%${filters.q}%`);
+    query = query.or(`subject.ilike.%${filters.q}%`);
   }
 
   const { data } = await query;
@@ -103,8 +103,7 @@ export async function getAdminTicketDetail(id: string) {
     .select(`
       *,
       users(id, full_name, email, created_at),
-      sites(id, label, wp_cloud_url, status, products(name, slug)),
-      ticket_messages(id, sender, message, is_draft, created_at)
+      ticket_messages(id, sender, message, created_at)
     `)
     .eq('id', id)
     .single();
@@ -130,9 +129,6 @@ export async function getAdminTicketDetail(id: string) {
       email: (ticket.users as any)?.email,
       memberSince: (ticket.users as any)?.created_at,
       plan: (subs as any)?.[0]?.products?.name ?? null,
-      siteUrl: (ticket.sites as any)?.wp_cloud_url,
-      siteStatus: (ticket.sites as any)?.status,
-      onboardingStage: (ticket.sites as any)?.config?.onboarding_status,
       totalTickets: ticketCount ?? 0,
     };
   }

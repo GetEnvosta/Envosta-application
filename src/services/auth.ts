@@ -69,7 +69,7 @@ export async function getUserProfile(userId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('users')
-    .select('id, full_name, email, avatar_url, role')
+    .select('id, full_name, email, role')
     .eq('id', userId)
     .single();
   return data;

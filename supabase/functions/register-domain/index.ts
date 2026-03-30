@@ -309,9 +309,8 @@ Deno.serve(async (req) => {
 
       await sb.from("domains").update({
         status: "registered",
-        registration_date: new Date().toISOString(),
-        expiry_date: new Date(Date.now() + (years ?? 1) * 365.25 * 86400000).toISOString(),
-        metadata: { agreement_acceptance: agreementAcceptance, responseCode: parsed.responseCode, responseText: parsed.responseText },
+        expires_at: new Date(Date.now() + (years ?? 1) * 365.25 * 86400000).toISOString(),
+        metadata: { registration_date: new Date().toISOString(), agreement_acceptance: agreementAcceptance, responseCode: parsed.responseCode, responseText: parsed.responseText },
       }).eq("id", domain.id);
 
       await log({ userId, serviceId, action: "domain.register.success", message: domainName, ip: registrantIp, ua: registrantUa, ms });
@@ -446,7 +445,7 @@ Deno.serve(async (req) => {
       }
 
       await sb.from("domains")
-        .update({ nameservers })
+        .update({ metadata: { nameservers } })
         .eq("user_id", userId)
         .eq("domain_name", domainName);
 
@@ -512,8 +511,7 @@ Deno.serve(async (req) => {
       await sb.from("domains")
         .update({
           status: "registered",
-          dns_records: records,
-          metadata: { dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() },
+          metadata: { dns_records: records, dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() },
         })
         .eq("user_id", userId)
         .eq("domain_name", domainName);

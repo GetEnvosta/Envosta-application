@@ -79,14 +79,14 @@ export default async function BillingPage() {
                 {invoices.map((inv: any) => (
                   <tr key={inv.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{formatDate(inv.created_at)}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-900">{inv.description ?? 'Invoice'}</td>
-                    <td className="px-5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{formatCents(inv.amount_cad, 'cad')}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-900">{(inv.metadata as any)?.description ?? 'Invoice'}</td>
+                    <td className="px-5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{formatCents(inv.amount_paid ?? inv.amount_due, 'cad')}</td>
                     <td className="px-5 py-3.5">
                       <span className={statusColor(inv.status)}>{inv.status}</span>
                     </td>
                     <td className="px-5 py-3.5">
-                      {inv.hosted_invoice_url ? (
-                        <a href={inv.hosted_invoice_url} target="_blank" rel="noopener noreferrer"
+                      {inv.invoice_url ? (
+                        <a href={inv.invoice_url} target="_blank" rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700">
                           <FileText className="w-3.5 h-3.5" /> Download
                         </a>

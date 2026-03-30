@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
 
             await sb.from("subscriptions").update({
               status: "cancelled",
-              cancelled_at: new Date().toISOString(),
+              metadata: { cancelled_at: new Date().toISOString() },
             }).eq("id", svc.subscription_id);
           }
         }
@@ -294,7 +294,7 @@ Deno.serve(async (req) => {
         try { responseData = JSON.parse(rawText); } catch { responseData = { raw: rawText }; }
 
         await log({
-          userId: authUser.id, serviceId: svc.id,
+          userId: user!.id, serviceId: svc.id,
           action: `hosting.update-meta.${key}`,
           message: `Set ${key}=${value}`,
           res: responseData,
@@ -397,8 +397,7 @@ Deno.serve(async (req) => {
 
             await sb.from("domains")
               .update({
-                dns_records: dnsRecords,
-                metadata: { dns_setup: "complete", site_ip: resolvedIp, dns_setup_at: new Date().toISOString() },
+                metadata: { dns_records: dnsRecords, dns_setup: "complete", site_ip: resolvedIp, dns_setup_at: new Date().toISOString() },
               })
               .eq("domain_name", domain)
               .eq("user_id", svc.user_id);
@@ -605,7 +604,7 @@ Deno.serve(async (req) => {
         }
 
         // Update record
-        await sb.from("site_addons").update({ status: "cancelled", disabled_at: new Date().toISOString() }).eq("id", sa.id);
+        await sb.from("site_addons").update({ status: "cancelled", metadata: { disabled_at: new Date().toISOString() } }).eq("id", sa.id);
 
         await log({ userId: user.id, serviceId: siteId, action: "addon.disabled", message: `${addon?.name ?? "Addon"} disabled` });
         return json({ success: true, addon: addon?.name });

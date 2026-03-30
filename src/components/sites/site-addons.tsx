@@ -10,13 +10,13 @@ interface Addon {
   slug: string;
   description: string | null;
   price_cad: number;
-  billing_type: string;
+  billing: string;
   stripe_price_id: string | null;
 }
 
 interface ServiceAddon {
   id: string;
-  addon_id: string;
+  product_id: string;
   status: string;
 }
 
@@ -37,7 +37,7 @@ export function SiteAddons({ siteId }: { siteId: string }) {
       ]);
       setAddons(allAddons ?? []);
       const map: Record<string, ServiceAddon> = {};
-      for (const sa of svcAddons ?? []) { map[sa.addon_id] = sa; }
+      for (const sa of svcAddons ?? []) { map[sa.product_id] = sa; }
       setActive(map);
       setLoading(false);
     }
@@ -83,7 +83,7 @@ export function SiteAddons({ siteId }: { siteId: string }) {
         setActive(prev => { const next = { ...prev }; delete next[addon.id]; return next; });
         setSuccess(`${addon.name} disabled`);
       } else {
-        setActive(prev => ({ ...prev, [addon.id]: { id: data.serviceAddonId ?? '', addon_id: addon.id, status: 'active' } }));
+        setActive(prev => ({ ...prev, [addon.id]: { id: data.serviceAddonId ?? '', product_id: addon.id, status: 'active' } }));
         setSuccess(`${addon.name} enabled`);
       }
     } catch {
@@ -112,7 +112,7 @@ export function SiteAddons({ siteId }: { siteId: string }) {
                 <p className="text-sm font-medium text-gray-900">{addon.name}</p>
                 <p className="text-xs text-gray-500">
                   ${(addon.price_cad / 100).toFixed(2)} CAD
-                  {addon.billing_type === 'monthly' ? '/mo' : addon.billing_type === 'yearly' ? '/yr' : ' one-time'}
+                  {addon.billing === 'monthly' ? '/mo' : addon.billing === 'yearly' ? '/yr' : ' one-time'}
                 </p>
               </div>
             </div>

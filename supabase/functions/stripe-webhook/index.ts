@@ -325,17 +325,16 @@ Deno.serve(async (req) => {
         await sb.from("invoices").upsert({
           user_id: cust.id,
           stripe_invoice_id: inv.id,
-          status: inv.status === "paid" ? "paid" : inv.status === "open" ? "open" : inv.status === "void" ? "void" : "draft",
-          amount_cad: inv.amount_paid ?? inv.amount_due ?? 0,
-          description: inv.description ?? `Invoice ${inv.number ?? ""}`,
-          hosted_invoice_url: inv.hosted_invoice_url ?? null,
+          status: inv.status === "paid" ? "paid" : inv.status === "open" ? "pending" : inv.status === "void" ? "void" : "draft",
+          amount_due: inv.amount_due ?? 0,
+          amount_paid: inv.amount_paid ?? 0,
+          currency: inv.currency ?? "cad",
+          invoice_url: inv.hosted_invoice_url ?? null,
+          invoice_pdf: inv.invoice_pdf ?? null,
+          period_start: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
+          period_end: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
           metadata: {
-            currency: inv.currency ?? "cad",
-            amount_due: inv.amount_due,
-            amount_paid: inv.amount_paid,
-            invoice_pdf: inv.invoice_pdf,
-            period_start: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
-            period_end: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
+            description: inv.description ?? `Invoice ${inv.number ?? ""}`,
             paid_at: inv.status === "paid" ? new Date().toISOString() : null,
           },
         }, { onConflict: "stripe_invoice_id" });
@@ -371,7 +370,7 @@ Deno.serve(async (req) => {
               console.log("Domain renewal invoice paid:", domainToRenew);
 
               const { data: domainRecord } = await sb.from("domains")
-                .select("id, status, expiry_date")
+                .select("id, status, expires_at")
                 .eq("domain_name", domainToRenew)
                 .eq("user_id", cust.id)
                 .maybeSingle();
@@ -380,11 +379,11 @@ Deno.serve(async (req) => {
                 console.log("Domain no longer exists, cancelling renewal:", domainToRenew);
                 await stripe.subscriptions.cancel(stripeSub.id);
               } else {
-                const currentExpiry = domainRecord.expiry_date ? new Date(domainRecord.expiry_date).getTime() : Date.now();
+                const currentExpiry = domainRecord.expires_at ? new Date(domainRecord.expires_at).getTime() : Date.now();
                 const newExpiry = new Date(Math.max(currentExpiry, Date.now()) + 365.25 * 86400000).toISOString();
 
                 await sb.from("domains").update({
-                  expiry_date: newExpiry,
+                  expires_at: newExpiry,
                   metadata: { last_renewal: new Date().toISOString(), renewal_invoice: inv.id },
                 }).eq("id", domainRecord.id);
                 console.log("Domain expiry updated:", domainToRenew);

@@ -42,7 +42,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
               <h1 className="text-xl font-semibold text-gray-900">{domain.domain_name}</h1>
               <div className="flex items-center gap-3 mt-1">
                 <span className={statusColor(domain.status)}>{domain.status}</span>
-                <span className="text-sm text-gray-500">Expires {formatDate(domain.expiry_date)}</span>
+                <span className="text-sm text-gray-500">Expires {formatDate(domain.expires_at)}</span>
               </div>
             </div>
           </div>
@@ -62,11 +62,11 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
 
       {/* DNS Management */}
       {(() => {
-        const ns = Array.isArray(domain.nameservers) ? domain.nameservers : [];
+        const ns = Array.isArray((domain.metadata as any)?.nameservers) ? (domain.metadata as any)?.nameservers : [];
         const isDefault = ns.length === 0 || (ns.length <= 2 && ns.every((n: string) => n.includes('opensrs.net')));
         return isDefault ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <DnsManager domainId={domain.id} domainName={domain.domain_name} initialRecords={domain.dns_records} siteId={domain.site_id} />
+            <DnsManager domainId={domain.id} domainName={domain.domain_name} initialRecords={(domain.metadata as any)?.dns_records} siteId={domain.site_id} />
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 opacity-60">
@@ -86,7 +86,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
       {/* Nameservers */}
       <NameserverManager
         domainName={domain.domain_name}
-        currentNameservers={Array.isArray(domain.nameservers) ? domain.nameservers : []}
+        currentNameservers={Array.isArray((domain.metadata as any)?.nameservers) ? (domain.metadata as any)?.nameservers : []}
       />
 
       {/* WHOIS Privacy */}

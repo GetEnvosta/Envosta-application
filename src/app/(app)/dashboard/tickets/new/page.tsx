@@ -58,9 +58,9 @@ export default function NewTicketPage() {
           subject,
           status: 'open',
           priority: ticketType === 'support' ? priority : 'medium',
-          site_id: ticketType === 'studio' && siteId ? siteId : null,
-          contact_name: user.user_metadata?.full_name ?? null,
-          contact_email: user.email,
+          metadata: {
+            ...(ticketType === 'studio' && siteId ? { site_id: siteId } : {}),
+          },
         })
         .select('id')
         .single();

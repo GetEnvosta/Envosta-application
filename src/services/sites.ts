@@ -107,7 +107,7 @@ export async function getServiceDomains(siteId: string) {
   const { data } = await supabase
     .from('domains')
     .select('*')
-    .eq('site_id', siteId)
+    .eq('service_id', siteId)
     .order('created_at', { ascending: false });
   return data ?? [];
 }
@@ -120,7 +120,7 @@ export async function getServiceLogs(siteId: string, limit: number = 20) {
   const { data } = await supabase
     .from('logs')
     .select('*')
-    .eq('site_id', siteId)
+    .eq('service_id', siteId)
     .order('created_at', { ascending: false })
     .limit(limit);
   return data ?? [];

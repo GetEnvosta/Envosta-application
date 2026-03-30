@@ -64,11 +64,10 @@ Deno.serve(async (req) => {
           user_id: userId,
           subscription_id: subscriptionId ?? null,
           product_id: planId ?? null,
-          type: "hosting",
           label,
           status: "provisioning",
           server_region: geoAffinity,
-          metadata: { php_version: phpVersion ?? "8.4" },
+          php_version: phpVersion ?? "8.4",
         }).select().single();
         if (svcErr) return error(svcErr.message, 500);
         svc = newSvc;
@@ -284,8 +283,7 @@ Deno.serve(async (req) => {
 
           await sb.from("domains")
             .update({
-              dns_records: dnsRecords,
-              metadata: { dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() },
+              metadata: { dns_records: dnsRecords, dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() },
             })
             .eq("user_id", userId)
             .eq("domain_name", domainName);
