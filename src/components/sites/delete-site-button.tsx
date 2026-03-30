@@ -29,8 +29,16 @@ export function DeleteSiteButton({ siteId, siteName, redirectTo = '/dashboard/si
 
     try {
       const supabase = createClient();
+      let token = '';
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setError('Not authenticated'); setLoading(false); return; }
+      if (session) {
+        token = session.access_token;
+      } else {
+        // Session cookie may be stale — try refreshing
+        const { data: { session: refreshed } } = await supabase.auth.refreshSession();
+        if (!refreshed) { setError('Not authenticated — please sign in again'); setLoading(false); return; }
+        token = refreshed.access_token;
+      }
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
@@ -38,7 +46,7 @@ export function DeleteSiteButton({ siteId, siteName, redirectTo = '/dashboard/si
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
+            'Authorization': `Bearer ${token}`,
             'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
           },
           body: JSON.stringify({ action, siteId: siteId }),

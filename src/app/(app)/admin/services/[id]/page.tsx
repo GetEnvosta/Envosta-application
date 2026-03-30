@@ -13,10 +13,12 @@ import {
   Server,
   User,
   Wifi,
+  Wrench,
 } from 'lucide-react';
 import { PlanSwitcher } from '@/components/sites/plan-switcher';
 import { SiteAddons } from '@/components/sites/site-addons';
 import { CancelSubscriptionButton } from '@/components/admin/cancel-subscription-button';
+import { AdminSiteActions } from '@/components/admin/admin-site-actions';
 import { Package } from 'lucide-react';
 
 export default async function ServiceDetailPage({
@@ -272,7 +274,21 @@ export default async function ServiceDetailPage({
         </div>
       </div>
 
-      {/* Old resource controls removed — using new version above */}
+      {/* Admin Fallback Actions */}
+      <div className="card p-6 mb-6">
+        <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+          <Wrench className="w-4 h-4 text-gray-400" />
+          Admin Actions
+        </h2>
+        <p className="text-sm text-gray-500 mb-4">Manual provisioning and domain management if webhook failed.</p>
+        <AdminSiteActions
+          siteId={service.id}
+          wpCloudSiteId={service.wp_cloud_site_id}
+          userId={service.user_id}
+          subscriptionId={service.subscription_id}
+          status={service.status}
+        />
+      </div>
 
       {/* Danger Zone */}
       <div className="rounded-xl border border-red-200 bg-white p-6">
