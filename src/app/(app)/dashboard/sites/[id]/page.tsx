@@ -24,7 +24,6 @@ import {
   Package,
 } from 'lucide-react';
 import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-switcher';
-import { PlanSwitcher } from '@/components/sites/plan-switcher';
 import { SiteAddons } from '@/components/sites/site-addons';
 
 export default async function SiteDetailPage({
@@ -194,14 +193,29 @@ export default async function SiteDetailPage({
         )}
       </div>
 
-      {/* Change Plan */}
+      {/* Current Plan */}
       <div className="card p-6 mb-4">
         <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
           <Layers className="w-4 h-4 text-gray-400" />
-          Change Plan
+          Plan
         </h2>
-        <p className="text-sm text-gray-500 mb-4">Upgrade or downgrade your hosting plan. Changes take effect immediately with prorated billing.</p>
-        <PlanSwitcher siteId={id} currentPlanId={site.product_id} />
+        <div className="flex items-center justify-between mt-3">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">{planName}</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {(site.products as any)?.metadata?.storage_gb ?? 25} GB storage &middot; {(site.products as any)?.metadata?.php_workers_default ?? 2} PHP workers &middot; {(site.products as any)?.metadata?.php_memory_mb ?? 512} MB memory
+            </p>
+          </div>
+          {planSlug !== 'enterprise' && planSlug !== 'performance' && (
+            <Link
+              href="/pricing"
+              className="btn-primary text-sm py-2 px-4 inline-flex items-center gap-1.5"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              Upgrade Plan
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Add-ons */}
