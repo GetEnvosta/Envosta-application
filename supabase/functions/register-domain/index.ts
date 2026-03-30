@@ -542,6 +542,7 @@ Deno.serve(async (req) => {
           <dt_assoc>
             <item key="domain">${domainName}</item>
             <item key="affect_domains">1</item>
+            <item key="data">expire_action</item>
             <item key="auto_renew">${autoRenew ? 1 : 0}</item>
             <item key="let_expire">${autoRenew ? 0 : 1}</item>
           </dt_assoc>
@@ -591,6 +592,7 @@ Deno.serve(async (req) => {
           <dt_assoc>
             <item key="domain">${domainName}</item>
             <item key="affect_domains">1</item>
+            <item key="data">whois_privacy_state</item>
             <item key="whois_privacy_state">${state}</item>
           </dt_assoc>
         </item>
