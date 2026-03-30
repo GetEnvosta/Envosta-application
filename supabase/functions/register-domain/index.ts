@@ -1,4 +1,4 @@
-import { supabaseAdmin, supabaseForUser, cors, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, cors, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, domainRegisteredEmail } from "../_shared/email.ts";
 
 const OPENSRS_USERNAME = Deno.env.get("OPENSRS_USERNAME") ?? "";
@@ -239,6 +239,10 @@ Deno.serve(async (req) => {
     }
 
     // ═══ Auth required for all other actions ════════════════
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const bearerToken = authHeader.replace("Bearer ", "");
+    const isServiceRole = bearerToken === SUPABASE_SERVICE_ROLE_KEY;
+
     let userId: string;
     let userEmail: string;
 
@@ -248,7 +252,8 @@ Deno.serve(async (req) => {
     if (user) {
       userId = user.id;
       userEmail = user.email ?? "domains@envosta.com";
-    } else if (bodyUserId) {
+    } else if (bodyUserId && isServiceRole) {
+      // Only accept bodyUserId from trusted server-to-server calls (webhook, admin API)
       const sb2 = supabaseAdmin();
       const { data: profile } = await sb2.from("users").select("id, email").eq("id", bodyUserId).maybeSingle();
       if (!profile) return error("User not found", 404);

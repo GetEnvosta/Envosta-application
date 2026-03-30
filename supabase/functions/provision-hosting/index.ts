@@ -1,4 +1,4 @@
-import { supabaseAdmin, supabaseForUser, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, siteReadyEmail, provisioningFailedEmail } from "../_shared/email.ts";
 
 /**
@@ -18,11 +18,15 @@ Deno.serve(async (req) => {
     const { label, region, phpVersion, subscriptionId, planId, domainName, adminEmail, serviceId, userId: bodyUserId } = body;
     if (!label && !serviceId) return error("label or serviceId is required");
 
-    // Auth: either user session or service role with userId in body (for webhook calls)
+    // Auth: either user session or service role key with userId in body (webhook/admin calls)
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const bearerToken = authHeader.replace("Bearer ", "");
+    const isServiceRole = bearerToken === SUPABASE_SERVICE_ROLE_KEY;
+
     const userSb = supabaseForUser(req);
     const { data: { user } } = await userSb.auth.getUser();
 
-    if (!user && !bodyUserId) return error("Unauthorized", 401);
+    if (!user && !(bodyUserId && isServiceRole)) return error("Unauthorized", 401);
     const userId = user?.id ?? bodyUserId;
     const userEmail = user?.email ?? adminEmail ?? "admin@envosta.com";
 

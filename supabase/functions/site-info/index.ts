@@ -15,18 +15,23 @@ Deno.serve(async (req) => {
   try {
     const { action, siteId, domain, key, value } = await req.json();
 
-    // Domain verification doesn't need auth (one-time admin setup)
+    // All actions require auth (user JWT or service role key)
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const bearerToken = authHeader.replace("Bearer ", "");
+    const isServiceRole = bearerToken === SUPABASE_SERVICE_ROLE_KEY;
+
+    // Domain verification requires auth (returns sensitive TXT records)
     if (action === "domain-verification") {
+      if (!isServiceRole) {
+        const userSb2 = supabaseForUser(req);
+        const { data: { user: dvUser } } = await userSb2.auth.getUser();
+        if (!dvUser) return error("Unauthorized", 401);
+      }
       if (!domain) return error("domain is required");
       const result = await wpcloudGet(`/api/v1.0/get-domain-verification-code/${WPCLOUD_CLIENT}/${domain}`);
       console.log("Domain verification result:", result.status, JSON.stringify(result.data));
       return json(result.data);
     }
-
-    // All other actions require auth (user JWT or service role key)
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const bearerToken = authHeader.replace("Bearer ", "");
-    const isServiceRole = bearerToken === SUPABASE_SERVICE_ROLE_KEY;
 
     let user: { id: string; email?: string } | null = null;
     if (isServiceRole) {
@@ -69,7 +74,11 @@ Deno.serve(async (req) => {
         const { data: svc } = await sb.from("sites")
           .select("id, wp_cloud_site_id, user_id")
           .eq("id", siteId).single();
-        if (!svc || svc.user_id !== user.id) return error("Site not found", 404);
+        if (!svc) return error("Site not found", 404);
+        if (!isServiceRole && svc.user_id !== user!.id) {
+          const { data: p } = await sb.from("users").select("role").eq("id", user!.id).single();
+          if (p?.role !== "admin") return error("Site not found", 404);
+        }
         if (!svc.wp_cloud_site_id) return error("Site has no wp.cloud ID", 400);
 
         const result = await wpcloudGet(`/api/v1.0/get-site/${svc.wp_cloud_site_id}/extra`);
@@ -83,7 +92,11 @@ Deno.serve(async (req) => {
         const { data: svc } = await sb.from("sites")
           .select("id, wp_cloud_site_id, user_id")
           .eq("id", siteId).single();
-        if (!svc || svc.user_id !== user.id) return error("Site not found", 404);
+        if (!svc) return error("Site not found", 404);
+        if (!isServiceRole && svc.user_id !== user!.id) {
+          const { data: p } = await sb.from("users").select("role").eq("id", user!.id).single();
+          if (p?.role !== "admin") return error("Site not found", 404);
+        }
         if (!svc.wp_cloud_site_id) return error("Site has no wp.cloud ID", 400);
 
         const result = await wpcloudGet(`/api/v1.0/site-backups-list/${WPCLOUD_CLIENT}/${svc.wp_cloud_site_id}`);
@@ -409,6 +422,12 @@ Deno.serve(async (req) => {
         if (!svc) return error("Service not found", 404);
         if (!svc.wp_cloud_site_id) return error("Site not yet provisioned", 400);
 
+        // Verify ownership or admin
+        if (!isServiceRole && svc.user_id !== user!.id) {
+          const { data: p } = await sb.from("users").select("role").eq("id", user!.id).single();
+          if (p?.role !== "admin") return error("Forbidden", 403);
+        }
+
         const { data: newPlan } = await sb.from("products").select("*").eq("id", newPlanId).single();
         if (!newPlan) return error("Plan not found", 404);
 
@@ -487,6 +506,12 @@ Deno.serve(async (req) => {
         const { data: svc } = await sb.from("sites").select("*, subscriptions(id, stripe_subscription_id)").eq("id", siteId).single();
         if (!svc) return error("Service not found", 404);
 
+        // Verify ownership or admin
+        if (!isServiceRole && svc.user_id !== user!.id) {
+          const { data: p } = await sb.from("users").select("role").eq("id", user!.id).single();
+          if (p?.role !== "admin") return error("Forbidden", 403);
+        }
+
         const { data: addon } = await sb.from("products").select("*").eq("id", addonId).single();
         if (!addon) return error("Addon not found", 404);
 
@@ -544,7 +569,13 @@ Deno.serve(async (req) => {
         if (!siteId || !removeAddonId) return error("siteId and addonId are required");
 
         const sb = supabaseAdmin();
-        const { data: svc } = await sb.from("sites").select("wp_cloud_site_id").eq("id", siteId).single();
+        const { data: svc } = await sb.from("sites").select("wp_cloud_site_id, user_id").eq("id", siteId).single();
+
+        // Verify ownership or admin
+        if (svc && !isServiceRole && svc.user_id !== user!.id) {
+          const { data: p } = await sb.from("users").select("role").eq("id", user!.id).single();
+          if (p?.role !== "admin") return error("Forbidden", 403);
+        }
         const { data: sa } = await sb.from("site_addons").select("*, products(*)").eq("site_id", siteId).eq("product_id", removeAddonId).eq("status", "active").maybeSingle();
         if (!sa) return error("Addon not active on this site", 404);
 

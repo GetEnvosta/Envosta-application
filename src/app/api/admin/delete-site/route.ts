@@ -6,7 +6,6 @@ import { createClient } from '@supabase/supabase-js';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  // Verify admin
   const jar = await cookies();
   const supabaseAuth = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,7 +32,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Admin only' }, { status: 403 });
   }
 
-  // Forward to Edge Function with service role key
+  // Non-admins can only soft-delete their own sites
+  if (!isAdmin) {
+    const { data: site } = await sb.from('sites').select('user_id').eq('id', siteId).single();
+    if (!site || site.user_id !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
+
+  // Forward to Edge Function with service role key (ownership verified above)
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
     {
