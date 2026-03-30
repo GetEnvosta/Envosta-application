@@ -407,7 +407,7 @@ Deno.serve(async (req) => {
       if (nameservers.length > 6) return error("Maximum 6 nameservers allowed");
 
       const nsListItems = nameservers.map((ns: string, i: number) =>
-        `<item key="${i}"><dt_assoc><item key="name">${ns}</item><item key="sortorder">${i + 1}</item></dt_assoc></item>`
+        `<item key="${i}">${ns}</item>`
       ).join("");
 
       const xml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
@@ -570,6 +570,84 @@ Deno.serve(async (req) => {
 
       await log({ userId, action: "domain.auto_renew.updated", message: `${domainName}: ${autoRenew ? "enabled" : "disabled"}`, ms });
       return json({ domainName, autoRenew, success: true });
+    }
+
+    // ═══ TOGGLE WHOIS PRIVACY ══════════════════════════════
+    if (action === "set-whois-privacy") {
+      const { enabled } = body;
+      if (typeof enabled !== "boolean") return error("enabled (boolean) is required");
+
+      const state = enabled ? "enable" : "disable";
+      const xml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
+<OPS_envelope>
+  <header><version>0.9</version></header>
+  <body>
+    <data_block>
+      <dt_assoc>
+        <item key="protocol">XCP</item>
+        <item key="object">DOMAIN</item>
+        <item key="action">SW_REGISTER</item>
+        <item key="attributes">
+          <dt_assoc>
+            <item key="domain">${domainName}</item>
+            <item key="reg_type">whois_privacy</item>
+            <item key="handle">process</item>
+          </dt_assoc>
+        </item>
+      </dt_assoc>
+    </data_block>
+  </body>
+</OPS_envelope>`;
+
+      // OpenSRS uses SW_REGISTER to enable and MODIFY to disable WHOIS privacy
+      let responseXml: string;
+      if (enabled) {
+        responseXml = await opensrsRequest(xml);
+      } else {
+        // Disable via MODIFY with whois_privacy_state = disable
+        const disableXml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
+<OPS_envelope>
+  <header><version>0.9</version></header>
+  <body>
+    <data_block>
+      <dt_assoc>
+        <item key="protocol">XCP</item>
+        <item key="object">DOMAIN</item>
+        <item key="action">MODIFY</item>
+        <item key="attributes">
+          <dt_assoc>
+            <item key="domain">${domainName}</item>
+            <item key="affect_domains">1</item>
+            <item key="data">whois_privacy_state</item>
+            <item key="whois_privacy_state">${state}</item>
+          </dt_assoc>
+        </item>
+      </dt_assoc>
+    </data_block>
+  </body>
+</OPS_envelope>`;
+        responseXml = await opensrsRequest(disableXml);
+      }
+
+      const parsed = parseResponse(responseXml);
+      const ms = Date.now() - t0;
+      console.log("OpenSRS WHOIS privacy:", state, parsed.responseCode, parsed.responseText);
+
+      if (!parsed.isSuccess) {
+        await log({ userId, level: "error", action: "domain.whois_privacy.failed", message: `${domainName}: ${parsed.responseText}`, ms });
+        return error(`WHOIS privacy update failed: ${parsed.responseText}`, 502);
+      }
+
+      const { data: wpRec } = await sb.from("domains").select("metadata").eq("user_id", userId).eq("domain_name", domainName).maybeSingle();
+      await sb.from("domains")
+        .update({ metadata: { ...(wpRec?.metadata as any ?? {}), whois_privacy: enabled } })
+        .eq("user_id", userId)
+        .eq("domain_name", domainName);
+
+      await log({ userId, action: "domain.whois_privacy.updated", message: `${domainName}: ${state}`, ms });
+      return json({ domainName, whoisPrivacy: enabled, success: true });
     }
 
     return error(`Unknown action: ${action}`, 400);

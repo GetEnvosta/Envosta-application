@@ -9,6 +9,7 @@ import { DnsManager } from '@/components/domains/dns-manager';
 import { ConnectedSiteSwitcher } from '@/components/domains/connected-site-switcher';
 import { NameserverManager } from '@/components/domains/nameserver-manager';
 import { AutoRenewToggle } from '@/components/domains/auto-renew-toggle';
+import { WhoisPrivacyToggle } from '@/components/domains/whois-privacy-toggle';
 
 export default async function DomainDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -96,14 +97,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
             <h2 className="text-sm font-semibold text-gray-900">WHOIS Privacy</h2>
             <p className="text-sm text-gray-500 mt-0.5">Hide your personal information from WHOIS lookups.</p>
           </div>
-          <button
-            className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-brand-600 transition-colors duration-200 ease-in-out"
-            role="switch"
-            aria-checked="true"
-            disabled
-          >
-            <span className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-5" />
-          </button>
+          <WhoisPrivacyToggle domainName={domain.domain_name} initialValue={(domain.metadata as any)?.whois_privacy ?? true} />
         </div>
       </div>
 
