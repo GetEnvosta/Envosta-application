@@ -57,7 +57,7 @@ export async function getAllCustomers(search?: string) {
 
   let query = supabase
     .from('users')
-    .select('*')
+    .select('*, sites(id), domains(id)')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -66,7 +66,13 @@ export async function getAllCustomers(search?: string) {
   }
 
   const { data } = await query;
-  return data ?? [];
+  return (data ?? []).map((u: any) => ({
+    ...u,
+    site_count: Array.isArray(u.sites) ? u.sites.length : 0,
+    domain_count: Array.isArray(u.domains) ? u.domains.length : 0,
+    sites: undefined,
+    domains: undefined,
+  }));
 }
 
 /**

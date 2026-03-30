@@ -2,7 +2,7 @@ export const revalidate = 5;
 import { getAllCustomers } from '@/services/admin';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
-import { Search, Users } from 'lucide-react';
+import { Search, Users, Server, Globe } from 'lucide-react';
 import { ImpersonateButton } from '@/components/admin/impersonate-button';
 
 export default async function CustomersPage({
@@ -53,6 +53,12 @@ export default async function CustomersPage({
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
                   Company
                 </th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">
+                  Sites
+                </th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">
+                  Domains
+                </th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
                   Role
                 </th>
@@ -67,7 +73,7 @@ export default async function CustomersPage({
             <tbody className="divide-y divide-gray-100">
               {(!users || users.length === 0) ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center">
+                  <td colSpan={8} className="px-5 py-12 text-center">
                     <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                     <p className="text-sm text-gray-400">
                       {q ? 'No customers match your search.' : 'No customers yet.'}
@@ -88,6 +94,26 @@ export default async function CustomersPage({
                     <td className="px-5 py-3.5 text-gray-600">{u.email}</td>
                     <td className="px-5 py-3.5 text-gray-600">
                       {u.company_name || '\u2014'}
+                    </td>
+                    <td className="px-5 py-3.5 text-center">
+                      {u.site_count > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-700">
+                          <Server className="w-3 h-3 text-gray-400" />
+                          {u.site_count}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-300">0</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-center">
+                      {u.domain_count > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-700">
+                          <Globe className="w-3 h-3 text-gray-400" />
+                          {u.domain_count}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-300">0</span>
+                      )}
                     </td>
                     <td className="px-5 py-3.5">
                       <span className={u.role === 'admin' ? 'badge-indigo' : 'badge-gray'}>
