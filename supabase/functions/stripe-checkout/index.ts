@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
         line_items.push({
           price_data: {
             currency: "cad",
-            unit_amount: tldPricing?.registration_price_cad ?? domainPriceCents ?? 1500,
+            unit_amount: (tldProduct?.metadata as any)?.registration_price_cad ?? tldProduct?.price_cad ?? 1500,
             product_data: { name: `Domain Registration: ${domainName} (1 year)` },
           },
           quantity: 1,

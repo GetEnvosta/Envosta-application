@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
           label,
           status: "provisioning",
           server_region: geoAffinity,
-          php_version: phpVersion ?? "8.4",
+          metadata: { php_version: phpVersion ?? "8.4" },
         }).select().single();
         if (svcErr) return error(svcErr.message, 500);
         svc = newSvc;
@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
     }
 
     const geoAffinity = svc.server_region ?? "dca";
-    const php = svc.php_version ?? phpVersion ?? "8.4";
+    const php = (svc.metadata as any)?.php_version ?? phpVersion ?? "8.4";
 
     // Build wp.cloud request
     const siteName = label.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").slice(0, 50);
@@ -193,8 +193,14 @@ Deno.serve(async (req) => {
       status: "active",
       wp_cloud_site_id: String(wpSiteId ?? ""),
       wp_cloud_url: wpUrl,
-      provisioned_at: new Date().toISOString(),
-      metadata: { wp_cloud_response: wpResponse, job_id: wpResponse?.job_id, domain_name: domainName ?? null, site_ip: siteIp },
+      metadata: {
+        ...(svc.metadata as any ?? {}),
+        wp_cloud_response: wpResponse,
+        job_id: wpResponse?.job_id,
+        domain_name: domainName ?? null,
+        site_ip: siteIp,
+        provisioned_at: new Date().toISOString(),
+      },
     }).eq("id", svc.id);
 
     // Apply plan features (backups, CDN, WAF, staging) via wp.cloud site-meta

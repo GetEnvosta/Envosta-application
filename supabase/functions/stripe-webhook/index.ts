@@ -30,56 +30,67 @@ Deno.serve(async (req) => {
       const { data: cust } = await sb.from("users").select("id, full_name, email").eq("stripe_customer_id", custStripeId).single();
       if (!cust) { console.log("No customer for", custStripeId); return json({ received: true }); }
 
-      // Match price to plan
+      // Match price to plan — check all price ID columns including 2yr/3yr
       const priceId = sub.items?.data?.[0]?.price?.id ?? "";
-      const { data: plan } = await sb.from("products").select("id,slug").or(`stripe_price_id.eq.${priceId},stripe_price_id_yearly.eq.${priceId}`).maybeSingle();
+      let plan: any = null;
+      if (priceId) {
+        const { data: p } = await sb.from("products").select("id,slug,metadata")
+          .or(`stripe_price_id.eq.${priceId},stripe_price_id_yearly.eq.${priceId},stripe_price_id_2yr.eq.${priceId},stripe_price_id_3yr.eq.${priceId}`)
+          .maybeSingle();
+        plan = p;
+      }
 
-      // Upsert subscription
+      // Determine billing period from Stripe interval
+      const interval = sub.items?.data?.[0]?.price?.recurring?.interval;
+      const intervalCount = sub.items?.data?.[0]?.price?.recurring?.interval_count ?? 1;
+      let billingPeriod = "monthly";
+      if (interval === "year") billingPeriod = intervalCount >= 3 ? "3yr" : intervalCount >= 2 ? "2yr" : "yearly";
+
+      // Upsert subscription — only columns that exist in schema
       const { data: dbSub } = await sb.from("subscriptions").upsert({
         user_id: cust.id,
         product_id: plan?.id ?? null,
         stripe_subscription_id: sub.id,
-        stripe_price_id: priceId,
         status: sub.status,
-        quantity: sub.items?.data?.[0]?.quantity ?? 1,
-        cancel_at_period_end: sub.cancel_at_period_end,
+        billing_period: billingPeriod,
         current_period_start: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null,
         current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+        metadata: {
+          stripe_price_id: priceId,
+          cancel_at_period_end: sub.cancel_at_period_end ?? false,
+          quantity: sub.items?.data?.[0]?.quantity ?? 1,
+        },
       }, { onConflict: "stripe_subscription_id" }).select("id").single();
 
       console.log("Subscription upserted:", dbSub?.id, "status:", sub.status);
 
-      // Auto-create service record for active subscriptions with a hosting plan
-      // Skip domain-only subscriptions (type: "domain_renewal" in metadata)
+      // Auto-create site for active subscriptions with a hosting plan
       const isDomainRenewal = sub.metadata?.type === "domain_renewal";
       if ((sub.status === "active" || sub.status === "trialing") && dbSub && plan?.id && !isDomainRenewal) {
         const { data: existing } = await sb.from("sites").select("id").eq("subscription_id", dbSub.id).maybeSingle();
         if (!existing) {
           const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.id).maybeSingle();
           const name = profile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
-          // Get onboarding type from plan
-          let onboardingType = "standard";
-          if (plan?.id) {
-            const { data: planData } = await sb.from("products").select("metadata").eq("id", plan.id).maybeSingle();
-            if ((planData?.metadata as any)?.onboarding_type) onboardingType = (planData.metadata as any).onboarding_type;
-          }
 
           const domainFromMeta = sub.metadata?.domain_name ?? null;
+          const planMeta = plan?.metadata as any ?? {};
 
+          // Insert site — only columns in schema
           const { data: svc, error: svcErr } = await sb.from("sites").insert({
             user_id: cust.id,
             subscription_id: dbSub.id,
             product_id: plan?.id ?? null,
-            type: "hosting",
             label: `${name}-site`,
             status: "provisioning",
             server_region: "dca",
-            php_version: "8.4",
-            onboarding_status: "not_started",
-            onboarding_type: onboardingType,
-            metadata: { auto_provisioned: true, plan_slug: plan?.slug ?? "minimum", domain_name: domainFromMeta },
+            domain_name: domainFromMeta,
+            metadata: {
+              auto_provisioned: true,
+              plan_slug: plan?.slug ?? "minimum",
+              onboarding_type: planMeta.onboarding_type ?? "standard",
+            },
           }).select("id").single();
-          console.log("Service created:", svc?.id, "err:", svcErr?.message);
+          console.log("Site created:", svc?.id, "err:", svcErr?.message);
 
           // Send welcome email
           if (svc && !svcErr) {
@@ -91,14 +102,12 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Auto-register domain at OpenSRS if domain was purchased with the plan
+          // Auto-register domain at OpenSRS
           if (domainFromMeta && svc) {
             const { data: existingDomain } = await sb.from("domains")
               .select("id, status").eq("domain_name", domainFromMeta).eq("user_id", cust.id).maybeSingle();
 
             if (!existingDomain) {
-              // Call register-domain Edge Function to register at OpenSRS
-              // Uses service role key to bypass auth (webhook has no user session)
               try {
                 console.log("Auto-registering domain:", domainFromMeta);
                 const regRes = await fetch(`${SUPABASE_URL}/functions/v1/register-domain`, {
@@ -119,13 +128,12 @@ Deno.serve(async (req) => {
                 console.log("Domain registration result:", regRes.status, JSON.stringify(regData));
 
                 if (regRes.ok) {
-                  // Link domain to service
                   await sb.from("domains")
                     .update({ site_id: svc.id })
                     .eq("domain_name", domainFromMeta)
                     .eq("user_id", cust.id);
 
-                  // Create yearly domain subscription — charges immediately
+                  // Create yearly domain renewal subscription
                   try {
                     const tld = domainFromMeta.split(".").pop()?.toLowerCase() ?? "";
                     const { data: tldProduct } = await sb.from("products")
@@ -134,7 +142,6 @@ Deno.serve(async (req) => {
                       .eq("slug", `tld-${tld}`).maybeSingle();
 
                     if (tldProduct?.stripe_price_id) {
-                      const stripe = getStripe();
                       const renewalSub = await stripe.subscriptions.create({
                         customer: custStripeId,
                         items: [{ price: tldProduct.stripe_price_id }],
@@ -145,25 +152,23 @@ Deno.serve(async (req) => {
                         },
                       });
 
-                      // Store renewal subscription ID on the domain record for fast lookup
                       await sb.from("domains")
                         .update({ metadata: { renewal_stripe_subscription_id: renewalSub.id, dns_setup: "pending" } })
                         .eq("domain_name", domainFromMeta)
                         .eq("user_id", cust.id);
 
-                      console.log("Domain renewal subscription created:", renewalSub.id, "for:", domainFromMeta);
+                      console.log("Domain renewal subscription created:", renewalSub.id);
                     }
                   } catch (renewErr) {
                     console.error("Domain renewal subscription failed (non-fatal):", renewErr);
                   }
                 } else {
-                  // Registration failed but don't fail the whole webhook
-                  // Create a pending record so admin can retry
+                  // Registration failed — create pending record
                   await sb.from("domains").insert({
                     user_id: cust.id,
                     domain_name: domainFromMeta,
                     site_id: svc.id,
-                    status: "pending_registration",
+                    status: "pending",
                     registrar: "opensrs",
                     metadata: { registration_error: regData.error ?? "Unknown error" },
                   });
@@ -175,17 +180,17 @@ Deno.serve(async (req) => {
                   user_id: cust.id,
                   domain_name: domainFromMeta,
                   site_id: svc.id,
-                  status: "pending_registration",
+                  status: "pending",
                   registrar: "opensrs",
                   metadata: { registration_error: String(regErr) },
                 });
               }
             } else {
-              // Link existing domain to the new service
               await sb.from("domains").update({ site_id: svc.id }).eq("id", existingDomain.id);
               console.log("Existing domain linked:", domainFromMeta, "→", svc.id);
             }
           }
+
           // Auto-provision wp.cloud site
           if (svc) {
             try {
@@ -208,22 +213,18 @@ Deno.serve(async (req) => {
               });
               const provData = await provRes.json();
               console.log("Auto-provision result:", provRes.status, JSON.stringify(provData).substring(0, 300));
-
-              if (!provRes.ok) {
-                console.error("Auto-provision failed (admin can retry):", provData.error);
-              }
+              if (!provRes.ok) console.error("Auto-provision failed (admin can retry):", provData.error);
             } catch (provErr) {
-              // Non-fatal — admin can retry via Provision button
               console.error("Auto-provision error (non-fatal):", provErr);
             }
           }
         } else {
-          console.log("Service already exists:", existing.id);
+          console.log("Site already exists:", existing.id);
         }
       }
     }
 
-    // Handle checkout.session.completed for one-time payments (studio requests, domain purchases)
+    // Handle checkout.session.completed for one-time payments
     else if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const metadata = session.metadata ?? {};
@@ -231,7 +232,6 @@ Deno.serve(async (req) => {
       if (metadata.type === "studio_request") {
         const userId = metadata.supabase_user_id;
         if (userId) {
-          // Create as a ticket with type 'studio'
           const { data: ticket } = await sb.from("tickets").insert({
             user_id: userId,
             subject: metadata.studio_subject ?? "Studio Request",
@@ -251,14 +251,17 @@ Deno.serve(async (req) => {
               message: metadata.studio_message,
             });
           }
-          console.log("Studio ticket created:", ticket?.id, "for user:", userId);
+          console.log("Studio ticket created:", ticket?.id);
         }
       }
     }
 
     else if (event.type === "customer.subscription.deleted") {
       const sub = event.data.object;
-      await sb.from("subscriptions").update({ status: "cancelled", cancelled_at: new Date().toISOString() }).eq("stripe_subscription_id", sub.id);
+      await sb.from("subscriptions").update({
+        status: "cancelled",
+        metadata: { cancelled_at: new Date().toISOString() },
+      }).eq("stripe_subscription_id", sub.id);
       console.log("Subscription cancelled:", sub.id);
     }
 
@@ -267,23 +270,27 @@ Deno.serve(async (req) => {
       const custStripeId = typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
       const { data: cust } = await sb.from("users").select("id, full_name, email").eq("stripe_customer_id", custStripeId).maybeSingle();
       if (cust) {
+        // Upsert invoice — only columns in schema
         await sb.from("invoices").upsert({
           user_id: cust.id,
           stripe_invoice_id: inv.id,
-          status: inv.status === "paid" ? "paid" : inv.status === "open" ? "open" : "draft",
-          amount_due: inv.amount_due ?? 0,
-          amount_paid: inv.amount_paid ?? 0,
-          currency: inv.currency ?? "usd",
+          status: inv.status === "paid" ? "paid" : inv.status === "open" ? "open" : inv.status === "void" ? "void" : "draft",
+          amount_cad: inv.amount_paid ?? inv.amount_due ?? 0,
           description: inv.description ?? `Invoice ${inv.number ?? ""}`,
-          invoice_url: inv.hosted_invoice_url ?? null,
-          invoice_pdf: inv.invoice_pdf ?? null,
-          period_start: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
-          period_end: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
-          paid_at: inv.status === "paid" ? new Date().toISOString() : null,
+          hosted_invoice_url: inv.hosted_invoice_url ?? null,
+          metadata: {
+            currency: inv.currency ?? "cad",
+            amount_due: inv.amount_due,
+            amount_paid: inv.amount_paid,
+            invoice_pdf: inv.invoice_pdf,
+            period_start: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
+            period_end: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
+            paid_at: inv.status === "paid" ? new Date().toISOString() : null,
+          },
         }, { onConflict: "stripe_invoice_id" });
         console.log("Invoice:", inv.id, inv.status);
 
-        // Send invoice receipt email (idempotent — check if already sent via metadata)
+        // Send invoice receipt email (idempotent)
         if (event.type === "invoice.paid" && inv.amount_paid > 0) {
           const { data: existingInv } = await sb.from("invoices").select("metadata").eq("stripe_invoice_id", inv.id).maybeSingle();
           const alreadySent = (existingInv?.metadata as any)?.email_sent;
@@ -291,51 +298,44 @@ Deno.serve(async (req) => {
           if (!alreadySent) {
             const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.id).maybeSingle();
             if (userProfile?.email) {
-              const amount = `$${(inv.amount_paid / 100).toFixed(2)} ${(inv.currency ?? "cad").toUpperCase()}`;
+              const amount = `$${(inv.amount_paid / 100).toFixed(2)} CAD`;
               const desc = inv.description ?? `Invoice ${inv.number ?? ""}`;
               const email = invoicePaidEmail(userProfile.full_name ?? "there", amount, desc, inv.hosted_invoice_url ?? null);
               await sendEmail({ to: userProfile.email, ...email });
 
-              // Mark as sent to prevent duplicates
-              await sb.from("invoices").update({ metadata: { ...(existingInv?.metadata as any ?? {}), email_sent: true } }).eq("stripe_invoice_id", inv.id);
+              await sb.from("invoices").update({
+                metadata: { ...(existingInv?.metadata as any ?? {}), email_sent: true },
+              }).eq("stripe_invoice_id", inv.id);
             }
           }
         }
 
-        // Handle domain renewal — when yearly domain subscription charges
+        // Domain renewal handling
         if (event.type === "invoice.paid" && inv.subscription) {
           const subStripeId2 = typeof inv.subscription === "string" ? inv.subscription : inv.subscription.id;
-          // Check if this is a domain renewal subscription (by metadata)
           try {
-            const stripe = getStripe();
             const stripeSub = await stripe.subscriptions.retrieve(subStripeId2);
             if (stripeSub.metadata?.type === "domain_renewal" && stripeSub.metadata?.domain_name) {
               const domainToRenew = stripeSub.metadata.domain_name;
               console.log("Domain renewal invoice paid:", domainToRenew);
 
-              // Check if domain still exists in our DB
               const { data: domainRecord } = await sb.from("domains")
-                .select("id, status")
+                .select("id, status, expiry_date")
                 .eq("domain_name", domainToRenew)
                 .eq("user_id", cust.id)
                 .maybeSingle();
 
               if (!domainRecord) {
-                // Domain was deleted — cancel the renewal subscription
-                console.log("Domain no longer exists, cancelling renewal subscription:", domainToRenew);
+                console.log("Domain no longer exists, cancelling renewal:", domainToRenew);
                 await stripe.subscriptions.cancel(stripeSub.id);
               } else {
-                // Extend expiry from current expiry date (not from now)
-                const { data: fullDomain } = await sb.from("domains").select("expiry_date").eq("id", domainRecord.id).single();
-                const currentExpiry = fullDomain?.expiry_date ? new Date(fullDomain.expiry_date).getTime() : Date.now();
+                const currentExpiry = domainRecord.expiry_date ? new Date(domainRecord.expiry_date).getTime() : Date.now();
                 const newExpiry = new Date(Math.max(currentExpiry, Date.now()) + 365.25 * 86400000).toISOString();
 
-                await sb.from("domains")
-                  .update({
-                    expiry_date: newExpiry,
-                    metadata: { last_renewal: new Date().toISOString(), renewal_invoice: inv.id },
-                  })
-                  .eq("id", domainRecord.id);
+                await sb.from("domains").update({
+                  expiry_date: newExpiry,
+                  metadata: { last_renewal: new Date().toISOString(), renewal_invoice: inv.id },
+                }).eq("id", domainRecord.id);
                 console.log("Domain expiry updated:", domainToRenew);
               }
             }
@@ -344,7 +344,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Fallback: create service if invoice.paid and no service exists yet
+        // Fallback: create site if invoice.paid and no site exists yet
         if (event.type === "invoice.paid" && inv.subscription) {
           const subStripeId = typeof inv.subscription === "string" ? inv.subscription : inv.subscription.id;
           const { data: dbSub } = await sb.from("subscriptions").select("id,product_id").eq("stripe_subscription_id", subStripeId).maybeSingle();
@@ -356,11 +356,11 @@ Deno.serve(async (req) => {
               const planSlug = dbSub.product_id ? (await sb.from("products").select("slug").eq("id", dbSub.product_id).maybeSingle())?.data?.slug : "minimum";
               await sb.from("sites").insert({
                 user_id: cust.id, subscription_id: dbSub.id, product_id: dbSub.product_id,
-                type: "hosting", label: `${name}-site`, status: "provisioning",
-                server_region: "dca", php_version: "8.4",
+                label: `${name}-site`, status: "provisioning",
+                server_region: "dca",
                 metadata: { auto_provisioned: true, plan_slug: planSlug ?? "minimum", via: "invoice.paid" },
               });
-              console.log("Service created via invoice.paid fallback");
+              console.log("Site created via invoice.paid fallback");
             }
           }
         }
@@ -371,9 +371,7 @@ Deno.serve(async (req) => {
       const c = event.data.object;
       const userId = c.metadata?.supabase_user_id;
       if (userId) {
-        await sb.from("users").update({
-          stripe_customer_id: c.id,
-        }).eq("id", userId);
+        await sb.from("users").update({ stripe_customer_id: c.id }).eq("id", userId);
         console.log("User stripe_customer_id updated:", c.id);
       }
     }

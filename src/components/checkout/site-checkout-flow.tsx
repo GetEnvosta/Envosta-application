@@ -70,7 +70,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   // Checkout
   // checkoutLoading removed — Stripe Embedded Checkout handles its own loading
   const [checkoutError, setCheckoutError] = useState('');
-  const [termsAccepted, setTermsAccepted] = useState(true); // Accepted via Stripe checkout page
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>(initialBilling ?? 'monthly');
 
   // Onboarding
@@ -212,7 +212,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
             domain: selectedDomain || undefined,
             situation: domainMode === 'existing' ? 'existing' : domainMode === 'temp' ? 'temporary' : 'new',
             onboarding: onboardingChoice ?? 'self',
-            termsAccepted: true,
+            termsAccepted,
             termsAcceptedAt: new Date().toISOString(),
             trial: isTrial || false,
             promoCode: promoCode || undefined,

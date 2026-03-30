@@ -398,10 +398,11 @@ Deno.serve(async (req) => {
         const { data: newPlan } = await sb.from("products").select("*").eq("id", newPlanId).single();
         if (!newPlan) return error("Plan not found", 404);
 
-        // 1. Update wp.cloud resources
+        // 1. Update wp.cloud resources from plan metadata
+        const newMeta = newPlan.metadata as any ?? {};
         const wpUpdates = [
-          { key: "default_php_conns", value: newPlan.default_php_workers },
-          { key: "php_memory_limit", value: newPlan.php_memory_mb },
+          { key: "default_php_conns", value: newMeta.php_workers_default ?? 2 },
+          { key: "php_memory_limit", value: newMeta.php_memory_mb ?? 512 },
         ];
 
         for (const u of wpUpdates) {
@@ -410,7 +411,19 @@ Deno.serve(async (req) => {
         }
 
         // Update storage quota
-        await wpcloudPost(`/api/v1.0/site-meta/${svc.wp_cloud_site_id}/space_quota/update`, { value: `${newPlan.storage_gb ?? 25}G` });
+        await wpcloudPost(`/api/v1.0/site-meta/${svc.wp_cloud_site_id}/space_quota/update`, { value: `${newMeta.storage_gb ?? 25}G` });
+
+        // Update plan features (backups, CDN, WAF)
+        const featureKeys = [
+          { key: "jetpack_backup", value: newMeta.has_backups !== false ? "1" : "0" },
+          { key: "page_optimize", value: newMeta.has_cdn !== false ? "1" : "0" },
+          { key: "jetpack_waf", value: newMeta.has_waf !== false ? "1" : "0" },
+        ];
+        for (const f of featureKeys) {
+          try {
+            await wpcloudPost(`/api/v1.0/site-meta/${svc.wp_cloud_site_id}/${f.key}/update`, { value: f.value });
+          } catch { /* non-fatal */ }
+        }
 
         // 2. Update Stripe subscription price
         const sub = (svc as any).subscriptions;
@@ -471,7 +484,7 @@ Deno.serve(async (req) => {
 
         // Add to Stripe subscription (for recurring addons)
         const sub = (svc as any).subscriptions;
-        if (sub?.stripe_subscription_id && addon.stripe_price_id && addon.billing_type !== "one_time") {
+        if (sub?.stripe_subscription_id && addon.stripe_price_id && addon.billing !== "one_time") {
           try {
             const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
             const res = await fetch(`https://api.stripe.com/v1/subscription_items`, {
@@ -490,12 +503,13 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Apply wp.cloud action if configured
-        if (svc.wp_cloud_site_id && addon.wpcloud_action?.key) {
-          await wpcloudPost(`/api/v1.0/site-meta/${svc.wp_cloud_site_id}/${addon.wpcloud_action.key}/update`, {
-            value: addon.wpcloud_action.enable_value,
+        // Apply wp.cloud action if configured in addon metadata
+        const addonMeta = addon.metadata as any ?? {};
+        if (svc.wp_cloud_site_id && addonMeta.wpcloud_key) {
+          await wpcloudPost(`/api/v1.0/site-meta/${svc.wp_cloud_site_id}/${addonMeta.wpcloud_key}/update`, {
+            value: addonMeta.enable_value ?? addonMeta.increment ?? 1,
           });
-          console.log("wp.cloud addon applied:", addon.wpcloud_action.key, "=", addon.wpcloud_action.enable_value);
+          console.log("wp.cloud addon applied:", addonMeta.wpcloud_key, "=", addonMeta.enable_value ?? addonMeta.increment);
         }
 
         // Create service_addon record
@@ -537,11 +551,12 @@ Deno.serve(async (req) => {
         }
 
         // Reverse wp.cloud action
-        if (svc?.wp_cloud_site_id && addon?.wpcloud_action?.key) {
-          await wpcloudPost(`/api/v1.0/site-meta/${svc.wp_cloud_site_id}/${addon.wpcloud_action.key}/update`, {
-            value: addon.wpcloud_action.disable_value ?? 0,
+        const rmMeta = addon?.metadata as any ?? {};
+        if (svc?.wp_cloud_site_id && rmMeta.wpcloud_key) {
+          await wpcloudPost(`/api/v1.0/site-meta/${svc.wp_cloud_site_id}/${rmMeta.wpcloud_key}/update`, {
+            value: rmMeta.disable_value ?? 0,
           });
-          console.log("wp.cloud addon reversed:", addon.wpcloud_action.key, "=", addon.wpcloud_action.disable_value);
+          console.log("wp.cloud addon reversed:", rmMeta.wpcloud_key, "=", rmMeta.disable_value ?? 0);
         }
 
         // Update record

@@ -85,19 +85,23 @@ interface ContactInfo {
   country: string;
 }
 
+function xmlEscape(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+
 function contactBlock(role: string, c: ContactInfo): string {
   return `<item key="${role}">
                   <dt_assoc>
-                    <item key="first_name">${c.first_name}</item>
-                    <item key="last_name">${c.last_name}</item>
-                    <item key="org_name">${c.org_name}</item>
-                    <item key="address1">${c.address1}</item>
-                    <item key="city">${c.city}</item>
-                    <item key="state">${c.state}</item>
-                    <item key="postal_code">${c.postal_code}</item>
-                    <item key="country">${c.country}</item>
-                    <item key="phone">${c.phone}</item>
-                    <item key="email">${c.email}</item>
+                    <item key="first_name">${xmlEscape(c.first_name)}</item>
+                    <item key="last_name">${xmlEscape(c.last_name)}</item>
+                    <item key="org_name">${xmlEscape(c.org_name)}</item>
+                    <item key="address1">${xmlEscape(c.address1)}</item>
+                    <item key="city">${xmlEscape(c.city)}</item>
+                    <item key="state">${xmlEscape(c.state)}</item>
+                    <item key="postal_code">${xmlEscape(c.postal_code)}</item>
+                    <item key="country">${xmlEscape(c.country)}</item>
+                    <item key="phone">${xmlEscape(c.phone)}</item>
+                    <item key="email">${xmlEscape(c.email)}</item>
                   </dt_assoc>
                 </item>`;
 }
