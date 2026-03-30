@@ -192,14 +192,158 @@ export function buildWpCloudDnsRecords(siteIp: string): DnsRecord[] {
 }
 
 /**
- * Calls SET_DNS_ZONE at OpenSRS and returns the parsed response.
+ * Ensure a DNS zone exists, then set records.
+ * CREATE_DNS_ZONE is required before SET_DNS_ZONE can be used.
+ * If the zone already exists, CREATE returns an error which we ignore.
  */
 export async function setDnsZone(domain: string, records: DnsRecord[]): Promise<{
   isSuccess: boolean;
   responseCode: string;
   responseText: string;
 }> {
+  // Step 1: Ensure DNS zone exists (idempotent — ignore "already exists" errors)
+  const createXml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
+<OPS_envelope>
+  <header><version>0.9</version></header>
+  <body>
+    <data_block>
+      <dt_assoc>
+        <item key="protocol">XCP</item>
+        <item key="object">DOMAIN</item>
+        <item key="action">CREATE_DNS_ZONE</item>
+        <item key="attributes">
+          <dt_assoc>
+            <item key="domain">${xmlEscape(domain)}</item>
+          </dt_assoc>
+        </item>
+      </dt_assoc>
+    </data_block>
+  </body>
+</OPS_envelope>`;
+  try {
+    const createRes = await opensrsRequest(createXml);
+    const createParsed = parseResponse(createRes);
+    console.log("CREATE_DNS_ZONE:", domain, createParsed.responseCode, createParsed.responseText);
+  } catch (e) {
+    console.log("CREATE_DNS_ZONE non-fatal:", e);
+  }
+
+  // Step 2: Set the records
   const xml = buildSetDnsZoneXml(domain, records);
+  const responseXml = await opensrsRequest(xml);
+  return parseResponse(responseXml);
+}
+
+// ─── Nameserver host object management ───────────────────
+// Custom/branded nameservers (e.g. ns1.envosta.com) must be registered
+// as host objects at the registry before they can be assigned to domains.
+// Ref: https://domains.opensrs.guide/docs/create_nameserver
+
+/**
+ * Create a nameserver host object (glue record) at the registry.
+ * Required for branded nameservers that are subdomains of your own domain.
+ */
+export async function createNameserver(
+  parentDomain: string,
+  nameserver: string,
+  ipAddress: string,
+): Promise<{ isSuccess: boolean; responseCode: string; responseText: string }> {
+  const xml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
+<OPS_envelope>
+  <header><version>0.9</version></header>
+  <body>
+    <data_block>
+      <dt_assoc>
+        <item key="protocol">XCP</item>
+        <item key="action">create</item>
+        <item key="object">nameserver</item>
+        <item key="domain">${xmlEscape(parentDomain)}</item>
+        <item key="attributes">
+          <dt_assoc>
+            <item key="name">${xmlEscape(nameserver)}</item>
+            <item key="ipaddress">${xmlEscape(ipAddress)}</item>
+          </dt_assoc>
+        </item>
+      </dt_assoc>
+    </data_block>
+  </body>
+</OPS_envelope>`;
+  const responseXml = await opensrsRequest(xml);
+  return parseResponse(responseXml);
+}
+
+/**
+ * Delete a nameserver host object from the registry.
+ */
+export async function deleteNameserver(
+  parentDomain: string,
+  nameserver: string,
+): Promise<{ isSuccess: boolean; responseCode: string; responseText: string }> {
+  const xml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
+<OPS_envelope>
+  <header><version>0.9</version></header>
+  <body>
+    <data_block>
+      <dt_assoc>
+        <item key="protocol">XCP</item>
+        <item key="action">delete</item>
+        <item key="object">nameserver</item>
+        <item key="domain">${xmlEscape(parentDomain)}</item>
+        <item key="attributes">
+          <dt_assoc>
+            <item key="name">${xmlEscape(nameserver)}</item>
+          </dt_assoc>
+        </item>
+      </dt_assoc>
+    </data_block>
+  </body>
+</OPS_envelope>`;
+  const responseXml = await opensrsRequest(xml);
+  return parseResponse(responseXml);
+}
+
+// ─── External nameserver registry ────────────────────────
+// External NS (e.g. Cloudflare) must be registered at the TLD registry
+// before they can be assigned to a domain via ADVANCED_UPDATE_NAMESERVERS.
+// Ref: https://domains.opensrs.guide/docs/registry_add_ns
+
+/**
+ * Register an external nameserver with the TLD registries.
+ * This is idempotent — if already registered, the call succeeds or returns a non-fatal error.
+ */
+export async function registryAddNs(nameserver: string): Promise<{
+  isSuccess: boolean;
+  responseCode: string;
+  responseText: string;
+}> {
+  // Extract TLD from the nameserver's parent domain
+  const parts = nameserver.split(".");
+  const tld = "." + parts[parts.length - 1];
+
+  const xml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
+<OPS_envelope>
+  <header><version>0.9</version></header>
+  <body>
+    <data_block>
+      <dt_assoc>
+        <item key="protocol">XCP</item>
+        <item key="action">registry_add_ns</item>
+        <item key="object">nameserver</item>
+        <item key="attributes">
+          <dt_assoc>
+            <item key="fqdn">${xmlEscape(nameserver)}</item>
+            <item key="tld">${xmlEscape(tld)}</item>
+            <item key="all">1</item>
+          </dt_assoc>
+        </item>
+      </dt_assoc>
+    </data_block>
+  </body>
+</OPS_envelope>`;
   const responseXml = await opensrsRequest(xml);
   return parseResponse(responseXml);
 }

@@ -1,6 +1,6 @@
 import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, cors, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, domainRegisteredEmail } from "../_shared/email.ts";
-import { opensrsRequest, parseResponse, setDnsZone, buildWpCloudDnsRecords, setDomainLock, getDomainLockStatus, getDomainAuthCode, type DnsRecord } from "../_shared/opensrs.ts";
+import { opensrsRequest, parseResponse, setDnsZone, buildWpCloudDnsRecords, setDomainLock, getDomainLockStatus, getDomainAuthCode, createNameserver, registryAddNs, type DnsRecord } from "../_shared/opensrs.ts";
 
 // ─── XML builders ──────────────────────────────────────────
 
@@ -368,11 +368,24 @@ Deno.serve(async (req) => {
       const unlockResult = await setDomainLock(domainName, false);
       console.log("OpenSRS unlock:", unlockResult.responseCode, unlockResult.responseText);
       if (!unlockResult.isSuccess) {
-        // Some TLDs don't support locking — that's OK, proceed anyway
         console.log("Unlock not required or failed, proceeding with NS update");
       }
 
-      // Step 2: Update nameservers
+      // Step 2: Register external nameservers at the TLD registry
+      // Required for NS not already known to the registry (e.g. external providers)
+      const isEnvostaNs = (ns: string) => ns.includes("systemdns.com");
+      for (const ns of nameservers as string[]) {
+        if (!isEnvostaNs(ns)) {
+          try {
+            const regResult = await registryAddNs(ns);
+            console.log("registry_add_ns:", ns, regResult.responseCode, regResult.responseText);
+          } catch (e) {
+            console.log("registry_add_ns non-fatal:", ns, e);
+          }
+        }
+      }
+
+      // Step 3: Update nameservers
       const nsListItems = nameservers.map((ns: string, i: number) =>
         `<item key="${i}">${ns}</item>`
       ).join("");
@@ -407,7 +420,7 @@ Deno.serve(async (req) => {
 
       console.log("OpenSRS nameserver update:", parsed.responseCode, parsed.responseText);
 
-      // Step 3: Re-lock domain regardless of NS update result
+      // Step 4: Re-lock domain regardless of NS update result
       const relockResult = await setDomainLock(domainName, true);
       console.log("OpenSRS re-lock:", relockResult.responseCode, relockResult.responseText);
 
@@ -701,6 +714,27 @@ Deno.serve(async (req) => {
 
       await log({ userId, action: "domain.epp.retrieved", message: domainName, ms });
       return json({ domainName, eppCode: result.authCode, success: true });
+    }
+
+    // ═══ CREATE NAMESERVER (host object / glue record) ══════
+    // Required for branded nameservers (e.g. ns1.envosta.com)
+    if (action === "create-nameserver") {
+      const { nameserver, ipAddress, parentDomain } = body;
+      if (!nameserver || !ipAddress) return error("nameserver and ipAddress are required");
+
+      const parent = parentDomain ?? domainName;
+      const result = await createNameserver(parent, nameserver, ipAddress);
+      const ms = Date.now() - t0;
+
+      console.log("OpenSRS create nameserver:", nameserver, result.responseCode, result.responseText);
+
+      if (!result.isSuccess) {
+        await log({ userId, level: "error", action: "domain.nameserver.create.failed", message: `${nameserver}: ${result.responseText}`, ms });
+        return error(`Nameserver creation failed: ${result.responseText}`, 502);
+      }
+
+      await log({ userId, action: "domain.nameserver.created", message: `${nameserver} → ${ipAddress}`, ms });
+      return json({ nameserver, ipAddress, success: true });
     }
 
     return error(`Unknown action: ${action}`, 400);
