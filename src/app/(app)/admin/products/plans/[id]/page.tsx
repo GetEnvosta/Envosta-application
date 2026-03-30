@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function EditPlanPage({ params }: { params: Promise<{ id: string }> }) {
@@ -256,10 +256,29 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
         </div>
         )}
 
-        <button onClick={handleSave} disabled={saving} className="btn-admin inline-flex items-center gap-2">
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          Save Changes
-        </button>
+        <div className="flex items-center gap-4">
+          <button onClick={handleSave} disabled={saving} className="btn-admin inline-flex items-center gap-2">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Save Changes
+          </button>
+
+          {!plan.stripe_product_id && (
+            <button
+              onClick={async () => {
+                if (!confirm(`Delete "${plan.name}"? This cannot be undone.`)) return;
+                const res = await fetch('/api/admin/create-product', {
+                  method: 'DELETE',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: planId }),
+                });
+                if (res.ok) router.push('/admin/products');
+              }}
+              className="text-sm text-red-500 hover:text-red-700 inline-flex items-center gap-1.5"
+            >
+              <Trash2 className="w-4 h-4" /> Delete
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
