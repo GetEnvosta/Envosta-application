@@ -1,7 +1,8 @@
 export const revalidate = 5;
 import { getAdminLogs } from '@/services/admin';
 import { formatDateTime } from '@/lib/utils';
-import { ScrollText, Search } from 'lucide-react';
+import { ScrollText, Search, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { SystemHealthChecks } from './health-checks';
 
 const LEVELS = ['info', 'warn', 'error', 'debug'] as const;
 
@@ -12,7 +13,7 @@ const levelBadge: Record<string, string> = {
   debug: 'badge-gray',
 };
 
-export default async function LogsPage({
+export default async function SystemHealthPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | undefined }>;
@@ -23,12 +24,51 @@ export default async function LogsPage({
 
   const logs = await getAdminLogs({ level: levelFilter, q: search }, 50);
 
+  // Count errors in last 24h
+  const now = Date.now();
+  const recentErrors = logs?.filter((l: any) => l.level === 'error' && (now - new Date(l.created_at).getTime()) < 86400000).length ?? 0;
+  const recentWarns = logs?.filter((l: any) => l.level === 'warn' && (now - new Date(l.created_at).getTime()) < 86400000).length ?? 0;
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">System Logs</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Activity and event logs across the platform.</p>
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold text-gray-900">System Health</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Service status, integrations, and platform logs.</p>
+      </div>
+
+      {/* Health Checks */}
+      <SystemHealthChecks />
+
+      {/* Error summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="card p-4 flex items-center gap-3">
+          {recentErrors === 0 ? (
+            <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+          ) : (
+            <XCircle className="w-5 h-5 text-red-500 shrink-0" />
+          )}
+          <div>
+            <p className="text-2xl font-semibold text-gray-900">{recentErrors}</p>
+            <p className="text-xs text-gray-500">Errors (24h)</p>
+          </div>
+        </div>
+        <div className="card p-4 flex items-center gap-3">
+          {recentWarns === 0 ? (
+            <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+          ) : (
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+          )}
+          <div>
+            <p className="text-2xl font-semibold text-gray-900">{recentWarns}</p>
+            <p className="text-xs text-gray-500">Warnings (24h)</p>
+          </div>
+        </div>
+        <div className="card p-4 flex items-center gap-3">
+          <ScrollText className="w-5 h-5 text-gray-400 shrink-0" />
+          <div>
+            <p className="text-2xl font-semibold text-gray-900">{logs?.length ?? 0}</p>
+            <p className="text-xs text-gray-500">Total log entries</p>
+          </div>
         </div>
       </div>
 
@@ -59,8 +99,11 @@ export default async function LogsPage({
         </div>
       </form>
 
-      {/* Table */}
+      {/* Logs table */}
       <div className="card overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-900">Platform Logs</h2>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -70,7 +113,7 @@ export default async function LogsPage({
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">IP</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

@@ -21,7 +21,7 @@ const nav = [
   { name: 'Products', href: '/admin/products', icon: Tag },
   { name: 'Blog', href: '/admin/blog', icon: PenSquare },
   { name: 'Emails', href: '/admin/emails', icon: Mail },
-  { name: 'Logs', href: '/admin/logs', icon: ScrollText },
+  { name: 'System Health', href: '/admin/logs', icon: Activity },
 ];
 
 export function AdminShell({
