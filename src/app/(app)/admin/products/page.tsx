@@ -3,7 +3,7 @@ import { formatCents } from '@/lib/utils';
 import { CheckCircle, AlertTriangle, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
-import { ProductsClient } from './products-client';
+import { ProductsClient, DeleteProductButton } from './products-client';
 
 function getSupabase() {
   return createClient(
@@ -134,12 +134,15 @@ export default async function ProductsPage({
                     )}
                   </td>
                   <td className="px-5 py-3.5">
-                    <Link
-                      href={`/admin/products/plans/${product.id}`}
-                      className="text-xs text-admin-600 hover:text-admin-700 font-medium inline-flex items-center gap-1"
-                    >
-                      <Pencil className="w-3 h-3" /> Edit
-                    </Link>
+                    <div className="flex items-center gap-3">
+                      <Link
+                        href={`/admin/products/plans/${product.id}`}
+                        className="text-xs text-admin-600 hover:text-admin-700 font-medium inline-flex items-center gap-1"
+                      >
+                        <Pencil className="w-3 h-3" /> Edit
+                      </Link>
+                      <DeleteProductButton productId={product.id} productName={product.name} />
+                    </div>
                   </td>
                 </tr>
               );

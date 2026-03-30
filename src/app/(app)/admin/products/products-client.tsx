@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { RefreshCw, Plus, ChevronDown } from 'lucide-react';
+import { RefreshCw, Plus, ChevronDown, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export function ProductsClient() {
@@ -119,5 +119,35 @@ export function ProductsClient() {
         )}
       </div>
     </div>
+  );
+}
+
+export function DeleteProductButton({ productId, productName }: { productId: string; productName: string }) {
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!confirm(`Delete "${productName}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/admin/create-product', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: productId }),
+      });
+      if (res.ok) {
+        window.location.reload();
+      }
+    } catch { /* ignore */ }
+    setDeleting(false);
+  }
+
+  return (
+    <button
+      onClick={handleDelete}
+      disabled={deleting}
+      className="text-xs text-red-400 hover:text-red-600 inline-flex items-center gap-1"
+    >
+      <Trash2 className="w-3 h-3" />
+    </button>
   );
 }
