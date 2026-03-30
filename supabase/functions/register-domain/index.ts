@@ -1,51 +1,6 @@
 import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, cors, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, domainRegisteredEmail } from "../_shared/email.ts";
-
-const OPENSRS_USERNAME = Deno.env.get("OPENSRS_USERNAME") ?? "";
-const OPENSRS_API_KEY = Deno.env.get("OPENSRS_API_KEY") ?? "";
-const OPENSRS_HOST = Deno.env.get("OPENSRS_HOST") ?? "horizon.opensrs.net";
-
-async function md5(input: string): Promise<string> {
-  const mod = await import("https://deno.land/std@0.210.0/crypto/mod.ts");
-  const data = new TextEncoder().encode(input);
-  const hash = await mod.crypto.subtle.digest("MD5", data);
-  return Array.from(new Uint8Array(hash))
-    .map(b => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function opensrsSignature(xml: string): Promise<string> {
-  const step1 = await md5(xml + OPENSRS_API_KEY);
-  return md5(step1 + OPENSRS_API_KEY);
-}
-
-async function opensrsRequest(xml: string): Promise<string> {
-  const signature = await opensrsSignature(xml);
-  const res = await fetch(`https://${OPENSRS_HOST}:55443`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/xml",
-      "X-Username": OPENSRS_USERNAME,
-      "X-Signature": signature,
-    },
-    body: xml,
-  });
-  if (!res.ok) throw new Error(`OpenSRS HTTP ${res.status}: ${await res.text()}`);
-  return res.text();
-}
-
-function parseResponse(xml: string) {
-  const getVal = (key: string): string => {
-    const match = xml.match(new RegExp(`<item key="${key}">(.*?)</item>`));
-    return match ? match[1].trim() : "";
-  };
-  return {
-    isSuccess: getVal("is_success") === "1",
-    responseCode: getVal("response_code"),
-    responseText: getVal("response_text"),
-    status: getVal("status") || undefined,
-  };
-}
+import { opensrsRequest, parseResponse, setDnsZone, buildWpCloudDnsRecords, setDomainLock, getDomainLockStatus, getDomainAuthCode, type DnsRecord } from "../_shared/opensrs.ts";
 
 // ─── XML builders ──────────────────────────────────────────
 
@@ -400,12 +355,24 @@ Deno.serve(async (req) => {
     }
 
     // ═══ UPDATE NAMESERVERS ════════════════════════════════
+    // Domains are locked by default (clientUpdateProhibited).
+    // Must unlock → update NS → re-lock.
+    // Ref: https://domains.opensrs.guide/docs/advanced_update_nameservers
     if (action === "update-nameservers") {
       if (!nameservers || !Array.isArray(nameservers) || nameservers.length === 0) {
         return error("nameservers array is required");
       }
       if (nameservers.length > 6) return error("Maximum 6 nameservers allowed");
 
+      // Step 1: Unlock domain to allow registry updates
+      const unlockResult = await setDomainLock(domainName, false);
+      console.log("OpenSRS unlock:", unlockResult.responseCode, unlockResult.responseText);
+      if (!unlockResult.isSuccess) {
+        // Some TLDs don't support locking — that's OK, proceed anyway
+        console.log("Unlock not required or failed, proceeding with NS update");
+      }
+
+      // Step 2: Update nameservers
       const nsListItems = nameservers.map((ns: string, i: number) =>
         `<item key="${i}">${ns}</item>`
       ).join("");
@@ -440,6 +407,10 @@ Deno.serve(async (req) => {
 
       console.log("OpenSRS nameserver update:", parsed.responseCode, parsed.responseText);
 
+      // Step 3: Re-lock domain regardless of NS update result
+      const relockResult = await setDomainLock(domainName, true);
+      console.log("OpenSRS re-lock:", relockResult.responseCode, relockResult.responseText);
+
       if (!parsed.isSuccess) {
         await log({ userId, level: "error", action: "domain.nameservers.failed", message: `${domainName}: ${parsed.responseText}`, ms });
         return error(`Nameserver update failed: ${parsed.responseText}`, 502);
@@ -455,52 +426,12 @@ Deno.serve(async (req) => {
       return json({ domainName, nameservers, success: true });
     }
 
-    // ═══ SETUP DNS ═════════════════════════════════════════
+    // ═══ SETUP DNS — standard wp.cloud records ═════════════
     if (action === "setup-dns") {
       if (!siteIp) return error("siteIp is required");
 
-      const records = [
-        { type: "A", subdomain: "", ip_address: siteIp, ttl: 3600 },
-        { type: "A", subdomain: "www", ip_address: siteIp, ttl: 3600 },
-        { type: "TXT", subdomain: "", text: "v=spf1 include:_spf.wpcloud.com ~all", ttl: 3600 },
-        { type: "CNAME", subdomain: "wpcloud1._domainkey", hostname: "wpcloud1._domainkey.wpcloud.com", ttl: 3600 },
-        { type: "CNAME", subdomain: "wpcloud2._domainkey", hostname: "wpcloud2._domainkey.wpcloud.com", ttl: 3600 },
-        { type: "TXT", subdomain: "_dmarc", text: "v=DMARC1; p=none;", ttl: 3600 },
-      ];
-
-      const recordItems = records.map((r, i) => {
-        let valueItems = `<item key="type">${r.type}</item><item key="subdomain">${r.subdomain}</item><item key="ttl">${r.ttl}</item>`;
-        if (r.type === "A") valueItems += `<item key="ip_address">${(r as any).ip_address}</item>`;
-        if (r.type === "CNAME") valueItems += `<item key="hostname">${(r as any).hostname}</item>`;
-        if (r.type === "TXT") valueItems += `<item key="text">${(r as any).text}</item>`;
-        return `<item key="${i}"><dt_assoc>${valueItems}</dt_assoc></item>`;
-      }).join("");
-
-      const xml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
-<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
-<OPS_envelope>
-  <header><version>0.9</version></header>
-  <body>
-    <data_block>
-      <dt_assoc>
-        <item key="protocol">XCP</item>
-        <item key="object">DOMAIN</item>
-        <item key="action">SET_DNS_ZONE</item>
-        <item key="attributes">
-          <dt_assoc>
-            <item key="domain">${domainName}</item>
-            <item key="records">
-              <dt_array>${recordItems}</dt_array>
-            </item>
-          </dt_assoc>
-        </item>
-      </dt_assoc>
-    </data_block>
-  </body>
-</OPS_envelope>`;
-
-      const responseXml = await opensrsRequest(xml);
-      const parsed = parseResponse(responseXml);
+      const records = buildWpCloudDnsRecords(siteIp);
+      const parsed = await setDnsZone(domainName, records);
       const ms = Date.now() - t0;
 
       console.log("OpenSRS set_dns_zone:", parsed.responseCode, parsed.responseText);
@@ -521,6 +452,108 @@ Deno.serve(async (req) => {
 
       await log({ userId, action: "domain.dns.setup.complete", message: `${domainName} → ${siteIp} (${records.length} records)`, ms });
       return json({ domainName, siteIp, records: records.length, success: true });
+    }
+
+    // ═══ UPDATE DNS — custom records from frontend ═════════
+    if (action === "update-dns") {
+      const { records: rawRecords } = body;
+      if (!Array.isArray(rawRecords) || rawRecords.length === 0) {
+        return error("records array is required");
+      }
+
+      // Validate and normalize records from the frontend
+      const VALID_TYPES = ["A", "AAAA", "CNAME", "MX", "TXT", "SRV"];
+      const records: DnsRecord[] = rawRecords.map((r: any) => {
+        if (!VALID_TYPES.includes(r.type)) throw new Error(`Invalid record type: ${r.type}`);
+        const subdomain = r.name === "@" ? "" : (r.name ?? r.subdomain ?? "");
+        const rec: DnsRecord = { type: r.type, subdomain };
+
+        switch (r.type) {
+          case "A":
+            rec.ip_address = r.value ?? r.ip_address;
+            break;
+          case "AAAA":
+            rec.ipv6_address = r.value ?? r.ipv6_address;
+            break;
+          case "CNAME":
+            rec.hostname = r.value ?? r.hostname;
+            break;
+          case "MX":
+            rec.hostname = r.value ?? r.hostname;
+            rec.priority = r.priority ?? 10;
+            break;
+          case "TXT":
+            rec.text = r.value ?? r.text;
+            break;
+          case "SRV":
+            rec.hostname = r.value ?? r.hostname;
+            rec.priority = r.priority ?? 10;
+            rec.weight = r.weight ?? 1;
+            rec.port = r.port ?? 443;
+            break;
+        }
+        return rec;
+      });
+
+      const parsed = await setDnsZone(domainName, records);
+      const ms = Date.now() - t0;
+
+      console.log("OpenSRS update_dns:", parsed.responseCode, parsed.responseText);
+
+      if (!parsed.isSuccess) {
+        await log({ userId, level: "error", action: "domain.dns.update.failed", message: `${domainName}: ${parsed.responseText}`, ms });
+        return error(`DNS update failed: ${parsed.responseText}`, 502);
+      }
+
+      const { data: dnsRec } = await sb.from("domains").select("metadata").eq("user_id", userId).eq("domain_name", domainName).maybeSingle();
+      await sb.from("domains")
+        .update({
+          metadata: { ...(dnsRec?.metadata as any ?? {}), dns_records: records, dns_updated_at: new Date().toISOString() },
+        })
+        .eq("user_id", userId)
+        .eq("domain_name", domainName);
+
+      await log({ userId, action: "domain.dns.updated", message: `${domainName}: ${records.length} records`, ms });
+      return json({ domainName, records: records.length, success: true });
+    }
+
+    // ═══ SET DNS MODE ══════════════════════════════════════
+    // "auto" = Envosta manages DNS (wp.cloud defaults, auto-updated on IP change)
+    // "custom" = Client manages their own DNS records
+    if (action === "set-dns-mode") {
+      const { dnsMode } = body;
+      if (dnsMode !== "auto" && dnsMode !== "custom") return error('dnsMode must be "auto" or "custom"');
+
+      const { data: domRec } = await sb.from("domains").select("metadata, site_id").eq("user_id", userId).eq("domain_name", domainName).maybeSingle();
+      const meta = (domRec?.metadata as any) ?? {};
+
+      if (dnsMode === "auto" && siteIp) {
+        // Switching back to auto: re-apply wp.cloud defaults
+        const records = buildWpCloudDnsRecords(siteIp);
+        const dnsResult = await setDnsZone(domainName, records);
+        const ms = Date.now() - t0;
+
+        if (!dnsResult.isSuccess) {
+          await log({ userId, level: "error", action: "domain.dns.mode.failed", message: `${domainName}: ${dnsResult.responseText}`, ms });
+          return error(`Failed to reset DNS: ${dnsResult.responseText}`, 502);
+        }
+
+        await sb.from("domains")
+          .update({ metadata: { ...meta, dns_mode: "auto", dns_records: records, dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() } })
+          .eq("user_id", userId).eq("domain_name", domainName);
+
+        await log({ userId, action: "domain.dns.mode.auto", message: `${domainName}: reset to auto (${records.length} records)`, ms });
+        return json({ domainName, dnsMode: "auto", records: records.length, success: true });
+      }
+
+      // Just store the mode (custom, or auto without IP)
+      await sb.from("domains")
+        .update({ metadata: { ...meta, dns_mode: dnsMode } })
+        .eq("user_id", userId).eq("domain_name", domainName);
+
+      const ms = Date.now() - t0;
+      await log({ userId, action: "domain.dns.mode.updated", message: `${domainName}: ${dnsMode}`, ms });
+      return json({ domainName, dnsMode, success: true });
     }
 
     // ═══ SET AUTO-RENEW ════════════════════════════════════
@@ -620,6 +653,54 @@ Deno.serve(async (req) => {
 
       await log({ userId, action: "domain.whois_privacy.updated", message: `${domainName}: ${state}`, ms });
       return json({ domainName, whoisPrivacy: enabled, success: true });
+    }
+
+    // ═══ GET LOCK STATUS ════════════════════════════════════
+    if (action === "get-lock-status") {
+      const result = await getDomainLockStatus(domainName);
+      const ms = Date.now() - t0;
+      console.log("OpenSRS get lock status:", result.responseText);
+
+      if (!result.isSuccess) {
+        await log({ userId, level: "error", action: "domain.lock.status.failed", message: `${domainName}: ${result.responseText}`, ms });
+        return error(`Failed to get lock status: ${result.responseText}`, 502);
+      }
+
+      await log({ userId, action: "domain.lock.status", message: `${domainName}: ${result.lockState ? "locked" : "unlocked"}`, ms });
+      return json({ domainName, locked: result.lockState, success: true });
+    }
+
+    // ═══ SET DOMAIN LOCK ══════════════════════════════════
+    if (action === "set-lock") {
+      const { locked } = body;
+      if (typeof locked !== "boolean") return error("locked (boolean) is required");
+
+      const result = await setDomainLock(domainName, locked);
+      const ms = Date.now() - t0;
+      console.log("OpenSRS set lock:", locked, result.responseCode, result.responseText);
+
+      if (!result.isSuccess) {
+        await log({ userId, level: "error", action: "domain.lock.update.failed", message: `${domainName}: ${result.responseText}`, ms });
+        return error(`Lock update failed: ${result.responseText}`, 502);
+      }
+
+      await log({ userId, action: "domain.lock.updated", message: `${domainName}: ${locked ? "locked" : "unlocked"}`, ms });
+      return json({ domainName, locked, success: true });
+    }
+
+    // ═══ GET EPP AUTH CODE ════════════════════════════════
+    if (action === "get-epp-code") {
+      const result = await getDomainAuthCode(domainName);
+      const ms = Date.now() - t0;
+      console.log("OpenSRS get auth code:", result.isSuccess ? "success" : result.responseText);
+
+      if (!result.isSuccess || !result.authCode) {
+        await log({ userId, level: "error", action: "domain.epp.failed", message: `${domainName}: ${result.responseText}`, ms });
+        return error(`Failed to get EPP code: ${result.responseText}`, 502);
+      }
+
+      await log({ userId, action: "domain.epp.retrieved", message: domainName, ms });
+      return json({ domainName, eppCode: result.authCode, success: true });
     }
 
     return error(`Unknown action: ${action}`, 400);

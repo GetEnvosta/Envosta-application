@@ -1,5 +1,6 @@
 import { supabaseAdmin, getStripe, wpcloudGet, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, domainExpiryWarningEmail } from "../_shared/email.ts";
+import { setDnsZone, buildWpCloudDnsRecords } from "../_shared/opensrs.ts";
 
 /**
  * Daily health check — run via cron or manual trigger.
@@ -60,31 +61,33 @@ Deno.serve(async (req) => {
             metadata: { ...(site.metadata as any), site_ip: currentIp, ip_updated_at: new Date().toISOString() },
           }).eq("id", site.id);
 
-          // Find connected OpenSRS domain and update DNS
+          // Find connected OpenSRS domain and update DNS (skip if client manages custom DNS)
           const { data: domain } = await sb.from("domains")
-            .select("id, domain_name, registrar")
+            .select("id, domain_name, registrar, metadata")
             .eq("site_id", site.id)
             .eq("registrar", "opensrs")
             .maybeSingle();
 
-          if (domain) {
-            // Update DNS records with new IP
-            const dnsRecords = [
-              { type: "A", subdomain: "", ip_address: currentIp, ttl: 3600 },
-              { type: "A", subdomain: "www", ip_address: currentIp, ttl: 3600 },
-              { type: "TXT", subdomain: "", text: "v=spf1 include:_spf.wpcloud.com ~all", ttl: 3600 },
-              { type: "CNAME", subdomain: "wpcloud1._domainkey", hostname: "wpcloud1._domainkey.wpcloud.com", ttl: 3600 },
-              { type: "CNAME", subdomain: "wpcloud2._domainkey", hostname: "wpcloud2._domainkey.wpcloud.com", ttl: 3600 },
-              { type: "TXT", subdomain: "_dmarc", text: "v=DMARC1; p=none;", ttl: 3600 },
-            ];
+          if (domain && (domain.metadata as any)?.dns_mode === "custom") {
+            issues.push(`${site.label}: IP changed ${storedIp} → ${currentIp}, skipping DNS update for ${domain.domain_name} (custom DNS mode)`);
+            await log({ serviceId: site.id, action: "health.ip_changed", message: `${storedIp} → ${currentIp}, custom DNS — skipped` });
+          } else if (domain) {
+            // Update DNS records with new IP at OpenSRS
+            const dnsRecords = buildWpCloudDnsRecords(currentIp);
+            const dnsResult = await setDnsZone(domain.domain_name, dnsRecords);
 
-            await sb.from("domains").update({
-              dns_records: dnsRecords,
-              metadata: { dns_setup: "complete", site_ip: currentIp, dns_updated_at: new Date().toISOString() },
-            }).eq("id", domain.id);
+            if (dnsResult.isSuccess) {
+              await sb.from("domains").update({
+                dns_records: dnsRecords,
+                metadata: { dns_setup: "complete", site_ip: currentIp, dns_updated_at: new Date().toISOString() },
+              }).eq("id", domain.id);
 
-            issues.push(`${site.label}: IP changed ${storedIp} → ${currentIp}, DNS updated for ${domain.domain_name}`);
-            await log({ serviceId: site.id, action: "health.ip_changed", message: `${storedIp} → ${currentIp}, DNS updated for ${domain.domain_name}` });
+              issues.push(`${site.label}: IP changed ${storedIp} → ${currentIp}, DNS updated for ${domain.domain_name}`);
+              await log({ serviceId: site.id, action: "health.ip_changed", message: `${storedIp} → ${currentIp}, DNS updated for ${domain.domain_name}` });
+            } else {
+              issues.push(`${site.label}: IP changed ${storedIp} → ${currentIp}, DNS UPDATE FAILED for ${domain.domain_name}: ${dnsResult.responseText}`);
+              await log({ serviceId: site.id, level: "error", action: "health.dns_update_failed", message: `${domain.domain_name}: ${dnsResult.responseText}` });
+            }
           } else {
             issues.push(`${site.label}: IP changed ${storedIp} → ${currentIp}, no OpenSRS domain to update`);
             await log({ serviceId: site.id, action: "health.ip_changed", message: `${storedIp} → ${currentIp}` });

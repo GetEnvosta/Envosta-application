@@ -1,5 +1,6 @@
 import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, siteReadyEmail, provisioningFailedEmail } from "../_shared/email.ts";
+import { setDnsZone, buildWpCloudDnsRecords } from "../_shared/opensrs.ts";
 
 /**
  * Provision a WordPress site via wp.cloud Atomic API (routed through static IP proxy).
@@ -266,31 +267,31 @@ Deno.serve(async (req) => {
     if (domainName && siteIp) {
       try {
         const { data: domainRecord } = await sb.from("domains")
-          .select("registrar")
+          .select("registrar, metadata")
           .eq("user_id", userId)
           .eq("domain_name", domainName)
           .maybeSingle();
 
-        if (domainRecord?.registrar === "opensrs") {
-          const dnsRecords = [
-            { type: "A", subdomain: "", ip_address: siteIp, ttl: 3600 },
-            { type: "A", subdomain: "www", ip_address: siteIp, ttl: 3600 },
-            { type: "TXT", subdomain: "", text: "v=spf1 include:_spf.wpcloud.com ~all", ttl: 3600 },
-            { type: "CNAME", subdomain: "wpcloud1._domainkey", hostname: "wpcloud1._domainkey.wpcloud.com", ttl: 3600 },
-            { type: "CNAME", subdomain: "wpcloud2._domainkey", hostname: "wpcloud2._domainkey.wpcloud.com", ttl: 3600 },
-            { type: "TXT", subdomain: "_dmarc", text: "v=DMARC1; p=none;", ttl: 3600 },
-          ];
+        // Skip DNS auto-setup if client manages their own DNS
+        if (domainRecord?.registrar === "opensrs" && (domainRecord?.metadata as any)?.dns_mode !== "custom") {
+          const dnsRecords = buildWpCloudDnsRecords(siteIp);
+          const dnsResult = await setDnsZone(domainName, dnsRecords);
 
-          await sb.from("domains")
-            .update({
-              metadata: { dns_records: dnsRecords, dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() },
-            })
-            .eq("user_id", userId)
-            .eq("domain_name", domainName);
+          if (dnsResult.isSuccess) {
+            await sb.from("domains")
+              .update({
+                metadata: { dns_records: dnsRecords, dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() },
+              })
+              .eq("user_id", userId)
+              .eq("domain_name", domainName);
 
-          dnsSetup = { siteIp, records: dnsRecords.length };
-          console.log("DNS records queued for", domainName, "→", siteIp);
-          await log({ userId: userId, serviceId: svc.id, action: "domain.dns.auto_setup", message: `${domainName} → ${siteIp}` });
+            dnsSetup = { siteIp, records: dnsRecords.length };
+            console.log("DNS records set for", domainName, "→", siteIp);
+            await log({ userId: userId, serviceId: svc.id, action: "domain.dns.auto_setup", message: `${domainName} → ${siteIp}` });
+          } else {
+            console.error("DNS auto-setup failed:", dnsResult.responseText);
+            await log({ userId: userId, serviceId: svc.id, level: "error", action: "domain.dns.auto_setup.failed", message: `${domainName}: ${dnsResult.responseText}` });
+          }
         }
       } catch (dnsErr) {
         // DNS setup is best-effort — don't fail provisioning
