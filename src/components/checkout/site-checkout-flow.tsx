@@ -70,15 +70,15 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   // Checkout
   // checkoutLoading removed — Stripe Embedded Checkout handles its own loading
   const [checkoutError, setCheckoutError] = useState('');
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(true); // Accepted via Stripe checkout page
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>(initialBilling ?? 'monthly');
 
   // Onboarding
   const [onboardingChoice, setOnboardingChoice] = useState<'self' | 'guided' | null>(null);
 
-  // Steps — all public flows show domain step
-  const publicSteps = ['Account', 'Domain', 'Checkout'];
-  const dashboardSteps = ['Plan', 'Domain', 'Checkout'];
+  // Steps — public: 2 steps then redirect to Stripe
+  const publicSteps = ['Account', 'Domain'];
+  const dashboardSteps = ['Plan', 'Domain'];
   const steps = mode === 'public' ? publicSteps : dashboardSteps;
   const [step, _setStep] = useState(1);
 
@@ -256,7 +256,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   const checkoutStepNum = steps.indexOf('Checkout') + 1;
 
   function goToDomain() { setStep(domainStepNum); }
-  function goToCheckout() { setStep(checkoutStepNum); }
+  function goToCheckout() { handleCheckout(); }
 
   // Theme: dark for marketing, light for dashboard
   const dark = mode === 'public';
@@ -535,11 +535,13 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
             {/* Temp domain — first option, recommended */}
             <button
+              disabled={checkoutLoading}
               onClick={() => { setDomainMode('temp'); setSelectedDomain(''); goToCheckout(); }}
               style={{
                 background: dark ? 'rgba(34,197,94,.06)' : 'rgba(34,197,94,.03)',
                 border: '2px solid rgba(34,197,94,.3)',
-                borderRadius: 14, padding: '20px 22px', cursor: 'pointer', textAlign: 'left', transition: 'all .2s',
+                borderRadius: 14, padding: '20px 22px', cursor: checkoutLoading ? 'wait' : 'pointer', textAlign: 'left', transition: 'all .2s',
+                opacity: checkoutLoading ? 0.6 : 1,
                 position: 'relative',
               }}
             >
@@ -691,12 +693,22 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
               </p>
             </div>
           )}
+          {/* Loading / Error */}
+          {checkoutLoading && (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <Loader2 style={{ width: 20, height: 20, animation: 'spin 1s linear infinite', margin: '0 auto 8px', color: t.textMuted }} />
+              <p style={{ fontSize: '.82rem', color: t.textMuted }}>Setting up secure payment...</p>
+            </div>
+          )}
+          {checkoutError && <p style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 16, textAlign: 'center' }}>{checkoutError}</p>}
+
+          <p style={{ fontSize: '.68rem', color: t.textMuted, marginTop: 20, textAlign: 'center', lineHeight: 1.6 }}>
+            By continuing you agree to our <a href="/legal/terms" target="_blank" style={{ color: t.textSub, textDecoration: 'underline' }}>Terms</a> and <a href="/legal/privacy" target="_blank" style={{ color: t.textSub, textDecoration: 'underline' }}>Privacy Policy</a>.
+          </p>
         </div>
       )}
 
-      {/* ════════════════════════════════════════════
-          STEP: PAYMENT (Stripe Embedded Checkout)
-         ════════════════════════════════════════════ */}
+      {/* Old checkout step removed — domain step redirects directly to Stripe */}
       {step === checkoutStepNum && selectedPlan && (
         <div style={{ maxWidth: 600, margin: '0 auto' }}>
           <button onClick={() => setStep(domainStepNum)} style={{ background: 'none', border: 'none', color: t.textMuted, cursor: 'pointer', marginBottom: 16, fontSize: '.82rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
