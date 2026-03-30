@@ -23,22 +23,29 @@ export default function RegisterDomainPage() {
     if (q) setDomain(q);
   }, [searchParams]);
 
-  async function callFunction(body: any) {
+  async function callFunction(body: any, requireAuth = true) {
     const supabase = createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setError('Please log in first'); return null; }
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    };
+
+    if (requireAuth) {
+      let token = '';
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        token = session.access_token;
+      } else {
+        const { data: { session: refreshed } } = await supabase.auth.refreshSession();
+        if (!refreshed) { setError('Please log in again'); return null; }
+        token = refreshed.access_token;
+      }
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        },
-        body: JSON.stringify(body),
-      }
+      { method: 'POST', headers, body: JSON.stringify(body) }
     );
     return res.json();
   }
@@ -50,29 +57,35 @@ export default function RegisterDomainPage() {
     setError('');
     setAvailable(null);
 
-    const data = await callFunction({ action: 'check', domainName: domain.toLowerCase().trim() });
-    setChecking(false);
-    if (!data || data.error) { setError(data?.error ?? 'Check failed'); return; }
+    try {
+      const data = await callFunction({ action: 'check', domainName: domain.toLowerCase().trim() }, false);
+      if (!data || data.error) { setError(data?.error ?? 'Check failed'); return; }
 
-    if (isTransfer) {
-      // For transfers, domain must be taken (registered elsewhere)
-      setAvailable(!data.available);
-    } else {
-      setAvailable(data.available);
+      if (isTransfer) {
+        setAvailable(!data.available);
+      } else {
+        setAvailable(data.available);
+      }
+    } catch {
+      setError('Connection error — please try again');
+    } finally {
+      setChecking(false);
     }
   }
 
   async function handleRegister() {
     setSubmitting(true);
     setError('');
-    const data = await callFunction({ action: 'register', domainName: domain.toLowerCase().trim(), years: 1 });
-    if (!data || data.error) {
-      setError(data?.error ?? 'Registration failed');
+    try {
+      const data = await callFunction({ action: 'register', domainName: domain.toLowerCase().trim(), years: 1 });
+      if (!data || data.error) { setError(data?.error ?? 'Registration failed'); return; }
+      router.push('/dashboard/domains');
+      router.refresh();
+    } catch {
+      setError('Connection error — please try again');
+    } finally {
       setSubmitting(false);
-      return;
     }
-    router.push('/dashboard/domains');
-    router.refresh();
   }
 
   async function handleTransfer() {

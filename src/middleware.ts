@@ -75,8 +75,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect logged-in users away from auth pages (except reset-password)
-  if (user && pathname.startsWith('/auth/') && pathname !== '/auth/reset-password') {
+  // Redirect logged-in users away from auth pages (except reset-password and signout)
+  if (user && pathname.startsWith('/auth/') && pathname !== '/auth/reset-password' && pathname !== '/auth/signout') {
     return addSecurityHeaders(NextResponse.redirect(new URL('/dashboard', request.url)));
   }
 

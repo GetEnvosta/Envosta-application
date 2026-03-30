@@ -61,6 +61,23 @@ export async function getCustomerInfo(userId: string) {
         card_expiry: `${String(src.exp_month).padStart(2, '0')}/${src.exp_year}`,
       };
     }
+
+    // Fallback: Checkout attaches the PM to the subscription, not the customer.
+    // Pull the most recent payment method from the customer's payment methods list.
+    const pmRes = await fetch(
+      `https://api.stripe.com/v1/payment_methods?customer=${data.stripe_customer_id}&type=card&limit=1`,
+      { headers: { Authorization: `Bearer ${stripeKey}` } }
+    );
+    const pmList = await pmRes.json();
+    const latestPm = pmList.data?.[0];
+    if (latestPm?.card) {
+      return {
+        ...data,
+        card_brand: latestPm.card.brand,
+        card_last4: latestPm.card.last4,
+        card_expiry: `${String(latestPm.card.exp_month).padStart(2, '0')}/${latestPm.card.exp_year}`,
+      };
+    }
   } catch (e) {
     console.error('Failed to fetch payment method:', e);
   }
