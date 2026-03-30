@@ -16,7 +16,8 @@ function generateSlug(title: string): string {
 }
 
 export default function EditBlogPostPage() {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams();
+  const id = params.id as string;
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
