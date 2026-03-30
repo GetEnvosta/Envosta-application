@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getUserSitesWithSubscriptions } from '@/services/sites';
 import { getUserSubscriptions } from '@/services/subscriptions';
 import { getEffectiveUserId } from '@/services/auth';

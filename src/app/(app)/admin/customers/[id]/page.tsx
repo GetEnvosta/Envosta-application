@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getCustomerById, getCustomerRelatedData } from '@/services/admin';
 import { cn, formatDate, formatDateTime, statusColor } from '@/lib/utils';
 import Link from 'next/link';

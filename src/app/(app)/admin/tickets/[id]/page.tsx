@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getAdminTicketDetail } from '@/services/tickets';
 import { formatDateTime } from '@/lib/utils';
 import { notFound } from 'next/navigation';

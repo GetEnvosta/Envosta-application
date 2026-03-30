@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getServiceDetailById, getServiceDomains, getServiceLogs } from '@/services/sites';
 import { formatDate, formatDateTime, statusColor } from '@/lib/utils';
 import Link from 'next/link';

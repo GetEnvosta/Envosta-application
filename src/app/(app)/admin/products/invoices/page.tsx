@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getAllCustomersWithUsers } from '@/services/billing';
 import { CreateInvoiceForm } from '@/components/admin/create-invoice';
 import Link from 'next/link';

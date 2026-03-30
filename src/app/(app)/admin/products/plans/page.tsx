@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getAllPlans } from '@/services/plans';
 import { formatCents } from '@/lib/utils';
 import { SyncAllPlansButton } from './sync-all-button';

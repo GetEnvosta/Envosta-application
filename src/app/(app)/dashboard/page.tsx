@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getEffectiveUserId } from '@/services/auth';
 import { getUserDashboardCounts, getRecentUserServices, getRecentUserDomains } from '@/services/admin';
 import { getActiveSubscription } from '@/services/subscriptions';

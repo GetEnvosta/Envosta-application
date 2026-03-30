@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getUserDomains } from '@/services/domains';
 import { getEffectiveUserId } from '@/services/auth';
 import { formatDate, statusColor } from '@/lib/utils';
