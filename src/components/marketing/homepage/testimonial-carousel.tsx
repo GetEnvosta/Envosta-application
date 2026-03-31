@@ -185,22 +185,6 @@ export function TestimonialCarousel() {
           </div>
         </div>
 
-        <div className="sp-quote-slide" data-index="3">
-          <div className="sp-stars" style={{ marginBottom: '24px' }}>
-            ★★★★★
-          </div>
-          <p className="sp-hero-text">
-            &ldquo;As a musician, I needed a site that looked as good as it sounded. Envosta built something beautiful and it loads instantly — even when I share it with thousands of fans.&rdquo;
-          </p>
-          <div className="sp-hero-author">
-            <div className="sp-avatar">MV</div>
-            <div>
-              <div className="sp-name">Mary Vale</div>
-              <div className="sp-role">Independent Musician</div>
-            </div>
-          </div>
-        </div>
-
         {/* Dots */}
         <div
           className="sp-dots"
@@ -218,7 +202,6 @@ export function TestimonialCarousel() {
           <button className="sp-dot sp-dot-active" data-idx="0" aria-label="Testimonial 1" />
           <button className="sp-dot" data-idx="1" aria-label="Testimonial 2" />
           <button className="sp-dot" data-idx="2" aria-label="Testimonial 3" />
-          <button className="sp-dot" data-idx="3" aria-label="Testimonial 4" />
         </div>
       </div>
     </div>
