@@ -59,7 +59,7 @@ export default function PartnersPage() {
         source: 'partner-form',
         contact_name: form.fullName,
         contact_email: form.email,
-        priority: 'medium',
+        priority: 'normal',
       });
 
       setSubmitting(false);

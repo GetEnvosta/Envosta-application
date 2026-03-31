@@ -13,7 +13,7 @@ export default function NewTicketPage() {
 
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
-  const [priority, setPriority] = useState('medium');
+  const [priority, setPriority] = useState('normal');
   const [siteId, setServiceId] = useState('');
   const [services, setServices] = useState<{ id: string; label: string }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,7 +57,7 @@ export default function NewTicketPage() {
           type: ticketType,
           subject,
           status: 'open',
-          priority: ticketType === 'support' ? priority : 'medium',
+          priority: ticketType === 'support' ? priority : 'normal',
           metadata: {
             ...(ticketType === 'studio' && siteId ? { site_id: siteId } : {}),
           },
@@ -196,8 +196,9 @@ export default function NewTicketPage() {
                   onChange={(e) => setPriority(e.target.value)}
                 >
                   <option value="low">Low</option>
-                  <option value="medium">Medium</option>
+                  <option value="normal">Normal</option>
                   <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
                 </select>
               </div>
             )}
