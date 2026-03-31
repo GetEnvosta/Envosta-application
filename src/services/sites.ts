@@ -37,6 +37,7 @@ export async function getUserSitesWithSubscriptions(userId?: string) {
   let query = supabase
     .from('sites')
     .select('*, products(name, slug), subscriptions(id, status, current_period_end)')
+    .not('status', 'in', '("cancelled","deleted")')
     .order('created_at', { ascending: false });
   if (userId) query = query.eq('user_id', userId);
   const { data } = await query;

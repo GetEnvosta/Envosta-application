@@ -33,7 +33,7 @@ export default async function SitesPage() {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Link href="/dashboard/partners?type=referral" className="btn-secondary text-sm py-2 px-3.5 inline-flex items-center gap-1.5 whitespace-nowrap">
-            🎁 Refer a Friend
+            Refer a Friend
           </Link>
           <Link href="/dashboard/add-site" className="btn-primary text-sm py-2 px-3.5 inline-flex items-center gap-1.5 whitespace-nowrap">
             <Plus className="w-4 h-4" />
