@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { Loader2, Plus, Trash2, Check, CreditCard, Star } from 'lucide-react';
+import { Loader2, Plus, Trash2, Check, CreditCard } from 'lucide-react';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -109,7 +109,17 @@ export function PaymentMethodManager() {
     try {
       const res = await fetch('/api/payment-methods');
       const data = await res.json();
-      setMethods(data.methods ?? []);
+      let cards: PaymentMethod[] = data.methods ?? [];
+      // If only 1 card and it's not default, auto-set it as default
+      if (cards.length === 1 && !cards[0].isDefault) {
+        await fetch('/api/payment-methods', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentMethodId: cards[0].id }),
+        });
+        cards = [{ ...cards[0], isDefault: true }];
+      }
+      setMethods(cards);
     } catch { /* ignore */ }
     setLoading(false);
   }, []);
@@ -190,25 +200,25 @@ export function PaymentMethodManager() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   {!pm.isDefault && (
                     <button
                       onClick={() => setDefault(pm.id)}
                       disabled={!!actionId}
-                      className="p-2 rounded-lg hover:bg-brand-50 text-gray-400 hover:text-brand-600 transition-colors"
-                      title="Set as default"
+                      className="text-xs font-medium text-brand-600 hover:text-brand-700 px-2.5 py-1.5 rounded-lg hover:bg-brand-50 transition-colors disabled:opacity-50"
                     >
-                      {actionId === pm.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Star className="w-4 h-4" />}
+                      {actionId === pm.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Make Default'}
                     </button>
                   )}
-                  <button
-                    onClick={() => removeCard(pm.id)}
-                    disabled={!!actionId}
-                    className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
-                    title="Remove card"
-                  >
-                    {actionId === pm.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  </button>
+                  {!pm.isDefault && (
+                    <button
+                      onClick={() => removeCard(pm.id)}
+                      disabled={!!actionId}
+                      className="text-xs text-gray-400 hover:text-red-600 px-2 py-1.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                    >
+                      {actionId === pm.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
