@@ -51,34 +51,34 @@ export function ResourceControls({ siteId, wpCloudSiteId, config, planMetadata }
       return;
     }
 
-    // 2. Call wp.cloud to update the site (via site-info Edge Function)
+    // 2. Call wp.cloud to update each setting individually
     if (wpCloudSiteId) {
-      try {
-        const res = await fetch('/api/site-actions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'update-meta',
-            siteId,
-            meta: {
-              default_php_conns: phpWorkers,
-              php_memory_limit: `${phpMemory}M`,
-              burst_php_conns: bursting ? 1 : 0,
-            },
-          }),
-        });
-        if (!res.ok) {
-          const data = await res.json();
-          setErrorMsg(`DB updated but wp.cloud failed: ${data.error ?? 'unknown'}`);
+      const updates = [
+        { key: 'default_php_conns', value: phpWorkers },
+        { key: 'php_memory_limit', value: phpMemory },
+        { key: 'burst_php_conns', value: bursting ? 1 : 0 },
+      ];
+
+      for (const { key, value } of updates) {
+        try {
+          const res = await fetch('/api/site-actions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'update-meta', siteId, key, value }),
+          });
+          if (!res.ok) {
+            const data = await res.json();
+            setErrorMsg(`Failed to update ${key}: ${data.error ?? 'unknown'}`);
+            setStatus('error');
+            setSaving(false);
+            return;
+          }
+        } catch {
+          setErrorMsg(`Failed to update ${key}`);
           setStatus('error');
           setSaving(false);
           return;
         }
-      } catch (e) {
-        setErrorMsg('DB updated but wp.cloud update failed');
-        setStatus('error');
-        setSaving(false);
-        return;
       }
     }
 

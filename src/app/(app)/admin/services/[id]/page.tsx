@@ -136,25 +136,22 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      {/* ═══ CONTROLS ROW ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Plan Switcher */}
-        <div className="card p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Layers className="w-4 h-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-900">Change Plan</h2>
-          </div>
+      {/* ═══ PLAN, BILLING & ADD-ONS ═══ */}
+      <div className="card p-6 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <CreditCard className="w-4 h-4 text-gray-400" />
+          <h2 className="text-sm font-semibold text-gray-900">Plan, Billing & Add-ons</h2>
+        </div>
+
+        {/* Plan switcher */}
+        <div className="mb-5 pb-5 border-b border-gray-100">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Plan</p>
           <PlanSwitcher siteId={service.id} currentPlanId={service.product_id} />
         </div>
 
-        {/* Addons */}
-        <div className="card p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Package className="w-4 h-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-900">Add-ons</h2>
-          </div>
-          <SiteAddons siteId={service.id} />
-        </div>
+        {/* Add-ons */}
+        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Add-ons</p>
+        <SiteAddons siteId={service.id} />
       </div>
 
       {/* ═══ RESOURCES ═══ */}
