@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase-browser';
 import { formatDate } from '@/lib/utils';
 import { Save, Loader2, User, Mail, Globe, Calendar, Tag, Ticket, CircleDot, Layers, Trash2 } from 'lucide-react';
 
-const STATUSES = ['open', 'in-progress', 'resolved', 'closed'] as const;
+const STATUSES = ['open', 'in-progress', 'quoted', 'approved', 'completed', 'closed'] as const;
 const PRIORITIES = ['low', 'normal', 'high', 'urgent'] as const;
 
 export function TicketSidebar({

@@ -76,8 +76,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   // Onboarding
   const [onboardingChoice, setOnboardingChoice] = useState<'self' | 'guided' | null>(null);
 
-  // Steps — public: 2 steps then redirect to Stripe
-  const publicSteps = ['Account', 'Domain'];
+  // Steps — trial skips domain (auto temp), paid flows include domain choice
+  const publicSteps = isTrial ? ['Account'] : ['Account', 'Domain'];
   const dashboardSteps = ['Plan', 'Domain'];
   const steps = mode === 'public' ? publicSteps : dashboardSteps;
   const [step, _setStep] = useState(1);
@@ -400,17 +400,30 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 <button
                   onClick={() => {
                     if (!(name && email && password.length >= 8 && password === confirmPassword && termsAccepted)) return;
-                    setStep(domainStepNum);
+                    if (isTrial) {
+                      // Trial: skip domain step, auto-select temp domain, go to checkout
+                      setDomainMode('temp');
+                      setSelectedDomain('');
+                      handleCheckout();
+                    } else {
+                      setStep(domainStepNum);
+                    }
                   }}
-                  disabled={!name || !email || password.length < 8 || password !== confirmPassword || !termsAccepted}
+                  disabled={!name || !email || password.length < 8 || password !== confirmPassword || !termsAccepted || checkoutLoading}
                   style={{
                     padding: '14px 24px', background: t.btnBg, color: t.btnColor, borderRadius: 100, border: 'none',
                     fontSize: '.88rem', fontWeight: 500, cursor: 'pointer', marginTop: 8,
-                    opacity: (!name || !email || password.length < 8 || password !== confirmPassword || !termsAccepted) ? 0.5 : 1,
+                    opacity: (!name || !email || password.length < 8 || password !== confirmPassword || !termsAccepted || checkoutLoading) ? 0.5 : 1,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}
                 >
-                  {selectedPlan && selectedDomain ? 'Continue to Checkout' : selectedPlan ? 'Set Up Your Domain' : 'Choose a Plan'} <ArrowRight style={{ width: 16, height: 16 }} />
+                  {checkoutLoading ? (
+                    <><Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Setting up...</>
+                  ) : isTrial ? (
+                    <>Start Free Trial <ArrowRight style={{ width: 16, height: 16 }} /></>
+                  ) : (
+                    <>{selectedPlan && selectedDomain ? 'Continue to Checkout' : selectedPlan ? 'Set Up Your Domain' : 'Choose a Plan'} <ArrowRight style={{ width: 16, height: 16 }} /></>
+                  )}
                 </button>
               </div>
               <p style={{ fontSize: '.82rem', color: t.textMuted, marginTop: 20 }}>
