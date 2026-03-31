@@ -1,62 +1,25 @@
 import { getEffectiveUserId } from '@/services/auth';
-import { getUserInvoices, getCustomerInfo } from '@/services/billing';
+import { getUserInvoices } from '@/services/billing';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
-import { CreditCard, FileText, Download } from 'lucide-react';
-import { UpdatePaymentMethod } from '@/components/billing/update-payment-method';
+import { FileText, Download } from 'lucide-react';
+import { PaymentMethodManager } from '@/components/billing/payment-method-manager';
 
 export default async function BillingPage() {
   const userId = await getEffectiveUserId();
-
-  const [invoices, customer] = await Promise.all([
-    getUserInvoices(20, userId!),
-    getCustomerInfo(userId!),
-  ]);
-
-  const pmBrand: string | null = (customer as any)?.card_brand ?? null;
-  const pmLast4: string | null = (customer as any)?.card_last4 ?? null;
-  const pmExpiry: string | null = (customer as any)?.card_expiry ?? null;
+  const invoices = await getUserInvoices(20, userId!);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <div>
         <h1 className="text-xl font-semibold text-gray-900 mb-1">Billing</h1>
-        <p className="text-sm text-gray-500">
-          Manage your payment method and view invoices.
-        </p>
+        <p className="text-sm text-gray-500">Manage your payment methods and view invoices.</p>
       </div>
 
-      {/* Payment Method */}
+      {/* Payment Methods */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Payment Method</h2>
+        <h2 className="text-sm font-semibold text-gray-900 mb-4">Payment Methods</h2>
         <div className="card p-6">
-          {pmLast4 ? (
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-12 h-8 rounded-md bg-gray-100 border border-gray-200">
-                  <CreditCard className="w-6 h-6 text-gray-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {pmBrand ? pmBrand.charAt(0).toUpperCase() + pmBrand.slice(1) : 'Card'} ending in {pmLast4}
-                  </p>
-                  {pmExpiry && (
-                    <p className="text-xs text-gray-500">Expires {pmExpiry}</p>
-                  )}
-                </div>
-              </div>
-              <UpdatePaymentMethod />
-            </div>
-          ) : (
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100">
-                  <CreditCard className="w-5 h-5 text-gray-400" />
-                </div>
-                <p className="text-sm text-gray-500">No payment method on file.</p>
-              </div>
-              <UpdatePaymentMethod />
-            </div>
-          )}
+          <PaymentMethodManager />
         </div>
       </section>
 
@@ -82,31 +45,27 @@ export default async function BillingPage() {
                   const pdfUrl = meta.invoice_pdf ?? null;
                   const viewUrl = inv.hosted_invoice_url ?? null;
                   return (
-                  <tr key={inv.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{formatDate(inv.created_at)}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-900">{inv.description || meta.description || 'Invoice'}</td>
-                    <td className="px-5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{formatCents(inv.amount_cad ?? 0, 'cad')}</td>
-                    <td className="px-5 py-3.5">
-                      <span className={statusColor(inv.status)}>{inv.status}</span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
-                        {pdfUrl && (
-                          <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700">
-                            <Download className="w-3.5 h-3.5" /> PDF
-                          </a>
-                        )}
-                        {viewUrl && (
-                          <a href={viewUrl} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-                            <FileText className="w-3.5 h-3.5" /> View
-                          </a>
-                        )}
-                        {!pdfUrl && !viewUrl && <span className="text-sm text-gray-400">&mdash;</span>}
-                      </div>
-                    </td>
-                  </tr>
+                    <tr key={inv.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{formatDate(inv.created_at)}</td>
+                      <td className="px-5 py-3.5 text-sm text-gray-900">{inv.description || meta.description || 'Invoice'}</td>
+                      <td className="px-5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{formatCents(inv.amount_cad ?? 0, 'cad')}</td>
+                      <td className="px-5 py-3.5"><span className={statusColor(inv.status)}>{inv.status}</span></td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          {pdfUrl && (
+                            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700">
+                              <Download className="w-3.5 h-3.5" /> PDF
+                            </a>
+                          )}
+                          {viewUrl && (
+                            <a href={viewUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+                              <FileText className="w-3.5 h-3.5" /> View
+                            </a>
+                          )}
+                          {!pdfUrl && !viewUrl && <span className="text-sm text-gray-400">&mdash;</span>}
+                        </div>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
