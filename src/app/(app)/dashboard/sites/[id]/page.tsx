@@ -7,24 +7,14 @@ import { notFound } from 'next/navigation';
 import { DeleteSiteButton } from '@/components/sites/delete-site-button';
 import { SiteBackups } from '@/components/sites/site-backups';
 import { SslStatus } from '@/components/sites/ssl-status';
+import { SitePerformance } from '@/components/sites/site-performance';
 import {
-  ArrowLeft,
-  ExternalLink,
-  Globe,
-  HardDrive,
-  Server,
-  MapPin,
-  Calendar,
-  Activity,
-  Shield,
-  Copy,
-  AlertTriangle,
-  Layers,
-  Lock,
-  Package,
+  ArrowLeft, ExternalLink, Globe, HardDrive, Server, MapPin, Calendar,
+  Shield, Layers, Lock, Package, Wifi, Cpu, Database,
 } from 'lucide-react';
 import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-switcher';
 import { SiteAddons } from '@/components/sites/site-addons';
+import { SiteAccess } from '@/components/sites/site-access';
 
 export default async function SiteDetailPage({
   params,
@@ -33,7 +23,6 @@ export default async function SiteDetailPage({
 }) {
   const { id } = await params;
   const userId = await getEffectiveUserId();
-
   if (!userId) notFound();
 
   const [site, domains] = await Promise.all([
@@ -43,250 +32,164 @@ export default async function SiteDetailPage({
 
   if (!site) notFound();
 
-  // Find the domain currently connected to this site
   const connectedDomain = (domains ?? []).find((d: any) => d.site_id === id) ?? null;
-
-  const planName = (site as any).products?.name ?? 'Unknown';
-  const planSlug: string = (site as any).products?.slug ?? '';
+  const plan = (site as any).products;
+  const planName = plan?.name ?? 'Unknown';
+  const planSlug: string = plan?.slug ?? '';
+  const planMeta = plan?.metadata ?? {};
   const status: string = site.status ?? 'provisioning';
-  // All plans include staging (wp.cloud provides 1 non-billable staging per site)
+  const meta = (site as any).metadata ?? {};
+  const config = (site as any).config ?? {};
+  const siteUrl = site.wp_cloud_url;
+  const siteDomain = siteUrl?.replace(/^https?:\/\//, '') ?? '';
 
   const statusBadge =
-    status === 'active'
-      ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'
-      : status === 'provisioning'
-        ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20'
-        : status === 'suspended'
-          ? 'bg-red-50 text-red-700 ring-1 ring-red-600/20'
-          : 'bg-gray-100 text-gray-600 ring-1 ring-gray-500/20';
+    status === 'active' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'
+    : status === 'provisioning' ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20'
+    : status === 'suspended' ? 'bg-red-50 text-red-700 ring-1 ring-red-600/20'
+    : 'bg-gray-100 text-gray-600 ring-1 ring-gray-500/20';
 
+  const regionLabels: Record<string, string> = { dca: 'US East', bur: 'US West', dfw: 'US Central', ams: 'EU West' };
 
   return (
     <div>
-      {/* Back link */}
-      <Link
-        href="/dashboard/sites"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-4"
-      >
+      <Link href="/dashboard/sites" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-4">
         <ArrowLeft className="w-4 h-4" /> Back to sites
       </Link>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-        <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-xl font-semibold text-gray-900">{site.label}</h1>
-            <span
-              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${statusBadge}`}
-            >
-              {status}
-            </span>
-          </div>
-          {site.wp_cloud_url && (
-            <a
-              href={site.wp_cloud_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 mt-1"
-            >
-              <Globe className="w-3.5 h-3.5" />
-              {site.wp_cloud_url.replace(/^https?:\/\//, '')}
-            </a>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          {site.wp_cloud_url && (
-            <>
-              <a
-                href={`${site.wp_cloud_url}/wp-admin`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary text-sm py-2 px-4"
-              >
-                Open WP Admin
-              </a>
-              <a
-                href={site.wp_cloud_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary text-sm py-2 px-4"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Visit Site
-              </a>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Info grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <div className="card p-5">
-          <div className="flex items-center gap-2 text-gray-500 mb-1.5">
-            <Layers className="w-4 h-4" />
-            <span className="text-xs font-medium uppercase tracking-wider">Plan</span>
-          </div>
-          <p className="text-sm font-semibold text-gray-900">{planName}</p>
-        </div>
-
-        <div className="card p-5">
-          <div className="flex items-center gap-2 text-gray-500 mb-1.5">
-            <HardDrive className="w-4 h-4" />
-            <span className="text-xs font-medium uppercase tracking-wider">Storage</span>
-          </div>
-          <p className="text-sm font-semibold text-gray-900">
-            {((site.disk_usage_mb ?? 0) / 1024).toFixed(1)} GB of {(site.products as any)?.storage_gb ?? (site.products as any)?.disk_gb ?? 25} GB
-          </p>
-          <div className="mt-2 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-brand-500 rounded-full" style={{ width: `${Math.min(100, ((site.disk_usage_mb ?? 0) / (((site.products as any)?.storage_gb ?? 25) * 1024)) * 100)}%` }} />
-          </div>
-        </div>
-
-        <div className="card p-5">
-          <div className="flex items-center gap-2 text-gray-500 mb-1.5">
-            <Server className="w-4 h-4" />
-            <span className="text-xs font-medium uppercase tracking-wider">PHP Version</span>
-          </div>
-          <p className="text-sm font-semibold text-gray-900">{site.php_version ?? '8.4'}</p>
-        </div>
-
-        <div className="card p-5">
-          <div className="flex items-center gap-2 text-gray-500 mb-1.5">
-            <MapPin className="w-4 h-4" />
-            <span className="text-xs font-medium uppercase tracking-wider">Region</span>
-          </div>
-          <p className="text-sm font-semibold text-gray-900">
-            {{ dca: 'US East', bur: 'US West', dfw: 'US Central', ams: 'EU West' }[site.server_region as string] ?? site.server_region ?? 'US East'}
-          </p>
-        </div>
-
-        <div className="card p-5">
-          <div className="flex items-center gap-2 text-gray-500 mb-1.5">
-            <Calendar className="w-4 h-4" />
-            <span className="text-xs font-medium uppercase tracking-wider">Created</span>
-          </div>
-          <p className="text-sm font-semibold text-gray-900">{formatDate(site.created_at)}</p>
-        </div>
-
-        <div className="card p-5">
-          <div className="flex items-center gap-2 text-gray-500 mb-1.5">
-            <Activity className="w-4 h-4" />
-            <span className="text-xs font-medium uppercase tracking-wider">Status</span>
-          </div>
-          <span
-            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${statusBadge}`}
-          >
-            {status}
-          </span>
-        </div>
-
-        {(site as any).metadata?.site_ip && (
-          <div className="card p-5">
-            <div className="flex items-center gap-2 text-gray-500 mb-1.5">
-              <Shield className="w-4 h-4" />
-              <span className="text-xs font-medium uppercase tracking-wider">Site IP</span>
-            </div>
-            <p className="text-sm font-mono font-semibold text-gray-900">{(site as any).metadata.site_ip}</p>
-            <p className="text-xs text-gray-400 mt-1">Point your domain A record here</p>
-          </div>
-        )}
-      </div>
-
-      {/* Current Plan */}
-      <div className="card p-6 mb-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
-          <Layers className="w-4 h-4 text-gray-400" />
-          Plan
-        </h2>
-        <div className="flex items-center justify-between mt-3">
+      {/* ════════════════════════════════════════════════════════
+          CARD 1: SITE OVERVIEW
+         ════════════════════════════════════════════════════════ */}
+      <div className="card p-6 mb-6">
+        {/* Header row */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
           <div>
-            <p className="text-sm font-semibold text-gray-900">{planName}</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {(site.products as any)?.metadata?.storage_gb ?? 25} GB storage &middot; {(site.products as any)?.metadata?.php_workers_default ?? 2} PHP workers &middot; {(site.products as any)?.metadata?.php_memory_mb ?? 512} MB memory
-            </p>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-xl font-semibold text-gray-900">{site.label}</h1>
+              <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${statusBadge}`}>{status}</span>
+            </div>
+            {siteUrl && (
+              <a href={siteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 mt-1">
+                <Globe className="w-3.5 h-3.5" /> {siteDomain}
+              </a>
+            )}
           </div>
-          {planSlug !== 'enterprise' && planSlug !== 'performance' && (
-            <Link
-              href="/pricing"
-              className="btn-primary text-sm py-2 px-4 inline-flex items-center gap-1.5"
-            >
-              <Layers className="w-3.5 h-3.5" />
-              Upgrade Plan
-            </Link>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {siteUrl && (
+              <>
+                <a href={`${siteUrl}/wp-admin`} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm py-2 px-4">
+                  WP Admin
+                </a>
+                <a href={siteUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm py-2 px-4">
+                  <ExternalLink className="w-3.5 h-3.5" /> Visit
+                </a>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Info pills */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          <Pill icon={<Layers className="w-3.5 h-3.5" />} label="Plan" value={planName} />
+          <Pill icon={<HardDrive className="w-3.5 h-3.5" />} label="Storage" value={`${((site.disk_usage_mb ?? 0) / 1024).toFixed(1)} / ${planMeta.storage_gb ?? 25} GB`} />
+          <Pill icon={<Server className="w-3.5 h-3.5" />} label="PHP" value={site.php_version ?? '8.4'} />
+          <Pill icon={<MapPin className="w-3.5 h-3.5" />} label="Region" value={regionLabels[site.server_region as string] ?? 'US East'} />
+          <Pill icon={<Cpu className="w-3.5 h-3.5" />} label="Workers" value={`${config.php_workers ?? planMeta.php_workers_default ?? 2} PHP`} />
+          <Pill icon={<Database className="w-3.5 h-3.5" />} label="Memory" value={`${config.php_memory_mb ?? planMeta.php_memory_mb ?? 512} MB`} />
+          {meta.site_ip && <Pill icon={<Wifi className="w-3.5 h-3.5" />} label="IP" value={meta.site_ip} mono />}
+          <Pill icon={<Calendar className="w-3.5 h-3.5" />} label="Created" value={formatDate(site.created_at)} />
+        </div>
+
+        {/* Storage bar */}
+        <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden mb-4">
+          <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${Math.min(100, ((site.disk_usage_mb ?? 0) / ((planMeta.storage_gb ?? 25) * 1024)) * 100)}%` }} />
+        </div>
+
+        {/* Domain + Plan row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-lg bg-gray-50 px-3.5 py-3">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Connected Domain</p>
+            {connectedDomain ? (
+              <p className="text-sm font-medium text-gray-900">{connectedDomain.domain_name}</p>
+            ) : (
+              <p className="text-sm text-gray-500">No domain connected</p>
+            )}
+            <ConnectedDomainSwitcher siteId={id} currentDomainId={connectedDomain?.id ?? null} domains={domains ?? []} />
+          </div>
+          <div className="rounded-lg bg-gray-50 px-3.5 py-3">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Plan & Add-ons</p>
+            <p className="text-sm font-medium text-gray-900 mb-1">{planName}</p>
+            <p className="text-xs text-gray-500 mb-2">{planMeta.storage_gb ?? 25} GB &middot; {planMeta.php_workers_default ?? 2} workers &middot; {planMeta.php_memory_mb ?? 512} MB</p>
+            {planSlug !== 'enterprise' && planSlug !== 'performance' && (
+              <Link href="/pricing" className="text-xs text-brand-600 hover:text-brand-700 font-medium">Upgrade plan</Link>
+            )}
+            <div className="mt-2 pt-2 border-t border-gray-200">
+              <SiteAddons siteId={id} />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Add-ons */}
-      <div className="card p-6 mb-4">
+      {/* ════════════════════════════════════════════════════════
+          CARD 2: PERFORMANCE & CACHING
+         ════════════════════════════════════════════════════════ */}
+      <div className="card p-6 mb-6">
         <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
-          <Package className="w-4 h-4 text-gray-400" />
-          Add-ons
+          <Shield className="w-4 h-4 text-gray-400" /> Performance & Caching
         </h2>
-        <p className="text-sm text-gray-500 mb-4">Enable or disable add-ons for this site. Billing is prorated.</p>
-        <SiteAddons siteId={id} />
+        <p className="text-xs text-gray-500 mb-4">Manage edge cache and performance settings for your site.</p>
+        <SitePerformance siteId={id} domain={siteDomain} />
       </div>
 
-      {/* Connected Domain */}
-      <div className="card p-6 mb-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
-          <Globe className="w-4 h-4 text-gray-400" />
-          Connected Domain
+      {/* ════════════════════════════════════════════════════════
+          CARD 3: BACKUPS & SECURITY
+         ════════════════════════════════════════════════════════ */}
+      <div className="card p-6 mb-6">
+        <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <Lock className="w-4 h-4 text-gray-400" /> Backups & Security
         </h2>
-        <p className="text-sm text-gray-500 mb-4">Choose which domain is connected to this site.</p>
-        <ConnectedDomainSwitcher
-          siteId={id}
-          currentDomainId={connectedDomain?.id ?? null}
-          domains={domains ?? []}
-        />
-      </div>
 
-      {/* Backups */}
-      <div className="card p-6 mb-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
-          <Copy className="w-4 h-4 text-gray-400" />
-          Backups
-        </h2>
+        {/* SSL */}
+        <div className="mb-4 pb-4 border-b border-gray-100">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">SSL Certificate</p>
+          <SslStatus siteId={id} domain={siteDomain || connectedDomain?.domain_name || null} />
+        </div>
+
+        {/* Backups */}
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Backups</p>
         <SiteBackups siteId={id} wpCloudSiteId={site.wp_cloud_site_id} />
       </div>
 
-      {/* Staging */}
-      <div className="card p-6 mb-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
-          <Shield className="w-4 h-4 text-gray-400" />
-          Staging
-        </h2>
-        <div className="flex items-center justify-between mt-2">
-          <div>
-            <p className="text-sm text-gray-700">Staging environment included</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Create a staging copy of your site to test changes safely before going live.
-            </p>
-          </div>
-          <button className="btn-secondary text-sm py-2 px-4 opacity-50 cursor-not-allowed" disabled title="Coming soon">Create Staging</button>
+      {/* ════════════════════════════════════════════════════════
+          CARD 4: ACCESS & SUBSCRIPTION
+         ════════════════════════════════════════════════════════ */}
+      <div className="card overflow-hidden">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+            <Server className="w-4 h-4 text-gray-400" /> Access & Infrastructure
+          </h2>
+          <p className="text-xs text-gray-500 mb-4">SFTP credentials, SSH access, and site infrastructure details.</p>
+          <SiteAccess siteId={id} wpCloudSiteId={site.wp_cloud_site_id} />
+        </div>
+
+        {/* Cancel */}
+        <div className="p-6 bg-red-50/30">
+          <h3 className="text-sm font-semibold text-red-600 mb-1">Cancel Site</h3>
+          <p className="text-xs text-gray-500 mb-3">Cancel your subscription. Your data is preserved for 30 days.</p>
+          <DeleteSiteButton siteId={site.id} siteName={site.label} />
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* SSL */}
-      <div className="card p-6 mb-4">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-          <Lock className="w-4 h-4 text-gray-400" />
-          SSL Certificate
-        </h2>
-        <SslStatus siteId={id} domain={site.wp_cloud_url?.replace('https://', '') ?? connectedDomain?.domain_name ?? null} />
-      </div>
-
-      {/* Cancel Site */}
-      <div className="rounded-xl border border-red-200 bg-white p-6">
-        <h2 className="text-sm font-semibold text-red-600 mb-1 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4" />
-          Cancel Site
-        </h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Cancel your subscription and remove this site from your dashboard. Your site data is preserved for 30 days — contact support to restore it.
-        </p>
-        <DeleteSiteButton siteId={site.id} siteName={site.label} />
+function Pill({ icon, label, value, mono }: { icon: React.ReactNode; label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2.5">
+      <span className="text-gray-400 shrink-0">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</p>
+        <p className={`text-sm font-medium text-gray-900 truncate ${mono ? 'font-mono text-xs' : ''}`}>{value}</p>
       </div>
     </div>
   );

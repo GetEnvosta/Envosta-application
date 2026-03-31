@@ -21,8 +21,11 @@ import {
 } from 'lucide-react';
 import { PlanSwitcher } from '@/components/sites/plan-switcher';
 import { SiteAddons } from '@/components/sites/site-addons';
+import { SitePerformance } from '@/components/sites/site-performance';
+import { SiteAccess } from '@/components/sites/site-access';
 import { CancelSubscriptionButton } from '@/components/admin/cancel-subscription-button';
 import { AdminSiteActions } from '@/components/admin/admin-site-actions';
+import { AdminErrorLogs } from '@/components/admin/admin-error-logs';
 
 export default async function ServiceDetailPage({
   params,
@@ -175,6 +178,29 @@ export default async function ServiceDetailPage({
           config={service.config ?? {}}
           planMetadata={plan?.metadata ?? {}}
         />
+      </div>
+
+      {/* ── Performance & Access ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="card p-6">
+          <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+            <Wifi className="w-4 h-4 text-gray-400" /> Performance & Cache
+          </h2>
+          <p className="text-xs text-gray-500 mb-4">Edge cache, purge, and defensive mode.</p>
+          <SitePerformance siteId={service.id} domain={service.wp_cloud_url?.replace('https://', '') ?? ''} />
+        </div>
+        <div className="card p-6">
+          <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+            <Server className="w-4 h-4 text-gray-400" /> SFTP Access
+          </h2>
+          <p className="text-xs text-gray-500 mb-4">SFTP credentials and password reset.</p>
+          <SiteAccess siteId={service.id} wpCloudSiteId={service.wp_cloud_site_id} />
+        </div>
+      </div>
+
+      {/* ── Error Logs (admin only) ── */}
+      <div className="card p-6 mb-6">
+        <AdminErrorLogs siteId={service.id} />
       </div>
 
       {/* ── Admin Actions + Logs ── */}

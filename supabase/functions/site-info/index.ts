@@ -610,6 +610,135 @@ Deno.serve(async (req) => {
         return json({ success: true, addon: addon?.name });
       }
 
+      // ═══ Edge Cache ═══
+      case "edge-cache": {
+        if (!siteId) return error("siteId is required");
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("sites").select("id, wp_cloud_site_id, wp_cloud_url, user_id").eq("id", siteId).single();
+        if (!svc?.wp_cloud_site_id) return error("Site not found or no wp.cloud ID", 404);
+        if (!isServiceRole && svc.user_id !== user!.id) return error("Forbidden", 403);
+
+        const { subAction, domain: cacheDomain } = await (async () => {
+          const body = { subAction: key ?? "status", domain: domain ?? svc.wp_cloud_url?.replace("https://", "") ?? "" };
+          return body;
+        })();
+
+        // subAction: "status", "enable", "disable", "purge"
+        if (subAction === "purge") {
+          const result = await wpcloudPost(`/api/v1.0/edge-cache/${svc.wp_cloud_site_id}/purge/${cacheDomain}`);
+          await log({ userId: user!.id, serviceId: siteId, action: "cache.purge", message: cacheDomain });
+          return json({ success: result.ok, data: result.data });
+        }
+        if (subAction === "enable" || subAction === "disable") {
+          const result = await wpcloudPost(`/api/v1.0/edge-cache/${svc.wp_cloud_site_id}/${subAction}/${cacheDomain}`);
+          await log({ userId: user!.id, serviceId: siteId, action: `cache.${subAction}`, message: cacheDomain });
+          return json({ success: result.ok, data: result.data });
+        }
+        // status
+        const result = await wpcloudGet(`/api/v1.0/edge-cache/${svc.wp_cloud_site_id}/status/${cacheDomain}`);
+        return json(result.data);
+      }
+
+      // ═══ Edge Cache Defensive Mode (DDoS protection) ═══
+      case "defensive-mode": {
+        if (!siteId) return error("siteId is required");
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("sites").select("id, wp_cloud_site_id, wp_cloud_url, user_id").eq("id", siteId).single();
+        if (!svc?.wp_cloud_site_id) return error("Site not found or no wp.cloud ID", 404);
+        if (!isServiceRole && svc.user_id !== user!.id) return error("Forbidden", 403);
+        const dmDomain = domain ?? svc.wp_cloud_url?.replace("https://", "") ?? "";
+
+        if (value !== undefined) {
+          // Set: value = -1 (indefinite), 0 (disable), or Unix timestamp
+          const result = await wpcloudPost(`/api/v1.0/edge-cache/${svc.wp_cloud_site_id}/ddos_until/${dmDomain}`, { ddos_until: String(value) });
+          await log({ userId: user!.id, serviceId: siteId, action: "cache.defensive_mode", message: `${dmDomain}: ${value}` });
+          return json({ success: result.ok, data: result.data });
+        }
+        // Get status
+        const result = await wpcloudGet(`/api/v1.0/edge-cache/${svc.wp_cloud_site_id}/ddos_until/${dmDomain}`);
+        return json(result.data);
+      }
+
+      // ═══ Create On-Demand Backup ═══
+      case "create-backup": {
+        if (!siteId) return error("siteId is required");
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("sites").select("id, wp_cloud_site_id, user_id").eq("id", siteId).single();
+        if (!svc?.wp_cloud_site_id) return error("Site not found or no wp.cloud ID", 404);
+        if (!isServiceRole && svc.user_id !== user!.id) return error("Forbidden", 403);
+
+        const backupType = value ?? "fs"; // fs = full site, db = database only
+        const result = await wpcloudPost(`/api/v1.0/on-demand-backup/create/${svc.wp_cloud_site_id}/${backupType}`);
+        await log({ userId: user!.id, serviceId: siteId, action: "backup.create", message: `type: ${backupType}` });
+        return json({ success: result.ok, data: result.data });
+      }
+
+      // ═══ SFTP Credentials ═══
+      case "sftp-credentials": {
+        if (!siteId) return error("siteId is required");
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("sites").select("id, wp_cloud_site_id, user_id").eq("id", siteId).single();
+        if (!svc?.wp_cloud_site_id) return error("Site not found or no wp.cloud ID", 404);
+        if (!isServiceRole && svc.user_id !== user!.id) return error("Forbidden", 403);
+
+        const result = await wpcloudGet(`/api/v1.0/ssh-user/${WPCLOUD_CLIENT}/${svc.wp_cloud_site_id}/list`);
+        return json(result.data);
+      }
+
+      // ═══ Reset SFTP Password ═══
+      case "reset-sftp-password": {
+        if (!siteId) return error("siteId is required");
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("sites").select("id, wp_cloud_site_id, user_id").eq("id", siteId).single();
+        if (!svc?.wp_cloud_site_id) return error("Site not found or no wp.cloud ID", 404);
+        if (!isServiceRole && svc.user_id !== user!.id) return error("Forbidden", 403);
+
+        const { username, password: newPass } = { username: key, password: value };
+        if (!username || !newPass) return error("username (key) and password (value) required");
+
+        const result = await wpcloudPost(`/api/v1.0/ssh-user/${WPCLOUD_CLIENT}/${svc.wp_cloud_site_id}/update/${username}`, { pass: newPass });
+        await log({ userId: user!.id, serviceId: siteId, action: "sftp.password_reset", message: username });
+        return json({ success: result.ok, data: result.data });
+      }
+
+      // ═══ Error Logs (admin only) ═══
+      case "error-logs": {
+        if (!siteId) return error("siteId is required");
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("sites").select("id, wp_cloud_site_id, user_id").eq("id", siteId).single();
+        if (!svc?.wp_cloud_site_id) return error("Site not found or no wp.cloud ID", 404);
+
+        // Admin only
+        if (!isServiceRole) {
+          const { data: p } = await sb.from("users").select("role").eq("id", user!.id).single();
+          if (p?.role !== "admin") return error("Admin only", 403);
+        }
+
+        const result = await wpcloudPost(`/api/v1.0/site-error-logs/${svc.wp_cloud_site_id}`);
+        return json(result.data);
+      }
+
+      // ═══ WP-CLI Command (admin only) ═══
+      case "wp-cli": {
+        if (!siteId) return error("siteId is required");
+        if (!value) return error("command (value) is required");
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("sites").select("id, wp_cloud_site_id, user_id").eq("id", siteId).single();
+        if (!svc?.wp_cloud_site_id) return error("Site not found or no wp.cloud ID", 404);
+
+        if (!isServiceRole) {
+          const { data: p } = await sb.from("users").select("role").eq("id", user!.id).single();
+          if (p?.role !== "admin") return error("Admin only", 403);
+        }
+
+        const result = await wpcloudPost(`/api/v1.0/task-create/${WPCLOUD_CLIENT}/run-wp-cli-command`, {
+          "params[site_id]": svc.wp_cloud_site_id,
+          "params[command]": value,
+        });
+        await log({ userId: user!.id, serviceId: siteId, action: "wpcli.run", message: value as string });
+        return json(result.data);
+      }
+
       default:
         return error(`Unknown action: ${action}`, 400);
     }
