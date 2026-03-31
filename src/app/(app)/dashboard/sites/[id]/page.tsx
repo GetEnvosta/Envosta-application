@@ -125,9 +125,9 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
           </div>
 
           {/* Trial banner */}
-          {isTrial && sub?.current_period_end && (
+          {isTrial && (
             <div className="mb-3">
-              <TrialActivate siteId={id} planName={planName} trialEnd={sub.current_period_end} />
+              <TrialActivate siteId={id} planName={planName} trialEnd={sub?.current_period_end ?? new Date(Date.now() + 14 * 86400000).toISOString()} />
             </div>
           )}
 
@@ -139,19 +139,13 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
           )}
 
           {/* Domain */}
-          <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 mb-3">
-            <div className="flex items-center gap-3">
+          <div className="rounded-xl bg-gray-50 px-4 py-3 mb-3">
+            <div className="flex items-center gap-2 mb-2">
               <Globe className="w-4 h-4 text-gray-400" />
-              <div>
-                {connectedDomain ? (
-                  <p className="text-sm font-medium text-gray-900">{connectedDomain.domain_name}</p>
-                ) : (
-                  <p className="text-sm text-gray-400">No domain connected</p>
-                )}
-              </div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Connected Domain</p>
             </div>
+            <ConnectedDomainSwitcher siteId={id} currentDomainId={connectedDomain?.id ?? null} domains={domains ?? []} />
           </div>
-          <ConnectedDomainSwitcher siteId={id} currentDomainId={connectedDomain?.id ?? null} domains={domains ?? []} />
 
           {/* WP credentials */}
           <div className="mt-3 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3">

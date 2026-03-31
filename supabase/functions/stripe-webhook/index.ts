@@ -54,7 +54,8 @@ Deno.serve(async (req) => {
         status: sub.status,
         billing_period: billingPeriod,
         current_period_start: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null,
-        current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+        current_period_end: (sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null)
+          ?? (sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null),
         metadata: {
           stripe_price_id: priceId,
           cancel_at_period_end: sub.cancel_at_period_end ?? false,
