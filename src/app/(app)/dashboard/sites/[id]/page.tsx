@@ -10,7 +10,7 @@ import { SslStatus } from '@/components/sites/ssl-status';
 import { SitePerformance } from '@/components/sites/site-performance';
 import {
   ArrowLeft, ExternalLink, Globe, HardDrive, Server, MapPin,
-  Shield, Layers, Lock, Package, Cpu, Database, Zap, Key, Calendar,
+  Shield, Layers, Package, Zap, Key, Calendar, User,
 } from 'lucide-react';
 import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-switcher';
 import { SiteAddons } from '@/components/sites/site-addons';
@@ -31,7 +31,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const pm = plan?.metadata ?? {};
   const status: string = site.status ?? 'provisioning';
   const meta = (site as any).metadata ?? {};
-  const config = (site as any).config ?? {};
   const siteUrl = site.wp_cloud_url;
   const siteDomain = siteUrl?.replace(/^https?:\/\//, '') ?? '';
   const storageUsed = (site.disk_usage_mb ?? 0) / 1024;
@@ -40,7 +39,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
 
   const regions: Record<string, string> = { dca: 'US East', bur: 'US West', dfw: 'US Central', ams: 'EU West' };
 
-  const statusStyles: Record<string, string> = {
+  const statusDot: Record<string, string> = {
     active: 'bg-emerald-500',
     provisioning: 'bg-amber-500 animate-pulse',
     suspended: 'bg-red-500',
@@ -52,9 +51,8 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
         <ArrowLeft className="w-4 h-4" /> Sites
       </Link>
 
-      {/* ═══ HERO HEADER ═══ */}
+      {/* ═══ HERO: Overview + Plan + Domain ═══ */}
       <div className="card p-0 mb-6 overflow-hidden">
-        {/* Top bar: gradient accent */}
         <div className="h-1 bg-gradient-to-r from-brand-500 via-brand-400 to-brand-600" />
 
         <div className="p-6">
@@ -68,7 +66,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
                 <div className="flex items-center gap-2.5">
                   <h1 className="text-lg font-semibold text-gray-900">{site.label}</h1>
                   <div className="flex items-center gap-1.5">
-                    <div className={`w-2 h-2 rounded-full ${statusStyles[status] ?? 'bg-gray-400'}`} />
+                    <div className={`w-2 h-2 rounded-full ${statusDot[status] ?? 'bg-gray-400'}`} />
                     <span className="text-xs text-gray-500 capitalize">{status}</span>
                   </div>
                 </div>
@@ -93,18 +91,16 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
             </div>
           </div>
 
-          {/* Metrics strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-px bg-gray-100 rounded-xl overflow-hidden">
-            <Metric icon={<Layers className="w-3.5 h-3.5" />} label="Plan" value={planName} />
+          {/* Metrics strip — no workers/memory, customer doesn't need that */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-gray-100 rounded-xl overflow-hidden mb-4">
             <Metric icon={<Server className="w-3.5 h-3.5" />} label="PHP" value={site.php_version ?? '8.4'} />
             <Metric icon={<MapPin className="w-3.5 h-3.5" />} label="Region" value={regions[site.server_region as string] ?? 'US East'} />
-            <Metric icon={<Cpu className="w-3.5 h-3.5" />} label="Workers" value={`${config.php_workers ?? pm.php_workers_default ?? 2}`} />
-            <Metric icon={<Database className="w-3.5 h-3.5" />} label="Memory" value={`${config.php_memory_mb ?? pm.php_memory_mb ?? 512}MB`} />
+            {meta.site_ip && <Metric icon={<Globe className="w-3.5 h-3.5" />} label="IP" value={meta.site_ip} mono />}
             <Metric icon={<Calendar className="w-3.5 h-3.5" />} label="Created" value={formatDate(site.created_at)} />
           </div>
 
           {/* Storage bar */}
-          <div className="mt-4">
+          <div className="mb-5">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-gray-500 flex items-center gap-1.5">
                 <HardDrive className="w-3 h-3" /> Storage
@@ -118,54 +114,69 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
               />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ═══ TWO-COLUMN: DOMAIN + PLAN ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Domain */}
-        <div className="card p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Globe className="w-4 h-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-900">Domain</h2>
-          </div>
-          {connectedDomain ? (
-            <p className="text-sm font-medium text-gray-900 mb-3">{connectedDomain.domain_name}</p>
-          ) : (
-            <p className="text-sm text-gray-400 mb-3">No domain connected</p>
-          )}
-          {meta.site_ip && (
-            <p className="text-xs text-gray-400 font-mono mb-3">A record: {meta.site_ip}</p>
-          )}
-          <ConnectedDomainSwitcher siteId={id} currentDomainId={connectedDomain?.id ?? null} domains={domains ?? []} />
-        </div>
-
-        {/* Plan & Addons */}
-        <div className="card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Package className="w-4 h-4 text-gray-400" />
-              <h2 className="text-sm font-semibold text-gray-900">Plan & Add-ons</h2>
+          {/* Plan row — merged into hero */}
+          <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 mb-3">
+            <div className="flex items-center gap-3">
+              <Layers className="w-4 h-4 text-gray-400" />
+              <div>
+                <p className="text-sm font-semibold text-gray-900">{planName}</p>
+                <p className="text-xs text-gray-500">{pm.storage_gb ?? 25}GB &middot; {pm.php_memory_mb ?? 512}MB memory</p>
+              </div>
             </div>
             {planSlug !== 'enterprise' && planSlug !== 'performance' && (
-              <Link href="/pricing" className="text-xs text-brand-600 hover:text-brand-700 font-medium">
+              <Link href="/pricing" className="btn-secondary text-xs py-1.5 px-3">
                 Upgrade
               </Link>
             )}
           </div>
-          <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-lg font-semibold text-gray-900">{planName}</span>
+
+          {/* Domain row */}
+          <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 mb-3">
+            <div className="flex items-center gap-3">
+              <Globe className="w-4 h-4 text-gray-400" />
+              <div>
+                {connectedDomain ? (
+                  <p className="text-sm font-medium text-gray-900">{connectedDomain.domain_name}</p>
+                ) : (
+                  <p className="text-sm text-gray-400">No domain connected</p>
+                )}
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-gray-500 mb-4">{pm.storage_gb ?? 25}GB storage &middot; {pm.php_workers_default ?? 2} workers &middot; {pm.php_memory_mb ?? 512}MB memory</p>
-          <div className="border-t border-gray-100 pt-3">
-            <SiteAddons siteId={id} />
+          <ConnectedDomainSwitcher siteId={id} currentDomainId={connectedDomain?.id ?? null} domains={domains ?? []} />
+
+          {/* WordPress credentials */}
+          <div className="mt-3 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3">
+            <div className="flex items-center gap-2 mb-1">
+              <User className="w-4 h-4 text-blue-600" />
+              <p className="text-sm font-medium text-blue-900">WordPress Login</p>
+            </div>
+            <div className="text-xs text-blue-700 space-y-0.5">
+              <p>Username: <span className="font-mono font-medium">{meta.wp_admin_user ?? 'envosta_admin'}</span></p>
+              {meta.wp_admin_password ? (
+                <p>Password: <span className="font-mono font-medium">{meta.wp_admin_password}</span></p>
+              ) : (
+                <p>Password was sent to your email. {siteUrl && (
+                  <a href={`${siteUrl}/wp-login.php?action=lostpassword`} target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-900">Reset password</a>
+                )}</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
+      {/* ═══ ADD-ONS ═══ */}
+      <div className="card p-6 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Package className="w-4 h-4 text-gray-400" />
+          <h2 className="text-sm font-semibold text-gray-900">Add-ons</h2>
+        </div>
+        <SiteAddons siteId={id} />
+      </div>
+
       {/* ═══ PERFORMANCE & SECURITY ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Performance */}
         <div className="card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Zap className="w-4 h-4 text-gray-400" />
@@ -174,7 +185,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
           <SitePerformance siteId={id} domain={siteDomain} />
         </div>
 
-        {/* Security */}
         <div className="card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Shield className="w-4 h-4 text-gray-400" />
@@ -202,8 +212,8 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
       <div className="rounded-2xl border border-red-200/60 bg-gradient-to-r from-red-50/40 to-white p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-semibold text-red-600">Cancel Site</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Your data is preserved for 30 days after cancellation.</p>
+            <h3 className="text-sm font-semibold text-red-600">Delete Site</h3>
+            <p className="text-xs text-gray-500 mt-0.5">This will permanently delete your site and cancel your subscription.</p>
           </div>
           <DeleteSiteButton siteId={site.id} siteName={site.label} />
         </div>
@@ -212,14 +222,14 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   );
 }
 
-function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function Metric({ icon, label, value, mono }: { icon: React.ReactNode; label: string; value: string; mono?: boolean }) {
   return (
     <div className="bg-white px-4 py-3">
       <div className="flex items-center gap-1.5 mb-0.5">
         <span className="text-gray-400">{icon}</span>
         <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{label}</span>
       </div>
-      <p className="text-sm font-semibold text-gray-900">{value}</p>
+      <p className={`text-sm font-semibold text-gray-900 truncate ${mono ? 'font-mono text-xs' : ''}`}>{value}</p>
     </div>
   );
 }

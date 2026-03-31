@@ -108,9 +108,12 @@ Deno.serve(async (req) => {
 
     // Build wp.cloud request
     const siteName = label.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").slice(0, 50);
+    // Generate a secure admin password for the WordPress site
+    const wpAdminPassword = `Env${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}!`;
     const wpBody: Record<string, unknown> = {
       admin_email: adminEmail ?? userEmail ?? "admin@envosta.com",
       admin_user: "envosta_admin",
+      admin_pass: wpAdminPassword,
       php_version: php,
       space_quota: `${storageGb}G`,
       geo_affinity: geoAffinity,
@@ -203,6 +206,8 @@ Deno.serve(async (req) => {
         job_id: wpResponse?.job_id,
         domain_name: domainName ?? null,
         site_ip: siteIp,
+        wp_admin_user: "envosta_admin",
+        wp_admin_password: wpAdminPassword,
         provisioned_at: new Date().toISOString(),
       },
     }).eq("id", svc.id);

@@ -71,17 +71,13 @@ export function DeleteSiteButton({ siteId, siteName, redirectTo = '/dashboard/si
               </div>
             </div>
           ) : (
-            <>
-              <p className="text-sm text-gray-600">
-                Are you sure you want to cancel <strong>{siteName}</strong>?
-              </p>
-              <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
-                <li>Your subscription will be cancelled immediately</li>
-                <li>The site will be removed from your dashboard</li>
-                <li>Your site data is preserved for 30 days in case you change your mind</li>
-                <li>Contact support within 30 days to restore your site</li>
-              </ul>
-            </>
+            <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-800">This action cannot be undone.</p>
+                <p className="text-sm text-red-700 mt-1">Deleting <strong>{siteName}</strong> will permanently remove all files, databases, and configurations. Your subscription will be cancelled immediately.</p>
+              </div>
+            </div>
           )}
 
           {error && (
