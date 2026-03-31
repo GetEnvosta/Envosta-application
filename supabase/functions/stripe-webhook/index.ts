@@ -1,4 +1,4 @@
-import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, json, error } from "../_shared/deps.ts";
+import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, welcomeEmail, invoicePaidEmail } from "../_shared/email.ts";
 
 Deno.serve(async (req) => {
@@ -310,11 +310,42 @@ Deno.serve(async (req) => {
 
     else if (event.type === "customer.subscription.deleted") {
       const sub = event.data.object;
-      await sb.from("subscriptions").update({
+
+      // 1. Mark subscription as cancelled
+      const { data: dbSub } = await sb.from("subscriptions").update({
         status: "cancelled",
         metadata: { cancelled_at: new Date().toISOString() },
-      }).eq("stripe_subscription_id", sub.id);
+      }).eq("stripe_subscription_id", sub.id).select("id").maybeSingle();
       console.log("Subscription cancelled:", sub.id);
+
+      // 2. Cancel the linked site (soft-delete: mark cancelled, keep wp.cloud alive 30 days)
+      if (dbSub) {
+        const { data: site } = await sb.from("sites")
+          .select("id, label, status")
+          .eq("subscription_id", dbSub.id)
+          .in("status", ["active", "provisioning"])
+          .maybeSingle();
+
+        if (site) {
+          await sb.from("sites").update({
+            status: "cancelled",
+            metadata: { cancelled_at: new Date().toISOString(), cancelled_via: "stripe_portal", recovery_until: new Date(Date.now() + 30 * 86400000).toISOString() },
+          }).eq("id", site.id);
+
+          // Unlink domains (don't delete them, just remove site_id)
+          await sb.from("domains").update({ site_id: null }).eq("site_id", site.id);
+
+          console.log("Site cancelled via Stripe portal:", site.label);
+          await log({ serviceId: site.id, action: "site.cancelled_via_stripe", message: `${site.label} cancelled from Stripe billing portal` });
+        }
+      }
+
+      // 3. If this was a domain renewal subscription, just log it
+      const domainMeta = sub.metadata;
+      if (domainMeta?.type === "domain_renewal" && domainMeta?.domain_name) {
+        await sb.from("domains").update({ auto_renew: false }).eq("domain_name", domainMeta.domain_name);
+        console.log("Domain renewal cancelled via Stripe:", domainMeta.domain_name);
+      }
     }
 
     else if (event.type === "invoice.paid" || event.type === "invoice.payment_failed" || event.type === "invoice.created") {
