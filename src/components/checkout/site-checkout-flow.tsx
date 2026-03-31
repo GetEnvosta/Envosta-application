@@ -402,6 +402,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                     <>{selectedPlan && selectedDomain ? 'Continue to Checkout' : selectedPlan ? 'Set Up Your Domain' : 'Choose a Plan'} <ArrowRight style={{ width: 16, height: 16 }} /></>
                   )}
                 </button>
+                {checkoutError && <p style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 12, textAlign: 'center' }}>{checkoutError}</p>}
               </div>
               <p style={{ fontSize: '.82rem', color: t.textMuted, marginTop: 20 }}>
                 Already have an account?{' '}

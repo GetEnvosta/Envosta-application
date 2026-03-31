@@ -111,11 +111,14 @@ export async function POST(req: Request) {
 
   const subscription = await stripe.subscriptions.create(subParams);
 
-  // For trials, there's no payment intent — return setup intent instead
-  if (trial && subscription.pending_setup_intent) {
-    const setupIntent = typeof subscription.pending_setup_intent === 'string'
-      ? await stripe.setupIntents.retrieve(subscription.pending_setup_intent)
-      : subscription.pending_setup_intent;
+  // For trials, there's no payment — collect card via separate SetupIntent
+  if (trial) {
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      usage: 'off_session',
+      metadata: { subscription_id: subscription.id },
+    });
     return NextResponse.json({
       type: 'setup',
       clientSecret: setupIntent.client_secret,
