@@ -16,7 +16,6 @@ export default function TermsPage() {
             <h1>Terms of Service</h1>
             <p>Please read these terms carefully before using Envosta&apos;s managed WordPress hosting services and related products.</p>
             <span className="updated-badge">Last updated: March 1, 2026</span>
-            <hr className="divider" />
           </div>
         </div>
       </section>

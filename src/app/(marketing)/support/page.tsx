@@ -28,7 +28,7 @@ export default function SupportPage() {
         .rv{opacity:0;transform:translateY(20px);transition:opacity .6s,transform .6s}.rv.v{opacity:1;transform:none}
 
         /* ═══ HERO ═══ */
-        .hero{padding:160px 0 80px;position:relative;overflow:hidden}
+        .hero{padding:160px 0 120px;position:relative;overflow:hidden;min-height:50vh;display:flex;align-items:center}
         .hero-overlay{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(37,99,235,.15),transparent 65%);z-index:0}
         .hero .c{position:relative;z-index:2;text-align:center}
         .hero-text{max-width:720px;margin:0 auto}
@@ -125,8 +125,8 @@ export default function SupportPage() {
         /* ── Social Proof ── */
         .social-proof{padding:80px 0;text-align:center}
         .sp-stats{display:flex;align-items:center;justify-content:center;gap:40px;margin-bottom:64px}
-        .sp-stat strong{display:block;font-family:'Inter',sans-serif;font-size:clamp(1.8rem,3vw,2.6rem);font-weight:600;color:var(--t1);margin-bottom:4px}
-        .sp-stat span{font-size:.8rem;color:var(--t2);font-weight:300}
+        .sp-stat strong{display:block;font-family:'Inter',sans-serif;font-size:clamp(1.8rem,3vw,2.6rem);font-weight:600;color:#fff;margin-bottom:4px;background:linear-gradient(180deg,#fff 30%,rgba(255,255,255,.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .sp-stat span{font-size:.8rem;color:rgba(255,255,255,.45);font-weight:300}
         .sp-divider{width:1px;height:48px;background:var(--bdr2)}
         .sp-testimonials{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
         .sp-card{background:#0f1a2e;border:1px solid #1e2f4a;border-radius:20px;padding:32px 28px;text-align:left;display:flex;flex-direction:column}

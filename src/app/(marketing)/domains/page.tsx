@@ -123,14 +123,18 @@ export default async function DomainsPage() {
           <h2>Simple, transparent pricing</h2>
           <p>All prices in CAD. Registration includes 1 year and free WHOIS privacy.</p>
           <div className="tld-grid">
-            {tlds.map((tld: any) => (
-              <div key={tld.id} className="tld-card">
-                <div className="tld-name">.{tld.tld}</div>
-                <div className="tld-price">
-                  ${((tld.metadata?.registration_price_cad ?? tld.price_cad) / 100).toFixed(2)} <span>/yr</span>
+            {tlds.map((tld: any) => {
+              const ext = (tld.metadata as any)?.tld ?? tld.slug?.replace('tld-', '') ?? '';
+              const price = ((tld.metadata as any)?.registration_price_cad ?? tld.price_cad ?? 0) / 100;
+              return (
+                <div key={tld.id} className="tld-card">
+                  <div className="tld-name">.{ext}</div>
+                  <div className="tld-price">
+                    ${price.toFixed(0)} <span>CAD/yr</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

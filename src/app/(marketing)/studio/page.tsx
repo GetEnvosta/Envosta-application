@@ -245,7 +245,7 @@ export default function StudioPage() {
           <p className="rv">A dedicated team, priority infrastructure, and hands-on management — so you can focus on growing your business while we handle everything behind the scenes.</p>
 
           <div className="hero-btns rv">
-            <a href="/get-started" className="bp vip lg">Schedule a Studio Consultation</a>
+            <a href="#studio-waitlist" className="bp vip lg" onClick={(e) => { e.preventDefault(); document.getElementById('studio-waitlist')?.scrollIntoView({ behavior: 'smooth' }); }}>Schedule a Studio Consultation</a>
           </div>
 
           <div className="vip-trust rv">
@@ -727,7 +727,7 @@ export default function StudioPage() {
       </section>
 
       {/* ═══ CTA ═══ */}
-      <section className="rv" style={{ padding: '80px 0 100px' }}>
+      <section id="studio-waitlist" className="rv" style={{ padding: '80px 0 100px', scrollMarginTop: 80 }}>
         <div className="c" style={{ maxWidth: 640, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(201,164,92,.08)', border: '1px solid rgba(201,164,92,.2)', borderRadius: 100, padding: '5px 14px', fontSize: '.68rem', fontWeight: 600, color: '#c9a45c', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 16 }}>
@@ -740,10 +740,10 @@ export default function StudioPage() {
           </div>
           <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(201,164,92,.12)', borderRadius: 20, padding: '32px 28px' }}>
             <ContactForm
-              type="studio"
-              subject="Studio Inquiry"
-              buttonText="Get in Touch"
-              successMessage="Thanks! We'll review your project and reach out soon."
+              type="sales"
+              subject="Studio Waitlist — New Inquiry"
+              buttonText="Join Waitlist"
+              successMessage="You're on the list! We'll reach out when a spot opens."
             />
           </div>
         </div>

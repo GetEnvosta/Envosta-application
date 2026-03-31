@@ -14,7 +14,6 @@ export default function GdprPage() {
           <h1>GDPR Compliance</h1>
           <p>How Envosta protects your data and upholds your rights under the General Data Protection Regulation.</p>
           <div className="meta">Last updated: January 15, 2026</div>
-          <hr className="divider" />
         </div>
       </section>
 

@@ -14,7 +14,6 @@ export default function CookiesPage() {
           <h1>Cookie Policy</h1>
           <p>Learn how Envosta uses cookies and similar technologies to provide, protect, and improve our services.</p>
           <div className="meta">Last updated: January 15, 2026</div>
-          <hr className="divider" />
         </div>
       </section>
 
