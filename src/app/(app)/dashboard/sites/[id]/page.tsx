@@ -8,6 +8,7 @@ import { DeleteSiteButton } from '@/components/sites/delete-site-button';
 import { SiteBackups } from '@/components/sites/site-backups';
 import { SslStatus } from '@/components/sites/ssl-status';
 import { SitePerformance } from '@/components/sites/site-performance';
+import { SitePlanUpgrade, TrialActivate } from '@/components/sites/site-plan-upgrade';
 import {
   ArrowLeft, ExternalLink, Globe, HardDrive, Server, MapPin,
   Shield, Layers, Package, Zap, Key, Calendar, User,
@@ -26,6 +27,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
 
   const connectedDomain = (domains ?? []).find((d: any) => d.site_id === id) ?? null;
   const plan = (site as any).products;
+  const sub = (site as any).subscriptions;
   const planName = plan?.name ?? 'Unknown';
   const planSlug: string = plan?.slug ?? '';
   const pm = plan?.metadata ?? {};
@@ -36,6 +38,8 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const storageUsed = (site.disk_usage_mb ?? 0) / 1024;
   const storageTotal = pm.storage_gb ?? 25;
   const storagePct = Math.min(100, (storageUsed / storageTotal) * 100);
+  const isTrial = sub?.status === 'trialing';
+  const isTopPlan = planSlug === 'performance' || planSlug === 'enterprise';
 
   const regions: Record<string, string> = { dca: 'US East', bur: 'US West', dfw: 'US Central', ams: 'EU West' };
 
@@ -51,12 +55,12 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
         <ArrowLeft className="w-4 h-4" /> Sites
       </Link>
 
-      {/* ═══ HERO: Overview + Plan + Domain ═══ */}
+      {/* ═══ HERO ═══ */}
       <div className="card p-0 mb-6 overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-brand-500 via-brand-400 to-brand-600" />
 
         <div className="p-6">
-          {/* Title row */}
+          {/* Title */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center">
@@ -69,6 +73,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
                     <div className={`w-2 h-2 rounded-full ${statusDot[status] ?? 'bg-gray-400'}`} />
                     <span className="text-xs text-gray-500 capitalize">{status}</span>
                   </div>
+                  {isTrial && <span className="badge-green text-[10px]">Trial</span>}
                 </div>
                 {siteUrl && (
                   <a href={siteUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-brand-600 transition-colors">
@@ -80,9 +85,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
             <div className="flex items-center gap-2">
               {siteUrl && (
                 <>
-                  <a href={`${siteUrl}/wp-admin`} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm py-2 px-4">
-                    WP Admin
-                  </a>
+                  <a href={`${siteUrl}/wp-admin`} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm py-2 px-4">WP Admin</a>
                   <a href={siteUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm py-2 px-3">
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
@@ -91,7 +94,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
             </div>
           </div>
 
-          {/* Metrics strip — no workers/memory, customer doesn't need that */}
+          {/* Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-gray-100 rounded-xl overflow-hidden mb-4">
             <Metric icon={<Server className="w-3.5 h-3.5" />} label="PHP" value={site.php_version ?? '8.4'} />
             <Metric icon={<MapPin className="w-3.5 h-3.5" />} label="Region" value={regions[site.server_region as string] ?? 'US East'} />
@@ -99,23 +102,18 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
             <Metric icon={<Calendar className="w-3.5 h-3.5" />} label="Created" value={formatDate(site.created_at)} />
           </div>
 
-          {/* Storage bar */}
+          {/* Storage */}
           <div className="mb-5">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs text-gray-500 flex items-center gap-1.5">
-                <HardDrive className="w-3 h-3" /> Storage
-              </span>
+              <span className="text-xs text-gray-500 flex items-center gap-1.5"><HardDrive className="w-3 h-3" /> Storage</span>
               <span className="text-xs font-mono text-gray-600">{storageUsed.toFixed(1)} / {storageTotal} GB</span>
             </div>
             <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${storagePct > 85 ? 'bg-red-500' : storagePct > 60 ? 'bg-amber-500' : 'bg-brand-500'}`}
-                style={{ width: `${storagePct}%` }}
-              />
+              <div className={`h-full rounded-full transition-all ${storagePct > 85 ? 'bg-red-500' : storagePct > 60 ? 'bg-amber-500' : 'bg-brand-500'}`} style={{ width: `${storagePct}%` }} />
             </div>
           </div>
 
-          {/* Plan row — merged into hero */}
+          {/* Plan info */}
           <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 mb-3">
             <div className="flex items-center gap-3">
               <Layers className="w-4 h-4 text-gray-400" />
@@ -124,14 +122,23 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
                 <p className="text-xs text-gray-500">{pm.storage_gb ?? 25}GB &middot; {pm.php_memory_mb ?? 512}MB memory</p>
               </div>
             </div>
-            {planSlug !== 'enterprise' && planSlug !== 'performance' && (
-              <Link href="/pricing" className="btn-secondary text-xs py-1.5 px-3">
-                Upgrade
-              </Link>
-            )}
           </div>
 
-          {/* Domain row */}
+          {/* Trial banner */}
+          {isTrial && sub?.current_period_end && (
+            <div className="mb-3">
+              <TrialActivate siteId={id} planName={planName} trialEnd={sub.current_period_end} />
+            </div>
+          )}
+
+          {/* Upgrade to next plan */}
+          {!isTrial && !isTopPlan && (
+            <div className="mb-3">
+              <SitePlanUpgrade siteId={id} currentPlanSlug={planSlug} currentSortOrder={plan?.sort_order ?? 0} />
+            </div>
+          )}
+
+          {/* Domain */}
           <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 mb-3">
             <div className="flex items-center gap-3">
               <Globe className="w-4 h-4 text-gray-400" />
@@ -146,7 +153,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
           </div>
           <ConnectedDomainSwitcher siteId={id} currentDomainId={connectedDomain?.id ?? null} domains={domains ?? []} />
 
-          {/* WordPress credentials */}
+          {/* WP credentials */}
           <div className="mt-3 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
               <User className="w-4 h-4 text-blue-600" />
@@ -184,7 +191,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
           </div>
           <SitePerformance siteId={id} domain={siteDomain} />
         </div>
-
         <div className="card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Shield className="w-4 h-4 text-gray-400" />

@@ -610,6 +610,38 @@ Deno.serve(async (req) => {
         return json({ success: true, addon: addon?.name });
       }
 
+      // ═══ End Trial Early ═══
+      case "end-trial": {
+        if (!siteId) return error("siteId is required");
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("sites")
+          .select("id, user_id, subscription_id")
+          .eq("id", siteId).single();
+        if (!svc) return error("Site not found", 404);
+        if (!isServiceRole && svc.user_id !== user!.id) return error("Forbidden", 403);
+        if (!svc.subscription_id) return error("No subscription linked to this site");
+
+        const { data: sub } = await sb.from("subscriptions")
+          .select("stripe_subscription_id, status")
+          .eq("id", svc.subscription_id).single();
+        if (!sub?.stripe_subscription_id) return error("No Stripe subscription found");
+        if (sub.status !== "trialing") return error("This subscription is not on a trial");
+
+        // End trial immediately — Stripe will charge the card and activate the subscription
+        const stripe = (await import("../_shared/deps.ts")).getStripe();
+        await stripe.subscriptions.update(sub.stripe_subscription_id, {
+          trial_end: "now",
+        });
+
+        // Update local status
+        await sb.from("subscriptions")
+          .update({ status: "active", updated_at: new Date().toISOString() })
+          .eq("id", svc.subscription_id);
+
+        await log({ userId: user!.id, serviceId: siteId, action: "trial.ended_early", message: "Customer activated plan before trial end" });
+        return json({ success: true });
+      }
+
       // ═══ Edge Cache ═══
       case "edge-cache": {
         if (!siteId) return error("siteId is required");

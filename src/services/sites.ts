@@ -23,7 +23,7 @@ export async function getSiteById(id: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('sites')
-    .select('*, products(name, slug, metadata, features)')
+    .select('*, products(name, slug, metadata, features, price_cad, price_yearly_cad, sort_order), subscriptions(id, status, billing_period, current_period_end, stripe_subscription_id)')
     .eq('id', id)
     .single();
   return data;
