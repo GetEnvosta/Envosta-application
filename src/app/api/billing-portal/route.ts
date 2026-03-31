@@ -25,8 +25,36 @@ export async function POST() {
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
+
+  // Use a restricted portal configuration — payment method only, no subscription management
+  // Find existing config or create one
+  let configId = process.env.STRIPE_PORTAL_CONFIG_ID;
+  if (!configId) {
+    const configs = await stripe.billingPortal.configurations.list({ limit: 10 });
+    const existing = configs.data.find((c: any) =>
+      c.features?.payment_method_update?.enabled === true &&
+      c.features?.subscription_cancel?.enabled === false
+    );
+    if (existing) {
+      configId = existing.id;
+    } else {
+      const created = await stripe.billingPortal.configurations.create({
+        business_profile: { headline: 'Manage your payment method' },
+        features: {
+          payment_method_update: { enabled: true },
+          customer_update: { enabled: true, allowed_updates: ['email'] },
+          subscription_cancel: { enabled: false },
+          subscription_update: { enabled: false },
+          invoice_history: { enabled: false },
+        },
+      });
+      configId = created.id;
+    }
+  }
+
   const session = await stripe.billingPortal.sessions.create({
     customer: customer.stripe_customer_id,
+    configuration: configId,
     return_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://my.envosta.com'}/dashboard/billing`,
   });
 

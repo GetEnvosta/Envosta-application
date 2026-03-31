@@ -21,7 +21,7 @@ export function ManageBillingButton() {
   return (
     <button onClick={handleClick} disabled={loading} className="btn-secondary inline-flex items-center gap-2">
       {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-      Manage Billing
+      Update Payment Method
     </button>
   );
 }
