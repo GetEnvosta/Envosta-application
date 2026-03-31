@@ -15,7 +15,7 @@ export default function PricingClient() {
     });
 
     // Billing toggle
-    let annual = false;
+    let annual = true;
     const toggle = document.getElementById('billing-toggle');
     const lblMonthly = document.getElementById('lbl-monthly');
     const lblAnnual = document.getElementById('lbl-annual');

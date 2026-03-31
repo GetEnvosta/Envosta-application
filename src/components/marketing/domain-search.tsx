@@ -1,37 +1,76 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Loader2, CheckCircle, XCircle, Globe } from 'lucide-react';
+
+const ALT_TLDS = ['net', 'ca', 'org', 'dev'];
+const SUGGEST_PREFIXES = ['get', 'try', 'my', 'the', 'go'];
+
+interface DomainResult {
+  domain: string;
+  available: boolean;
+}
 
 export function DomainSearch() {
   const [query, setQuery] = useState('');
   const [checking, setChecking] = useState(false);
-  const [result, setResult] = useState<{ domain: string; available: boolean } | null>(null);
+  const [primaryResult, setPrimaryResult] = useState<DomainResult | null>(null);
+  const [altResults, setAltResults] = useState<DomainResult[]>([]);
+  const [suggestions, setSuggestions] = useState<DomainResult[]>([]);
   const [error, setError] = useState('');
 
-  async function handleSearch() {
-    const domain = query.trim().toLowerCase();
-    if (!domain) return;
+  async function checkSingle(domain: string): Promise<DomainResult> {
+    const res = await fetch('/api/domain-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain }),
+    });
+    const data = await res.json();
+    return { domain, available: res.ok && data.available };
+  }
 
-    // Add .com if no TLD provided
-    const fullDomain = domain.includes('.') ? domain : `${domain}.com`;
+  async function handleSearch() {
+    const raw = query.trim().toLowerCase();
+    if (!raw) return;
 
     setChecking(true);
-    setResult(null);
+    setPrimaryResult(null);
+    setAltResults([]);
+    setSuggestions([]);
     setError('');
 
+    const hasTld = raw.includes('.');
+    const primaryDomain = hasTld ? raw : `${raw}.com`;
+    const baseName = primaryDomain.split('.')[0];
+    const searchedTld = hasTld ? raw.split('.').pop()! : 'com';
+
     try {
-      const res = await fetch('/api/domain-check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain: fullDomain }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setResult({ domain: fullDomain, available: data.available });
-      } else {
-        setError(data.error ?? 'Could not check availability');
-      }
+      // 1. Check the primary domain
+      const primary = await checkSingle(primaryDomain);
+      setPrimaryResult(primary);
+
+      // 2. Check alternative TLDs (in parallel)
+      const altDomains = ALT_TLDS
+        .filter(tld => tld !== searchedTld)
+        .map(tld => `${baseName}.${tld}`);
+
+      const altPromises = altDomains.map(d => checkSingle(d));
+
+      // 3. Generate suggestions with same TLD (in parallel)
+      const suggestDomains = SUGGEST_PREFIXES
+        .map(prefix => `${prefix}${baseName}.${searchedTld}`)
+        .filter(d => d !== primaryDomain);
+
+      const suggestPromises = suggestDomains.map(d => checkSingle(d));
+
+      // Run all in parallel
+      const [alts, suggs] = await Promise.all([
+        Promise.all(altPromises),
+        Promise.all(suggestPromises),
+      ]);
+
+      setAltResults(alts);
+      setSuggestions(suggs.filter(s => s.available));
     } catch {
       setError('Connection error. Please try again.');
     }
@@ -39,11 +78,8 @@ export function DomainSearch() {
     setChecking(false);
   }
 
-  function handleRegister() {
-    if (!result) return;
-    // Send to signup/checkout flow with domain pre-filled
-    // If logged in, they'll be redirected to dashboard add-site automatically
-    window.location.href = `/get-started?domain=${encodeURIComponent(result.domain)}`;
+  function handleRegister(domain: string) {
+    window.location.href = `/get-started?domain=${encodeURIComponent(domain)}&plan=choose`;
   }
 
   return (
@@ -53,7 +89,7 @@ export function DomainSearch() {
           type="text"
           placeholder="Search for a domain name..."
           value={query}
-          onChange={e => { setQuery(e.target.value); setResult(null); setError(''); }}
+          onChange={e => { setQuery(e.target.value); setPrimaryResult(null); setAltResults([]); setSuggestions([]); setError(''); }}
           onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
         />
         <button
@@ -67,42 +103,91 @@ export function DomainSearch() {
         </button>
       </div>
 
-      {/* Results */}
-      {result && (
+      {/* Primary result */}
+      {primaryResult && (
         <div style={{
-          maxWidth: 560,
-          margin: '20px auto 0',
-          padding: '16px 24px',
-          borderRadius: 14,
-          border: `1px solid ${result.available ? 'rgba(34,197,94,.3)' : 'rgba(239,68,68,.2)'}`,
-          background: result.available ? 'rgba(34,197,94,.06)' : 'rgba(239,68,68,.04)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 16,
-          flexWrap: 'wrap',
+          maxWidth: 560, margin: '20px auto 0', padding: '16px 24px', borderRadius: 14,
+          border: `1px solid ${primaryResult.available ? 'rgba(34,197,94,.3)' : 'rgba(239,68,68,.2)'}`,
+          background: primaryResult.available ? 'rgba(34,197,94,.06)' : 'rgba(239,68,68,.04)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {result.available
+            {primaryResult.available
               ? <CheckCircle style={{ width: 20, height: 20, color: '#22c55e', flexShrink: 0 }} />
-              : <XCircle style={{ width: 20, height: 20, color: '#ef4444', flexShrink: 0 }} />
-            }
+              : <XCircle style={{ width: 20, height: 20, color: '#ef4444', flexShrink: 0 }} />}
             <div>
-              <span style={{ fontWeight: 600, color: 'var(--t1)', fontSize: '.95rem' }}>{result.domain}</span>
-              <span style={{ color: result.available ? '#22c55e' : '#ef4444', fontSize: '.85rem', marginLeft: 10 }}>
-                {result.available ? 'is available!' : 'is taken'}
+              <span style={{ fontWeight: 600, color: 'var(--t1)', fontSize: '.95rem' }}>{primaryResult.domain}</span>
+              <span style={{ color: primaryResult.available ? '#22c55e' : '#ef4444', fontSize: '.85rem', marginLeft: 10 }}>
+                {primaryResult.available ? 'is available!' : 'is taken'}
               </span>
             </div>
           </div>
-          {result.available && (
-            <button
-              onClick={handleRegister}
-              className="bp"
-              style={{ fontSize: '.82rem', padding: '10px 20px' }}
-            >
-              Register this domain
+          {primaryResult.available && (
+            <button onClick={() => handleRegister(primaryResult.domain)} className="bp" style={{ fontSize: '.82rem', padding: '10px 20px' }}>
+              Register
             </button>
           )}
+        </div>
+      )}
+
+      {/* Alternative TLDs */}
+      {altResults.length > 0 && (
+        <div style={{ maxWidth: 560, margin: '12px auto 0' }}>
+          <p style={{ fontSize: '.75rem', color: 'var(--t3)', marginBottom: 8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '1px' }}>
+            Also available
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {altResults.map(r => (
+              <div key={r.domain} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 16px', borderRadius: 10,
+                background: r.available ? 'rgba(255,255,255,.03)' : 'rgba(255,255,255,.015)',
+                border: `1px solid ${r.available ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.04)'}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: r.available ? '#22c55e' : '#ef4444' }} />
+                  <span style={{ fontSize: '.88rem', fontWeight: 500, color: r.available ? 'var(--t1)' : 'var(--t3)' }}>{r.domain}</span>
+                </div>
+                {r.available ? (
+                  <button onClick={() => handleRegister(r.domain)} style={{
+                    fontSize: '.75rem', fontWeight: 600, color: '#22c55e', background: 'rgba(34,197,94,.1)',
+                    border: '1px solid rgba(34,197,94,.2)', borderRadius: 100, padding: '5px 14px', cursor: 'pointer',
+                  }}>
+                    Register
+                  </button>
+                ) : (
+                  <span style={{ fontSize: '.75rem', color: 'var(--t3)' }}>Taken</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Suggested similar names */}
+      {suggestions.length > 0 && (
+        <div style={{ maxWidth: 560, margin: '20px auto 0' }}>
+          <p style={{ fontSize: '.75rem', color: 'var(--t3)', marginBottom: 8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '1px' }}>
+            Suggested alternatives
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {suggestions.map(s => (
+              <button key={s.domain} onClick={() => handleRegister(s.domain)} style={{
+                fontSize: '.82rem', fontWeight: 500, color: 'var(--t1)', background: 'rgba(255,255,255,.04)',
+                border: '1px solid rgba(255,255,255,.08)', borderRadius: 100, padding: '8px 16px', cursor: 'pointer',
+                transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <Globe style={{ width: 12, height: 12, color: 'var(--gold)' }} />
+                {s.domain}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {checking && primaryResult && (
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite', color: 'var(--t3)', margin: '0 auto' }} />
         </div>
       )}
 
@@ -110,9 +195,7 @@ export function DomainSearch() {
         <p style={{ textAlign: 'center', color: '#ef4444', fontSize: '.85rem', marginTop: 16 }}>{error}</p>
       )}
 
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
-      `}</style>
+      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
     </>
   );
 }

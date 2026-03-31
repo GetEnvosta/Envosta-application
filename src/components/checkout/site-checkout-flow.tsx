@@ -77,8 +77,13 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   // Onboarding
   const [onboardingChoice, setOnboardingChoice] = useState<'self' | 'guided' | null>(null);
 
-  // Steps — trial skips domain (auto temp), paid flows include domain choice
-  const publicSteps = isTrial ? ['Account'] : ['Account', 'Domain'];
+  // Steps:
+  // Trial: Account only (auto temp domain, straight to checkout)
+  // Domain pre-filled (from domains page): Account → Plan (skip domain step)
+  // Normal paid: Account → Domain
+  // Dashboard: Plan → Domain
+  const hasDomainPreFilled = !!initialDomain && !initialPlan;
+  const publicSteps = isTrial ? ['Account'] : hasDomainPreFilled ? ['Account', 'Plan'] : ['Account', 'Domain'];
   const dashboardSteps = ['Plan', 'Domain'];
   const steps = mode === 'public' ? publicSteps : dashboardSteps;
   const [step, _setStep] = useState(1);
@@ -382,6 +387,11 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                       setDomainMode('temp');
                       setSelectedDomain('');
                       handleCheckout();
+                    } else if (hasDomainPreFilled) {
+                      // Domain already chosen (from domains page): go to plan selection
+                      setDomainMode('new');
+                      setSelectedDomain(initialDomain!);
+                      setStep(planStepNum);
                     } else {
                       setStep(domainStepNum);
                     }
@@ -398,6 +408,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                     <><Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Setting up...</>
                   ) : isTrial ? (
                     <>Start Free Trial <ArrowRight style={{ width: 16, height: 16 }} /></>
+                  ) : hasDomainPreFilled ? (
+                    <>Choose a Plan <ArrowRight style={{ width: 16, height: 16 }} /></>
                   ) : (
                     <>{selectedPlan && selectedDomain ? 'Continue to Checkout' : selectedPlan ? 'Set Up Your Domain' : 'Choose a Plan'} <ArrowRight style={{ width: 16, height: 16 }} /></>
                   )}
@@ -505,16 +517,22 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
 
           <div style={{ textAlign: 'center', marginTop: 28 }}>
             <button
-              onClick={goToDomain}
-              disabled={!selectedPlan}
+              onClick={hasDomainPreFilled ? goToCheckout : goToDomain}
+              disabled={!selectedPlan || checkoutLoading}
               style={{
                 padding: '14px 32px', background: t.btnBg, color: t.btnColor, borderRadius: 100, border: 'none',
                 fontSize: '.88rem', fontWeight: 500, cursor: 'pointer',
                 display: 'inline-flex', alignItems: 'center', gap: 8,
-                opacity: selectedPlan ? 1 : 0.4,
+                opacity: selectedPlan && !checkoutLoading ? 1 : 0.4,
               }}
             >
-              Continue <ArrowRight style={{ width: 16, height: 16 }} />
+              {checkoutLoading ? (
+                <><Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Setting up...</>
+              ) : hasDomainPreFilled ? (
+                <>Continue to Payment <ArrowRight style={{ width: 16, height: 16 }} /></>
+              ) : (
+                <>Continue <ArrowRight style={{ width: 16, height: 16 }} /></>
+              )}
             </button>
           </div>
         </div>
@@ -745,6 +763,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 type={checkoutType}
                 planName={`${selectedPlan.name} Plan${billingPeriod === 'annual' ? ' (Annual)' : ''}`}
                 planPrice={isTrial ? '$0 today' : `$${billingPeriod === 'annual' ? ((selectedPlan.price_yearly_cad ?? 0) / 100 / 12).toFixed(0) : (selectedPlan.price_cad / 100).toFixed(0)} CAD/mo`}
+                fullPrice={`$${(selectedPlan.price_cad / 100).toFixed(0)} CAD/mo`}
                 isTrial={isTrial ?? false}
                 dark={dark}
                 onSuccess={() => {

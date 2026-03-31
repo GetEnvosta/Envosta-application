@@ -11,13 +11,14 @@ interface CheckoutFormProps {
   type: 'payment' | 'setup';
   planName: string;
   planPrice: string;
+  fullPrice?: string;
   isTrial: boolean;
   dark?: boolean;
   onSuccess: () => void;
   onError: (msg: string) => void;
 }
 
-function CheckoutForm({ type, planName, planPrice, isTrial, dark, onSuccess, onError }: CheckoutFormProps) {
+function CheckoutForm({ type, planName, planPrice, fullPrice, isTrial, dark, onSuccess, onError }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -60,7 +61,10 @@ function CheckoutForm({ type, planName, planPrice, isTrial, dark, onSuccess, onE
           <span className={`text-sm font-semibold ${dark ? 'text-white' : 'text-gray-900'}`}>{planPrice}</span>
         </div>
         {isTrial && (
-          <p className="text-xs text-emerald-400 font-medium">14-day free trial — you won&apos;t be charged today</p>
+          <div>
+            <p className="text-xs text-emerald-400 font-medium">14-day free trial — $0 today</p>
+            {fullPrice && <p className={`text-xs mt-1 ${dark ? 'text-white/40' : 'text-gray-500'}`}>Then {fullPrice} after your trial ends.</p>}
+          </div>
         )}
       </div>
 
@@ -85,7 +89,23 @@ function CheckoutForm({ type, planName, planPrice, isTrial, dark, onSuccess, onE
       <button
         type="submit"
         disabled={!stripe || !ready || loading}
-        className={`w-full py-3.5 rounded-xl font-medium text-sm transition-all disabled:opacity-40 flex items-center justify-center gap-2 ${dark ? 'bg-white text-gray-900 hover:bg-gray-100' : 'bg-gray-900 text-white hover:bg-gray-800'}`}
+        style={{
+          width: '100%',
+          padding: '16px 24px',
+          borderRadius: 100,
+          border: 'none',
+          fontSize: '.92rem',
+          fontWeight: 600,
+          cursor: !stripe || !ready || loading ? 'wait' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          transition: 'all .2s',
+          opacity: !stripe || !ready || loading ? 0.5 : 1,
+          background: dark ? '#fff' : '#111827',
+          color: dark ? '#03060e' : '#fff',
+        }}
       >
         {loading ? (
           <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
@@ -104,13 +124,14 @@ interface EmbeddedCheckoutProps {
   type: 'payment' | 'setup';
   planName: string;
   planPrice: string;
+  fullPrice?: string;
   isTrial: boolean;
   dark?: boolean;
   onSuccess: () => void;
   onError: (msg: string) => void;
 }
 
-export function EmbeddedCheckout({ clientSecret, type, planName, planPrice, isTrial, dark, onSuccess, onError }: EmbeddedCheckoutProps) {
+export function EmbeddedCheckout({ clientSecret, type, planName, planPrice, fullPrice, isTrial, dark, onSuccess, onError }: EmbeddedCheckoutProps) {
   if (!clientSecret) return null;
 
   const appearance: any = dark ? {
@@ -145,6 +166,7 @@ export function EmbeddedCheckout({ clientSecret, type, planName, planPrice, isTr
         planName={planName}
         planPrice={planPrice}
         isTrial={isTrial}
+        fullPrice={fullPrice}
         dark={dark}
         onSuccess={onSuccess}
         onError={onError}

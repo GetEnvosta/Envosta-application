@@ -24,14 +24,17 @@ export function GetStartedFlow() {
       }
     });
   }, []);
-  const plan = searchParams.get('plan')?.toLowerCase() ?? undefined;
+  const planParam = searchParams.get('plan')?.toLowerCase() ?? undefined;
   const domain = searchParams.get('domain') ?? undefined;
   const billing = (searchParams.get('billing') === 'annual' ? 'annual' : 'monthly') as 'monthly' | 'annual';
   const promo = searchParams.get('promo') ?? undefined;
 
-  // Trial only when no plan param (CTA "Get Started" clicks)
-  const isTrial = !plan;
-  const effectivePlan = plan ?? 'minimum';
+  // plan=choose means "show plan picker" (from domains page with domain pre-filled)
+  const needsPlanChoice = planParam === 'choose';
+  // Trial only when no plan param at all (generic "Get Started" clicks)
+  const isTrial = !planParam;
+  // Don't pre-select a plan if they need to choose
+  const effectivePlan = needsPlanChoice ? undefined : (planParam ?? 'minimum');
 
   if (checking) return <div style={{ minHeight: '100vh' }} />;
 
@@ -56,10 +59,19 @@ export function GetStartedFlow() {
                 ))}
               </div>
             </>
+          ) : needsPlanChoice && domain ? (
+            <>
+              <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 600, letterSpacing: '-1px', lineHeight: 1.1, color: '#fff', marginBottom: 12 }}>
+                Great choice!
+              </h1>
+              <p style={{ fontSize: '.95rem', color: 'rgba(255,255,255,.45)', fontWeight: 300, maxWidth: 480, margin: '0 auto' }}>
+                <span style={{ color: '#22c55e', fontWeight: 500 }}>{domain}</span> is reserved for you. Pick a hosting plan to get started.
+              </p>
+            </>
           ) : (
             <>
               <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 600, letterSpacing: '-1px', lineHeight: 1.1, color: '#fff', marginBottom: 12 }}>
-                Get started with {plan!.charAt(0).toUpperCase() + plan!.slice(1)}
+                Get started{planParam ? ` with ${planParam.charAt(0).toUpperCase() + planParam.slice(1)}` : ''}
               </h1>
               <p style={{ fontSize: '.95rem', color: 'rgba(255,255,255,.45)', fontWeight: 300, maxWidth: 420, margin: '0 auto' }}>
                 Create your account and set up your website.
