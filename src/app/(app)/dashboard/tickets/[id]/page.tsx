@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getTicketById } from '@/services/tickets';
+import { getEffectiveUserId } from '@/services/auth';
 import { ArrowLeft } from 'lucide-react';
 import { TicketReplyForm } from './reply-form';
 import { StudioProgressBar } from '@/components/admin/studio-progress';
@@ -62,7 +63,10 @@ export default async function TicketDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const ticket = await getTicketById(id);
+  const userId = await getEffectiveUserId();
+  if (!userId) redirect('/login');
+
+  const ticket = await getTicketById(id, userId);
 
   if (!ticket) {
     notFound();

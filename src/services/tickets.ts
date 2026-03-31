@@ -2,12 +2,14 @@ import { createClient } from '@/lib/supabase-server';
 
 /**
  * Get all tickets for current user (customer view).
+ * Excludes sales tickets — those are admin-only.
  */
 export async function getUserTickets(typeFilter?: string, userId?: string) {
   const supabase = await createClient();
   let query = supabase
     .from('tickets')
     .select('*, ticket_messages(id, sender, message, created_at)')
+    .neq('type', 'sales')
     .order('updated_at', { ascending: false });
 
   if (typeFilter && typeFilter !== 'all') {
@@ -20,14 +22,17 @@ export async function getUserTickets(typeFilter?: string, userId?: string) {
 }
 
 /**
- * Get a single ticket with all messages.
+ * Get a single ticket with all messages, scoped to user.
+ * Sales tickets are blocked for non-admin users.
  */
-export async function getTicketById(id: string) {
+export async function getTicketById(id: string, userId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('tickets')
     .select('*, ticket_messages(id, sender, message, created_at), users(full_name, email)')
     .eq('id', id)
+    .eq('user_id', userId)
+    .neq('type', 'sales')
     .single();
   return data;
 }
