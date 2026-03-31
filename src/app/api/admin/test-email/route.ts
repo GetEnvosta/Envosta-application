@@ -79,7 +79,7 @@ export async function POST(req: Request) {
   const tmpl = TEMPLATES[templateKey];
 
   if (!tmpl) return NextResponse.json({ error: `Unknown template: ${templateKey}` }, { status: 400 });
-  if (!RESEND_API_KEY) return NextResponse.json({ error: 'RESEND_API_KEY not configured' }, { status: 503 });
+  if (!RESEND_API_KEY) return NextResponse.json({ error: 'Email service not configured' }, { status: 503 });
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',

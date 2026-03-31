@@ -27,10 +27,10 @@ export async function POST(req: Request) {
   }
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ error: 'Server config: missing SUPABASE_SERVICE_ROLE_KEY' }, { status: 503 });
+    return NextResponse.json({ error: 'Service temporarily unavailable' }, { status: 503 });
   }
   if (!process.env.STRIPE_SECRET_KEY) {
-    return NextResponse.json({ error: 'Server config: missing STRIPE_SECRET_KEY' }, { status: 503 });
+    return NextResponse.json({ error: 'Service temporarily unavailable' }, { status: 503 });
   }
 
   const supabaseAdmin = getSupabaseAdmin();
