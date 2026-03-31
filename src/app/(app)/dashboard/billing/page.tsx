@@ -1,7 +1,7 @@
 import { getEffectiveUserId } from '@/services/auth';
 import { getUserInvoices, getCustomerInfo } from '@/services/billing';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
-import { CreditCard, ExternalLink, FileText } from 'lucide-react';
+import { CreditCard, ExternalLink, FileText, Download } from 'lucide-react';
 import { ManageBillingButton } from '@/components/billing/manage-billing-button';
 
 export default async function BillingPage() {
@@ -76,26 +76,38 @@ export default async function BillingPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {invoices.map((inv: any) => (
+                {invoices.map((inv: any) => {
+                  const meta = (inv.metadata as any) ?? {};
+                  const pdfUrl = meta.invoice_pdf ?? null;
+                  const viewUrl = inv.hosted_invoice_url ?? null;
+                  return (
                   <tr key={inv.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{formatDate(inv.created_at)}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-900">{(inv.metadata as any)?.description ?? 'Invoice'}</td>
-                    <td className="px-5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{formatCents(inv.amount_paid ?? inv.amount_due, 'cad')}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-900">{inv.description || meta.description || 'Invoice'}</td>
+                    <td className="px-5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{formatCents(inv.amount_cad ?? 0, 'cad')}</td>
                     <td className="px-5 py-3.5">
                       <span className={statusColor(inv.status)}>{inv.status}</span>
                     </td>
                     <td className="px-5 py-3.5">
-                      {inv.invoice_url ? (
-                        <a href={inv.invoice_url} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700">
-                          <FileText className="w-3.5 h-3.5" /> Download
-                        </a>
-                      ) : (
-                        <span className="text-sm text-gray-400">—</span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {pdfUrl && (
+                          <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700">
+                            <Download className="w-3.5 h-3.5" /> PDF
+                          </a>
+                        )}
+                        {viewUrl && (
+                          <a href={viewUrl} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+                            <FileText className="w-3.5 h-3.5" /> View
+                          </a>
+                        )}
+                        {!pdfUrl && !viewUrl && <span className="text-sm text-gray-400">&mdash;</span>}
+                      </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
