@@ -14,7 +14,6 @@ export default function PrivacyPage() {
           <h1>Privacy Policy</h1>
           <p>This policy explains what data we collect, how we use it, and the choices you have regarding your personal information.</p>
           <div className="meta">Last updated: January 15, 2026</div>
-          <hr className="divider" />
         </div>
       </section>
 
