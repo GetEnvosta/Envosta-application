@@ -144,6 +144,7 @@ export async function getCustomerRelatedData(userId: string) {
     { data: services },
     { data: domains },
     { data: subscriptions },
+    { data: invoices },
     { data: logs },
   ] = await Promise.all([
     supabase
@@ -158,9 +159,15 @@ export async function getCustomerRelatedData(userId: string) {
       .order('created_at', { ascending: false }),
     supabase
       .from('subscriptions')
-      .select('*, products(name, price_cad)')
+      .select('*, products(name, price_cad, type)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('invoices')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20),
     supabase
       .from('logs')
       .select('*')
@@ -173,6 +180,7 @@ export async function getCustomerRelatedData(userId: string) {
     services: services ?? [],
     domains: domains ?? [],
     subscriptions: subscriptions ?? [],
+    invoices: invoices ?? [],
     logs: logs ?? [],
   };
 }
