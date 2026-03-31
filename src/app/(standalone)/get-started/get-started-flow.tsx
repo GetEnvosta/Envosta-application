@@ -10,12 +10,15 @@ export function GetStartedFlow() {
   const [checking, setChecking] = useState(true);
 
   // If already logged in, redirect to dashboard add-site
+  // This is a public signup page — if they're here, they want a new account
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
-        const params = new URLSearchParams(window.location.search);
-        window.location.href = `/dashboard/add-site${params.toString() ? '?' + params.toString() : ''}`;
+        // Sign out first so the new signup doesn't conflict with existing session
+        supabase.auth.signOut().then(() => {
+          setChecking(false);
+        });
       } else {
         setChecking(false);
       }
