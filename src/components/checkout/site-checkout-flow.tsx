@@ -300,8 +300,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
         @media(max-width:768px){.scf-plans{grid-template-columns:1fr;max-width:400px}}
       `}</style>
 
-      {/* ── Progress bar ── */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 40 }}>
+      {/* ── Progress bar (hidden on payment step) ── */}
+      <div style={{ display: step > steps.length ? 'none' : 'flex', justifyContent: 'center', gap: 6, marginBottom: 40 }}>
         {steps.map((s, i) => {
           const n = i + 1;
           const active = step === n;
