@@ -17,9 +17,7 @@ export async function POST(req: Request) {
 
   const OPENSRS_USERNAME = process.env.OPENSRS_USERNAME ?? '';
   const OPENSRS_API_KEY = process.env.OPENSRS_API_KEY ?? '';
-  // Always use production lookup server for availability checks
-  // horizon.opensrs.net is sandbox and returns fake availability results
-  const OPENSRS_HOST = 'rr-n1-tor.opensrs.net';
+  const OPENSRS_HOST = process.env.OPENSRS_HOST ?? 'horizon.opensrs.net';
 
   if (!OPENSRS_USERNAME || !OPENSRS_API_KEY) {
     return NextResponse.json({ error: 'Domain lookup service not configured' }, { status: 503 });

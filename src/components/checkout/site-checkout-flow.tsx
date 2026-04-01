@@ -762,8 +762,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 clientSecret={checkoutClientSecret}
                 type={checkoutType}
                 planName={`${selectedPlan.name} Plan${billingPeriod === 'annual' ? ' (Annual)' : ''}`}
-                planPrice={isTrial ? '$0 today' : `$${billingPeriod === 'annual' ? ((selectedPlan.price_yearly_cad ?? 0) / 100 / 12).toFixed(0) : (selectedPlan.price_cad / 100).toFixed(0)} CAD/mo`}
-                fullPrice={`$${(selectedPlan.price_cad / 100).toFixed(0)} CAD/mo`}
+                planPrice={isTrial ? '$0 today' : billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_cad ?? 0) / 100).toFixed(0)} CAD/yr` : `$${(selectedPlan.price_cad / 100).toFixed(0)} CAD/mo`}
+                fullPrice={billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_cad ?? 0) / 100).toFixed(0)} CAD/yr` : `$${(selectedPlan.price_cad / 100).toFixed(0)} CAD/mo`}
                 isTrial={isTrial ?? false}
                 dark={dark}
                 onSuccess={() => {

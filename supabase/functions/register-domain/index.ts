@@ -185,8 +185,7 @@ Deno.serve(async (req) => {
     // ═══ CHECK — public, no auth ═══════════════════════════
     if (action === "check") {
       const xml = buildLookupXml(domainName);
-      // Always use production server for availability checks (sandbox returns fake results)
-      const responseXml = await opensrsLookupRequest(xml);
+      const responseXml = await opensrsRequest(xml);
       const parsed = parseResponse(responseXml);
       const ms = Date.now() - t0;
       console.log("OpenSRS lookup:", parsed.responseCode, parsed.responseText);
