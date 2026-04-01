@@ -774,13 +774,19 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 domainPrice={selectedDomain && domainMode === 'new' && domainPriceCents ? `$${(domainPriceCents / 100).toFixed(0)} CAD/yr` : undefined}
                 isTrial={isTrial ?? false}
                 dark={dark}
-                onSuccess={() => {
+                onSuccess={async () => {
                   setCheckoutSuccess(true);
+                  // Auto sign in for new signups
+                  if (mode === 'public' && email && password) {
+                    try {
+                      await supabase.auth.signInWithPassword({ email, password });
+                    } catch { /* will redirect to login as fallback */ }
+                  }
                   setTimeout(() => {
                     window.location.href = mode === 'public'
-                      ? `/auth/login?checkout=success&email=${encodeURIComponent(email)}`
+                      ? '/dashboard/sites?checkout=success'
                       : '/dashboard/sites?checkout=success';
-                  }, 2500);
+                  }, 2000);
                 }}
                 onError={(msg) => setCheckoutError(msg)}
               />

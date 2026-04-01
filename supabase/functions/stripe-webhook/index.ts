@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     console.log("Duplicate event, skipping:", event.id);
     return json({ received: true, duplicate: true });
   }
-  await sb.from("webhook_events").insert({ id: event.id, event_type: event.type }).catch(() => {});
+  try { await sb.from("webhook_events").insert({ id: event.id, event_type: event.type }); } catch { /* ignore duplicate */ }
 
   try {
     if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {

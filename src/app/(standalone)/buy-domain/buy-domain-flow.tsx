@@ -210,7 +210,14 @@ export function BuyDomainFlow() {
                 },
               },
             }}>
-              <DomainPaymentForm domain={domain} price={price} onSuccess={() => setStep('success')} />
+              <DomainPaymentForm domain={domain} price={price} onSuccess={async () => {
+                // Auto sign in
+                try {
+                  const sb = createClient();
+                  await sb.auth.signInWithPassword({ email, password });
+                } catch { /* fallback to login page */ }
+                setStep('success');
+              }} />
             </Elements>
           </div>
         )}
@@ -223,9 +230,9 @@ export function BuyDomainFlow() {
             </div>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#fff', marginBottom: 8 }}>{domain} is yours!</h2>
             <p style={{ color: 'rgba(255,255,255,.5)', fontSize: '.9rem', marginBottom: 24 }}>
-              Your domain has been registered. Sign in to manage DNS, connect hosting, and more.
+              Your domain has been registered. Manage DNS, connect hosting, and more from your dashboard.
             </p>
-            <a href={`/auth/login?email=${encodeURIComponent(email)}`} style={{
+            <a href="/dashboard/domains" style={{
               display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 28px',
               background: '#fff', color: '#03060e', borderRadius: 100, fontSize: '.88rem', fontWeight: 600, textDecoration: 'none',
             }}>
