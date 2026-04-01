@@ -18,6 +18,7 @@ export function BuyDomainFlow() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Payment
@@ -103,23 +104,41 @@ export function BuyDomainFlow() {
 
         {/* Step: Account */}
         {step === 'account' && (
-          <div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ textAlign: 'center', maxWidth: 440, margin: '0 auto' }}>
+            <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 12, color: 'var(--t1)' }}>
+              Create your account
+            </h2>
+            <p style={{ color: 'var(--t2)', marginBottom: 28, fontSize: '.92rem' }}>
+              Just the basics — we&apos;ll set up your domain right after.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'left' }}>
               <div>
-                <label style={{ fontSize: '.78rem', color: 'rgba(255,255,255,.5)', marginBottom: 6, display: 'block' }}>Full Name *</label>
+                <label style={{ fontSize: '.78rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Full Name *</label>
                 <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" style={inputStyle} />
               </div>
               <div>
-                <label style={{ fontSize: '.78rem', color: 'rgba(255,255,255,.5)', marginBottom: 6, display: 'block' }}>Email *</label>
+                <label style={{ fontSize: '.78rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Email *</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jane@business.com" style={inputStyle} />
               </div>
               <div>
-                <label style={{ fontSize: '.78rem', color: 'rgba(255,255,255,.5)', marginBottom: 6, display: 'block' }}>Password *</label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" style={inputStyle} />
+                <label style={{ fontSize: '.78rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Password *</label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters"
+                  style={{ ...inputStyle, ...(password && password.length < 8 ? { borderColor: '#ef4444' } : {}) }} />
+                {password && password.length < 8 && (
+                  <p style={{ fontSize: '.72rem', color: '#ef4444', marginTop: 4 }}>Password must be at least 8 characters</p>
+                )}
+              </div>
+              <div>
+                <label style={{ fontSize: '.78rem', color: 'var(--t2)', marginBottom: 6, display: 'block' }}>Confirm Password *</label>
+                <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter your password"
+                  style={{ ...inputStyle, ...(confirmPassword && confirmPassword !== password ? { borderColor: '#ef4444' } : {}) }} />
+                {confirmPassword && confirmPassword !== password && (
+                  <p style={{ fontSize: '.72rem', color: '#ef4444', marginTop: 4 }}>Passwords don&apos;t match</p>
+                )}
               </div>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', marginTop: 4 }}>
                 <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} style={{ marginTop: 3, accentColor: '#2563EB' }} />
-                <span style={{ fontSize: '.78rem', color: 'rgba(255,255,255,.4)', lineHeight: 1.6 }}>
+                <span style={{ fontSize: '.78rem', color: 'var(--t2)', lineHeight: 1.6 }}>
                   I agree to the <a href="/legal/terms" target="_blank" style={{ color: '#2563EB', textDecoration: 'underline' }}>Terms of Service</a> and <a href="/legal/privacy" target="_blank" style={{ color: '#2563EB', textDecoration: 'underline' }}>Privacy Policy</a>.
                 </span>
               </label>
@@ -128,18 +147,18 @@ export function BuyDomainFlow() {
 
               <button
                 onClick={handleCreateAccount}
-                disabled={!name || !email || password.length < 8 || !termsAccepted || loading}
+                disabled={!name || !email || password.length < 8 || password !== confirmPassword || !termsAccepted || loading}
                 style={{
                   padding: '14px 24px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
-                  fontSize: '.88rem', fontWeight: 600, cursor: 'pointer', marginTop: 8,
-                  opacity: (!name || !email || password.length < 8 || !termsAccepted || loading) ? 0.5 : 1,
+                  fontSize: '.88rem', fontWeight: 500, cursor: 'pointer', marginTop: 8,
+                  opacity: (!name || !email || password.length < 8 || password !== confirmPassword || !termsAccepted || loading) ? 0.5 : 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}
               >
                 {loading ? <><Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Setting up...</> : <>Continue to Payment <ArrowRight style={{ width: 16, height: 16 }} /></>}
               </button>
             </div>
-            <p style={{ fontSize: '.82rem', color: 'rgba(255,255,255,.3)', marginTop: 20, textAlign: 'center' }}>
+            <p style={{ fontSize: '.82rem', color: 'var(--t3)', marginTop: 20 }}>
               Already have an account? <a href="https://my.envosta.com/auth/login" style={{ color: '#2563EB', textDecoration: 'underline' }}>Sign in</a>
             </p>
           </div>
