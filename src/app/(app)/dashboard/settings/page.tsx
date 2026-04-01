@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase-browser';
-import { Loader2, Camera } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import Toast from '@/components/ui/toast';
 import Modal from '@/components/ui/modal';
 import Toggle from '@/components/ui/toggle';
@@ -52,6 +52,8 @@ export default function SettingsPage() {
       if (data) {
         setProfile(data);
         setFullName(data.full_name ?? '');
+        const prefs = (data.metadata as any)?.notification_prefs;
+        if (prefs) setNotifications(prev => ({ ...prev, ...prefs }));
       }
       setLoading(false);
     })();

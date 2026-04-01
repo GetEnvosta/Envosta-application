@@ -1,6 +1,6 @@
 import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, getStripe, cors, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, domainRegisteredEmail } from "../_shared/email.ts";
-import { opensrsRequest, opensrsLookupRequest, parseResponse, setDnsZone, buildWpCloudDnsRecords, setDomainLock, getDomainLockStatus, getDomainAuthCode, createNameserver, registryAddNs, type DnsRecord } from "../_shared/opensrs.ts";
+import { opensrsRequest, parseResponse, setDnsZone, buildWpCloudDnsRecords, setDomainLock, getDomainLockStatus, getDomainAuthCode, createNameserver, registryAddNs, type DnsRecord } from "../_shared/opensrs.ts";
 
 // ─── XML builders ──────────────────────────────────────────
 
@@ -186,6 +186,7 @@ Deno.serve(async (req) => {
     if (action === "check") {
       const xml = buildLookupXml(domainName);
       const responseXml = await opensrsRequest(xml);
+      console.log("OpenSRS raw response (first 500):", responseXml.substring(0, 500));
       const parsed = parseResponse(responseXml);
       const ms = Date.now() - t0;
       console.log("OpenSRS lookup:", parsed.responseCode, parsed.responseText);

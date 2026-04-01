@@ -66,25 +66,6 @@ export async function opensrsRequest(xml: string): Promise<string> {
   return res.text();
 }
 
-/**
- * Send a request to the PRODUCTION OpenSRS server (for availability lookups).
- * This ensures domain availability checks are accurate even when OPENSRS_HOST is sandbox.
- */
-export async function opensrsLookupRequest(xml: string): Promise<string> {
-  const signature = await opensrsSignature(xml);
-  const res = await fetch(`https://${OPENSRS_LOOKUP_HOST}:55443`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/xml",
-      "X-Username": OPENSRS_USERNAME,
-      "X-Signature": signature,
-    },
-    body: xml,
-  });
-  if (!res.ok) throw new Error(`OpenSRS HTTP ${res.status}: ${await res.text()}`);
-  return res.text();
-}
-
 export function parseResponse(xml: string) {
   const getVal = (key: string): string => {
     const match = xml.match(new RegExp(`<item key="${key}">(.*?)</item>`));
