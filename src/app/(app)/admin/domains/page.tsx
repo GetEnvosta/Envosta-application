@@ -120,7 +120,13 @@ export default async function DomainsPage({
                     )}
                   </td>
                   <td className="px-5 py-3.5">
-                    <span className={statusColor(d.status)}>{d.status.replace('_', ' ')}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={statusColor(d.status)}>{d.status.replace('_', ' ')}</span>
+                      {d.status === 'failed' && <span className="badge-red text-[10px]">!</span>}
+                      {d.status === 'pending' && <span className="badge-yellow text-[10px]">Pending</span>}
+                      {d.status === 'registered' && !site && <span className="badge-blue text-[10px]">No site</span>}
+                      {d.status === 'registered' && !renewalSubId && <span className="badge-yellow text-[10px]">No billing</span>}
+                    </div>
                   </td>
                   <td className="px-5 py-3.5 text-gray-500">{formatDate(d.expires_at)}</td>
                   <td className="px-5 py-3.5 text-gray-500">{d.auto_renew ? 'Yes' : 'No'}</td>

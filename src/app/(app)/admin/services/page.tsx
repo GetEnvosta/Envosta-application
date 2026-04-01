@@ -151,7 +151,12 @@ export default async function ServicesPage({
                       {s.region ?? '\u2014'}
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className={statusColor(s.status)}>{s.status}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={statusColor(s.status)}>{s.status}</span>
+                        {s.status === 'failed' && <span className="badge-red text-[10px]">!</span>}
+                        {s.status === 'provisioning' && new Date(s.created_at) < new Date(Date.now() - 3600000) && <span className="badge-yellow text-[10px]">Stuck</span>}
+                        {!s.subscription_id && s.status === 'active' && <span className="badge-yellow text-[10px]">No sub</span>}
+                      </div>
                     </td>
                     <td className="px-5 py-3.5 text-gray-400 text-xs">
                       {formatDate(s.created_at)}

@@ -15,6 +15,7 @@ const nav = [
   { name: 'Services', href: '/admin/services', icon: Server },
   { name: 'Domains', href: '/admin/domains', icon: Globe },
   { name: 'Tickets', href: '/admin/tickets', icon: MessageSquare },
+  { name: 'Subscriptions', href: '/admin/subscriptions', icon: ScrollText },
   { name: 'Billing', href: '/admin/billing', icon: CreditCard },
   { name: 'Promotions', href: '/admin/promotions', icon: Percent },
   { name: 'Products', href: '/admin/products', icon: Tag },
