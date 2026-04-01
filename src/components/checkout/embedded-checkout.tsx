@@ -80,10 +80,22 @@ function CheckoutForm({ type, planName, planPrice, fullPrice, isTrial, dark, onS
       </div>
 
       {/* Security badges */}
-      <div className={`flex items-center gap-4 mb-5 text-xs ${dark ? 'text-white/30' : 'text-gray-400'}`}>
-        <span className="flex items-center gap-1"><Lock className="w-3 h-3" /> SSL encrypted</span>
-        <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> PCI compliant</span>
-        <span className="flex items-center gap-1"><CreditCard className="w-3 h-3" /> Powered by Stripe</span>
+      <div style={{
+        display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 24, flexWrap: 'wrap',
+      }}>
+        {[
+          { icon: <Lock style={{ width: 12, height: 12 }} />, label: 'SSL Encrypted' },
+          { icon: <Shield style={{ width: 12, height: 12 }} />, label: 'PCI Compliant' },
+          { icon: <CreditCard style={{ width: 12, height: 12 }} />, label: 'Powered by Stripe' },
+        ].map(b => (
+          <span key={b.label} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontSize: '.72rem', fontWeight: 400, letterSpacing: '.3px',
+            color: dark ? 'rgba(255,255,255,.3)' : '#9ca3af',
+          }}>
+            {b.icon} {b.label}
+          </span>
+        ))}
       </div>
 
       <button
