@@ -15,7 +15,6 @@ const navLinks: NavLink[] = [
   { label: 'Studio', href: '/studio', badge: 'New', badgePosition: 'left' },
   { label: 'Features', href: '/features' },
   { label: 'Domains', href: '/domains' },
-  { label: 'Explore', href: '/blog' },
   { label: 'Support', href: '/support' },
   { label: 'Plans & Pricing', href: '/pricing' },
 ];
