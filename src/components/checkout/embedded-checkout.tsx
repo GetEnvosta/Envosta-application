@@ -55,15 +55,34 @@ function CheckoutForm({ type, planName, planPrice, fullPrice, isTrial, dark, onS
   return (
     <form onSubmit={handleSubmit}>
       {/* Order summary */}
-      <div className={`rounded-xl p-4 mb-5 ${dark ? 'bg-white/[.04] border border-white/[.08]' : 'bg-gray-50 border border-gray-200'}`}>
-        <div className="flex items-center justify-between mb-1">
-          <span className={`text-sm font-medium ${dark ? 'text-white' : 'text-gray-900'}`}>{planName}</span>
-          <span className={`text-sm font-semibold ${dark ? 'text-white' : 'text-gray-900'}`}>{planPrice}</span>
+      <div style={{
+        borderRadius: 16, padding: '20px 24px', marginBottom: 24,
+        background: dark ? 'rgba(255,255,255,.03)' : '#f9fafb',
+        border: `1px solid ${dark ? 'rgba(255,255,255,.06)' : '#e5e7eb'}`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isTrial ? 12 : 0 }}>
+          <span style={{ fontSize: '.95rem', fontWeight: 600, color: dark ? '#fff' : '#111827' }}>{planName}</span>
+          <span style={{
+            fontSize: '.82rem', fontWeight: 600, padding: '4px 12px', borderRadius: 100,
+            background: isTrial ? 'rgba(34,197,94,.1)' : dark ? 'rgba(255,255,255,.06)' : '#e5e7eb',
+            color: isTrial ? '#22c55e' : dark ? '#fff' : '#111827',
+          }}>
+            {planPrice}
+          </span>
         </div>
         {isTrial && (
-          <div>
-            <p className="text-xs text-emerald-400 font-medium">14-day free trial — $0 today</p>
-            {fullPrice && <p className={`text-xs mt-1 ${dark ? 'text-white/40' : 'text-gray-500'}`}>Then {fullPrice} after your trial ends.</p>}
+          <div style={{
+            borderTop: `1px solid ${dark ? 'rgba(255,255,255,.06)' : '#e5e7eb'}`,
+            paddingTop: 12,
+          }}>
+            <p style={{ fontSize: '.8rem', color: '#22c55e', fontWeight: 500, marginBottom: 4 }}>
+              14-day free trial — no charge today
+            </p>
+            {fullPrice && (
+              <p style={{ fontSize: '.76rem', color: dark ? 'rgba(255,255,255,.35)' : '#9ca3af' }}>
+                Then {fullPrice} when your trial ends. Cancel anytime.
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -73,7 +92,7 @@ function CheckoutForm({ type, planName, planPrice, fullPrice, isTrial, dark, onS
         <PaymentElement
           onReady={() => setReady(true)}
           options={{
-            layout: 'tabs',
+            layout: 'accordion',
             defaultValues: { billingDetails: { address: { country: 'CA' } } },
           }}
         />
@@ -152,15 +171,27 @@ export function EmbeddedCheckout({ clientSecret, type, planName, planPrice, full
       fontFamily: '"DM Sans", system-ui, sans-serif',
       borderRadius: '12px',
       colorPrimary: '#2563EB',
-      colorBackground: '#0c0f1a',
+      colorBackground: '#0a0e1a',
       colorText: '#e2e8f0',
-      colorTextSecondary: '#94a3b8',
+      colorTextSecondary: '#64748b',
       colorDanger: '#ef4444',
+      spacingUnit: '4px',
+      spacingGridRow: '16px',
+      spacingGridColumn: '16px',
+      spacingTab: '12px',
     },
     rules: {
-      '.Input': { backgroundColor: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', color: '#e2e8f0' },
+      '.Input': { backgroundColor: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', color: '#e2e8f0', padding: '12px 14px', fontSize: '14px' },
       '.Input:focus': { borderColor: '#2563EB', boxShadow: '0 0 0 1px #2563EB' },
-      '.Label': { color: '#94a3b8' },
+      '.Label': { color: '#94a3b8', fontSize: '13px', fontWeight: '400' },
+      '.Tab': { backgroundColor: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '10px', padding: '10px 14px' },
+      '.Tab:hover': { backgroundColor: 'rgba(255,255,255,.06)', borderColor: 'rgba(255,255,255,.12)' },
+      '.Tab--selected': { backgroundColor: 'rgba(37,99,235,.12)', borderColor: 'rgba(37,99,235,.3)', color: '#fff' },
+      '.TabIcon': { fill: '#94a3b8' },
+      '.TabIcon--selected': { fill: '#2563EB' },
+      '.TabLabel': { fontSize: '13px', fontWeight: '500' },
+      '.Block': { backgroundColor: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)', borderRadius: '12px' },
+      '.AccordionItem': { backgroundColor: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)', borderRadius: '12px' },
     },
   } : {
     theme: 'stripe',
@@ -168,6 +199,16 @@ export function EmbeddedCheckout({ clientSecret, type, planName, planPrice, full
       fontFamily: '"DM Sans", system-ui, sans-serif',
       borderRadius: '12px',
       colorPrimary: '#111827',
+      spacingUnit: '4px',
+      spacingGridRow: '16px',
+    },
+    rules: {
+      '.Tab': { borderRadius: '10px', padding: '10px 14px' },
+      '.Tab--selected': { backgroundColor: '#f0f7ff', borderColor: '#2563EB' },
+      '.Input': { padding: '12px 14px', fontSize: '14px' },
+      '.Label': { fontSize: '13px' },
+      '.Block': { borderRadius: '12px' },
+      '.AccordionItem': { borderRadius: '12px' },
     },
   };
 
