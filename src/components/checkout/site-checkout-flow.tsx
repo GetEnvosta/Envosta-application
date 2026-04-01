@@ -597,7 +597,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                     {isTrial ? 'Register now — can be connected after your trial ends, or purchase to start your plan immediately' : 'Search and secure your perfect domain name'}
                   </p>
                 </div>
-                <span style={{ marginLeft: 'auto', fontSize: '.72rem', fontWeight: 500, color: t.textMuted }}>from $15/yr</span>
+                <span style={{ marginLeft: 'auto', fontSize: '.72rem', fontWeight: 500, color: t.textMuted }}>billed yearly</span>
               </div>
             </button>
 
@@ -658,20 +658,23 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                     <span style={{ fontWeight: 600, color: t.text, fontSize: '.88rem' }}>{domainResult.domain}</span>
                     <span style={{ color: domainResult.available ? '#22c55e' : 'var(--t3)', fontSize: '.8rem' }}>
                       {domainResult.available
-                        ? 'is available · free with your plan'
+                        ? `is available${domainPriceCents ? ` · $${(domainPriceCents / 100).toFixed(0)} CAD/yr` : ''}`
                         : 'is taken'}
                     </span>
                   </div>
                   {domainResult.available && (
-                    <button
-                      onClick={() => { setSelectedDomain(domainResult.domain); goToCheckout(); }}
-                      style={{
-                        padding: '8px 16px', background: '#22c55e', color: '#fff', borderRadius: 100, border: 'none',
-                        fontSize: '.78rem', fontWeight: 600, cursor: 'pointer',
-                      }}
-                    >
-                      Add to order
-                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                      <button
+                        onClick={() => { setSelectedDomain(domainResult.domain); goToCheckout(); }}
+                        style={{
+                          padding: '8px 16px', background: '#22c55e', color: '#fff', borderRadius: 100, border: 'none',
+                          fontSize: '.78rem', fontWeight: 600, cursor: 'pointer',
+                        }}
+                      >
+                        Add to order
+                      </button>
+                      <span style={{ fontSize: '.68rem', color: t.textMuted }}>Billed annually as a separate subscription</span>
+                    </div>
                   )}
                 </div>
               )}
