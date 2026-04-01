@@ -517,7 +517,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
 
           <div style={{ textAlign: 'center', marginTop: 28 }}>
             <button
-              onClick={hasDomainPreFilled ? goToCheckout : goToDomain}
+              onClick={hasDomainPreFilled ? handleCheckout : goToDomain}
               disabled={!selectedPlan || checkoutLoading}
               style={{
                 padding: '14px 32px', background: t.btnBg, color: t.btnColor, borderRadius: 100, border: 'none',
@@ -534,6 +534,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 <>Continue <ArrowRight style={{ width: 16, height: 16 }} /></>
               )}
             </button>
+            {checkoutError && <p style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 12 }}>{checkoutError}</p>}
           </div>
         </div>
       )}
