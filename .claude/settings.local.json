@@ -3,7 +3,17 @@
     "allow": [
       "Bash(cat \"src/app/\\(app\\)/admin/plans/page.tsx\")",
       "Bash(cat \"src/app/\\(app\\)/admin/domains/pricing/page.tsx\")",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(cat \"/c/Users/kolty/OneDrive/Desktop/Envosta-application/src/app/\\(app\\)/dashboard/domains/page.tsx\")",
+      "Bash(cat \"/c/Users/kolty/OneDrive/Desktop/Envosta-application/src/app/\\(app\\)/dashboard/sites/[id]/page.tsx\")",
+      "Bash(npx supabase:*)",
+      "Bash(rm -rf .next/types)",
+      "Bash(npx next:*)",
+      "Bash(rm -rf node_modules/.cache)",
+      "Bash(npm install:*)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''exports'''',{}\\).get\\(''''./headers'''',''''N/A''''\\)\\)\\)\")",
+      "Bash(node -e \"const p=require\\(''next/package.json''\\); console.log\\(p.typesVersions ? ''has typesVersions'' : ''no typesVersions''\\); console.log\\(''types:'', p.types\\)\")",
+      "WebSearch"
     ]
   }
 }

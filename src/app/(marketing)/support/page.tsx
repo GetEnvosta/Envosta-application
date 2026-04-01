@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { ContactForm } from '@/components/marketing/contact-form';
 
 export default function SupportPage() {
   useEffect(() => {
@@ -201,27 +202,12 @@ export default function SupportPage() {
             <p className="sh-desc" style={{ marginLeft: 'auto', marginRight: 'auto' }}>Fill out the form below and a member of our team will respond within one business day.</p>
           </div>
           <div className="form-wrap">
-            <div className="form-row">
-              <div className="form-group"><label>Full Name</label><input type="text" placeholder="Jane Smith" /></div>
-              <div className="form-group"><label>Email Address</label><input type="email" placeholder="jane@example.com" /></div>
-            </div>
-            <div className="form-row">
-              <div className="form-group full"><label>Subject</label>
-                <select defaultValue="">
-                  <option value="">Select a topic...</option>
-                  <option>Account &amp; Billing</option>
-                  <option>Technical Issue</option>
-                  <option>Migration Help</option>
-                  <option>Feature Request</option>
-                  <option>Sales Question</option>
-                  <option>Other</option>
-                </select>
-              </div>
-            </div>
-            <div className="form-row">
-              <div className="form-group full"><label>Message</label><textarea placeholder="Describe your issue or question in detail..."></textarea></div>
-            </div>
-            <div className="form-submit"><a href="#" className="bp blue">Send Message</a></div>
+            <ContactForm
+              type="support"
+              subject="Support Request"
+              buttonText="Send Message"
+              successMessage="Message received! We'll get back to you within one business day."
+            />
           </div>
         </div></section>
 

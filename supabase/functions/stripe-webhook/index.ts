@@ -21,6 +21,14 @@ Deno.serve(async (req) => {
   console.log("Event:", event.type, event.id);
   const sb = supabaseAdmin();
 
+  // ── Idempotency: skip already-processed events ──
+  const { data: existing } = await sb.from("webhook_events").select("id").eq("id", event.id).maybeSingle();
+  if (existing) {
+    console.log("Duplicate event, skipping:", event.id);
+    return json({ received: true, duplicate: true });
+  }
+  await sb.from("webhook_events").insert({ id: event.id, event_type: event.type }).catch(() => {});
+
   try {
     if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
       const sub = event.data.object;
@@ -46,7 +54,10 @@ Deno.serve(async (req) => {
       let billingPeriod = "monthly";
       if (interval === "year") billingPeriod = intervalCount >= 3 ? "3yr" : intervalCount >= 2 ? "2yr" : "yearly";
 
-      // Upsert subscription — only columns that exist in schema
+      // Upsert subscription — merge metadata with existing
+      const { data: existingSub } = await sb.from("subscriptions").select("metadata").eq("stripe_subscription_id", sub.id).maybeSingle();
+      const existingMeta = (existingSub?.metadata as any) ?? {};
+
       const { data: dbSub } = await sb.from("subscriptions").upsert({
         user_id: cust.id,
         product_id: plan?.id ?? null,
@@ -57,6 +68,7 @@ Deno.serve(async (req) => {
         current_period_end: (sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null)
           ?? (sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null),
         metadata: {
+          ...existingMeta,
           stripe_price_id: priceId,
           cancel_at_period_end: sub.cancel_at_period_end ?? false,
           quantity: sub.items?.data?.[0]?.quantity ?? 1,
@@ -145,6 +157,7 @@ Deno.serve(async (req) => {
                       .eq("slug", `tld-${tld}`).maybeSingle();
 
                     if (tldProduct?.stripe_price_id) {
+                      // Domain is a separate paid product — charges immediately
                       const renewalSub = await stripe.subscriptions.create({
                         customer: custStripeId,
                         items: [{ price: tldProduct.stripe_price_id }],
@@ -155,8 +168,9 @@ Deno.serve(async (req) => {
                         },
                       });
 
+                      const { data: domRec } = await sb.from("domains").select("metadata").eq("domain_name", domainFromMeta).eq("user_id", cust.id).maybeSingle();
                       await sb.from("domains")
-                        .update({ metadata: { renewal_stripe_subscription_id: renewalSub.id, dns_setup: "pending" } })
+                        .update({ metadata: { ...((domRec?.metadata as any) ?? {}), renewal_stripe_subscription_id: renewalSub.id, dns_setup: "pending" } })
                         .eq("domain_name", domainFromMeta)
                         .eq("user_id", cust.id);
 
@@ -312,9 +326,10 @@ Deno.serve(async (req) => {
       const sub = event.data.object;
 
       // 1. Mark subscription as cancelled
+      const { data: existSubDel } = await sb.from("subscriptions").select("id, metadata").eq("stripe_subscription_id", sub.id).maybeSingle();
       const { data: dbSub } = await sb.from("subscriptions").update({
         status: "cancelled",
-        metadata: { cancelled_at: new Date().toISOString() },
+        metadata: { ...((existSubDel?.metadata as any) ?? {}), cancelled_at: new Date().toISOString() },
       }).eq("stripe_subscription_id", sub.id).select("id").maybeSingle();
       console.log("Subscription cancelled:", sub.id);
 

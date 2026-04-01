@@ -381,7 +381,7 @@ export default function FeaturesPage() {
                 <h3>Domains, fully managed</h3>
                 <p className="desc">Register .com, .net, .org, and dozens of other TLDs directly through your Envosta dashboard. We automatically configure DNS records, provision SSL certificates, and point everything to your hosting.</p>
                 <div className="mega-tags">
-                  <span>50+ TLDs</span>
+                  <span>20+ TLDs</span>
                   <span>Auto DNS Config</span>
                   <span>Free SSL</span>
                   <span>WHOIS Privacy</span>

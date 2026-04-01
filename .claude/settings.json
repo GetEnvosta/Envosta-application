@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:domains.opensrs.guide)",
+      "WebFetch(domain:www.opensrs.com)",
+      "Bash(curl -s https://domains.opensrs.guide/docs/advanced_update_nameservers)",
+      "Bash(curl -s https://domains.opensrs.guide/docs/set_dns_zone)",
+      "WebFetch(domain:support.opensrs.com)",
+      "Bash(npx tsc:*)",
+      "Bash(curl -s https://domains.opensrs.guide/docs/get-domain)",
+      "WebFetch(domain:opensrs.com)",
+      "WebFetch(domain:clients.whc.ca)",
+      "Bash(curl -s -L https://domains.opensrs.guide/docs/send-authcode)",
+      "Bash(curl -s -L https://domains.opensrs.guide/docs/get-domain)",
+      "Bash(curl -s -L https://domains.opensrs.guide/docs/transfer-out)",
+      "Bash(curl -s -L https://domains.opensrs.guide/docs/modify)",
+      "Bash(dig +short ns2.systemdns.com A)",
+      "Bash(nslookup ns2.systemdns.com)",
+      "Bash(dig +short ns3.systemdns.com A)",
+      "Bash(nslookup ns3.systemdns.com)",
+      "Bash(nslookup ns1.systemdns.com)",
+      "Bash(find /c/Users/kolty/OneDrive/Desktop/Envosta-application -type f -name *get-started*)",
+      "Bash(ls -la /c/Users/kolty/OneDrive/Desktop/Envosta-application/src/app/\\\\\\(standalone\\\\\\)/get-started/)",
+      "Bash(ls -la /c/Users/kolty/OneDrive/Desktop/Envosta-application/src/app/\\\\\\(app\\\\\\)/admin/plans/)",
+      "Bash(ls -la /c/Users/kolty/OneDrive/Desktop/Envosta-application/src/app/\\\\\\(app\\\\\\)/admin/products/)",
+      "Bash(grep -r api/v1.0 /c/Users/kolty/OneDrive/Desktop/Envosta-application --include=*.ts --include=*.tsx)",
+      "Bash(grep -r action: /c/Users/kolty/OneDrive/Desktop/Envosta-application/src --include=*.tsx)",
+      "Bash(grep -r action: /c/Users/kolty/OneDrive/Desktop/Envosta-application/src --include=*.tsx --include=*.ts)",
+      "Read(//c/Users/kolty/.claude/projects/c--Users-kolty-OneDrive-Desktop-Envosta-application/memory/**)"
+    ]
+  }
+}

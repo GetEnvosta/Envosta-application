@@ -102,10 +102,10 @@ export async function POST(req: Request) {
       if (authErr) {
         // User might exist in auth but not in users table
         if (authErr.message?.includes('already been registered')) {
-          const { data: authList } = await supabaseAdmin.auth.admin.listUsers();
-          const existingAuth = authList?.users?.find(u => u.email === email);
-          if (existingAuth) {
-            userId = existingAuth.id;
+          // Look up by email in our users table (much faster than listing all auth users)
+          const { data: existingUser } = await supabaseAdmin.from('users').select('id').eq('email', email).maybeSingle();
+          if (existingUser) {
+            userId = existingUser.id;
           } else {
             return NextResponse.json({ error: 'Failed to create account' }, { status: 500 });
           }

@@ -141,7 +141,7 @@ export default function GdprPage() {
             <ul>
               <li><strong>Standard Contractual Clauses (SCCs):</strong> We use the European Commission&apos;s approved SCCs for transfers to countries without an adequacy decision.</li>
               <li><strong>EU-U.S. Data Privacy Framework:</strong> Where applicable, we rely on the EU-U.S. Data Privacy Framework for transfers to certified U.S. organizations.</li>
-              <li><strong>Data residency options:</strong> Customers on Business and Enterprise plans can choose to keep all data within EU-based data centers exclusively.</li>
+              <li><strong>Data residency options:</strong> Customers on Performance plans and above can choose to keep all data within EU-based data centers by selecting the Amsterdam (EU West) region during setup.</li>
             </ul>
             <p>You can request information about the specific safeguards applied to transfers of your data by contacting <a href="mailto:privacy@envosta.com">privacy@envosta.com</a>.</p>
             <hr className="legal-divider" />
@@ -162,7 +162,7 @@ export default function GdprPage() {
             <p>We retain personal data only for as long as it is necessary to fulfill the purposes for which it was collected:</p>
             <ul>
               <li><strong>Active accounts:</strong> Data is retained for the duration of your account and service agreement.</li>
-              <li><strong>After account closure:</strong> Core account data is deleted within 90 days. Backups containing account data are purged within 180 days.</li>
+              <li><strong>After account closure:</strong> Core account data is deleted within 90 days. Backups containing account data are purged within 30 days of account closure.</li>
               <li><strong>Billing records:</strong> Retained for up to 7 years as required by tax and financial regulations.</li>
               <li><strong>Support tickets:</strong> Retained for 2 years after resolution for quality assurance purposes, then deleted.</li>
               <li><strong>Server logs:</strong> Automatically rotated and deleted after 90 days.</li>
@@ -184,7 +184,7 @@ export default function GdprPage() {
             <p>Envosta has appointed a Data Protection Officer (DPO) to oversee our GDPR compliance program. You can contact our DPO for any questions or concerns about how we handle personal data:</p>
             <ul>
               <li><strong>Email:</strong> <a href="mailto:dpo@envosta.com">dpo@envosta.com</a></li>
-              <li><strong>Mail:</strong> Data Protection Officer, Envosta Inc., 123 Hosting Lane, Suite 400, San Francisco, CA 94105</li>
+              <li><strong>Mail:</strong> Data Protection Officer, Envosta Inc., Calgary, Alberta, Canada</li>
             </ul>
             <p>Our DPO is responsible for monitoring compliance, conducting Data Protection Impact Assessments (DPIAs) where required, and serving as the point of contact for supervisory authorities.</p>
             <hr className="legal-divider" />
@@ -193,7 +193,7 @@ export default function GdprPage() {
             <p>If you believe that our processing of your personal data violates the GDPR, you have the right to lodge a complaint with a supervisory authority. You may contact:</p>
             <ul>
               <li>The supervisory authority in the EU member state of your habitual residence, place of work, or place of the alleged infringement</li>
-              <li>The <strong>Irish Data Protection Commission (DPC)</strong>, which serves as our lead supervisory authority in the EU</li>
+              <li>Your local <strong>EU Data Protection Authority</strong> — as Envosta is based outside the EU, you may contact the supervisory authority in your member state</li>
               <li>The <strong>UK Information Commissioner&apos;s Office (ICO)</strong> if you are based in the United Kingdom</li>
             </ul>
             <p>Before filing a complaint, we encourage you to contact us first at <a href="mailto:dpo@envosta.com">dpo@envosta.com</a> so we can address your concerns directly and resolve any issues promptly.</p>

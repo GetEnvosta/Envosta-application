@@ -514,7 +514,7 @@ export default function CareersPage() {
               <div className="form-submit">
                 <button className="bp blue lg" id="submit-btn" type="button">Submit Application</button>
               </div>
-              <div className="form-note">By submitting you agree to our <a href="#">Privacy Policy</a>.</div>
+              <div className="form-note">By submitting you agree to our <a href="/legal/privacy">Privacy Policy</a>.</div>
             </div>
             <div className="form-ok" id="form-ok">
               <div className="fok-ic">

@@ -54,7 +54,7 @@ export default function TermsPage() {
               <hr className="legal-divider" />
 
               <h2 id="payment">Payment &amp; Billing</h2>
-              <p>By subscribing to a paid plan, you agree to pay all applicable fees as described on the pricing page at the time of purchase. All fees are quoted in US Dollars unless otherwise stated.</p>
+              <p>By subscribing to a paid plan, you agree to pay all applicable fees as described on the pricing page at the time of purchase. All fees are quoted in Canadian Dollars (CAD).</p>
               <p><strong>Billing cycles.</strong> Plans are available on monthly or annual billing cycles. Annual plans are billed upfront for the full year at a discounted rate — pay for 10 months, get 12 months of service.</p>
               <p><strong>Automatic renewal.</strong> Your subscription will automatically renew at the end of each billing cycle unless you cancel prior to the renewal date. Renewal will be charged at the then-current rate.</p>
               <p><strong>Refunds.</strong> All plans are covered by a 14-day money-back guarantee from the date of initial purchase. Monthly plans may be cancelled at any time but are not eligible for partial refunds for the current billing period.</p>

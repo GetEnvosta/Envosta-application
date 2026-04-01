@@ -597,7 +597,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                     {isTrial ? 'Register now — can be connected after your trial ends, or purchase to start your plan immediately' : 'Search and secure your perfect domain name'}
                   </p>
                 </div>
-                <span style={{ marginLeft: 'auto', fontSize: '.72rem', fontWeight: 500, color: t.textMuted }}>included free</span>
+                <span style={{ marginLeft: 'auto', fontSize: '.72rem', fontWeight: 500, color: t.textMuted }}>from $15/yr</span>
               </div>
             </button>
 

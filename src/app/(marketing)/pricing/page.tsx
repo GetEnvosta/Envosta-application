@@ -310,7 +310,7 @@ export default function PricingPage() {
 
           <div className="ap-card">
             <div className="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg></div>
-            <h4>99.9% Uptime SLA</h4>
+            <h4>99.99% Uptime SLA</h4>
             <p>Enterprise-grade infrastructure with guaranteed uptime across all plans.</p>
           </div>
 

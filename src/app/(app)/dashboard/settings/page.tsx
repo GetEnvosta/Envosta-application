@@ -91,8 +91,8 @@ export default function SettingsPage() {
       showToast('Passwords do not match', 'error');
       return;
     }
-    if (newPassword.length < 6) {
-      showToast('Password must be at least 6 characters', 'error');
+    if (newPassword.length < 8) {
+      showToast('Password must be at least 8 characters', 'error');
       return;
     }
     setUpdatingPassword(true);
@@ -117,7 +117,7 @@ export default function SettingsPage() {
       await supabase.from('users').update({
         metadata: {
           ...(profile as any)?.metadata,
-          notification_prefs: { billing: true, sites: true, domains: true, marketing: false },
+          notification_prefs: notifications,
         },
       }).eq('id', profile.id);
       showToast('Preferences saved', 'success');
@@ -150,14 +150,6 @@ export default function SettingsPage() {
                 {getInitials(fullName)}
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => console.log('Upload photo clicked')}
-              className="btn-secondary text-sm"
-            >
-              <Camera className="h-4 w-4" />
-              Upload Photo
-            </button>
           </div>
 
           {/* Full Name */}

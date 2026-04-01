@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,10 @@ export const dynamic = 'force-dynamic';
  * For dashboard: uses existing auth.
  */
 export async function POST(req: Request) {
+  const ip = getClientIp(req);
+  const { allowed } = rateLimit(`create-sub:${ip}`, 10, 300_000);
+  if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 });
+
   const body = await req.json();
   const { priceId, domainName, name, email, password, trial, promoCode, billing } = body;
 

@@ -141,7 +141,7 @@ export default function PrivacyPage() {
           <ul>
             <li><strong>Email:</strong> <a href="mailto:privacy@envosta.com">privacy@envosta.com</a></li>
             <li><strong>Support:</strong> <a href="https://envosta.com/support">Contact our support team</a></li>
-            <li><strong>Mail:</strong> Envosta Inc., Privacy Team, 123 Hosting Lane, Suite 400, San Francisco, CA 94105</li>
+            <li><strong>Mail:</strong> Envosta Inc., Calgary, Alberta, Canada</li>
           </ul>
           <p>We will make every effort to respond to your inquiry within 30 business days.</p>
 
