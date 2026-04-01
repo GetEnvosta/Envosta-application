@@ -12,6 +12,9 @@
 const OPENSRS_USERNAME = Deno.env.get("OPENSRS_USERNAME") ?? "";
 const OPENSRS_API_KEY = Deno.env.get("OPENSRS_API_KEY") ?? "";
 const OPENSRS_HOST = Deno.env.get("OPENSRS_HOST") ?? "horizon.opensrs.net";
+// Production lookup server — always use this for availability checks
+// horizon.opensrs.net is sandbox and returns fake availability results
+const OPENSRS_LOOKUP_HOST = "rr-n1-tor.opensrs.net";
 
 // ─── Crypto ───────────────────────────────────────────────
 
@@ -34,6 +37,25 @@ async function opensrsSignature(xml: string): Promise<string> {
 export async function opensrsRequest(xml: string): Promise<string> {
   const signature = await opensrsSignature(xml);
   const res = await fetch(`https://${OPENSRS_HOST}:55443`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/xml",
+      "X-Username": OPENSRS_USERNAME,
+      "X-Signature": signature,
+    },
+    body: xml,
+  });
+  if (!res.ok) throw new Error(`OpenSRS HTTP ${res.status}: ${await res.text()}`);
+  return res.text();
+}
+
+/**
+ * Send a request to the PRODUCTION OpenSRS server (for availability lookups).
+ * This ensures domain availability checks are accurate even when OPENSRS_HOST is sandbox.
+ */
+export async function opensrsLookupRequest(xml: string): Promise<string> {
+  const signature = await opensrsSignature(xml);
+  const res = await fetch(`https://${OPENSRS_LOOKUP_HOST}:55443`, {
     method: "POST",
     headers: {
       "Content-Type": "text/xml",
