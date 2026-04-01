@@ -12,9 +12,7 @@
 const OPENSRS_USERNAME = Deno.env.get("OPENSRS_USERNAME") ?? "";
 const OPENSRS_API_KEY = Deno.env.get("OPENSRS_API_KEY") ?? "";
 const OPENSRS_HOST = Deno.env.get("OPENSRS_HOST") ?? "horizon.opensrs.net";
-// Production lookup server — always use this for availability checks
-// horizon.opensrs.net is sandbox and returns fake availability results
-const OPENSRS_LOOKUP_HOST = "rr-n1-tor.opensrs.net";
+const OPENSRS_PROXY_URL = Deno.env.get("OPENSRS_PROXY_URL") ?? ""; // Optional: route through static IP proxy
 
 // ─── Crypto ───────────────────────────────────────────────
 
@@ -36,6 +34,25 @@ async function opensrsSignature(xml: string): Promise<string> {
 
 export async function opensrsRequest(xml: string): Promise<string> {
   const signature = await opensrsSignature(xml);
+
+  // If an OpenSRS proxy is configured, route through it (for IP whitelisting)
+  if (OPENSRS_PROXY_URL) {
+    const PROXY_SECRET = Deno.env.get("OPENSRS_PROXY_SECRET") ?? "";
+    const res = await fetch(OPENSRS_PROXY_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/xml",
+        "X-Username": OPENSRS_USERNAME,
+        "X-Signature": signature,
+        "X-Proxy-Secret": PROXY_SECRET,
+        "X-Target-Host": `https://${OPENSRS_HOST}:55443`,
+      },
+      body: xml,
+    });
+    if (!res.ok) throw new Error(`OpenSRS proxy HTTP ${res.status}: ${await res.text()}`);
+    return res.text();
+  }
+
   const res = await fetch(`https://${OPENSRS_HOST}:55443`, {
     method: "POST",
     headers: {
