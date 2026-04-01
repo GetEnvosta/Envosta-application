@@ -14,6 +14,7 @@ export async function POST(req: Request) {
   const { allowed } = rateLimit(`domain-checkout:${ip}`, 10, 300_000);
   if (!allowed) return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
 
+  try {
   const { name, email, password, domainName } = await req.json();
   if (!email || !password || !name) return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 });
   if (!domainName || !domainName.includes('.')) return NextResponse.json({ error: 'Valid domain name required' }, { status: 400 });
@@ -101,4 +102,8 @@ export async function POST(req: Request) {
     clientSecret: paymentIntent.client_secret,
     subscriptionId: subscription.id,
   });
+  } catch (e: any) {
+    console.error('Domain checkout error:', e);
+    return NextResponse.json({ error: e.message ?? 'Internal error' }, { status: 500 });
+  }
 }

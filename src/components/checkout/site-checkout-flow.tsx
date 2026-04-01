@@ -233,7 +233,9 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
         }),
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { setCheckoutError(`Server error: ${text.substring(0, 200) || 'Empty response'}`); setCheckoutLoading(false); return; }
       if (!res.ok) { setCheckoutError(data.error ?? 'Something went wrong'); setCheckoutLoading(false); return; }
 
       setCheckoutClientSecret(data.clientSecret);

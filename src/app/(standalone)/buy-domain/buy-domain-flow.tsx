@@ -58,12 +58,14 @@ export function BuyDomainFlow() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password, domainName: domain }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { setError(`Server error: ${text.substring(0, 200) || 'Empty response'}`); setLoading(false); return; }
       if (!res.ok) { setError(data.error ?? 'Something went wrong'); setLoading(false); return; }
 
       setClientSecret(data.clientSecret);
       setStep('payment');
-    } catch { setError('Connection error'); }
+    } catch (e: any) { setError(e.message ?? 'Connection error'); }
     setLoading(false);
   }
 

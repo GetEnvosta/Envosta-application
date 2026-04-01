@@ -19,6 +19,7 @@ export async function POST(req: Request) {
   const { allowed } = rateLimit(`create-sub:${ip}`, 10, 300_000);
   if (!allowed) return NextResponse.json({ error: 'Too many requests. Please wait.' }, { status: 429 });
 
+  try {
   const body = await req.json();
   const { priceId, domainName, name, email, password, trial, promoCode, billing } = body;
 
@@ -144,4 +145,8 @@ export async function POST(req: Request) {
     clientSecret: paymentIntent.client_secret,
     subscriptionId: subscription.id,
   });
+  } catch (e: any) {
+    console.error('Subscription error:', e);
+    return NextResponse.json({ error: e.message ?? 'Internal error' }, { status: 500 });
+  }
 }
