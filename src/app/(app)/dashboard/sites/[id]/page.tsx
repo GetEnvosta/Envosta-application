@@ -167,15 +167,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      {/* ═══ ADD-ONS ═══ */}
-      <div className="card p-6 mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Package className="w-4 h-4 text-gray-400" />
-          <h2 className="text-sm font-semibold text-gray-900">Add-ons</h2>
-        </div>
-        <SiteAddons siteId={id} />
-      </div>
-
       {/* ═══ PERFORMANCE & SECURITY ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="card p-6">
