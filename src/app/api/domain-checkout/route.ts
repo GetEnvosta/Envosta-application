@@ -7,6 +7,7 @@ import Stripe from 'stripe';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  try {
   // Auth
   const jar = await cookies();
   const supabaseAuth = createServerClient(
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
   const domain = domainName.toLowerCase().trim();
   const tld = domain.split('.').pop()!;
 
-  // Find the TLD product (slug pattern: tld-com, tld-ca, etc.)
+  // Find the TLD product
   const { data: tldProduct } = await sb.from('products')
     .select('id, name, stripe_price_id, stripe_price_id_yearly, price_cad, price_yearly_cad')
     .eq('slug', `tld-${tld}`)
@@ -44,10 +45,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `Domain extension .${tld} is not available for registration` }, { status: 400 });
   }
 
-  // Use yearly price (annual billing for domains)
   const priceId = tldProduct.stripe_price_id_yearly ?? tldProduct.stripe_price_id;
   if (!priceId) {
-    return NextResponse.json({ error: `Pricing not configured for .${tld} domains. Please contact support.` }, { status: 400 });
+    return NextResponse.json({ error: `Pricing not configured for .${tld} domains.` }, { status: 400 });
   }
 
   // Get or create Stripe customer
@@ -67,26 +67,37 @@ export async function POST(req: Request) {
     customerId = sc.id;
   }
 
-  // Create Stripe Checkout session for domain subscription
-  const session = await stripe.checkout.sessions.create({
+  // Create subscription with embedded payment
+  const subscription = await stripe.subscriptions.create({
     customer: customerId,
-    mode: 'subscription',
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://my.envosta.com'}/dashboard/domains?checkout=success&domain=${encodeURIComponent(domain)}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://my.envosta.com'}/dashboard/domains/register?q=${encodeURIComponent(domain)}`,
-    subscription_data: {
-      metadata: {
-        supabase_user_id: user.id,
-        domain_name: domain,
-        is_domain_purchase: 'true',
-      },
-    },
+    items: [{ price: priceId, quantity: 1 }],
+    payment_behavior: 'default_incomplete',
+    payment_settings: { save_default_payment_method: 'on_subscription' },
+    expand: ['latest_invoice.payment_intent'],
     metadata: {
       supabase_user_id: user.id,
       domain_name: domain,
       is_domain_purchase: 'true',
+      type: 'domain_renewal',
     },
   });
 
-  return NextResponse.json({ url: session.url });
+  const invoice = subscription.latest_invoice as any;
+  const paymentIntent = invoice?.payment_intent as Stripe.PaymentIntent;
+
+  if (!paymentIntent?.client_secret) {
+    return NextResponse.json({ error: 'Failed to create payment' }, { status: 500 });
+  }
+
+  const price = ((tldProduct as any).metadata?.registration_price_cad ?? tldProduct.price_cad ?? 0) / 100;
+
+  return NextResponse.json({
+    clientSecret: paymentIntent.client_secret,
+    subscriptionId: subscription.id,
+    price,
+  });
+  } catch (e: any) {
+    console.error('Domain checkout error:', e);
+    return NextResponse.json({ error: e.message ?? 'Internal error' }, { status: 500 });
+  }
 }

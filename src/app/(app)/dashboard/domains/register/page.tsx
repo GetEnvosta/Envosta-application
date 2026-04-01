@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Search, Loader2, Check, X, ArrowRightLeft, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Search, Loader2, Check, X, ArrowRightLeft, ShieldCheck, Lock, Shield, CreditCard } from 'lucide-react';
 import Link from 'next/link';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export default function RegisterDomainPage() {
   const [domain, setDomain] = useState('');
@@ -12,6 +16,9 @@ export default function RegisterDomainPage() {
   const [available, setAvailable] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [domainPrice, setDomainPrice] = useState<number | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -63,9 +70,12 @@ export default function RegisterDomainPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ domainName: domain.toLowerCase().trim() }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.url) { setError(data?.error ?? 'Checkout failed'); return; }
-      window.location.href = data.url;
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { setError('Server error'); return; }
+      if (!res.ok) { setError(data?.error ?? 'Checkout failed'); return; }
+      setClientSecret(data.clientSecret);
+      setDomainPrice(data.price ?? null);
     } catch {
       setError('Connection error — please try again');
     } finally {
@@ -232,7 +242,69 @@ export default function RegisterDomainPage() {
             </ul>
           </div>
         )}
+        {/* Embedded Payment */}
+        {clientSecret && !paymentSuccess && (
+          <div className="card p-6 mt-6">
+            <h2 className="text-sm font-semibold text-gray-900 mb-1">Complete Payment</h2>
+            <div className="rounded-xl bg-gray-50 border border-gray-200 p-4 mb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{domain}</p>
+                  <p className="text-xs text-gray-500">1 year registration &middot; renews annually</p>
+                </div>
+                {domainPrice && <span className="text-sm font-semibold text-gray-900">${domainPrice} CAD/yr</span>}
+              </div>
+            </div>
+            <Elements stripe={stripePromise} options={{
+              clientSecret,
+              appearance: {
+                theme: 'stripe',
+                variables: { fontFamily: '"DM Sans", system-ui, sans-serif', borderRadius: '12px', colorPrimary: '#111827' },
+                rules: { '.Input': { padding: '12px 14px' }, '.Tab': { borderRadius: '10px' }, '.AccordionItem': { borderRadius: '12px' } },
+              },
+            }}>
+              <DomainPaymentForm domain={domain} price={domainPrice} onSuccess={() => { setPaymentSuccess(true); router.push('/dashboard/domains?checkout=success'); }} />
+            </Elements>
+          </div>
+        )}
+
+        {paymentSuccess && (
+          <div className="card p-8 mt-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-3">
+              <Check className="w-6 h-6 text-emerald-600" />
+            </div>
+            <p className="text-sm font-semibold text-gray-900">Domain registered!</p>
+            <p className="text-xs text-gray-500 mt-1">Redirecting to your domains...</p>
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function DomainPaymentForm({ domain, price, onSuccess }: { domain: string; price: number | null; onSuccess: () => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState('');
+
+  return (
+    <form onSubmit={async (e) => {
+      e.preventDefault();
+      if (!stripe || !elements) return;
+      setLoading(true);
+      setError('');
+      const result = await stripe.confirmPayment({ elements, confirmParams: { return_url: `${window.location.origin}/dashboard/domains?checkout=success` }, redirect: 'if_required' });
+      if (result.error) { setError(result.error.message ?? 'Payment failed'); setLoading(false); } else { onSuccess(); }
+    }}>
+      <div className="mb-4">
+        <PaymentElement onReady={() => setReady(true)} options={{ layout: 'accordion', paymentMethodOrder: ['card', 'link'], defaultValues: { billingDetails: { address: { country: 'CA' } } } }} />
+      </div>
+      {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
+      <button type="submit" disabled={!stripe || !ready || loading} className="btn-primary w-full text-sm py-3">
+        {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : <>Register {domain} {price ? `— $${price} CAD` : ''}</>}
+      </button>
+    </form>
   );
 }
