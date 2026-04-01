@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     const wpAdminPassword = `Env${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}!`;
     const wpBody: Record<string, unknown> = {
       admin_email: adminEmail ?? userEmail ?? "admin@envosta.com",
-      admin_user: "envosta_admin",
+      admin_user: (adminEmail ?? userEmail ?? "admin").split("@")[0].replace(/[^a-z0-9_]/gi, "_").slice(0, 30) || "envosta_admin",
       admin_pass: wpAdminPassword,
       php_version: php,
       space_quota: `${storageGb}G`,
@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
         job_id: wpResponse?.job_id,
         domain_name: domainName ?? null,
         site_ip: siteIp,
-        wp_admin_user: "envosta_admin",
+        wp_admin_user: (wpBody.admin_user as string) ?? "envosta_admin",
         wp_admin_password: wpAdminPassword,
         provisioned_at: new Date().toISOString(),
       },
