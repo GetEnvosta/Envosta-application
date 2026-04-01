@@ -95,7 +95,7 @@ export function DomainSearch() {
   }
 
   function handleRegister(domain: string) {
-    window.location.href = `/get-started?domain=${encodeURIComponent(domain)}&plan=choose`;
+    window.location.href = `/buy-domain?domain=${encodeURIComponent(domain)}`;
   }
 
   return (
