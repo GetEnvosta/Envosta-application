@@ -768,6 +768,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 planName={`${selectedPlan.name} Plan${billingPeriod === 'annual' ? ' (Annual)' : ''}`}
                 planPrice={isTrial ? '$0 today' : billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_cad ?? 0) / 100).toFixed(0)} CAD/yr` : `$${(selectedPlan.price_cad / 100).toFixed(0)} CAD/mo`}
                 fullPrice={billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_cad ?? 0) / 100).toFixed(0)} CAD/yr` : `$${(selectedPlan.price_cad / 100).toFixed(0)} CAD/mo`}
+                domainName={selectedDomain && domainMode === 'new' ? selectedDomain : undefined}
+                domainPrice={selectedDomain && domainMode === 'new' && domainPriceCents ? `$${(domainPriceCents / 100).toFixed(0)} CAD/yr` : undefined}
                 isTrial={isTrial ?? false}
                 dark={dark}
                 onSuccess={() => {

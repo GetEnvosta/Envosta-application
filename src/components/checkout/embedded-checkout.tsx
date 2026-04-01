@@ -12,13 +12,15 @@ interface CheckoutFormProps {
   planName: string;
   planPrice: string;
   fullPrice?: string;
+  domainName?: string;
+  domainPrice?: string;
   isTrial: boolean;
   dark?: boolean;
   onSuccess: () => void;
   onError: (msg: string) => void;
 }
 
-function CheckoutForm({ type, planName, planPrice, fullPrice, isTrial, dark, onSuccess, onError }: CheckoutFormProps) {
+function CheckoutForm({ type, planName, planPrice, fullPrice, domainName, domainPrice, isTrial, dark, onSuccess, onError }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -70,10 +72,26 @@ function CheckoutForm({ type, planName, planPrice, fullPrice, isTrial, dark, onS
             {planPrice}
           </span>
         </div>
+        {/* Domain line item */}
+        {domainName && (
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            borderTop: `1px solid ${dark ? 'rgba(255,255,255,.06)' : '#e5e7eb'}`,
+            paddingTop: 10, marginTop: 10,
+          }}>
+            <div>
+              <span style={{ fontSize: '.85rem', fontWeight: 500, color: dark ? 'rgba(255,255,255,.7)' : '#374151' }}>{domainName}</span>
+              <span style={{ fontSize: '.7rem', color: dark ? 'rgba(255,255,255,.3)' : '#9ca3af', marginLeft: 6 }}>billed separately, yearly</span>
+            </div>
+            <span style={{ fontSize: '.82rem', fontWeight: 600, color: dark ? 'rgba(255,255,255,.7)' : '#374151' }}>{domainPrice ?? ''}</span>
+          </div>
+        )}
+
+        {/* Trial info */}
         {isTrial && (
           <div style={{
             borderTop: `1px solid ${dark ? 'rgba(255,255,255,.06)' : '#e5e7eb'}`,
-            paddingTop: 12,
+            paddingTop: 12, marginTop: domainName ? 10 : 0,
           }}>
             <p style={{ fontSize: '.8rem', color: '#22c55e', fontWeight: 500, marginBottom: 4 }}>
               14-day free trial — no charge today
@@ -157,13 +175,15 @@ interface EmbeddedCheckoutProps {
   planName: string;
   planPrice: string;
   fullPrice?: string;
+  domainName?: string;
+  domainPrice?: string;
   isTrial: boolean;
   dark?: boolean;
   onSuccess: () => void;
   onError: (msg: string) => void;
 }
 
-export function EmbeddedCheckout({ clientSecret, type, planName, planPrice, fullPrice, isTrial, dark, onSuccess, onError }: EmbeddedCheckoutProps) {
+export function EmbeddedCheckout({ clientSecret, type, planName, planPrice, fullPrice, domainName, domainPrice, isTrial, dark, onSuccess, onError }: EmbeddedCheckoutProps) {
   if (!clientSecret) return null;
 
   const appearance: any = dark ? {
@@ -221,6 +241,8 @@ export function EmbeddedCheckout({ clientSecret, type, planName, planPrice, full
         planPrice={planPrice}
         isTrial={isTrial}
         fullPrice={fullPrice}
+        domainName={domainName}
+        domainPrice={domainPrice}
         dark={dark}
         onSuccess={onSuccess}
         onError={onError}

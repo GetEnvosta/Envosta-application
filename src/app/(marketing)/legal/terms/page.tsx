@@ -59,6 +59,7 @@ export default function TermsPage() {
               <p><strong>Automatic renewal.</strong> Your subscription will automatically renew at the end of each billing cycle unless you cancel prior to the renewal date. Renewal will be charged at the then-current rate.</p>
               <p><strong>Refunds.</strong> All plans are covered by a 14-day money-back guarantee from the date of initial purchase. Monthly plans may be cancelled at any time but are not eligible for partial refunds for the current billing period.</p>
               <p><strong>Failed payments.</strong> If a payment fails, Envosta will attempt to process the charge again. If payment cannot be collected after reasonable attempts, your account may be suspended until the outstanding balance is resolved.</p>
+              <p><strong>Domain registration.</strong> Domain names registered through Envosta are billed as a separate annual subscription from your hosting plan. Domain pricing is based on the top-level domain (TLD) and is displayed at the time of registration. Domain subscriptions renew automatically each year and can be managed independently from your hosting subscription.</p>
               <p><strong>Taxes.</strong> You are responsible for any applicable taxes, duties, or government-imposed fees associated with your use of the Services, except where Envosta is legally required to collect and remit such taxes.</p>
               <hr className="legal-divider" />
 
