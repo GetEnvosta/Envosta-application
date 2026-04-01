@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Loader2, CheckCircle, XCircle, Globe } from 'lucide-react';
+import { createClient } from '@/lib/supabase-browser';
 
 const ALT_TLDS = ['net', 'ca', 'org', 'dev'];
 const SUGGEST_PREFIXES = ['get', 'try', 'my', 'the', 'go'];
@@ -9,6 +10,7 @@ const SUGGEST_PREFIXES = ['get', 'try', 'my', 'the', 'go'];
 interface DomainResult {
   domain: string;
   available: boolean;
+  price?: number; // cents CAD
 }
 
 export function DomainSearch() {
@@ -18,6 +20,20 @@ export function DomainSearch() {
   const [altResults, setAltResults] = useState<DomainResult[]>([]);
   const [suggestions, setSuggestions] = useState<DomainResult[]>([]);
   const [error, setError] = useState('');
+  const [tldPrices, setTldPrices] = useState<Record<string, number>>({});
+
+  // Fetch TLD prices from products table on mount
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.from('products').select('slug, price_cad, metadata').eq('type', 'domain_tld').eq('is_active', true).then(({ data }) => {
+      const prices: Record<string, number> = {};
+      for (const p of data ?? []) {
+        const tld = (p.metadata as any)?.tld ?? p.slug?.replace('tld-', '');
+        prices[tld] = ((p.metadata as any)?.registration_price_cad ?? p.price_cad ?? 0) / 100;
+      }
+      setTldPrices(prices);
+    });
+  }, []);
 
   async function checkSingle(domain: string): Promise<DomainResult> {
     const res = await fetch('/api/domain-check', {
@@ -120,6 +136,11 @@ export function DomainSearch() {
               <span style={{ color: primaryResult.available ? '#22c55e' : '#ef4444', fontSize: '.85rem', marginLeft: 10 }}>
                 {primaryResult.available ? 'is available!' : 'is taken'}
               </span>
+              {primaryResult.available && tldPrices[primaryResult.domain.split('.').pop()!] && (
+                <span style={{ fontSize: '.8rem', color: 'var(--t3)', marginLeft: 8 }}>
+                  ${tldPrices[primaryResult.domain.split('.').pop()!]}/yr
+                </span>
+              )}
             </div>
           </div>
           {primaryResult.available && (
@@ -147,6 +168,9 @@ export function DomainSearch() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: r.available ? '#22c55e' : '#ef4444' }} />
                   <span style={{ fontSize: '.88rem', fontWeight: 500, color: r.available ? 'var(--t1)' : 'var(--t3)' }}>{r.domain}</span>
+                  {r.available && tldPrices[r.domain.split('.').pop()!] && (
+                    <span style={{ fontSize: '.75rem', color: 'var(--t3)', marginLeft: 6 }}>${tldPrices[r.domain.split('.').pop()!]}/yr</span>
+                  )}
                 </div>
                 {r.available ? (
                   <button onClick={() => handleRegister(r.domain)} style={{

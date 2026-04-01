@@ -6,7 +6,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
       <style>{`
         /* ── Legal Pages — Clean single-column document ── */
         .legal-hero {
-          padding: 140px 0 48px;
+          padding: 140px 0 0;
           background: #fff;
         }
         .legal-hero .c {
@@ -44,7 +44,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
         .legal-wrap {
           max-width: 720px;
           margin: 0 auto;
-          padding: 0 32px 100px;
+          padding: 32px 32px 100px;
         }
 
         /* ── Typography ── */
