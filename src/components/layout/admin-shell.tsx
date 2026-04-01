@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Users, Server, Globe, CreditCard, ScrollText,
-  Activity, LogOut, Menu, X, ArrowLeft, Tag, PenSquare, MessageSquare, Mail, Percent,
+  Activity, LogOut, Menu, X, ArrowLeft, Tag, PenSquare, MessageSquare, Mail, Percent, AlertTriangle,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -20,6 +20,7 @@ const nav = [
   { name: 'Products', href: '/admin/products', icon: Tag },
   { name: 'Blog', href: '/admin/blog', icon: PenSquare },
   { name: 'Emails', href: '/admin/emails', icon: Mail },
+  { name: 'Diagnostics', href: '/admin/diagnostics', icon: AlertTriangle },
   { name: 'System Health', href: '/admin/logs', icon: Activity },
 ];
 
