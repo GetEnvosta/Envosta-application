@@ -58,7 +58,7 @@ export function SystemHealthChecks() {
       updateCheck('Stripe', { status: 'down', detail: e.message, latency: Date.now() - t2 });
     }
 
-    // wp.cloud proxy — check via site-info datacenters action
+    // wp.cloud proxy + Edge Functions — check via site-info datacenters action (uses auth session)
     const t3 = Date.now();
     try {
       const supabase = createClient();
@@ -74,34 +74,29 @@ export function SystemHealthChecks() {
           body: JSON.stringify({ action: 'datacenters' }),
         });
         const data = await res.json();
-        updateCheck('wp.cloud Proxy', res.ok
-          ? { status: 'healthy', latency: Date.now() - t3, detail: `${data.datacenters?.length ?? 0} DCs` }
-          : { status: 'down', detail: data.error ?? `HTTP ${res.status}`, latency: Date.now() - t3 }
-        );
+        const lat = Date.now() - t3;
+        if (res.ok) {
+          updateCheck('wp.cloud Proxy', { status: 'healthy', latency: lat, detail: `${data.datacenters?.length ?? 0} DCs` });
+          updateCheck('Edge Functions', { status: 'healthy', latency: lat });
+        } else {
+          updateCheck('wp.cloud Proxy', { status: 'degraded', detail: data.error ?? `HTTP ${res.status}`, latency: lat });
+          updateCheck('Edge Functions', { status: 'degraded', detail: `HTTP ${res.status}`, latency: lat });
+        }
       } else {
-        updateCheck('wp.cloud Proxy', { status: 'degraded', detail: 'No session', latency: Date.now() - t3 });
+        // Try without auth — just ping the function to see if edge functions are up
+        const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
+          body: JSON.stringify({ action: 'check', domainName: 'test.com' }),
+        });
+        const lat = Date.now() - t3;
+        updateCheck('Edge Functions', { status: res.ok || res.status < 500 ? 'healthy' : 'down', latency: lat });
+        updateCheck('wp.cloud Proxy', { status: 'degraded', detail: 'No session — proxy not tested', latency: lat });
       }
     } catch (e: any) {
-      updateCheck('wp.cloud Proxy', { status: 'down', detail: e.message, latency: Date.now() - t3 });
-    }
-
-    // Edge Functions — ping register-domain check action
-    const t4 = Date.now();
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        },
-        body: JSON.stringify({ action: 'check', domainName: 'health-check.com' }),
-      });
-      updateCheck('Edge Functions', res.ok
-        ? { status: 'healthy', latency: Date.now() - t4 }
-        : { status: 'degraded', detail: `HTTP ${res.status}`, latency: Date.now() - t4 }
-      );
-    } catch (e: any) {
-      updateCheck('Edge Functions', { status: 'down', detail: e.message, latency: Date.now() - t4 });
+      const lat = Date.now() - t3;
+      updateCheck('wp.cloud Proxy', { status: 'down', detail: e.message, latency: lat });
+      updateCheck('Edge Functions', { status: 'down', detail: e.message, latency: lat });
     }
 
     // Vercel — just check if we can reach our own API
