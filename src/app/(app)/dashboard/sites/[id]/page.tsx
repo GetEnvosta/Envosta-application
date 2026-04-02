@@ -34,11 +34,12 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const status: string = site.status ?? 'provisioning';
   let meta = (site as any).metadata ?? {};
 
-  // Fetch site IP if missing and site is active
-  if (!meta.site_ip && site.wp_cloud_site_id && status === 'active') {
+  // Fetch site IP if missing and site has wp.cloud ID
+  if (!meta.site_ip && site.wp_cloud_site_id) {
     try {
       const { createClient: createSB } = await import('@/lib/supabase-server');
       const sb = await createSB();
+      // Use the get-ips endpoint via the wpcloud proxy (same as health-check uses)
       const ipRes = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
         {
@@ -49,7 +50,8 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
       );
       if (ipRes.ok) {
         const siteData = await ipRes.json();
-        const ip = siteData?.ip_addresses?.[0] ?? siteData?.ip_address ?? null;
+        // wp.cloud returns IP in various formats
+        const ip = siteData?.ip_addresses?.[0] ?? siteData?.ip_address ?? siteData?.data?.ip_address ?? siteData?.data?.ipv4?.[0] ?? siteData?.site_ip ?? null;
         if (ip) {
           meta = { ...meta, site_ip: ip };
           await sb.from('sites').update({ metadata: { ...meta, site_ip: ip } }).eq('id', id);
@@ -122,7 +124,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-gray-100 rounded-xl overflow-hidden mb-4">
             <Metric icon={<Server className="w-3.5 h-3.5" />} label="PHP" value={site.php_version ?? '8.4'} />
             <Metric icon={<MapPin className="w-3.5 h-3.5" />} label="Region" value={regions[site.server_region as string] ?? 'US East'} />
-            {meta.site_ip && <Metric icon={<Globe className="w-3.5 h-3.5" />} label="IP" value={meta.site_ip} mono />}
+            <Metric icon={<Globe className="w-3.5 h-3.5" />} label="Site IP" value={meta.site_ip ?? 'Pending'} mono />
             <Metric icon={<Calendar className="w-3.5 h-3.5" />} label="Created" value={formatDate(site.created_at)} />
           </div>
 
