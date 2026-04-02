@@ -299,7 +299,7 @@ function DomainPaymentForm({ domain, price, onSuccess }: { domain: string; price
       if (result.error) { setError(result.error.message ?? 'Payment failed'); setLoading(false); } else { onSuccess(); }
     }}>
       <div className="mb-4">
-        <PaymentElement onReady={() => setReady(true)} options={{ layout: 'accordion', paymentMethodOrder: ['card', 'link'], defaultValues: { billingDetails: { address: { country: 'CA' } } } }} />
+        <PaymentElement onReady={() => setReady(true)} options={{ layout: 'accordion', paymentMethodOrder: ['card'], defaultValues: { billingDetails: { address: { country: 'CA' } } } }} />
       </div>
       {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
       <button type="submit" disabled={!stripe || !ready || loading} className="btn-primary w-full text-sm py-3">

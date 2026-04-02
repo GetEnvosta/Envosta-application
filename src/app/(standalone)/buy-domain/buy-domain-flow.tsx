@@ -278,7 +278,7 @@ function DomainPaymentForm({ domain, price, onSuccess }: { domain: string; price
       <div style={{ marginBottom: 20 }}>
         <PaymentElement onReady={() => setReady(true)} options={{
           layout: 'accordion',
-          paymentMethodOrder: ['card', 'link'],
+          paymentMethodOrder: ['card'],
           defaultValues: { billingDetails: { address: { country: 'CA' } } },
         }} />
       </div>

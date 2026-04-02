@@ -111,7 +111,7 @@ function CheckoutForm({ type, planName, planPrice, fullPrice, domainName, domain
           onReady={() => setReady(true)}
           options={{
             layout: 'accordion',
-            paymentMethodOrder: ['card', 'link'],
+            paymentMethodOrder: ['card'],
             defaultValues: { billingDetails: { address: { country: 'CA' } } },
           }}
         />
