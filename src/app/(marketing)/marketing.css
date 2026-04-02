@@ -8,7 +8,7 @@
 section{position:relative;z-index:1}
 
 /* ── Nav ── */
-.site-nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(8,12,24,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr);will-change:transform;transform:translateZ(0)}
+.site-nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(8,12,24,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr)}
 .site-nav .c{display:flex;align-items:center;height:72px}
 
 /* Nav link styles — blue underline on hover and active */
@@ -707,7 +707,7 @@ section{position:relative;z-index:1}
   .ham{display:flex}
 
   /* Hero */
-  .hero{padding:140px 0 80px;min-height:auto}
+  .hero{padding:140px 0 80px;min-height:65vh}
   .hero-text{padding:0 8px}
   .hero-text h1{font-size:2.4rem;letter-spacing:-1px;margin-bottom:20px}
   .hero-text p{font-size:.95rem;margin-bottom:32px;line-height:1.7;max-width:400px}
@@ -822,7 +822,7 @@ section{position:relative;z-index:1}
    RESPONSIVE — SMALL MOBILE (max-width: 480px)
 ═══════════════════════════════════ */
 @media(max-width:480px){
-  .hero{padding:120px 0 60px;min-height:auto}
+  .hero{padding:140px 0 80px;min-height:60vh}
   .hero-text{padding:0 4px}
   .hero-text h1{font-size:2rem;letter-spacing:-.8px;line-height:1.15;margin-bottom:16px}
   .hero-text p{font-size:.88rem;line-height:1.65;margin-bottom:28px;max-width:340px}

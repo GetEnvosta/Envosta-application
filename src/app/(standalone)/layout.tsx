@@ -22,7 +22,7 @@ export default function StandaloneLayout({ children }: { children: React.ReactNo
   return (
     <div className={`marketing-site ${inter.variable}`}>
       <header style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '16px 32px',
       }}>
