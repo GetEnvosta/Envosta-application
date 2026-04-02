@@ -16,6 +16,7 @@ import { SiteAccess } from '@/components/sites/site-access';
 import { CancelSubscriptionButton } from '@/components/admin/cancel-subscription-button';
 import { AdminSiteActions } from '@/components/admin/admin-site-actions';
 import { AdminErrorLogs } from '@/components/admin/admin-error-logs';
+import { SiteIp } from '@/components/sites/site-ip';
 
 export default async function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -106,7 +107,13 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             <Stat icon={<Cpu className="w-3.5 h-3.5" />} label="Workers" value={`${(config as any).php_workers ?? plan?.metadata?.php_workers_default ?? 2}`} />
             <Stat icon={<Database className="w-3.5 h-3.5" />} label="Memory" value={`${(config as any).php_memory_mb ?? plan?.metadata?.php_memory_mb ?? 512}MB`} />
             <Stat icon={<HardDrive className="w-3.5 h-3.5" />} label="Disk" value={service.disk_usage_mb ? `${(service.disk_usage_mb / 1024).toFixed(1)}GB` : '\u2014'} />
-            <Stat icon={<Wifi className="w-3.5 h-3.5" />} label="IP" value={meta.site_ip ?? '\u2014'} mono />
+            <div className="bg-white px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-gray-400"><Wifi className="w-3.5 h-3.5" /></span>
+                <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">IP</span>
+              </div>
+              <p className="text-sm font-semibold text-gray-900 truncate font-mono text-xs"><SiteIp siteId={service.id} initialIp={meta.site_ip} /></p>
+            </div>
           </div>
 
           {/* Owner + Domains row */}

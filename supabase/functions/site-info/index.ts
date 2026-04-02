@@ -614,11 +614,20 @@ Deno.serve(async (req) => {
       case "get-ip": {
         if (!siteId) return error("siteId is required");
         const sb = supabaseAdmin();
-        const { data: svc } = await sb.from("sites").select("id, wp_cloud_site_id, wp_cloud_url, user_id").eq("id", siteId).single();
+        const { data: svc } = await sb.from("sites").select("id, wp_cloud_site_id, wp_cloud_url, user_id, metadata").eq("id", siteId).single();
         if (!svc?.wp_cloud_site_id) return error("Site not found or no wp.cloud ID", 404);
+
+        // Return cached IP if already stored
+        const cachedIp = (svc.metadata as any)?.site_ip;
+        if (cachedIp) return json({ ip: cachedIp, cached: true });
+
+        // Fetch from wp.cloud and save
         const siteRef = svc.wp_cloud_url?.replace("https://", "") ?? svc.wp_cloud_site_id;
         const result = await wpcloudGet(`/api/v1.0/get-ips/${WPCLOUD_CLIENT}/${siteRef}`);
         const ip = result.data?.ip_address ?? result.data?.suggested?.[0] ?? result.data?.ipv4?.[0] ?? null;
+        if (ip) {
+          await sb.from("sites").update({ metadata: { ...((svc.metadata as any) ?? {}), site_ip: ip } }).eq("id", siteId);
+        }
         return json({ ip, raw: result.data });
       }
 
