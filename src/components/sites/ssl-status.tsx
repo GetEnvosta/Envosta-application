@@ -56,8 +56,19 @@ export function SslStatus({ siteId, domain }: { siteId: string; domain: string |
 
   if (loading) return <Loader2 className="w-4 h-4 animate-spin text-gray-400" />;
 
-  const isActive = ssl?.certificate?.status === 'active' || ssl?.status === 'active' || ssl?.is_valid;
-  const expiry = ssl?.certificate?.expiry ?? ssl?.expires_at ?? ssl?.not_after ?? null;
+  // wp.cloud ssl-info returns various formats — check all known fields
+  const cert = ssl?.certificate ?? ssl;
+  const isActive = cert?.status === 'active'
+    || cert?.status === 'valid'
+    || ssl?.is_valid === true
+    || ssl?.status === 'active'
+    || ssl?.ssl_status === 'active'
+    || ssl?.ssl_status === 'valid'
+    || (ssl?.not_after && new Date(ssl.not_after) > new Date());
+  const expiry = cert?.expiry ?? cert?.not_after ?? ssl?.expires_at ?? ssl?.not_after ?? null;
+
+  // Debug: log raw response to help identify the format
+  if (ssl && !isActive) console.log('SSL raw response:', JSON.stringify(ssl).substring(0, 500));
 
   return (
     <div>
