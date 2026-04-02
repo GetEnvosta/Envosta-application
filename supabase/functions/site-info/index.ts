@@ -618,7 +618,7 @@ Deno.serve(async (req) => {
         if (!svc?.wp_cloud_site_id) return error("Site not found or no wp.cloud ID", 404);
         const siteRef = svc.wp_cloud_url?.replace("https://", "") ?? svc.wp_cloud_site_id;
         const result = await wpcloudGet(`/api/v1.0/get-ips/${WPCLOUD_CLIENT}/${siteRef}`);
-        const ip = result.data?.ip_address ?? result.data?.ipv4?.[0] ?? null;
+        const ip = result.data?.ip_address ?? result.data?.suggested?.[0] ?? result.data?.ipv4?.[0] ?? null;
         return json({ ip, raw: result.data });
       }
 
