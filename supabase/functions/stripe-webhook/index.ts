@@ -1,5 +1,6 @@
 import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, welcomeEmail, invoicePaidEmail } from "../_shared/email.ts";
+import { opensrsRequest, parseResponse } from "../_shared/opensrs.ts";
 
 Deno.serve(async (req) => {
   const stripe = getStripe();
@@ -355,10 +356,36 @@ Deno.serve(async (req) => {
         }
       }
 
-      // 3. If this was a domain renewal subscription, just log it
+      // 3. If this was a domain renewal subscription, disable auto-renew at OpenSRS too
       const domainMeta = sub.metadata;
       if (domainMeta?.type === "domain_renewal" && domainMeta?.domain_name) {
         await sb.from("domains").update({ auto_renew: false }).eq("domain_name", domainMeta.domain_name);
+        // Tell OpenSRS to let the domain expire
+        try {
+          const domainName = domainMeta.domain_name;
+          const xml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
+<OPS_envelope>
+  <header><version>0.9</version></header>
+  <body><data_block><dt_assoc>
+    <item key="protocol">XCP</item>
+    <item key="object">domain</item>
+    <item key="action">modify</item>
+    <item key="domain">${domainName}</item>
+    <item key="attributes"><dt_assoc>
+      <item key="affect_domains">0</item>
+      <item key="data">expire_action</item>
+      <item key="auto_renew">0</item>
+      <item key="let_expire">1</item>
+    </dt_assoc></item>
+  </dt_assoc></data_block></body>
+</OPS_envelope>`;
+          const resXml = await opensrsRequest(xml);
+          const parsed = parseResponse(resXml);
+          console.log("OpenSRS auto-renew disabled for", domainName, parsed.responseText);
+        } catch (e) {
+          console.error("OpenSRS auto-renew disable failed (non-fatal):", e);
+        }
         console.log("Domain renewal cancelled via Stripe:", domainMeta.domain_name);
       }
     }
