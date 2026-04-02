@@ -363,13 +363,13 @@ Deno.serve(async (req) => {
 
         // 4. Auto-setup DNS if domain is registered through Envosta
         // If siteIp is missing, fetch it from wp.cloud
+        // Resolve site IP (needed for DNS records)
         let resolvedIp = siteIp;
         if (!resolvedIp) {
           try {
             const ipsResult = await wpcloudGet(`/api/v1.0/get-ips/${WPCLOUD_CLIENT}/${domain}`);
-            resolvedIp = ipsResult.data?.ip_address ?? ipsResult.data?.ipv4?.[0] ?? null;
+            resolvedIp = ipsResult.data?.ip_address ?? ipsResult.data?.suggested?.[0] ?? ipsResult.data?.ipv4?.[0] ?? null;
             if (resolvedIp) {
-              // Store it for future use
               await sb.from("sites").update({
                 metadata: { ...(svc as any).metadata, domain_name: domain, site_ip: resolvedIp },
               }).eq("id", svc.id);
@@ -377,33 +377,37 @@ Deno.serve(async (req) => {
           } catch { /* non-fatal */ }
         }
 
+        // Auto-configure DNS at OpenSRS if domain is ours
         let dnsSetup = null;
         if (resolvedIp) {
           const { data: domainRecord } = await sb.from("domains")
-            .select("registrar")
+            .select("registrar, metadata")
             .eq("domain_name", domain)
             .eq("user_id", svc.user_id)
             .maybeSingle();
 
-          if (domainRecord?.registrar === "opensrs") {
-            const dnsRecords = [
-              { type: "A", subdomain: "", ip_address: resolvedIp, ttl: 3600 },
-              { type: "A", subdomain: "www", ip_address: resolvedIp, ttl: 3600 },
-              { type: "TXT", subdomain: "", text: "v=spf1 include:_spf.wpcloud.com ~all", ttl: 3600 },
-              { type: "CNAME", subdomain: "wpcloud1._domainkey", hostname: "wpcloud1._domainkey.wpcloud.com", ttl: 3600 },
-              { type: "CNAME", subdomain: "wpcloud2._domainkey", hostname: "wpcloud2._domainkey.wpcloud.com", ttl: 3600 },
-              { type: "TXT", subdomain: "_dmarc", text: "v=DMARC1; p=none;", ttl: 3600 },
-            ];
+          if (domainRecord?.registrar === "opensrs" && (domainRecord?.metadata as any)?.dns_mode !== "custom") {
+            try {
+              // Import shared DNS functions
+              const { setDnsZone, buildWpCloudDnsRecords } = await import("../_shared/opensrs.ts");
+              const dnsRecords = buildWpCloudDnsRecords(resolvedIp);
+              const dnsResult = await setDnsZone(domain, dnsRecords);
 
-            await sb.from("domains")
-              .update({
-                metadata: { dns_records: dnsRecords, dns_setup: "complete", site_ip: resolvedIp, dns_setup_at: new Date().toISOString() },
-              })
-              .eq("domain_name", domain)
-              .eq("user_id", svc.user_id);
+              if (dnsResult.isSuccess) {
+                const existingMeta = (domainRecord.metadata as any) ?? {};
+                await sb.from("domains").update({
+                  metadata: { ...existingMeta, dns_records: dnsRecords, dns_setup: "complete", site_ip: resolvedIp, dns_setup_at: new Date().toISOString() },
+                }).eq("domain_name", domain).eq("user_id", svc.user_id);
 
-            dnsSetup = { siteIp: resolvedIp, records: dnsRecords.length };
-            console.log("Auto DNS setup for", domain, "→", resolvedIp);
+                dnsSetup = { siteIp: resolvedIp, records: dnsRecords.length };
+                console.log("DNS auto-configured at OpenSRS for", domain, "→", resolvedIp);
+              } else {
+                console.error("DNS auto-setup failed:", dnsResult.responseText);
+                await log({ userId: user.id, serviceId: svc.id, level: "error", action: "dns.auto_setup.failed", message: `${domain}: ${dnsResult.responseText}` });
+              }
+            } catch (dnsErr) {
+              console.error("DNS auto-setup error (non-fatal):", dnsErr);
+            }
           }
         }
 
