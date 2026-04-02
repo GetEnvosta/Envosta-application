@@ -139,14 +139,13 @@ export function TestimonialCarousel() {
             ★★★★★
           </div>
           <p className="sp-hero-text">
-            &ldquo;I showed up to one call and a week later I had the best website my business has
-            ever had. I didn&apos;t have to think about any of the technical stuff.&rdquo;
+            &ldquo;We moved our entire WooCommerce store to Envosta and the difference was night and day. Page loads dropped from 6 seconds to under 1. Our conversion rate jumped 40% in the first month.&rdquo;
           </p>
           <div className="sp-hero-author">
             <div className="sp-avatar">JM</div>
             <div>
               <div className="sp-name">Jordan Mitchell</div>
-              <div className="sp-role">Owner, Mitchell Landscaping</div>
+              <div className="sp-role">Founder, Mitchell Supply Co.</div>
             </div>
           </div>
         </div>
@@ -156,14 +155,13 @@ export function TestimonialCarousel() {
             ★★★★★
           </div>
           <p className="sp-hero-text">
-            &ldquo;Our old site was embarrassing. Envosta replaced it with something fast, clean,
-            and professional. Our leads have doubled since the switch.&rdquo;
+            &ldquo;As a bronze sculptor, my work needs to speak for itself online. Envosta built me a gallery site that loads beautifully on every device. I&apos;ve sold three commissions directly through my site since launching.&rdquo;
           </p>
           <div className="sp-hero-author">
             <div className="sp-avatar">SR</div>
             <div>
               <div className="sp-name">Sarah Reynolds</div>
-              <div className="sp-role">Founder, Bloom &amp; Co Salon</div>
+              <div className="sp-role">Bronze Sculptor &amp; Artist</div>
             </div>
           </div>
         </div>
@@ -173,14 +171,13 @@ export function TestimonialCarousel() {
             ★★★★★
           </div>
           <p className="sp-hero-text">
-            &ldquo;The onboarding call alone was worth it. They handled things I didn&apos;t even
-            know I needed. It&apos;s like having a whole team behind your website.&rdquo;
+            &ldquo;I needed somewhere to showcase and sell my paintings without the gallery taking a cut. Envosta set everything up — the store, the payments, even the shipping calculations. I just paint and ship.&rdquo;
           </p>
           <div className="sp-hero-author">
             <div className="sp-avatar">DK</div>
             <div>
               <div className="sp-name">David Kim</div>
-              <div className="sp-role">CEO, Apex Consulting Group</div>
+              <div className="sp-role">Fine Art Painter</div>
             </div>
           </div>
         </div>
