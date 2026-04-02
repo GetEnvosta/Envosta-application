@@ -44,12 +44,15 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
         {
           method: 'POST',
+          cache: 'no-store',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
           body: JSON.stringify({ action: 'get-ip', siteId: id }),
         }
       );
+      const ipData = await ipRes.text();
+      console.log('IP fetch result:', ipRes.status, ipData.substring(0, 200));
       if (ipRes.ok) {
-        const data = await ipRes.json();
+        const data = JSON.parse(ipData);
         const ip = data?.ip ?? data?.ip_address ?? null;
         if (ip) {
           meta = { ...meta, site_ip: ip };
