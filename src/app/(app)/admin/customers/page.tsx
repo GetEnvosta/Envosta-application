@@ -51,6 +51,9 @@ export default async function CustomersPage({
                   Email
                 </th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Phone
+                </th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
                   Company
                 </th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">
@@ -73,7 +76,7 @@ export default async function CustomersPage({
             <tbody className="divide-y divide-gray-100">
               {(!users || users.length === 0) ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center">
+                  <td colSpan={9} className="px-5 py-12 text-center">
                     <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                     <p className="text-sm text-gray-400">
                       {q ? 'No customers match your search.' : 'No customers yet.'}
@@ -92,6 +95,7 @@ export default async function CustomersPage({
                       </Link>
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">{u.email}</td>
+                    <td className="px-5 py-3.5 text-gray-500 text-sm">{u.phone || '\u2014'}</td>
                     <td className="px-5 py-3.5 text-gray-600">
                       {u.company_name || '\u2014'}
                     </td>
