@@ -139,7 +139,7 @@ export default async function DashboardPage() {
   const stats = [
     { label: 'Active sites', value: sitesCount, icon: Server, href: '/dashboard/sites', color: 'blue' },
     { label: 'Domains', value: domainsCount, icon: Globe, href: '/dashboard/domains', color: 'purple' },
-    { label: 'Current plan', value: planName ?? 'No plan', icon: CreditCard, href: '/dashboard/billing', color: 'green' },
+    { label: 'Support', value: 'Standard', icon: CreditCard, href: '/dashboard/tickets', color: 'green' },
   ];
 
   const colorMap: Record<string, { bg: string; text: string; hover: string }> = {
