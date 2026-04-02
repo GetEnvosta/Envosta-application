@@ -34,24 +34,23 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const status: string = site.status ?? 'provisioning';
   let meta = (site as any).metadata ?? {};
 
-  // Fetch site IP if missing and site has wp.cloud ID
+  // Fetch site IP if missing — use wpcloudGet /get-ips via edge function
   if (!meta.site_ip && site.wp_cloud_site_id) {
     try {
       const { createClient: createSB } = await import('@/lib/supabase-server');
       const sb = await createSB();
-      // Use the get-ips endpoint via the wpcloud proxy (same as health-check uses)
+      const siteRef = site.wp_cloud_url?.replace('https://', '') ?? site.wp_cloud_site_id;
       const ipRes = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
-          body: JSON.stringify({ action: 'get-site', siteId: id }),
+          body: JSON.stringify({ action: 'get-ip', siteId: id }),
         }
       );
       if (ipRes.ok) {
-        const siteData = await ipRes.json();
-        // wp.cloud returns IP in various formats
-        const ip = siteData?.ip_addresses?.[0] ?? siteData?.ip_address ?? siteData?.data?.ip_address ?? siteData?.data?.ipv4?.[0] ?? siteData?.site_ip ?? null;
+        const data = await ipRes.json();
+        const ip = data?.ip ?? data?.ip_address ?? null;
         if (ip) {
           meta = { ...meta, site_ip: ip };
           await sb.from('sites').update({ metadata: { ...meta, site_ip: ip } }).eq('id', id);

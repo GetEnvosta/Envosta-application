@@ -610,6 +610,18 @@ Deno.serve(async (req) => {
         return json({ success: true, addon: addon?.name });
       }
 
+      // ═══ Get Site IP ═══
+      case "get-ip": {
+        if (!siteId) return error("siteId is required");
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("sites").select("id, wp_cloud_site_id, wp_cloud_url, user_id").eq("id", siteId).single();
+        if (!svc?.wp_cloud_site_id) return error("Site not found or no wp.cloud ID", 404);
+        const siteRef = svc.wp_cloud_url?.replace("https://", "") ?? svc.wp_cloud_site_id;
+        const result = await wpcloudGet(`/api/v1.0/get-ips/${WPCLOUD_CLIENT}/${siteRef}`);
+        const ip = result.data?.ip_address ?? result.data?.ipv4?.[0] ?? null;
+        return json({ ip, raw: result.data });
+      }
+
       // ═══ End Trial Early ═══
       case "end-trial": {
         if (!siteId) return error("siteId is required");
