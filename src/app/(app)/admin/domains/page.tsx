@@ -75,12 +75,13 @@ export default async function DomainsPage({
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry</th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Auto-renew</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {domains.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center">
+                  <td colSpan={8} className="px-5 py-12 text-center">
                     <Globe className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                     <p className="text-sm text-gray-400">No domains found.</p>
                   </td>
@@ -130,6 +131,18 @@ export default async function DomainsPage({
                   </td>
                   <td className="px-5 py-3.5 text-gray-500">{formatDate(d.expires_at)}</td>
                   <td className="px-5 py-3.5 text-gray-500">{d.auto_renew ? 'Yes' : 'No'}</td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      {(d.users as any)?.id && (
+                        <Link href={`/admin/customers/${(d.users as any).id}`} className="text-xs text-admin-600 hover:text-admin-700">
+                          Customer
+                        </Link>
+                      )}
+                      <a href={`https://manage.opensrs.com`} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-500 hover:text-gray-700">
+                        OpenSRS
+                      </a>
+                    </div>
+                  </td>
                 </tr>
                 );
               })}
