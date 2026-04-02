@@ -622,11 +622,11 @@ Deno.serve(async (req) => {
         if (renewalSubId) {
           const stripe = getStripe();
           if (autoRenew) {
-            // Resume: set back to active
-            await stripe.subscriptions.resume(renewalSubId, { billing_cycle_anchor: "unchanged" });
-            console.log("Stripe renewal subscription resumed:", renewalSubId);
+            // Re-enable: undo the scheduled cancellation
+            await stripe.subscriptions.update(renewalSubId, { cancel_at_period_end: false });
+            console.log("Stripe renewal subscription re-enabled:", renewalSubId);
           } else {
-            // Pause: cancel at period end so they keep access until expiry
+            // Disable: cancel at period end so domain stays active until expiry
             await stripe.subscriptions.update(renewalSubId, { cancel_at_period_end: true });
             console.log("Stripe renewal subscription set to cancel at period end:", renewalSubId);
           }
