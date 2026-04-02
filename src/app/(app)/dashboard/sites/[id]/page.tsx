@@ -16,6 +16,7 @@ import {
 import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-switcher';
 import { SiteAddons } from '@/components/sites/site-addons';
 import { SiteAccess } from '@/components/sites/site-access';
+import { SiteIp } from '@/components/sites/site-ip';
 
 export default async function SiteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -34,33 +35,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const status: string = site.status ?? 'provisioning';
   let meta = (site as any).metadata ?? {};
 
-  // Fetch site IP if missing — use wpcloudGet /get-ips via edge function
-  if (!meta.site_ip && site.wp_cloud_site_id) {
-    try {
-      const { createClient: createSB } = await import('@/lib/supabase-server');
-      const sb = await createSB();
-      const siteRef = site.wp_cloud_url?.replace('https://', '') ?? site.wp_cloud_site_id;
-      const ipRes = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
-        {
-          method: 'POST',
-          cache: 'no-store',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
-          body: JSON.stringify({ action: 'get-ip', siteId: id }),
-        }
-      );
-      const ipData = await ipRes.text();
-      console.log('IP fetch result:', ipRes.status, ipData.substring(0, 200));
-      if (ipRes.ok) {
-        const data = JSON.parse(ipData);
-        const ip = data?.ip ?? data?.ip_address ?? null;
-        if (ip) {
-          meta = { ...meta, site_ip: ip };
-          await sb.from('sites').update({ metadata: { ...meta, site_ip: ip } }).eq('id', id);
-        }
-      }
-    } catch { /* non-fatal */ }
-  }
   const siteUrl = site.wp_cloud_url;
   const siteDomain = siteUrl?.replace(/^https?:\/\//, '') ?? '';
   const storageUsed = (site.disk_usage_mb ?? 0) / 1024;
@@ -126,7 +100,13 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-gray-100 rounded-xl overflow-hidden mb-4">
             <Metric icon={<Server className="w-3.5 h-3.5" />} label="PHP" value={site.php_version ?? '8.4'} />
             <Metric icon={<MapPin className="w-3.5 h-3.5" />} label="Region" value={regions[site.server_region as string] ?? 'US East'} />
-            <Metric icon={<Globe className="w-3.5 h-3.5" />} label="Site IP" value={meta.site_ip ?? 'Pending'} mono />
+            <div className="bg-white px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-gray-400"><Globe className="w-3.5 h-3.5" /></span>
+                <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Site IP</span>
+              </div>
+              <p className="text-sm font-semibold text-gray-900 truncate font-mono text-xs"><SiteIp siteId={id} initialIp={meta.site_ip} /></p>
+            </div>
             <Metric icon={<Calendar className="w-3.5 h-3.5" />} label="Created" value={formatDate(site.created_at)} />
           </div>
 
