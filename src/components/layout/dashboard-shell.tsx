@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { Avatar } from '@/components/ui/avatar';
 import {
   Globe, Globe2, CreditCard, Mail, MessageCircle, Users,
   LogOut, Menu, X, Settings, Shield, LayoutDashboard,
@@ -41,14 +42,7 @@ function UserAvatar({ user, size = 32 }: { user: DashboardUser; size?: number })
     );
   }
 
-  return (
-    <div
-      className="rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-xs font-semibold"
-      style={{ width: size, height: size }}
-    >
-      {initials}
-    </div>
-  );
+  return <Avatar name={user.full_name || user.email} size={size <= 32 ? 'sm' : size <= 40 ? 'md' : 'lg'} />;
 }
 
 function AvatarDropdown({ user }: { user: DashboardUser }) {

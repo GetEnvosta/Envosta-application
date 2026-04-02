@@ -8,6 +8,7 @@ import {
   Activity, LogOut, Menu, X, ArrowLeft, Tag, PenSquare, MessageSquare, Mail, Percent, AlertTriangle,
 } from 'lucide-react';
 import { useState } from 'react';
+import { Avatar } from '@/components/ui/avatar';
 
 const nav = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -76,9 +77,7 @@ export function AdminShell({
         </Link>
 
         <div className="flex items-center gap-3 px-3 py-2">
-          <div className="w-8 h-8 rounded-full bg-admin-800 text-admin-300 flex items-center justify-center text-xs font-semibold">
-            {(user?.full_name?.[0] || email[0] || '?').toUpperCase()}
-          </div>
+          <Avatar name={user?.full_name || email} size="sm" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{user?.full_name || 'Admin'}</p>
             <p className="text-xs text-admin-400 truncate">{email}</p>

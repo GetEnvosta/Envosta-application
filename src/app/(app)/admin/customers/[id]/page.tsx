@@ -9,6 +9,7 @@ import {
   ArrowLeft, Building2, Clock, CreditCard, ExternalLink, Globe,
   Mail, Phone, Server, Shield, User, FileText, Download, Layers,
 } from 'lucide-react';
+import { Avatar } from '@/components/ui/avatar';
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -43,9 +44,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
       {/* ── Customer Overview ── */}
       <div className="card p-6 mb-6">
         <div className="flex items-start gap-4 mb-5">
-          <div className="w-12 h-12 rounded-full bg-admin-100 text-admin-700 flex items-center justify-center text-lg font-semibold shrink-0">
-            {(user.full_name?.[0] || user.email?.[0] || '?').toUpperCase()}
-          </div>
+          <Avatar name={user.full_name || user.email} size="lg" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-xl font-semibold text-gray-900">{user.full_name || 'Unnamed'}</h1>
