@@ -56,19 +56,11 @@ export function SslStatus({ siteId, domain }: { siteId: string; domain: string |
 
   if (loading) return <Loader2 className="w-4 h-4 animate-spin text-gray-400" />;
 
-  // wp.cloud ssl-info returns various formats — check all known fields
-  const cert = ssl?.certificate ?? ssl;
-  const isActive = cert?.status === 'active'
-    || cert?.status === 'valid'
-    || ssl?.is_valid === true
-    || ssl?.status === 'active'
-    || ssl?.ssl_status === 'active'
-    || ssl?.ssl_status === 'valid'
-    || (ssl?.not_after && new Date(ssl.not_after) > new Date());
-  const expiry = cert?.expiry ?? cert?.not_after ?? ssl?.expires_at ?? ssl?.not_after ?? null;
-
-  // Debug: log raw response to help identify the format
-  if (ssl && !isActive) console.log('SSL raw response:', JSON.stringify(ssl).substring(0, 500));
+  // wp.cloud ssl-info response: { data: { certificate_expiration_date, force_ssl, ca_provider, ... } }
+  const sslData = ssl?.data ?? ssl;
+  const certExpiry = sslData?.certificate_expiration_date ?? sslData?.not_after ?? sslData?.expiry ?? null;
+  const isActive = !!(certExpiry && new Date(certExpiry) > new Date()) || sslData?.force_ssl === '1' || !!sslData?.ssl_certificate_id;
+  const expiry = certExpiry;
 
   return (
     <div>
@@ -80,7 +72,10 @@ export function SslStatus({ siteId, domain }: { siteId: string; domain: string |
               <ShieldCheck className="w-4 h-4 text-emerald-500" />
               <div>
                 <p className="text-sm text-gray-900 font-medium">SSL active</p>
-                {expiry && <p className="text-xs text-gray-500">Expires {new Date(expiry).toLocaleDateString()}, auto-renews</p>}
+                <p className="text-xs text-gray-500">
+                  {sslData?.ca_provider === 'letsencrypt' ? "Let's Encrypt" : sslData?.ca_provider ?? 'Certificate'}
+                  {expiry ? ` — expires ${new Date(expiry).toLocaleDateString()}, auto-renews` : ''}
+                </p>
               </div>
             </>
           ) : ssl ? (
