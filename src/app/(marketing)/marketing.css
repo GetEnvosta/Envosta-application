@@ -8,7 +8,7 @@
 section{position:relative;z-index:1}
 
 /* ── Nav ── */
-.site-nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(8,12,24,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr)}
+.site-nav{position:sticky;top:0;left:0;right:0;z-index:1000;background:rgba(8,12,24,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr)}
 .site-nav .c{display:flex;align-items:center;height:72px}
 
 /* Nav link styles — blue underline on hover and active */
