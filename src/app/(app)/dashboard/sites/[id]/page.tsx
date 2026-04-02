@@ -32,7 +32,31 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const planSlug: string = plan?.slug ?? '';
   const pm = plan?.metadata ?? {};
   const status: string = site.status ?? 'provisioning';
-  const meta = (site as any).metadata ?? {};
+  let meta = (site as any).metadata ?? {};
+
+  // Fetch site IP if missing and site is active
+  if (!meta.site_ip && site.wp_cloud_site_id && status === 'active') {
+    try {
+      const { createClient: createSB } = await import('@/lib/supabase-server');
+      const sb = await createSB();
+      const ipRes = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`, 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
+          body: JSON.stringify({ action: 'get-site', siteId: id }),
+        }
+      );
+      if (ipRes.ok) {
+        const siteData = await ipRes.json();
+        const ip = siteData?.ip_addresses?.[0] ?? siteData?.ip_address ?? null;
+        if (ip) {
+          meta = { ...meta, site_ip: ip };
+          await sb.from('sites').update({ metadata: { ...meta, site_ip: ip } }).eq('id', id);
+        }
+      }
+    } catch { /* non-fatal */ }
+  }
   const siteUrl = site.wp_cloud_url;
   const siteDomain = siteUrl?.replace(/^https?:\/\//, '') ?? '';
   const storageUsed = (site.disk_usage_mb ?? 0) / 1024;
