@@ -77,8 +77,23 @@ export function ConnectedDomainSwitcher({
         return;
       }
     } else if (!newDomainId) {
-      // Just unlinking, no wp.cloud update needed
-      setStatus(null);
+      // Disconnect — revert wp.cloud to temporary domain
+      try {
+        setStatus('Reverting to temporary domain...');
+        const res = await fetch('/api/site-actions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'disconnect-domain', siteId }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setStatus(data.tempDomain ? `Reverted to ${data.tempDomain}` : 'Domain disconnected');
+        } else {
+          setStatus(data.error ?? 'Failed to disconnect');
+        }
+      } catch {
+        setStatus('Domain unlinked from database');
+      }
     }
 
     setSaving(false);

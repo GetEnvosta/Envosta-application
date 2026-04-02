@@ -614,6 +614,39 @@ Deno.serve(async (req) => {
         return json({ success: true, addon: addon?.name });
       }
 
+      // ═══ Disconnect Domain — revert to temp domain ═══
+      case "disconnect-domain": {
+        if (!siteId) return error("siteId is required");
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("sites").select("*").eq("id", siteId).single();
+        if (!svc) return error("Site not found", 404);
+        if (!svc.wp_cloud_site_id) return error("Site not yet provisioned", 400);
+        if (!isServiceRole && svc.user_id !== user!.id) return error("Forbidden", 403);
+
+        // Get original temp domain from provisioning response
+        const tempDomain = (svc as any).metadata?.wp_cloud_response?.domain_name ?? null;
+        if (!tempDomain) return error("No temporary domain found for this site", 400);
+
+        // Revert wp.cloud to temp domain
+        const wpResult = await wpcloudPost(
+          `/api/v1.0/update-site-domain/${WPCLOUD_CLIENT}/${svc.wp_cloud_site_id}/${tempDomain}/0`,
+          {}
+        );
+        console.log("wp.cloud revert domain:", wpResult.status, JSON.stringify(wpResult.data));
+
+        // Unlink domain from site in DB
+        await sb.from("domains").update({ site_id: null }).eq("site_id", svc.id);
+
+        // Update site URL back to temp
+        await sb.from("sites").update({
+          wp_cloud_url: `https://${tempDomain}`,
+          metadata: { ...(svc as any).metadata, domain_name: null },
+        }).eq("id", svc.id);
+
+        await log({ userId: user!.id, serviceId: svc.id, action: "hosting.domain.disconnected", message: `Reverted to ${tempDomain}` });
+        return json({ success: true, tempDomain });
+      }
+
       // ═══ Get Site IP ═══
       case "get-ip": {
         if (!siteId) return error("siteId is required");
