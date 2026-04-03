@@ -133,14 +133,14 @@ export default async function DomainsPage({
                   <td className="px-5 py-3.5 text-gray-500">{d.auto_renew ? 'Yes' : 'No'}</td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
+                      <Link href={`/admin/domains/${d.id}`} className="text-xs text-admin-600 hover:text-admin-700 font-medium">
+                        Manage
+                      </Link>
                       {(d.users as any)?.id && (
-                        <Link href={`/admin/customers/${(d.users as any).id}`} className="text-xs text-admin-600 hover:text-admin-700">
+                        <Link href={`/admin/customers/${(d.users as any).id}`} className="text-xs text-gray-500 hover:text-gray-700">
                           Customer
                         </Link>
                       )}
-                      <a href={`https://manage.opensrs.com`} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-500 hover:text-gray-700">
-                        OpenSRS
-                      </a>
                     </div>
                   </td>
                 </tr>

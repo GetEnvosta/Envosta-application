@@ -42,6 +42,19 @@ export async function getDomainById(id: string, userId: string) {
 }
 
 /**
+ * Admin: get domain by id (no user scoping).
+ */
+export async function getAdminDomainById(id: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('domains')
+    .select('*, users(id, full_name, email)')
+    .eq('id', id)
+    .single();
+  return data;
+}
+
+/**
  * Admin: count of registered domains.
  */
 export async function getRegisteredDomainsCount() {
