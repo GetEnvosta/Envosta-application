@@ -440,10 +440,9 @@ Deno.serve(async (req) => {
         return error(`Nameserver update failed: ${parsed.responseText}`, 502);
       }
 
-      const { data: domRec } = await sb.from("domains").select("metadata").eq("user_id", userId).eq("domain_name", domainName).maybeSingle();
+      const { data: domRec } = await sb.from("domains").select("metadata").eq("domain_name", domainName).maybeSingle();
       await sb.from("domains")
         .update({ metadata: { ...(domRec?.metadata as any ?? {}), nameservers } })
-        .eq("user_id", userId)
         .eq("domain_name", domainName);
 
       await log({ userId, action: "domain.nameservers.updated", message: `${domainName}: ${nameservers.join(", ")}`, ms });
@@ -465,13 +464,12 @@ Deno.serve(async (req) => {
         return error(`DNS setup failed: ${parsed.responseText}`, 502);
       }
 
-      const { data: dnsRec } = await sb.from("domains").select("metadata").eq("user_id", userId).eq("domain_name", domainName).maybeSingle();
+      const { data: dnsRec } = await sb.from("domains").select("metadata").eq("domain_name", domainName).maybeSingle();
       await sb.from("domains")
         .update({
           status: "registered",
           metadata: { ...(dnsRec?.metadata as any ?? {}), dns_records: records, dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() },
         })
-        .eq("user_id", userId)
         .eq("domain_name", domainName);
 
       await log({ userId, action: "domain.dns.setup.complete", message: `${domainName} → ${siteIp} (${records.length} records)`, ms });
@@ -529,12 +527,11 @@ Deno.serve(async (req) => {
         return error(`DNS update failed: ${parsed.responseText}`, 502);
       }
 
-      const { data: dnsRec } = await sb.from("domains").select("metadata").eq("user_id", userId).eq("domain_name", domainName).maybeSingle();
+      const { data: dnsRec } = await sb.from("domains").select("metadata").eq("domain_name", domainName).maybeSingle();
       await sb.from("domains")
         .update({
           metadata: { ...(dnsRec?.metadata as any ?? {}), dns_records: records, dns_updated_at: new Date().toISOString() },
         })
-        .eq("user_id", userId)
         .eq("domain_name", domainName);
 
       await log({ userId, action: "domain.dns.updated", message: `${domainName}: ${records.length} records`, ms });
@@ -548,7 +545,7 @@ Deno.serve(async (req) => {
       const { dnsMode } = body;
       if (dnsMode !== "auto" && dnsMode !== "custom") return error('dnsMode must be "auto" or "custom"');
 
-      const { data: domRec } = await sb.from("domains").select("metadata, site_id").eq("user_id", userId).eq("domain_name", domainName).maybeSingle();
+      const { data: domRec } = await sb.from("domains").select("metadata, site_id").eq("domain_name", domainName).maybeSingle();
       const meta = (domRec?.metadata as any) ?? {};
 
       if (dnsMode === "auto" && siteIp) {
@@ -564,7 +561,7 @@ Deno.serve(async (req) => {
 
         await sb.from("domains")
           .update({ metadata: { ...meta, dns_mode: "auto", dns_records: records, dns_setup: "complete", site_ip: siteIp, dns_setup_at: new Date().toISOString() } })
-          .eq("user_id", userId).eq("domain_name", domainName);
+          .eq("domain_name", domainName);
 
         await log({ userId, action: "domain.dns.mode.auto", message: `${domainName}: reset to auto (${records.length} records)`, ms });
         return json({ domainName, dnsMode: "auto", records: records.length, success: true });
@@ -573,7 +570,7 @@ Deno.serve(async (req) => {
       // Just store the mode (custom, or auto without IP)
       await sb.from("domains")
         .update({ metadata: { ...meta, dns_mode: dnsMode } })
-        .eq("user_id", userId).eq("domain_name", domainName);
+        .eq("domain_name", domainName);
 
       const ms = Date.now() - t0;
       await log({ userId, action: "domain.dns.mode.updated", message: `${domainName}: ${dnsMode}`, ms });
@@ -696,10 +693,9 @@ Deno.serve(async (req) => {
         return error(`WHOIS privacy update failed: ${parsed.responseText}`, 502);
       }
 
-      const { data: wpRec } = await sb.from("domains").select("metadata").eq("user_id", userId).eq("domain_name", domainName).maybeSingle();
+      const { data: wpRec } = await sb.from("domains").select("metadata").eq("domain_name", domainName).maybeSingle();
       await sb.from("domains")
         .update({ metadata: { ...(wpRec?.metadata as any ?? {}), whois_privacy: enabled } })
-        .eq("user_id", userId)
         .eq("domain_name", domainName);
 
       await log({ userId, action: "domain.whois_privacy.updated", message: `${domainName}: ${state}`, ms });
