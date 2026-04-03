@@ -8,7 +8,6 @@ interface Backup {
   type: string;
   date: string;
   size?: string;
-  status?: string;
 }
 
 export function SiteBackups({ siteId, wpCloudSiteId }: { siteId: string; wpCloudSiteId: string | null }) {
@@ -30,38 +29,58 @@ export function SiteBackups({ siteId, wpCloudSiteId }: { siteId: string; wpCloud
         body: JSON.stringify({ action: 'list-backups', siteId }),
       });
       const data = await res.json();
-      if (res.ok && Array.isArray(data.backups)) {
-        setBackups(data.backups.map((b: any) => ({
-          id: b.id ?? b.backup_id ?? String(Date.now()),
-          type: b.type ?? 'daily',
-          date: b.date ?? b.created_at ?? b.timestamp ?? 'Unknown',
-          size: b.size ?? null,
-          status: b.status ?? 'completed',
+      // wp.cloud returns various formats — normalize
+      const rawBackups = data?.backups ?? data?.data?.backups ?? (Array.isArray(data) ? data : []);
+      if (Array.isArray(rawBackups)) {
+        setBackups(rawBackups.map((b: any, i: number) => ({
+          id: b.id ?? b.backup_id ?? b.name ?? String(i),
+          type: b.type ?? b.backup_type ?? 'daily',
+          date: b.date ?? b.created_at ?? b.timestamp ?? b.name ?? 'Unknown',
+          size: b.size ?? b.file_size ?? null,
         })));
       }
     } catch { /* non-fatal */ }
     setLoading(false);
   }
 
-  async function handleAction(action: string, backupId?: string) {
-    setActionLoading(action + (backupId ?? ''));
+  async function handleCreate() {
+    setActionLoading('create');
     setMessage('');
-
     try {
-      // For create-backup, we call a different approach
-      if (action === 'create') {
-        setMessage('Backup creation requested. This may take a few minutes.');
-        // wp.cloud handles this — we'd call on-demand-backup/create
-      } else if (action === 'restore') {
-        if (!confirm('Restore this backup? This will overwrite your current site with the backup data.')) {
-          setActionLoading(null);
-          return;
-        }
-        setMessage('Restore requested. This may take several minutes. Do not make changes to your site during the restore.');
+      const res = await fetch('/api/site-actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create-backup', siteId, value: 'fs' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage('Backup started. It may take a few minutes to complete.');
+        setTimeout(() => fetchBackups(), 10000);
+      } else {
+        setMessage(data.error ?? 'Failed to create backup');
       }
-    } catch {
-      setMessage('Action failed. Please try again.');
-    }
+    } catch { setMessage('Connection error'); }
+    setActionLoading(null);
+  }
+
+  async function handleDownload(backupId: string) {
+    setActionLoading('download-' + backupId);
+    setMessage('');
+    try {
+      const res = await fetch('/api/site-actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'download-backup', siteId, value: backupId }),
+      });
+      const data = await res.json();
+      if (res.ok && data?.url) {
+        window.open(data.url, '_blank');
+      } else if (res.ok) {
+        setMessage('Backup download link retrieved. Check your browser downloads.');
+      } else {
+        setMessage(data.error ?? 'Failed to get download link');
+      }
+    } catch { setMessage('Connection error'); }
     setActionLoading(null);
   }
 
@@ -74,10 +93,10 @@ export function SiteBackups({ siteId, wpCloudSiteId }: { siteId: string; wpCloud
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-sm text-gray-500">Automatic daily backups included with your plan.</p>
+        <p className="text-sm text-gray-500">Automatic daily backups included.</p>
         <button
-          onClick={() => handleAction('create')}
-          disabled={actionLoading === 'create'}
+          onClick={handleCreate}
+          disabled={!!actionLoading}
           className="btn-secondary text-xs py-1.5 px-3 inline-flex items-center gap-1"
         >
           {actionLoading === 'create' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
@@ -86,45 +105,36 @@ export function SiteBackups({ siteId, wpCloudSiteId }: { siteId: string; wpCloud
       </div>
 
       {message && (
-        <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700 mb-3">{message}</div>
+        <div className={`rounded-lg p-3 text-sm mb-3 ${message.includes('fail') || message.includes('error') ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-blue-50 border border-blue-200 text-blue-700'}`}>
+          {message}
+        </div>
       )}
 
       {backups.length === 0 ? (
         <div className="text-center py-6">
           <HardDrive className="w-6 h-6 text-gray-300 mx-auto mb-2" />
-          <p className="text-sm text-gray-400">No backups available yet. Backups run daily.</p>
+          <p className="text-sm text-gray-400">No backups yet. Daily backups will appear here.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Date</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Type</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Size</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {backups.map(b => (
-                <tr key={b.id} className="hover:bg-gray-50/50">
-                  <td className="px-4 py-2.5 text-gray-900">{b.date}</td>
-                  <td className="px-4 py-2.5 text-gray-600 capitalize">{b.type}</td>
-                  <td className="px-4 py-2.5 text-gray-600">{b.size ?? '—'}</td>
-                  <td className="px-4 py-2.5">
-                    <button
-                      onClick={() => handleAction('restore', b.id)}
-                      disabled={actionLoading === 'restore' + b.id}
-                      className="text-xs text-brand-600 hover:text-brand-700 font-medium inline-flex items-center gap-1 mr-3"
-                    >
-                      {actionLoading === 'restore' + b.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
-                      Restore
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-2">
+          {backups.slice(0, 10).map(b => (
+            <div key={b.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{b.date}</p>
+                <p className="text-xs text-gray-500 capitalize">{b.type}{b.size ? ` · ${b.size}` : ''}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleDownload(b.id)}
+                  disabled={!!actionLoading}
+                  className="text-xs text-gray-500 hover:text-gray-700 inline-flex items-center gap-1"
+                >
+                  {actionLoading === 'download-' + b.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                  Download
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

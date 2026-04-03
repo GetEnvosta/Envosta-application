@@ -763,6 +763,20 @@ Deno.serve(async (req) => {
         return json({ success: result.ok, data: result.data });
       }
 
+      // ═══ Download Backup URL ═══
+      case "download-backup": {
+        if (!siteId) return error("siteId is required");
+        if (!value) return error("backup_id (value) is required");
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("sites").select("id, wp_cloud_site_id, user_id").eq("id", siteId).single();
+        if (!svc?.wp_cloud_site_id) return error("Site not found or no wp.cloud ID", 404);
+        if (!isServiceRole && svc.user_id !== user!.id) return error("Forbidden", 403);
+
+        const result = await wpcloudGet(`/api/v1.0/site-backup-get/${WPCLOUD_CLIENT}/${svc.wp_cloud_site_id}/${value}`);
+        await log({ userId: user!.id, serviceId: siteId, action: "backup.download", message: `Backup ${value}` });
+        return json(result.data);
+      }
+
       // ═══ SFTP Credentials ═══
       case "sftp-credentials": {
         if (!siteId) return error("siteId is required");
