@@ -16,6 +16,7 @@ import { SiteAccess } from '@/components/sites/site-access';
 import { CancelSubscriptionButton } from '@/components/admin/cancel-subscription-button';
 import { AdminSiteActions } from '@/components/admin/admin-site-actions';
 import { AdminErrorLogs } from '@/components/admin/admin-error-logs';
+import { AdminWpUser } from '@/components/admin/admin-wp-user';
 import { SiteIp } from '@/components/sites/site-ip';
 
 export default async function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -208,6 +209,11 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             subscriptionId={service.subscription_id}
             status={service.status}
           />
+          {service.wp_cloud_site_id && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <AdminWpUser siteId={service.id} />
+            </div>
+          )}
         </div>
 
         {/* Activity log */}
