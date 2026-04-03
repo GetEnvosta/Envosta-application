@@ -575,6 +575,10 @@ Deno.serve(async (req) => {
       const { autoRenew } = body;
       if (typeof autoRenew !== "boolean") return error("autoRenew (boolean) is required");
 
+      // Unlock domain first (modify requires no clientUpdateProhibited)
+      const unlockResult = await setDomainLock(domainName, false);
+      console.log("OpenSRS unlock for auto-renew:", unlockResult.responseCode, unlockResult.responseText);
+
       const xml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
 <!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
 <OPS_envelope>
@@ -602,6 +606,9 @@ Deno.serve(async (req) => {
       const responseXml = await opensrsRequest(xml);
       const parsed = parseResponse(responseXml);
       const ms = Date.now() - t0;
+
+      // Re-lock domain regardless
+      await setDomainLock(domainName, true);
 
       console.log("OpenSRS auto-renew toggle:", parsed.responseCode, parsed.responseText);
 

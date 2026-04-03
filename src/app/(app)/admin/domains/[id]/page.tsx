@@ -77,6 +77,7 @@ export default async function AdminDomainDetailPage({ params }: { params: Promis
             domainName={domain.domain_name}
             initialAutoRenew={domain.auto_renew ?? true}
             initialWhoisPrivacy={meta.whois_privacy ?? true}
+            expiresAt={domain.expires_at}
           />
         </div>
       </div>

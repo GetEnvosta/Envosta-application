@@ -28,10 +28,11 @@ function Toggle({ enabled, loading, color, onToggle }: {
   );
 }
 
-export function DomainSettings({ domainName, initialAutoRenew, initialWhoisPrivacy }: {
+export function DomainSettings({ domainName, initialAutoRenew, initialWhoisPrivacy, expiresAt }: {
   domainName: string;
   initialAutoRenew: boolean;
   initialWhoisPrivacy: boolean;
+  expiresAt?: string | null;
 }) {
   // Auto-renew
   const [autoRenew, setAutoRenew] = useState(initialAutoRenew);
@@ -138,7 +139,9 @@ export function DomainSettings({ domainName, initialAutoRenew, initialWhoisPriva
             <RefreshCw className="w-4 h-4 text-gray-400 shrink-0" />
             <div className="min-w-0">
               <p className="text-xs font-medium text-gray-900">Auto-Renew</p>
-              <p className="text-[11px] text-gray-500 truncate">{autoRenew ? 'Enabled' : 'Disabled'}</p>
+              <p className="text-[11px] text-gray-500 truncate">
+                {autoRenew ? 'Enabled' : expiresAt ? `Expires ${new Date(expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : 'Disabled'}
+              </p>
             </div>
           </div>
           <Toggle enabled={autoRenew} loading={arLoading} color="#22c55e" onToggle={toggleAutoRenew} />

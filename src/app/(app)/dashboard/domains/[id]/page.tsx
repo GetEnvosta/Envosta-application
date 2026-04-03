@@ -71,6 +71,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
           domainName={domain.domain_name}
           initialAutoRenew={domain.auto_renew ?? true}
           initialWhoisPrivacy={meta.whois_privacy ?? true}
+          expiresAt={domain.expires_at}
         />
       </div>
 
