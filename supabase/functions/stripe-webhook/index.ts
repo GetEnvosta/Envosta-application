@@ -87,6 +87,22 @@ Deno.serve(async (req) => {
       // - "trialing" with a default_payment_method = card collected (SetupIntent succeeded)
       const hasPaymentMethod = !!sub.default_payment_method;
       const shouldProvision = (sub.status === "active" || (sub.status === "trialing" && hasPaymentMethod));
+
+      // Set the subscription's payment method as the customer's default (for future charges)
+      if (hasPaymentMethod && custStripeId) {
+        try {
+          const pmId = typeof sub.default_payment_method === "string" ? sub.default_payment_method : sub.default_payment_method?.id;
+          if (pmId) {
+            await stripe.customers.update(custStripeId, {
+              invoice_settings: { default_payment_method: pmId },
+            });
+            console.log("Set customer default payment method:", pmId);
+          }
+        } catch (pmErr) {
+          console.error("Failed to set default PM (non-fatal):", pmErr);
+        }
+      }
+
       if (shouldProvision && dbSub && plan?.id && !isDomainRenewal && !isDomainPurchase && !isDomainTld) {
         const { data: existing } = await sb.from("sites").select("id").eq("subscription_id", dbSub.id).maybeSingle();
         if (!existing) {
