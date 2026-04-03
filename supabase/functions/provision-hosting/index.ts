@@ -112,7 +112,12 @@ Deno.serve(async (req) => {
     const wpAdminPassword = `Env${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}!`;
     const wpBody: Record<string, unknown> = {
       admin_email: adminEmail ?? userEmail ?? "admin@envosta.com",
-      admin_user: (adminEmail ?? userEmail ?? "admin").split("@")[0].replace(/[^a-z0-9_]/gi, "_").slice(0, 30) || "envosta_admin",
+      admin_user: (() => {
+        const raw = (adminEmail ?? userEmail ?? "admin").split("@")[0].replace(/[^a-z0-9_]/gi, "_").toLowerCase();
+        // wp.cloud requires: min 5 chars, not all numbers
+        const padded = raw.length < 5 ? raw + "_admin" : raw;
+        return padded.slice(0, 30) || "envosta_admin";
+      })(),
       admin_pass: wpAdminPassword,
       php_version: php,
       space_quota: `${storageGb}G`,
