@@ -7,6 +7,7 @@ import { ArrowLeft, Globe, Server, ExternalLink, User } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { DnsManager } from '@/components/domains/dns-manager';
 import { DomainSettings } from '@/components/domains/domain-settings';
+import { AttachDomainSubscription } from '@/components/admin/attach-domain-subscription';
 
 export default async function AdminDomainDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -79,6 +80,16 @@ export default async function AdminDomainDetailPage({ params }: { params: Promis
             initialWhoisPrivacy={meta.whois_privacy ?? true}
             expiresAt={domain.expires_at}
           />
+
+          {/* Subscription */}
+          <div className="mt-4">
+            <AttachDomainSubscription
+              domainName={domain.domain_name}
+              domainId={domain.id}
+              userId={domain.user_id}
+              renewalSubId={meta.renewal_stripe_subscription_id}
+            />
+          </div>
         </div>
       </div>
 
