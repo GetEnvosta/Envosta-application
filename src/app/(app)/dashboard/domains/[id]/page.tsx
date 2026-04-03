@@ -84,6 +84,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
           siteId={domain.site_id}
           initialDnsMode={meta.dns_mode}
           currentNameservers={Array.isArray(meta.nameservers) ? meta.nameservers : []}
+          isTransferred={!!meta.transfer}
         />
       </div>
     </div>

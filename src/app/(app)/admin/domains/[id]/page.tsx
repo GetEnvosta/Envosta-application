@@ -102,6 +102,7 @@ export default async function AdminDomainDetailPage({ params }: { params: Promis
           siteId={domain.site_id}
           initialDnsMode={meta.dns_mode}
           currentNameservers={Array.isArray(meta.nameservers) ? meta.nameservers : []}
+          isTransferred={!!meta.transfer}
         />
       </div>
     </div>

@@ -36,17 +36,19 @@ function isEnvostaNameservers(ns: string[]): boolean {
   return ns.length === 0 || ns.every((n) => n.includes('systemdns.com'));
 }
 
-export function DnsManager({ domainId, domainName, initialRecords, siteId, initialDnsMode, currentNameservers }: {
+export function DnsManager({ domainId, domainName, initialRecords, siteId, initialDnsMode, currentNameservers, isTransferred }: {
   domainId: string;
   domainName: string;
   initialRecords?: any[];
   siteId?: string | null;
   initialDnsMode?: string;
   currentNameservers?: string[];
+  isTransferred?: boolean;
 }) {
   const router = useRouter();
   const ns = currentNameservers ?? [];
-  const usingEnvosta = isEnvostaNameservers(ns);
+  // For transferred domains with no stored nameservers, assume external
+  const usingEnvosta = isTransferred && ns.length === 0 ? false : isEnvostaNameservers(ns);
 
   // Top-level: Envosta DNS vs External DNS
   const [dnsProvider, setDnsProvider] = useState<'envosta' | 'external'>(usingEnvosta ? 'envosta' : 'external');
