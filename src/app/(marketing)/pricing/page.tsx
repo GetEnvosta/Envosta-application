@@ -136,9 +136,9 @@ export default function PricingPage() {
             </a>
           </div>
           <div className="toggle-wrap rv">
-            <span className="toggle-label" id="lbl-monthly">Monthly</span>
-            <div className="toggle on" id="billing-toggle"></div>
-            <span className="toggle-label active" id="lbl-annual">Annual</span>
+            <span className="toggle-label active" id="lbl-monthly">Monthly</span>
+            <div className="toggle" id="billing-toggle"></div>
+            <span className="toggle-label" id="lbl-annual">Annual</span>
             <span className="save-badge">2 months free</span>
           </div>
         </div>
@@ -152,10 +152,10 @@ export default function PricingPage() {
           <div className="p-card-name">Minimum</div>
           <div className="p-card-price">
             <span className="currency">$</span>
-            <span className="amount price-val" data-monthly="50" data-annual="42">42</span>
+            <span className="amount price-val" data-monthly="50" data-annual="42">50</span>
             <span className="period">CAD/mo</span>
           </div>
-          <div className="annual-note">Billed annually at $500 CAD/yr</div>
+          <div className="annual-note" style={{ display: 'none' }}>Billed annually at $500 CAD/yr</div>
           <p className="p-card-desc">Everything you need to launch a fast, secure WordPress site with hands-on support.</p>
           <ul>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>10 GB SSD storage</li>
@@ -169,7 +169,7 @@ export default function PricingPage() {
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Domain &amp; SSL setup</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Free site migration</li>
           </ul>
-          <a href="/get-started?plan=minimum&billing=annual" className="bp ghost">Get Started</a>
+          <a href="/get-started?plan=minimum" className="bp ghost">Get Started</a>
         </div>
 
         {/* Growth (Featured) */}
@@ -177,10 +177,10 @@ export default function PricingPage() {
           <div className="p-card-name">Growth</div>
           <div className="p-card-price">
             <span className="currency">$</span>
-            <span className="amount price-val" data-monthly="129" data-annual="108">108</span>
+            <span className="amount price-val" data-monthly="129" data-annual="108">129</span>
             <span className="period">CAD/mo</span>
           </div>
-          <div className="annual-note">Billed annually at $1,290 CAD/yr</div>
+          <div className="annual-note" style={{ display: 'none' }}>Billed annually at $1,290 CAD/yr</div>
           <p className="p-card-desc">For growing businesses that need more storage, staging, and hands-on support.</p>
           <ul>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>30 GB SSD storage</li>
@@ -195,7 +195,7 @@ export default function PricingPage() {
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Performance optimization</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>WooCommerce setup</li>
           </ul>
-          <a href="/get-started?plan=growth&billing=annual" className="bp blue">Get Started</a>
+          <a href="/get-started?plan=growth" className="bp blue">Get Started</a>
         </div>
 
         {/* Performance */}
@@ -203,10 +203,10 @@ export default function PricingPage() {
           <div className="p-card-name">Performance</div>
           <div className="p-card-price">
             <span className="currency">$</span>
-            <span className="amount price-val" data-monthly="350" data-annual="292">292</span>
+            <span className="amount price-val" data-monthly="350" data-annual="292">350</span>
             <span className="period">CAD/mo</span>
           </div>
-          <div className="annual-note">Billed annually at $3,500 CAD/yr</div>
+          <div className="annual-note" style={{ display: 'none' }}>Billed annually at $3,500 CAD/yr</div>
           <p className="p-card-desc">For enterprises that need maximum resources, priority support, and a dedicated team.</p>
           <ul>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>100 GB SSD storage</li>
@@ -222,7 +222,7 @@ export default function PricingPage() {
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Dedicated account manager</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Launch review &amp; go-live checklist</li>
           </ul>
-          <a href="/get-started?plan=performance&billing=annual" className="bp ghost">Get Started</a>
+          <a href="/get-started?plan=performance" className="bp ghost">Get Started</a>
         </div>
 
       </div></section>
