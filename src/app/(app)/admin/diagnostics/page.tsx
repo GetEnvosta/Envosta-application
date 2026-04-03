@@ -3,7 +3,8 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase-server';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { AlertTriangle, Server, Globe, CreditCard, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Server, Globe, CreditCard, CheckCircle, ShoppingCart } from 'lucide-react';
+import { getAbandonedCheckouts } from '@/services/subscriptions';
 
 export default async function DiagnosticsPage() {
   const supabase = await createClient();
@@ -71,6 +72,9 @@ export default async function DiagnosticsPage() {
     .is('site_id', null)
     .order('created_at', { ascending: false })
     .limit(20);
+
+  // 7. Abandoned checkouts (incomplete subscriptions)
+  const abandonedCheckouts = await getAbandonedCheckouts(20);
 
   const totalIssues = hostingSubsNoSite.length + domainSubsNoDomain.length + (stuckSites?.length ?? 0) + (failedSites?.length ?? 0) + (problemDomains?.length ?? 0);
 
@@ -185,6 +189,24 @@ export default async function DiagnosticsPage() {
             primary={d.domain_name}
             secondary={(d.users as any)?.email ?? 'Unknown'}
             date={d.created_at}
+          />
+        ))}
+      </DiagCard>
+
+      {/* Abandoned checkouts */}
+      <DiagCard
+        icon={<ShoppingCart className="w-4 h-4" />}
+        title="Abandoned Checkouts"
+        count={abandonedCheckouts.length}
+        description="Customers who started checkout but didn't complete payment. These auto-cancel after the configured Stripe timeout."
+        severity="low"
+      >
+        {abandonedCheckouts.map((s: any) => (
+          <DiagRow key={s.id}
+            primary={(s.users as any)?.email ?? 'Unknown'}
+            secondary={`${s.products?.name ?? 'Unknown product'} — created ${formatDate(s.created_at)}`}
+            date={s.created_at}
+            link={(s.users as any)?.id ? `/admin/customers/${(s.users as any).id}` : undefined}
           />
         ))}
       </DiagCard>

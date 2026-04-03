@@ -71,6 +71,32 @@ export async function getAllActiveSubscriptions() {
 }
 
 /**
+ * Admin: count of abandoned checkouts (incomplete subscriptions).
+ */
+export async function getAbandonedCheckoutCount() {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from('subscriptions')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'incomplete');
+  return count ?? 0;
+}
+
+/**
+ * Admin: recent abandoned checkouts with user info.
+ */
+export async function getAbandonedCheckouts(limit = 20) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('subscriptions')
+    .select('*, products(name, type), users(full_name, email)')
+    .eq('status', 'incomplete')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  return data ?? [];
+}
+
+/**
  * Admin: all subscriptions with user + product info.
  */
 export async function getAllSubscriptionsAdmin() {

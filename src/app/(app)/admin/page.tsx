@@ -1,10 +1,10 @@
 export const revalidate = 5;
 import { getDashboardCounts, getRecentCustomers, getRecentActivity } from '@/services/admin';
-import { getAllActiveSubscriptions } from '@/services/subscriptions';
+import { getAllActiveSubscriptions, getAbandonedCheckoutCount } from '@/services/subscriptions';
 import { getRecentTicketsByType } from '@/services/tickets';
 import { formatCents, formatDate } from '@/lib/utils';
 import Link from 'next/link';
-import { Users, Server, Globe, DollarSign, ArrowRight, MessageSquare, Sparkles, Phone } from 'lucide-react';
+import { Users, Server, Globe, DollarSign, ArrowRight, MessageSquare, Sparkles, Phone, ShoppingCart } from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
 
 export default async function AdminDashboardPage() {
@@ -13,6 +13,7 @@ export default async function AdminDashboardPage() {
     recentUsers,
     recentLogs,
     activeSubscriptions,
+    abandonedCount,
     studioTickets,
     supportTickets,
     salesTickets,
@@ -21,6 +22,7 @@ export default async function AdminDashboardPage() {
     getRecentCustomers(10),
     getRecentActivity(10),
     getAllActiveSubscriptions(),
+    getAbandonedCheckoutCount(),
     getRecentTicketsByType('studio', 5),
     getRecentTicketsByType('support', 5),
     getRecentTicketsByType('sales', 5),
@@ -35,6 +37,7 @@ export default async function AdminDashboardPage() {
     { label: 'Active services', value: servicesCount, icon: Server, color: 'cyan' as const },
     { label: 'Active domains', value: domainsCount, icon: Globe, color: 'purple' as const },
     { label: 'Monthly revenue', value: formatCents(mrr), icon: DollarSign, sub: 'MRR', color: 'green' as const },
+    { label: 'Abandoned carts', value: abandonedCount, icon: ShoppingCart, color: 'amber' as const },
   ];
 
   return (
@@ -47,7 +50,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         {stats.map(s => (
           <StatCard key={s.label} {...s} />
         ))}
