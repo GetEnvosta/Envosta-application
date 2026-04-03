@@ -5,6 +5,7 @@ import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { AlertTriangle, Server, Globe, CreditCard, CheckCircle, ShoppingCart } from 'lucide-react';
 import { getAbandonedCheckouts } from '@/services/subscriptions';
+import { ExternalSyncCheck } from '@/components/admin/external-sync-check';
 
 export default async function DiagnosticsPage() {
   const supabase = await createClient();
@@ -90,6 +91,9 @@ export default async function DiagnosticsPage() {
           {totalIssues === 0 ? 'All clear' : `${totalIssues} issues found`}
         </div>
       </div>
+
+      {/* External service sync */}
+      <ExternalSyncCheck />
 
       {/* Hosting subscriptions without a site */}
       <DiagCard
