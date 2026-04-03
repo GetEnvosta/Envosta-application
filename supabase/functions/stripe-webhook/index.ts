@@ -82,7 +82,12 @@ Deno.serve(async (req) => {
       const isDomainRenewal = sub.metadata?.type === "domain_renewal";
       const isDomainPurchase = sub.metadata?.is_domain_purchase === "true";
       const isDomainTld = plan?.type === "domain_tld";
-      if ((sub.status === "active" || sub.status === "trialing") && dbSub && plan?.id && !isDomainRenewal && !isDomainPurchase && !isDomainTld) {
+      // Only provision when payment is confirmed:
+      // - "active" = paid subscription
+      // - "trialing" with a default_payment_method = card collected (SetupIntent succeeded)
+      const hasPaymentMethod = !!sub.default_payment_method;
+      const shouldProvision = (sub.status === "active" || (sub.status === "trialing" && hasPaymentMethod));
+      if (shouldProvision && dbSub && plan?.id && !isDomainRenewal && !isDomainPurchase && !isDomainTld) {
         const { data: existing } = await sb.from("sites").select("id").eq("subscription_id", dbSub.id).maybeSingle();
         if (!existing) {
           const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.id).maybeSingle();
