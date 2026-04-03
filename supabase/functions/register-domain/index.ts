@@ -619,12 +619,11 @@ Deno.serve(async (req) => {
 
       await sb.from("domains")
         .update({ auto_renew: autoRenew })
-        .eq("user_id", userId)
         .eq("domain_name", domainName);
 
       // Sync Stripe renewal subscription: pause when off, resume when on
       try {
-        const { data: domRec } = await sb.from("domains").select("metadata").eq("user_id", userId).eq("domain_name", domainName).maybeSingle();
+        const { data: domRec } = await sb.from("domains").select("metadata").eq("domain_name", domainName).maybeSingle();
         const renewalSubId = (domRec?.metadata as any)?.renewal_stripe_subscription_id;
         if (renewalSubId) {
           const stripe = getStripe();
