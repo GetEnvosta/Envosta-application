@@ -42,16 +42,34 @@ export async function GET() {
     stripe.customers.retrieve(customerId),
   ]);
 
+  let allMethods = methods.data;
+
+  // Also check subscriptions for attached payment methods not on the customer directly
+  if (allMethods.length === 0) {
+    try {
+      const subs = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 10 });
+      for (const sub of subs.data) {
+        const pmId = typeof sub.default_payment_method === 'string' ? sub.default_payment_method : sub.default_payment_method?.id;
+        if (pmId && !allMethods.find(m => m.id === pmId)) {
+          try {
+            const pm = await stripe.paymentMethods.retrieve(pmId);
+            if (pm.card) allMethods.push(pm);
+          } catch { /* PM might be detached */ }
+        }
+      }
+    } catch { /* non-fatal */ }
+  }
+
   const defaultPmId = (customer as Stripe.Customer).invoice_settings?.default_payment_method;
 
   return NextResponse.json({
-    methods: methods.data.map((pm) => ({
+    methods: allMethods.map((pm) => ({
       id: pm.id,
       brand: pm.card?.brand ?? 'card',
       last4: pm.card?.last4 ?? '****',
       expMonth: pm.card?.exp_month,
       expYear: pm.card?.exp_year,
-      isDefault: pm.id === defaultPmId,
+      isDefault: pm.id === defaultPmId || (allMethods.length === 1),
     })),
     defaultPaymentMethod: defaultPmId ?? null,
   });
