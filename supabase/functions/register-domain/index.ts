@@ -209,8 +209,18 @@ Deno.serve(async (req) => {
     if (user) {
       userId = user.id;
       userEmail = user.email ?? "domains@envosta.com";
+
+      // Admin/impersonation: if bodyUserId differs, check if caller is admin and use target user
+      if (bodyUserId && bodyUserId !== user.id) {
+        const sbAdmin = supabaseAdmin();
+        const { data: adminCheck } = await sbAdmin.from("users").select("role").eq("id", user.id).single();
+        if (adminCheck?.role === "admin") {
+          const { data: target } = await sbAdmin.from("users").select("id, email").eq("id", bodyUserId).maybeSingle();
+          if (target) { userId = target.id; userEmail = target.email ?? "domains@envosta.com"; }
+        }
+      }
     } else if (bodyUserId && isServiceRole) {
-      // Only accept bodyUserId from trusted server-to-server calls (webhook, admin API)
+      // Service role calls (webhook, admin API)
       const sb2 = supabaseAdmin();
       const { data: profile } = await sb2.from("users").select("id, email").eq("id", bodyUserId).maybeSingle();
       if (!profile) return error("User not found", 404);
