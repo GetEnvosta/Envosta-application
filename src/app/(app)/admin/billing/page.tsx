@@ -1,5 +1,5 @@
 export const revalidate = 5;
-import { getAllActiveSubscriptions, getAllSubscriptionsAdmin } from '@/services/subscriptions';
+import { getAllActiveSubscriptions, getAllSubscriptionsAdmin, toMonthly } from '@/services/subscriptions';
 import { getAdminBillingStats, getAdminRecentInvoices } from '@/services/billing';
 import { formatCents } from '@/lib/utils';
 import { DollarSign, Receipt, AlertCircle, Users, ExternalLink } from 'lucide-react';
@@ -21,7 +21,7 @@ export default async function AdminBillingPage() {
   ]);
 
   const mrr = activeSubscriptions.reduce(
-    (sum: number, sub: any) => sum + (sub.products?.price_cad ?? 0), 0
+    (sum: number, sub: any) => sum + toMonthly(sub), 0
   );
 
   const activeCount = allSubscriptions.filter((s: any) => s.status === 'active').length;

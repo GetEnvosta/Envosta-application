@@ -65,9 +65,17 @@ export async function getAllActiveSubscriptions() {
   const supabase = await createClient();
   const { data } = await supabase
     .from('subscriptions')
-    .select('*, products(price_cad)')
+    .select('*, products(price_cad, type)')
     .eq('status', 'active');
   return data ?? [];
+}
+
+/** Convert a subscription's price to monthly equivalent based on billing period. */
+export function toMonthly(sub: any): number {
+  const price = sub.products?.price_cad ?? 0;
+  const period = sub.billing_period ?? 'monthly';
+  const divisors: Record<string, number> = { monthly: 1, yearly: 12, '2yr': 24, '3yr': 36 };
+  return Math.round(price / (divisors[period] ?? 1));
 }
 
 /**

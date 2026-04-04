@@ -1,6 +1,6 @@
 export const revalidate = 5;
 import { getDashboardCounts, getRecentCustomers, getRecentActivity } from '@/services/admin';
-import { getAllActiveSubscriptions, getAbandonedCheckoutCount } from '@/services/subscriptions';
+import { getAllActiveSubscriptions, getAbandonedCheckoutCount, toMonthly } from '@/services/subscriptions';
 import { getRecentTicketsByType } from '@/services/tickets';
 import { formatCents, formatDate } from '@/lib/utils';
 import Link from 'next/link';
@@ -29,7 +29,7 @@ export default async function AdminDashboardPage() {
   ]);
 
   const mrr = activeSubscriptions.reduce(
-    (sum: number, sub: any) => sum + (sub.products?.price_cad ?? 0), 0
+    (sum: number, sub: any) => sum + toMonthly(sub), 0
   );
 
   const stats = [
