@@ -99,7 +99,7 @@ export async function getServiceDetailById(id: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('sites')
-    .select('*, users(id, full_name, email, company_name), products(name, slug, metadata)')
+    .select('*, users(id, full_name, email, company_name), products(name, slug, metadata), subscriptions(id, status, billing_period, stripe_subscription_id)')
     .eq('id', id)
     .single();
   return data;

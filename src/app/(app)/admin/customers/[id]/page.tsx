@@ -8,8 +8,10 @@ import { ProvisionSiteButton } from '@/components/admin/provision-site-button';
 import {
   ArrowLeft, Building2, Clock, CreditCard, ExternalLink, Globe,
   Mail, Phone, Server, Shield, User, FileText, Download, Layers,
+  Check, AlertTriangle, Link2,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
+import { AttachDomainSubscription } from '@/components/admin/attach-domain-subscription';
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -68,10 +70,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           <InfoPill icon={<Shield className="w-3.5 h-3.5" />} label="Joined" value={formatDate(user.created_at)} />
         </div>
 
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <CountPill label="Sites" count={services.length} />
           <CountPill label="Domains" count={domains.length} />
-          <CountPill label="Subscriptions" count={subscriptions.length} />
           <CountPill label="Invoices" count={invoices.length} />
         </div>
       </div>
@@ -83,141 +84,155 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         </div>
       )}
 
-      {/* ── Hosting Subscriptions ── */}
-      {hostingSubs.length > 0 && (
-        <div className="card overflow-hidden mb-6">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-            <Layers className="w-4 h-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-900">Hosting Subscriptions ({hostingSubs.length})</h2>
-          </div>
+      {/* ── Sites & Hosting ── */}
+      <div className="card overflow-hidden mb-6">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+          <Server className="w-4 h-4 text-gray-400" />
+          <h2 className="text-sm font-semibold text-gray-900">Sites ({services.length})</h2>
+        </div>
+        {services.length === 0 && hostingSubs.length === 0 ? (
+          <div className="p-8 text-center text-sm text-gray-400">No sites or hosting subscriptions.</div>
+        ) : (
           <div className="divide-y divide-gray-100">
-            {hostingSubs.map((sub: any) => {
-              const linkedSite = services.find((s: any) => s.subscription_id === sub.id);
+            {/* Sites with their linked subscription */}
+            {services.map((s: any) => {
+              const linkedSub = hostingSubs.find((sub: any) => sub.id === s.subscription_id);
+              const siteDomain = domains.find((d: any) => d.site_id === s.id);
               return (
-                <div key={sub.id} className="px-5 py-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{sub.products?.name ?? 'Unknown plan'}</p>
-                      <div className="flex items-center gap-3 mt-1 flex-wrap">
-                        <span className={statusColor(sub.status)}>{sub.status}</span>
-                        {sub.billing_period && <span className="text-xs text-gray-400">{sub.billing_period}</span>}
-                        {linkedSite ? (
-                          <Link href={`/admin/services/${linkedSite.id}`} className="text-xs text-admin-600 hover:text-admin-700 inline-flex items-center gap-1">
-                            <Server className="w-3 h-3" /> {linkedSite.label}
-                          </Link>
-                        ) : (
-                          <span className="text-xs text-amber-600">No site linked</span>
-                        )}
-                      </div>
-                    </div>
-                    {!linkedSite && (sub.status === 'active' || sub.status === 'trialing') && (
-                      <ProvisionSiteButton subscriptionId={sub.id} userId={user.id} planId={sub.product_id} planName={sub.products?.name ?? 'Unknown'} />
+                <div key={s.id} className="px-5 py-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Link href={`/admin/services/${s.id}`} className="text-sm font-medium text-admin-600 hover:text-admin-700">{s.label}</Link>
+                    <span className={statusColor(s.status)}>{s.status}</span>
+                  </div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-xs text-gray-500">{s.products?.name ?? '\u2014'}</span>
+                    {siteDomain && (
+                      <span className="text-xs text-gray-400 inline-flex items-center gap-1">
+                        <Globe className="w-3 h-3" /> {siteDomain.domain_name}
+                      </span>
+                    )}
+                    {linkedSub ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">
+                        <Link2 className="w-3 h-3" />
+                        Sub {linkedSub.status}
+                        {linkedSub.billing_period && <span className="text-emerald-500">· {linkedSub.billing_period}</span>}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
+                        <AlertTriangle className="w-3 h-3" /> No subscription
+                      </span>
+                    )}
+                    {linkedSub?.stripe_subscription_id && (
+                      <a href={`https://dashboard.stripe.com/subscriptions/${linkedSub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
+                        className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{linkedSub.stripe_subscription_id.slice(-8)}</a>
                     )}
                   </div>
                 </div>
               );
             })}
-          </div>
-        </div>
-      )}
 
-      {/* ── Domain Subscriptions ── */}
-      {domainSubs.length > 0 && (
-        <div className="card overflow-hidden mb-6">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-            <Globe className="w-4 h-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-900">Domain Subscriptions ({domainSubs.length})</h2>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {domainSubs.map((sub: any) => {
-              const domainName = (sub.metadata as any)?.domain_name;
-              const linkedDomain = domainName ? domains.find((d: any) => d.domain_name === domainName) : null;
-              return (
-                <div key={sub.id} className="px-5 py-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{domainName ?? sub.products?.name ?? 'Domain renewal'}</p>
-                      <div className="flex items-center gap-3 mt-1 flex-wrap">
-                        <span className={statusColor(sub.status)}>{sub.status}</span>
-                        {sub.billing_period && <span className="text-xs text-gray-400">{sub.billing_period}</span>}
-                        {linkedDomain && <span className="text-xs text-gray-500">Exp {formatDate(linkedDomain.expires_at)}</span>}
-                        {linkedDomain?.auto_renew === false && <span className="text-xs text-amber-600">Auto-renew off</span>}
-                      </div>
-                    </div>
+            {/* Orphaned hosting subscriptions (no site linked) */}
+            {hostingSubs.filter((sub: any) => !services.find((s: any) => s.subscription_id === sub.id)).map((sub: any) => (
+              <div key={sub.id} className="px-5 py-4 bg-amber-50/30">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-sm font-medium text-gray-900">{sub.products?.name ?? 'Unknown plan'}</p>
+                  <span className={statusColor(sub.status)}>{sub.status}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {sub.billing_period && <span className="text-xs text-gray-400">{sub.billing_period}</span>}
+                    <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
+                      <AlertTriangle className="w-3 h-3" /> No site linked
+                    </span>
                     {sub.stripe_subscription_id && (
                       <a href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-gray-400 hover:text-admin-600 font-mono">{sub.stripe_subscription_id.slice(-8)}</a>
+                        className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{sub.stripe_subscription_id.slice(-8)}</a>
+                    )}
+                  </div>
+                  {(sub.status === 'active' || sub.status === 'trialing') && (
+                    <ProvisionSiteButton subscriptionId={sub.id} userId={user.id} planId={sub.product_id} planName={sub.products?.name ?? 'Unknown'} />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Domains & Renewals ── */}
+      <div className="card overflow-hidden mb-6">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+          <Globe className="w-4 h-4 text-gray-400" />
+          <h2 className="text-sm font-semibold text-gray-900">Domains ({domains.length})</h2>
+        </div>
+        {domains.length === 0 && domainSubs.length === 0 ? (
+          <div className="p-8 text-center text-sm text-gray-400">No domains or domain subscriptions.</div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {/* Domains with their linked subscription */}
+            {domains.map((d: any) => {
+              const linkedSub = domainSubs.find((sub: any) => (sub.metadata as any)?.domain_name === d.domain_name);
+              const linkedSite = services.find((s: any) => s.id === d.site_id);
+              return (
+                <div key={d.id} className="px-5 py-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-sm font-medium text-gray-900">{d.domain_name}</p>
+                    <span className={statusColor(d.status)}>{d.status}</span>
+                  </div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {linkedSite && (
+                      <Link href={`/admin/services/${linkedSite.id}`} className="text-xs text-admin-600 hover:text-admin-700 inline-flex items-center gap-1">
+                        <Server className="w-3 h-3" /> {linkedSite.label}
+                      </Link>
+                    )}
+                    {d.expires_at && <span className="text-xs text-gray-400">Exp {formatDate(d.expires_at)}</span>}
+                    {d.auto_renew === false && <span className="text-xs text-amber-600">Auto-renew off</span>}
+                    {linkedSub ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">
+                        <Link2 className="w-3 h-3" />
+                        Renewal {linkedSub.status}
+                        {linkedSub.billing_period && <span className="text-emerald-500">· {linkedSub.billing_period}</span>}
+                      </span>
+                    ) : (
+                      <AttachDomainSubscription domainName={d.domain_name} domainId={d.id} userId={user.id}
+                        renewalSubId={null} compact />
+                    )}
+                    {linkedSub?.stripe_subscription_id && (
+                      <a href={`https://dashboard.stripe.com/subscriptions/${linkedSub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
+                        className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{linkedSub.stripe_subscription_id.slice(-8)}</a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Orphaned domain subscriptions (no domain linked) */}
+            {domainSubs.filter((sub: any) => {
+              const dn = (sub.metadata as any)?.domain_name;
+              return !dn || !domains.find((d: any) => d.domain_name === dn);
+            }).map((sub: any) => {
+              const dn = (sub.metadata as any)?.domain_name;
+              return (
+                <div key={sub.id} className="px-5 py-4 bg-amber-50/30">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-sm font-medium text-gray-900">{dn ?? sub.products?.name ?? 'Domain renewal'}</p>
+                    <span className={statusColor(sub.status)}>{sub.status}</span>
+                  </div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {sub.billing_period && <span className="text-xs text-gray-400">{sub.billing_period}</span>}
+                    <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
+                      <AlertTriangle className="w-3 h-3" /> No domain linked
+                    </span>
+                    {sub.stripe_subscription_id && (
+                      <a href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
+                        className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{sub.stripe_subscription_id.slice(-8)}</a>
                     )}
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* ── Sites & Domains ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="card overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-            <Server className="w-4 h-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-900">Sites ({services.length})</h2>
-          </div>
-          {services.length === 0 ? (
-            <div className="p-8 text-center text-sm text-gray-400">No sites.</div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {services.map((s: any) => {
-                const siteDomain = domains.find((d: any) => d.site_id === s.id);
-                return (
-                  <div key={s.id} className="px-5 py-3.5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Link href={`/admin/services/${s.id}`} className="text-sm font-medium text-admin-600 hover:text-admin-700">{s.label}</Link>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-gray-500">{s.products?.name ?? '\u2014'}</span>
-                          {siteDomain && <span className="text-xs text-gray-400 inline-flex items-center gap-1"><Globe className="w-3 h-3" /> {siteDomain.domain_name}</span>}
-                        </div>
-                      </div>
-                      <span className={statusColor(s.status)}>{s.status}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="card overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-            <Globe className="w-4 h-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-900">Domains ({domains.length})</h2>
-          </div>
-          {domains.length === 0 ? (
-            <div className="p-8 text-center text-sm text-gray-400">No domains.</div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {domains.map((d: any) => {
-                const linkedSite = services.find((s: any) => s.id === d.site_id);
-                return (
-                  <div key={d.id} className="px-5 py-3.5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{d.domain_name}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {linkedSite && <Link href={`/admin/services/${linkedSite.id}`} className="text-xs text-admin-600 hover:text-admin-700 inline-flex items-center gap-1"><Server className="w-3 h-3" /> {linkedSite.label}</Link>}
-                          {d.expires_at && <span className="text-xs text-gray-400">Exp {formatDate(d.expires_at)}</span>}
-                          {d.auto_renew === false && <span className="text-xs text-amber-600">Auto-renew off</span>}
-                        </div>
-                      </div>
-                      <span className={statusColor(d.status)}>{d.status}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       {/* ── Invoices ── */}

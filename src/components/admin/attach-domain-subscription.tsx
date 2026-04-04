@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, CreditCard, Check, AlertTriangle } from 'lucide-react';
+import { Loader2, CreditCard, Check, AlertTriangle, Link2 } from 'lucide-react';
 
-export function AttachDomainSubscription({ domainName, domainId, userId, renewalSubId }: {
+export function AttachDomainSubscription({ domainName, domainId, userId, renewalSubId, compact }: {
   domainName: string;
   domainId: string;
   userId: string;
   renewalSubId?: string | null;
+  compact?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
@@ -34,6 +35,29 @@ export function AttachDomainSubscription({ domainName, domainId, userId, renewal
     setLoading(false);
   }
 
+  // ── Compact inline mode (for customer detail rows) ──
+  if (compact) {
+    if (subId) {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">
+          <Link2 className="w-3 h-3" /> Renewal active
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1">
+        <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
+          <AlertTriangle className="w-3 h-3" /> No renewal
+        </span>
+        <button onClick={handleAttach} disabled={loading} className="text-[11px] text-admin-600 hover:text-admin-700 font-medium ml-1">
+          {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Attach'}
+        </button>
+        {msg && <span className={`text-[11px] ml-1 ${msg.includes('fail') || msg.includes('error') ? 'text-red-600' : 'text-emerald-600'}`}>{msg}</span>}
+      </span>
+    );
+  }
+
+  // ── Full card mode (for domain detail page) ──
   if (subId) {
     return (
       <div className="flex items-center gap-3 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3">

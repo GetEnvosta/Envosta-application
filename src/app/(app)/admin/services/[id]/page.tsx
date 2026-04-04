@@ -8,6 +8,7 @@ import { ResourceControls } from '@/components/admin/resource-controls';
 import {
   ArrowLeft, ExternalLink, Globe, Layers, Package, Server, User, Wrench,
   HardDrive, Wifi, Clock, CreditCard, Cpu, Database, MapPin, Zap, Key, Terminal, Shield,
+  Check, AlertTriangle, Link2, Cloud,
 } from 'lucide-react';
 import { PlanSwitcher } from '@/components/sites/plan-switcher';
 import { SiteAddons } from '@/components/sites/site-addons';
@@ -41,6 +42,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
 
   const owner = service.users as any;
   const plan = service.products as any;
+  const sub = service.subscriptions as any;
   const meta = (service as any).metadata ?? {};
   const config = service.config ?? {};
   const siteDomain = service.wp_cloud_url?.replace('https://', '') ?? '';
@@ -117,8 +119,8 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
 
-          {/* Owner + Domains row */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          {/* Owner + Domains + Subscription row */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-5">
             {owner && (
               <div className="flex items-center gap-2 rounded-xl bg-gray-50 px-4 py-2.5 flex-1">
                 <User className="w-4 h-4 text-gray-400 shrink-0" />
@@ -141,67 +143,83 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
               )}
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ═══ PLAN, BILLING & ADD-ONS ═══ */}
-      <div className="card p-6 mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <CreditCard className="w-4 h-4 text-gray-400" />
-          <h2 className="text-sm font-semibold text-gray-900">Plan, Billing & Add-ons</h2>
-        </div>
-
-        {/* Plan switcher */}
-        <div className="mb-5 pb-5 border-b border-gray-100">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Plan</p>
-          <PlanSwitcher siteId={service.id} currentPlanId={service.product_id} />
-        </div>
-
-        {/* Add-ons */}
-        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Add-ons</p>
-        <SiteAddons siteId={service.id} />
-      </div>
-
-      {/* ═══ RESOURCES ═══ */}
-      <div className="mb-6">
-        <ResourceControls
-          siteId={service.id}
-          wpCloudSiteId={service.wp_cloud_site_id}
-          config={service.config ?? {}}
-          planMetadata={plan?.metadata ?? {}}
-        />
-      </div>
-
-      {/* ═══ PERFORMANCE + ACCESS ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="card p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Zap className="w-4 h-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-900">Performance & Cache</h2>
+          {/* Subscription status */}
+          <div className={`rounded-xl px-4 py-3 mb-5 ${sub ? 'bg-emerald-50 border border-emerald-200' : 'bg-amber-50 border border-amber-200'}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {sub ? (
+                  <>
+                    <Link2 className="w-4 h-4 text-emerald-600" />
+                    <span className="text-sm font-medium text-emerald-900">Subscription {sub.status}</span>
+                    {sub.billing_period && <span className="text-xs text-emerald-600">· {sub.billing_period}</span>}
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-900">No subscription linked</span>
+                  </>
+                )}
+              </div>
+              {sub?.stripe_subscription_id && (
+                <a href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-gray-500 hover:text-admin-600 font-mono inline-flex items-center gap-1">
+                  <ExternalLink className="w-3 h-3" /> {sub.stripe_subscription_id.slice(-8)}
+                </a>
+              )}
+            </div>
           </div>
+
+          {/* Plan selector + Add-ons */}
+          <div className="border-t border-gray-100 pt-5">
+            <div className="mb-5 pb-5 border-b border-gray-100">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Change Plan</p>
+              <PlanSwitcher siteId={service.id} currentPlanId={service.product_id} />
+            </div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Add-ons</p>
+            <SiteAddons siteId={service.id} />
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ wp.cloud Management ═══ */}
+      <div className="card overflow-hidden mb-6">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <Cloud className="w-4 h-4 text-gray-400" />
+          <h2 className="text-sm font-semibold text-gray-900">wp.cloud Management</h2>
+        </div>
+
+        {/* Resources */}
+        <div className="p-6 border-b border-gray-100">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Resources</p>
+          <ResourceControls
+            siteId={service.id}
+            wpCloudSiteId={service.wp_cloud_site_id}
+            config={service.config ?? {}}
+            planMetadata={plan?.metadata ?? {}}
+          />
+        </div>
+
+        {/* Performance & Cache */}
+        <div className="p-6 border-b border-gray-100">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Performance & Cache</p>
           <SitePerformance siteId={service.id} domain={siteDomain} />
         </div>
-        <div className="card p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Key className="w-4 h-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-900">SFTP Access</h2>
-          </div>
+
+        {/* SFTP Access */}
+        <div className="p-6 border-b border-gray-100">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">SFTP Access</p>
           <SiteAccess siteId={service.id} wpCloudSiteId={service.wp_cloud_site_id} />
         </div>
-      </div>
 
-      {/* ═══ ERROR LOGS ═══ */}
-      <div className="card p-6 mb-6">
-        <AdminErrorLogs siteId={service.id} />
-      </div>
-
-      {/* ═══ ADMIN ACTIONS + ACTIVITY ═══ */}
-      <div className="card overflow-hidden mb-6">
+        {/* Error Logs */}
         <div className="p-6 border-b border-gray-100">
-          <div className="flex items-center gap-2 mb-4">
-            <Wrench className="w-4 h-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-gray-900">Admin Actions</h2>
-          </div>
+          <AdminErrorLogs siteId={service.id} />
+        </div>
+
+        {/* Admin Actions */}
+        <div className="p-6">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Admin Actions</p>
           <AdminSiteActions
             siteId={service.id}
             wpCloudSiteId={service.wp_cloud_site_id}
@@ -215,27 +233,27 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             </div>
           )}
         </div>
+      </div>
 
-        {/* Activity log */}
-        <div className="bg-gray-50/50">
-          <div className="px-6 py-3 border-b border-gray-100">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Recent Activity</h3>
-          </div>
-          <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
-            {logs.length === 0 ? (
-              <div className="p-8 text-center text-sm text-gray-400">No activity.</div>
-            ) : (
-              logs.map((log: any) => (
-                <div key={log.id} className="px-6 py-2.5 hover:bg-white/60 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-900">{log.action}</p>
-                    <span className="text-[11px] text-gray-400 shrink-0 ml-4 font-mono">{formatDateTime(log.created_at)}</span>
-                  </div>
-                  {log.message && <p className="text-xs text-gray-500 mt-0.5">{log.message}</p>}
+      {/* ═══ ACTIVITY LOG ═══ */}
+      <div className="card overflow-hidden mb-6">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Recent Activity</h2>
+        </div>
+        <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+          {logs.length === 0 ? (
+            <div className="p-8 text-center text-sm text-gray-400">No activity.</div>
+          ) : (
+            logs.map((log: any) => (
+              <div key={log.id} className="px-6 py-2.5 hover:bg-gray-50/60 transition-colors">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-900">{log.action}</p>
+                  <span className="text-[11px] text-gray-400 shrink-0 ml-4 font-mono">{formatDateTime(log.created_at)}</span>
                 </div>
-              ))
-            )}
-          </div>
+                {log.message && <p className="text-xs text-gray-500 mt-0.5">{log.message}</p>}
+              </div>
+            ))
+          )}
         </div>
       </div>
 

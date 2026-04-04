@@ -88,9 +88,7 @@ export function ResourceControls({ siteId, wpCloudSiteId, config, planMetadata }
   }
 
   return (
-    <div className="card p-6">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">wp.cloud Configuration</h3>
-
+    <div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
         <div>
           <label className="label flex items-center gap-1.5">
