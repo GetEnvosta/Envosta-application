@@ -836,8 +836,10 @@ Deno.serve(async (req) => {
         }
 
         const result = await wpcloudPost(`/api/v1.0/task-create/${WPCLOUD_CLIENT}/run-wp-cli-command`, {
-          "params[site_id]": svc.wp_cloud_site_id,
-          "params[command]": value,
+          params: {
+            site_id: svc.wp_cloud_site_id,
+            command: value,
+          },
         });
         await log({ userId: user!.id, serviceId: siteId, action: "wpcli.run", message: value as string });
         return json(result.data);
