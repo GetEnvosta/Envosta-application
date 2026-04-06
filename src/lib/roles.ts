@@ -22,6 +22,7 @@ export const ADMIN_NAV_ACCESS: Record<string, string[]> = {
     '/admin',
     '/admin/customers',
     '/admin/tickets',
+    '/admin/commissions',
     '/admin/promotions',
   ],
   studio: [
@@ -54,6 +55,7 @@ const ADMIN_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/admin/diagnostics':   ['admin'],
   '/admin/logs':          ['admin'],
   '/admin/plans':         ['admin'],
+  '/admin/commissions':   ['admin', 'sales'],
   '/admin/promotions':    ['admin', 'sales'],
   '/admin/customers':     ['admin', 'sales', 'studio'],
   '/admin/tickets':       ['admin', 'sales', 'studio'],
@@ -99,6 +101,7 @@ export const API_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/api/admin/delete-site':                ['admin', 'studio'],
   '/api/admin/attach-domain-subscription': ['admin', 'studio'],
   '/api/admin/coupons':                    ['admin', 'sales'],
+  '/api/admin/commissions':                ['admin', 'sales'],
   '/api/admin/delete-ticket':              ['admin', 'sales', 'studio'],
 };
 

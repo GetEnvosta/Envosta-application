@@ -106,6 +106,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to submit' }, { status: 500 });
     }
 
+    // ── Auto-create commission for sales rep on closed deals ──
+    if (ticket && closedOnSpot && salesRep) {
+      try {
+        // Look up sales rep user by name
+        const { data: repUser } = await supabase
+          .from('users')
+          .select('id')
+          .ilike('full_name', salesRep.trim())
+          .in('role', ['admin', 'sales', 'studio'])
+          .maybeSingle();
+
+        if (repUser) {
+          await supabase.from('commissions').insert({
+            type: 'sales_rep',
+            earner_id: repUser.id,
+            ticket_id: ticket.id,
+            amount_cad: 10000, // $100 flat fee default — admin can adjust
+            payout_method: 'etransfer',
+            status: 'pending',
+            notes: `Intake close: ${company} — ${contactName}`,
+          });
+        }
+      } catch { /* non-blocking — commission can be added manually */ }
+    }
+
     // ── Add summary message ──
     if (ticket) {
       const planLine = closedOnSpot
