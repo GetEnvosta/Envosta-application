@@ -41,6 +41,36 @@ const TIMELINES = [
   'No rush',
 ];
 
+const PLANS = [
+  {
+    id: 'minimum',
+    name: 'Minimum',
+    price: '$50',
+    annual: '$42',
+    annualTotal: '$500/yr',
+    features: ['10 GB SSD', '50 GB bandwidth', 'Daily backups', 'Staging env', 'Free migration'],
+  },
+  {
+    id: 'growth',
+    name: 'Growth',
+    price: '$129',
+    annual: '$108',
+    annualTotal: '$1,290/yr',
+    featured: true,
+    features: ['30 GB SSD', '200 GB bandwidth', 'Daily backups', 'SEO audit', 'WooCommerce setup'],
+  },
+  {
+    id: 'performance',
+    name: 'Performance',
+    price: '$350',
+    annual: '$292',
+    annualTotal: '$3,500/yr',
+    features: ['100 GB SSD', 'Unlimited bandwidth', 'Priority support', 'Custom theme', 'Dedicated team'],
+  },
+];
+
+const BILLING_OPTIONS = ['monthly', 'annual'] as const;
+
 interface FormData {
   salesRep: string;
   contactName: string;
@@ -53,6 +83,9 @@ interface FormData {
   budget: string;
   timeline: string;
   notes: string;
+  plan: string;
+  billing: string;
+  closedOnSpot: boolean;
 }
 
 const initial: FormData = {
@@ -67,6 +100,9 @@ const initial: FormData = {
   budget: '',
   timeline: '',
   notes: '',
+  plan: '',
+  billing: 'monthly',
+  closedOnSpot: false,
 };
 
 export default function IntakePage() {
@@ -179,6 +215,61 @@ export default function IntakePage() {
           color:var(--gold);padding:16px 0 4px;border-top:1px solid var(--bdr);margin-top:8px
         }
 
+        /* ── Plan Picker ── */
+        .plan-grid{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+        .plan-card{
+          background:rgba(255,255,255,.03);border:2px solid var(--bdr);border-radius:16px;
+          padding:24px 20px;cursor:pointer;transition:all .25s;position:relative;text-align:center
+        }
+        .plan-card:hover{border-color:rgba(37,99,235,.3)}
+        .plan-card.selected{border-color:var(--gold);background:rgba(37,99,235,.06)}
+        .plan-card.featured-plan::before{
+          content:'Popular';position:absolute;top:-10px;left:50%;transform:translateX(-50%);
+          background:var(--gold);color:#fff;font-size:.62rem;font-weight:600;padding:2px 12px;
+          border-radius:100px;letter-spacing:.5px;text-transform:uppercase
+        }
+        .plan-name{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:8px}
+        .plan-price{font-size:1.8rem;font-weight:600;color:var(--t1);line-height:1;margin-bottom:2px}
+        .plan-period{font-size:.75rem;color:var(--t3);font-weight:300;margin-bottom:12px}
+        .plan-features{list-style:none;padding:0;margin:0}
+        .plan-features li{font-size:.76rem;color:var(--t2);padding:3px 0;font-weight:300}
+
+        .billing-toggle-wrap{
+          grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:14px;
+          padding:8px 0 4px
+        }
+        .billing-opt{
+          font-size:.84rem;color:var(--t3);font-weight:400;cursor:pointer;transition:color .2s;
+          padding:6px 16px;border-radius:8px;border:1px solid transparent
+        }
+        .billing-opt.active{color:var(--t1);font-weight:500;border-color:var(--bdr);background:rgba(255,255,255,.04)}
+        .billing-save{font-size:.68rem;font-weight:600;color:#22c55e;background:rgba(34,197,94,.12);padding:2px 10px;border-radius:100px}
+
+        .design-note{
+          grid-column:1/-1;background:rgba(201,164,92,.06);border:1px solid rgba(201,164,92,.15);
+          border-radius:14px;padding:20px 24px;display:flex;gap:14px;align-items:flex-start
+        }
+        .design-note-icon{flex-shrink:0;width:36px;height:36px;border-radius:10px;background:rgba(201,164,92,.12);display:flex;align-items:center;justify-content:center;color:#c9a45c;font-size:18px}
+        .design-note h4{font-size:.86rem;font-weight:500;color:var(--t1);margin-bottom:4px}
+        .design-note p{font-size:.78rem;color:var(--t2);line-height:1.6;font-weight:300}
+
+        .close-toggle{
+          grid-column:1/-1;display:flex;align-items:center;gap:12px;
+          background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.15);border-radius:14px;
+          padding:18px 24px;cursor:pointer;transition:border-color .2s
+        }
+        .close-toggle:hover{border-color:rgba(52,211,153,.3)}
+        .close-checkbox{
+          width:22px;height:22px;border-radius:6px;border:2px solid var(--bdr);flex-shrink:0;
+          display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:14px;color:#fff
+        }
+        .close-checkbox.checked{background:var(--gold);border-color:var(--gold)}
+        .close-toggle-text h4{font-size:.88rem;font-weight:500;color:var(--t1);margin-bottom:2px}
+        .close-toggle-text p{font-size:.76rem;color:var(--t2);font-weight:300}
+
+        @media(max-width:768px){
+          .plan-grid{grid-template-columns:1fr}
+        }
         @media(max-width:640px){
           .intake-form{grid-template-columns:1fr}
         }
@@ -276,6 +367,74 @@ export default function IntakePage() {
                   {TIMELINES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
+
+              {/* ── Close on the Spot ── */}
+              <div className="section-divider">Ready to Close?</div>
+
+              <div
+                className="close-toggle"
+                onClick={() => setForm(f => ({ ...f, closedOnSpot: !f.closedOnSpot, plan: !f.closedOnSpot ? f.plan : '' }))}
+              >
+                <div className={`close-checkbox ${form.closedOnSpot ? 'checked' : ''}`}>
+                  {form.closedOnSpot && '\u2713'}
+                </div>
+                <div className="close-toggle-text">
+                  <h4>Customer wants to sign up now</h4>
+                  <p>Select a hosting plan below. Hosting is charged upfront, design fee of $500 is billed after approval.</p>
+                </div>
+              </div>
+
+              {form.closedOnSpot && (
+                <>
+                  {/* Billing toggle */}
+                  <div className="billing-toggle-wrap">
+                    {BILLING_OPTIONS.map(opt => (
+                      <span
+                        key={opt}
+                        className={`billing-opt ${form.billing === opt ? 'active' : ''}`}
+                        onClick={() => setForm(f => ({ ...f, billing: opt }))}
+                      >
+                        {opt === 'monthly' ? 'Monthly' : 'Annual'}
+                      </span>
+                    ))}
+                    <span className="billing-save">2 months free</span>
+                  </div>
+
+                  {/* Plan cards */}
+                  <div className="plan-grid">
+                    {PLANS.map(plan => (
+                      <div
+                        key={plan.id}
+                        className={`plan-card ${form.plan === plan.id ? 'selected' : ''} ${plan.featured ? 'featured-plan' : ''}`}
+                        onClick={() => setForm(f => ({ ...f, plan: plan.id }))}
+                      >
+                        <div className="plan-name">{plan.name}</div>
+                        <div className="plan-price">
+                          {form.billing === 'annual' ? plan.annual : plan.price}
+                        </div>
+                        <div className="plan-period">
+                          CAD/mo {form.billing === 'annual' && `\u00b7 ${plan.annualTotal}`}
+                        </div>
+                        <ul className="plan-features">
+                          {plan.features.map(f => <li key={f}>{f}</li>)}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Design fee note */}
+                  <div className="design-note">
+                    <div className="design-note-icon">{'\u270E'}</div>
+                    <div>
+                      <h4>Design Fee: $500 CAD</h4>
+                      <p>
+                        The design fee covers custom theme design and development. It is <strong>not charged today</strong> — the
+                        customer will be invoiced $500 only after they approve the design. Hosting starts immediately on the selected plan.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* ── Notes ── */}
               <div className="full">
