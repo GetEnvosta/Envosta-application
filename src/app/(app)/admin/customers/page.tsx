@@ -4,6 +4,9 @@ import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { Search, Users, Server, Globe } from 'lucide-react';
 import { ImpersonateButton } from '@/components/admin/impersonate-button';
+import { getCurrentUser, getUserProfile } from '@/services/auth';
+import { CustomersHeader } from './customers-header';
+import { ROLE_BADGE_CLASSES } from '@/lib/roles';
 
 export default async function CustomersPage({
   searchParams,
@@ -12,17 +15,13 @@ export default async function CustomersPage({
 }) {
   const { q } = await searchParams;
   const users = await getAllCustomers(q);
+  const currentUser = await getCurrentUser();
+  const currentProfile = currentUser ? await getUserProfile(currentUser.id) : null;
+  const isAdmin = currentProfile?.role === 'admin';
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Customers</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Manage and view all customer accounts.
-          </p>
-        </div>
-      </div>
+      <CustomersHeader isAdmin={isAdmin} />
 
       {/* Search */}
       <form method="GET" className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
@@ -120,7 +119,7 @@ export default async function CustomersPage({
                       )}
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className={u.role === 'admin' ? 'badge-indigo' : 'badge-gray'}>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_BADGE_CLASSES[u.role] || 'bg-gray-100 text-gray-600'}`}>
                         {u.role}
                       </span>
                     </td>

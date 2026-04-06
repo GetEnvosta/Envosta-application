@@ -13,7 +13,9 @@
       "Bash(npm install:*)",
       "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''exports'''',{}\\).get\\(''''./headers'''',''''N/A''''\\)\\)\\)\")",
       "Bash(node -e \"const p=require\\(''next/package.json''\\); console.log\\(p.typesVersions ? ''has typesVersions'' : ''no typesVersions''\\); console.log\\(''types:'', p.types\\)\")",
-      "WebSearch"
+      "WebSearch",
+      "Bash(find /c/Users/kolty/OneDrive/Desktop/Envosta-application/.claude/worktrees/keen-cori/ -type f -not -path */.git/* -not -path */node_modules/* -not -path */.claude/* -not -name *.tsbuildinfo -not -name package-lock.json)",
+      "Bash(npm run:*)"
     ]
   }
 }

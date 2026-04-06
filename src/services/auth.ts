@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase-server';
 import { cookies } from 'next/headers';
+export { isStaffRole, STAFF_ROLES, type StaffRole, type UserRole } from '@/lib/roles';
 
 export async function getCurrentUser() {
   const supabase = await createClient();

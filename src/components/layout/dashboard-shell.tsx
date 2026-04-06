@@ -10,6 +10,7 @@ import {
   LogOut, Menu, X, Settings, Shield, LayoutDashboard,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { isStaffRole } from '@/lib/roles';
 
 interface DashboardUser {
   full_name: string | null;
@@ -93,7 +94,7 @@ function AvatarDropdown({ user }: { user: DashboardUser }) {
             </Link>
           </div>
 
-          {user.role === 'admin' && (
+          {isStaffRole(user.role) && (
             <>
               <div className="border-t border-gray-200" />
               <div className="py-1">
@@ -103,7 +104,7 @@ function AvatarDropdown({ user }: { user: DashboardUser }) {
                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <Shield className="w-4 h-4" />
-                  Admin Dashboard
+                  Staff Panel
                 </Link>
               </div>
             </>

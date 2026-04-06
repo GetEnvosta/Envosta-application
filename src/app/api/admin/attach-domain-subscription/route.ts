@@ -17,7 +17,7 @@ async function verifyAdmin() {
   if (!user) return null;
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  return profile?.role === 'admin' ? supabase : null;
+  return ['admin', 'studio'].includes(profile?.role) ? supabase : null;
 }
 
 export async function POST(req: Request) {

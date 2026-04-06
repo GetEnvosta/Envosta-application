@@ -27,7 +27,11 @@
       "Bash(grep -r api/v1.0 /c/Users/kolty/OneDrive/Desktop/Envosta-application --include=*.ts --include=*.tsx)",
       "Bash(grep -r action: /c/Users/kolty/OneDrive/Desktop/Envosta-application/src --include=*.tsx)",
       "Bash(grep -r action: /c/Users/kolty/OneDrive/Desktop/Envosta-application/src --include=*.tsx --include=*.ts)",
-      "Read(//c/Users/kolty/.claude/projects/c--Users-kolty-OneDrive-Desktop-Envosta-application/memory/**)"
+      "Read(//c/Users/kolty/.claude/projects/c--Users-kolty-OneDrive-Desktop-Envosta-application/memory/**)",
+      "Bash(gh api:*)",
+      "Bash(gh auth:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)"
     ]
   }
 }
