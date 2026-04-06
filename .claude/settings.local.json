@@ -15,7 +15,17 @@
       "Bash(node -e \"const p=require\\(''next/package.json''\\); console.log\\(p.typesVersions ? ''has typesVersions'' : ''no typesVersions''\\); console.log\\(''types:'', p.types\\)\")",
       "WebSearch",
       "Bash(find /c/Users/kolty/OneDrive/Desktop/Envosta-application/.claude/worktrees/keen-cori/ -type f -not -path */.git/* -not -path */node_modules/* -not -path */.claude/* -not -name *.tsbuildinfo -not -name package-lock.json)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(where gh:*)",
+      "Read(//c/Program Files/GitHub CLI/**)",
+      "Read(//c/Users/kolty/AppData/Local/**)",
+      "Read(//c/Users/kolty/scoop/shims/**)",
+      "Bash(cmd.exe /c \"where gh\")",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" --version)",
+      "Bash(\"/c/Program Files \\(x86\\)/GitHub CLI/gh.exe\" --version)",
+      "Bash(export PATH=\"$PATH:/c/Program Files/GitHub CLI\")",
+      "Bash(gh --version)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" auth login --web)"
     ]
   }
 }
