@@ -9,6 +9,7 @@ import { TicketReplyForm } from '@/components/admin/ticket-reply-form';
 import { TicketSidebar } from '@/components/admin/ticket-sidebar';
 import { StudioProgressBar, StudioStageAdvancer } from '@/components/admin/studio-progress';
 import { SalesProgressBar, SalesStageAdvancer } from '@/components/admin/sales-progress';
+import { GenerateBriefButton } from '@/components/admin/generate-brief-button';
 
 function typeBadge(type: string) {
   switch (type) {
@@ -89,6 +90,13 @@ export default async function AdminTicketDetailPage({
           <SalesProgressBar currentStage={(ticket.metadata as any)?.sales_stage ?? 'inquiry'} />
           <SalesStageAdvancer ticketId={ticket.id} currentStage={(ticket.metadata as any)?.sales_stage ?? 'inquiry'} />
         </>
+      )}
+
+      {/* AI Onboarding Brief — show on sales tickets that are closed/approved */}
+      {ticket.type === 'sales' && ['approved', 'completed'].includes(ticket.status) && (
+        <div className="mb-4">
+          <GenerateBriefButton ticketId={ticket.id} />
+        </div>
       )}
 
       {/* Two-column layout */}

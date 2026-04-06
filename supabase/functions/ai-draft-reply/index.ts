@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     const { data: profile } = await sb.from("users").select("role").eq("id", user.id).single();
     if (profile?.role !== "admin") return error("Admin access required", 403);
 
-    const { ticketId, ticketType, thread, customerContext, quoteAmount } = await req.json();
+    const { ticketId, ticketType, thread, customerContext, quoteAmount, intakeMetadata } = await req.json();
     if (!ticketType || !thread) return error("ticketType and thread are required");
 
     // Build system prompt
@@ -29,6 +29,17 @@ Deno.serve(async (req) => {
     }
     if (quoteAmount) {
       contextLines += `\nApproved quote: $${(quoteAmount / 100).toFixed(2)} CAD`;
+    }
+    // Add intake form context for sales tickets
+    if (intakeMetadata) {
+      if (intakeMetadata.company) contextLines += `\nCompany: ${intakeMetadata.company}`;
+      if (intakeMetadata.industry) contextLines += `\nIndustry: ${intakeMetadata.industry}`;
+      if (intakeMetadata.project_type) contextLines += `\nProject: ${intakeMetadata.project_type}`;
+      if (intakeMetadata.budget) contextLines += `\nBudget: ${intakeMetadata.budget}`;
+      if (intakeMetadata.timeline) contextLines += `\nTimeline: ${intakeMetadata.timeline}`;
+      if (intakeMetadata.plan) contextLines += `\nInterested Plan: ${intakeMetadata.plan} (${intakeMetadata.billing ?? "monthly"})`;
+      if (intakeMetadata.closed_on_spot) contextLines += `\nDeal Status: CLOSED ON SPOT`;
+      if (intakeMetadata.sales_rep) contextLines += `\nSales Rep: ${intakeMetadata.sales_rep}`;
     }
 
     const conversationText = thread.map((msg: any) =>
