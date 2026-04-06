@@ -24,6 +24,9 @@ export async function POST(req: Request) {
       budget,
       timeline,
       notes,
+      plan,
+      billing,
+      closedOnSpot,
     } = await req.json();
 
     // ── Validation ──
@@ -54,6 +57,12 @@ export async function POST(req: Request) {
     if (!timeline || typeof timeline !== 'string') {
       return NextResponse.json({ error: 'Timeline is required' }, { status: 400 });
     }
+    if (closedOnSpot && (!plan || !['minimum', 'growth', 'performance'].includes(plan))) {
+      return NextResponse.json({ error: 'Please select a hosting plan' }, { status: 400 });
+    }
+    if (closedOnSpot && billing && !['monthly', 'annual'].includes(billing)) {
+      return NextResponse.json({ error: 'Invalid billing period' }, { status: 400 });
+    }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -65,11 +74,12 @@ export async function POST(req: Request) {
     const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     // ── Create sales ticket ──
+    const closedLabel = closedOnSpot ? ` [CLOSED — ${plan}, ${billing}]` : '';
     const { data: ticket, error: ticketErr } = await supabase.from('tickets').insert({
-      subject: `Intake: ${company} — ${contactName}`,
+      subject: `Intake: ${company} — ${contactName}${closedLabel}`,
       type: 'sales',
-      status: 'open',
-      priority: 'normal',
+      status: closedOnSpot ? 'approved' : 'open',
+      priority: closedOnSpot ? 'high' : 'normal',
       contact_name: contactName,
       contact_email: email,
       source: 'intake',
@@ -83,6 +93,11 @@ export async function POST(req: Request) {
         project_type: projectType,
         budget,
         timeline,
+        closed_on_spot: closedOnSpot || false,
+        plan: closedOnSpot ? plan : null,
+        billing: closedOnSpot ? (billing || 'monthly') : null,
+        design_fee: closedOnSpot ? 500 : null,
+        design_fee_status: closedOnSpot ? 'pending_approval' : null,
       },
     }).select('id').single();
 
@@ -93,6 +108,10 @@ export async function POST(req: Request) {
 
     // ── Add summary message ──
     if (ticket) {
+      const planLine = closedOnSpot
+        ? `\n---\n**CLOSED ON SPOT**\n**Plan:** ${plan} (${billing || 'monthly'})\n**Hosting:** Charged upfront\n**Design Fee:** $500 — invoiced after design approval`
+        : null;
+
       const summary = [
         `**Sales Rep:** ${salesRep}`,
         `**Contact:** ${contactName}`,
@@ -104,6 +123,7 @@ export async function POST(req: Request) {
         `**Project:** ${projectType}`,
         `**Budget:** ${budget}`,
         `**Timeline:** ${timeline}`,
+        planLine,
         notes ? `\n**Notes:**\n${notes}` : null,
       ].filter(Boolean).join('\n');
 
@@ -123,7 +143,7 @@ export async function POST(req: Request) {
             body: JSON.stringify({
               from: 'Envosta <noreply@email.envosta.com>',
               to: 'sales@envosta.com',
-              subject: `New Lead: ${company} — ${contactName} (via ${salesRep})`,
+              subject: `${closedOnSpot ? '🔥 CLOSED DEAL' : 'New Lead'}: ${company} — ${contactName} (via ${salesRep})`,
               html: `<div style="font-family:-apple-system,sans-serif;max-width:560px;margin:0 auto;padding:20px">
                 <h2 style="font-size:18px;font-weight:600;margin-bottom:16px">New Sales Intake</h2>
                 <table style="font-size:14px;color:#333;line-height:1.8;border-collapse:collapse;width:100%">
@@ -137,6 +157,12 @@ export async function POST(req: Request) {
                   <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Project</td><td>${projectType}</td></tr>
                   <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Budget</td><td>${budget}</td></tr>
                   <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Timeline</td><td>${timeline}</td></tr>
+                  ${closedOnSpot ? `
+                  <tr><td colspan="2" style="padding:12px 0 4px;border-top:2px solid #22c55e"><strong style="color:#22c55e;font-size:13px;text-transform:uppercase;letter-spacing:1px">✅ Closed on the spot</strong></td></tr>
+                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Plan</td><td>${plan} (${billing || 'monthly'})</td></tr>
+                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Hosting</td><td>Charge upfront</td></tr>
+                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Design Fee</td><td>$500 — invoice after approval</td></tr>
+                  ` : ''}
                 </table>
                 ${notes ? `<div style="background:#f8f9fb;border-radius:8px;padding:16px;font-size:14px;color:#333;line-height:1.6;margin-top:16px;white-space:pre-wrap"><strong>Notes:</strong>\n${notes}</div>` : ''}
                 <p style="margin-top:16px;font-size:13px"><a href="https://my.envosta.com/admin/tickets/${ticket.id}" style="color:#2563EB">View ticket →</a></p>
