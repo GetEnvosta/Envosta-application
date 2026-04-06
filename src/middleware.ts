@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { isStaffRole, canAccessAdminRoute } from '@/lib/roles';
 
 function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-Frame-Options', 'DENY');
@@ -71,8 +72,12 @@ export async function middleware(request: NextRequest) {
     }
     const { data: profile } = await supabase
       .from('users').select('role').eq('id', user.id).single();
-    if (profile?.role !== 'admin') {
+    if (!isStaffRole(profile?.role)) {
       return addSecurityHeaders(NextResponse.redirect(new URL('/dashboard', request.url)));
+    }
+    // Check if this staff role can access the specific admin route
+    if (!canAccessAdminRoute(profile!.role, pathname)) {
+      return addSecurityHeaders(NextResponse.redirect(new URL('/admin', request.url)));
     }
   }
 

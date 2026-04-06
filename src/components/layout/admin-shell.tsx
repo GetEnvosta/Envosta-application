@@ -7,10 +7,11 @@ import {
   LayoutDashboard, Users, Server, Globe, CreditCard, ScrollText,
   Activity, LogOut, Menu, X, ArrowLeft, Tag, PenSquare, MessageSquare, Mail, Percent, AlertTriangle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Avatar } from '@/components/ui/avatar';
+import { canAccessAdminNav } from '@/lib/roles';
 
-const nav = [
+const allNav = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Customers', href: '/admin/customers', icon: Users },
   { name: 'Services', href: '/admin/services', icon: Server },
@@ -27,12 +28,13 @@ const nav = [
 ];
 
 export function AdminShell({
-  user, email, children,
+  user, email, role, children,
 }: {
-  user: any; email: string; children: React.ReactNode;
+  user: any; email: string; role: string; children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const nav = useMemo(() => allNav.filter(item => canAccessAdminNav(role, item.href)), [role]);
 
   async function handleSignOut() {
     await fetch('/auth/signout', { method: 'POST' });
