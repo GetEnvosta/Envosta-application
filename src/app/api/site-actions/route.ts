@@ -17,23 +17,20 @@ export async function POST(req: Request) {
 
   const body = await req.json();
 
-  // Get user's actual JWT to forward — Edge Function uses it for ownership checks
-  const authCookie = jar.getAll().find(c => c.name.includes('auth-token'));
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-
-  // Forward to site-info Edge Function with user's JWT (not service role)
-  // so the Edge Function can verify ownership properly
+  // Use service role key to call edge function — the user's session JWT from
+  // getSession() can be stale (SSR client can't refresh cookies). We already
+  // verified the user is logged in above, and the edge function will check
+  // admin role via service role client when it detects isServiceRole.
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
         'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, _callerId: user.id }),
     }
   );
 
