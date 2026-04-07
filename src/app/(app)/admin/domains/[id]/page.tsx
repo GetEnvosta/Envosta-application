@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation';
 import { DnsManager } from '@/components/domains/dns-manager';
 import { DomainSettings } from '@/components/domains/domain-settings';
 import { AttachDomainSubscription } from '@/components/admin/attach-domain-subscription';
+import { DomainRetryRegister } from '@/components/domains/domain-retry-register';
 
 export default async function AdminDomainDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -45,6 +46,18 @@ export default async function AdminDomainDetailPage({ params }: { params: Promis
               <ExternalLink className="w-3.5 h-3.5" /> OpenSRS
             </a>
           </div>
+
+          {/* Registration failure banner */}
+          {['failed', 'pending'].includes(domain.status) && (meta.error || meta.registration_error) && (
+            <DomainRetryRegister
+              domainId={domain.id}
+              domainName={domain.domain_name}
+              siteId={domain.site_id}
+              userId={domain.user_id}
+              errorMessage={meta.error || meta.registration_error}
+              errorCode={meta.code}
+            />
+          )}
 
           {/* Owner */}
           {owner && (
