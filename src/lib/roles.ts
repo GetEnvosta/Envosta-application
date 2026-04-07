@@ -31,6 +31,7 @@ export const ADMIN_NAV_ACCESS: Record<string, string[]> = {
     '/admin/services',
     '/admin/domains',
     '/admin/tickets',
+    '/admin/studio',
   ],
 };
 
@@ -59,6 +60,7 @@ const ADMIN_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/admin/promotions':    ['admin', 'sales'],
   '/admin/customers':     ['admin', 'sales', 'studio'],
   '/admin/tickets':       ['admin', 'sales', 'studio'],
+  '/admin/studio':        ['admin', 'studio'],
   '/admin/services':      ['admin', 'studio'],
   '/admin/domains':       ['admin', 'studio'],
 };
