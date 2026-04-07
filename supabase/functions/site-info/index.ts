@@ -849,17 +849,18 @@ Deno.serve(async (req) => {
           if (!["admin", "studio"].includes(p?.role)) return error("Admin or studio access required", 403);
         }
 
-        // wp.cloud task API requires: params[site_id] and params[args] as bracket-notation array
-        // e.g. "user create johndoe john@ex.com --role=administrator --user_pass=pass"
-        // → params[args][0]=user&params[args][1]=create&params[args][2]=johndoe&...
+        // wp.cloud task-create/run-wp-cli-command API:
+        // - `args` (required): array of WP-CLI arguments e.g. ["user","create","name","email","--role=administrator"]
+        // - `site_id`: target a specific site (undocumented but used by wp.com internally)
+        // API docs: https://wp.cloud/docs/api/ — args must be top-level, NOT nested under params
         const cliArgs = (value as string).split(/\s+/).filter(Boolean);
 
-        // Build form body manually — wpcloudPost flattens nested objects one level deep,
-        // but we need array bracket notation: params[args][0], params[args][1], etc.
+        // Send args as PHP-style array (args[]=val) which is standard form-urlencoded array format
         const formBody = new URLSearchParams();
-        formBody.append("params[site_id]", String(svc.wp_cloud_site_id));
-        cliArgs.forEach((arg: string, i: number) => {
-          formBody.append(`params[args][${i}]`, arg);
+        formBody.append("site_id", String(svc.wp_cloud_site_id));
+        formBody.append("site_count_limit", "1");
+        cliArgs.forEach((arg: string) => {
+          formBody.append("args[]", arg);
         });
 
         console.log("WP-CLI request:", {
