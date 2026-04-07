@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
-    const { action, siteId, domain, key, value, _callerId } = await req.json();
+    const { action, siteId, domain, key, value } = await req.json();
 
     // All actions require auth (user JWT or service role key)
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -35,8 +35,8 @@ Deno.serve(async (req) => {
 
     let user: { id: string; email?: string } | null = null;
     if (isServiceRole) {
-      // Service role = trusted call from our API route, use _callerId for role checks
-      user = { id: _callerId ?? "service-role", email: "admin@envosta.com" };
+      // Service role = trusted admin API call
+      user = { id: "service-role", email: "admin@envosta.com" };
     } else {
       const userSb = supabaseForUser(req);
       const { data, error: authErr } = await userSb.auth.getUser();
