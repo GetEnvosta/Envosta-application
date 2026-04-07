@@ -38,10 +38,24 @@ Deno.serve(async (req) => {
       // Service role = trusted admin API call
       user = { id: "service-role", email: "admin@envosta.com" };
     } else {
-      const userSb = supabaseForUser(req);
-      const { data, error: authErr } = await userSb.auth.getUser();
-      if (authErr || !data.user) return error("Unauthorized", 401);
-      user = data.user;
+      // Decode the JWT payload directly instead of calling getUser()
+      // The Supabase gateway already validated the JWT signature
+      const authHeader = req.headers.get("Authorization") ?? "";
+      const token = authHeader.replace("Bearer ", "");
+      if (!token) return error("Unauthorized — no token", 401);
+      try {
+        const payloadB64 = token.split(".")[1];
+        const payload = JSON.parse(atob(payloadB64));
+        if (!payload.sub) return error("Unauthorized — invalid token", 401);
+        // Check expiry
+        if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+          return error("Unauthorized — token expired", 401);
+        }
+        user = { id: payload.sub, email: payload.email ?? "" };
+      } catch (e) {
+        console.error("JWT decode error:", e);
+        return error("Unauthorized — token decode failed", 401);
+      }
     }
 
     switch (action) {
