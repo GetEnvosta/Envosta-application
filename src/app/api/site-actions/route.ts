@@ -17,20 +17,49 @@ export async function POST(req: Request) {
 
   const body = await req.json();
 
-  // Use service role key to call edge function — the user's session JWT from
-  // getSession() can be stale (SSR client can't refresh cookies). We already
-  // verified the user is logged in above, and the edge function will check
-  // admin role via service role client when it detects isServiceRole.
+  // Extract a fresh access token from the auth cookie directly.
+  // getSession() can return stale tokens since SSR client can't refresh cookies,
+  // but the middleware refreshes the cookie on each request so the raw cookie value is fresh.
+  let accessToken = '';
+  const allCookies = jar.getAll();
+  for (const cookie of allCookies) {
+    if (cookie.name.includes('auth-token')) {
+      try {
+        // Supabase stores auth as base64-encoded JSON chunks or a single JSON cookie
+        const decoded = cookie.value.startsWith('base64-')
+          ? Buffer.from(cookie.value.replace('base64-', ''), 'base64').toString()
+          : cookie.value;
+        const parsed = JSON.parse(decoded);
+        if (parsed.access_token) {
+          accessToken = parsed.access_token;
+          break;
+        }
+      } catch {
+        // Cookie might be chunked — try getSession as fallback
+      }
+    }
+  }
+
+  // Fallback to getSession if cookie parsing didn't work
+  if (!accessToken) {
+    const { data: { session } } = await supabase.auth.getSession();
+    accessToken = session?.access_token ?? '';
+  }
+
+  if (!accessToken) {
+    return NextResponse.json({ error: 'Could not retrieve session token' }, { status: 401 });
+  }
+
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        'Authorization': `Bearer ${accessToken}`,
+        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       },
-      body: JSON.stringify({ ...body, _callerId: user.id }),
+      body: JSON.stringify(body),
     }
   );
 
