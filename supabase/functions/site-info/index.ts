@@ -836,13 +836,19 @@ Deno.serve(async (req) => {
         }
 
         // wp.cloud task API expects params[site_id] and params[command] as the full WP-CLI command string
+        console.log("WP-CLI request:", {
+          wp_cloud_site_id: svc.wp_cloud_site_id,
+          command: value,
+          url: `/api/v1.0/task-create/${WPCLOUD_CLIENT}/run-wp-cli-command`,
+        });
         const result = await wpcloudPost(`/api/v1.0/task-create/${WPCLOUD_CLIENT}/run-wp-cli-command`, {
           params: {
             site_id: svc.wp_cloud_site_id,
             command: value,
           },
         });
-        await log({ userId: user!.id, serviceId: siteId, action: "wpcli.run", message: value as string });
+        console.log("WP-CLI response:", JSON.stringify(result));
+        await log({ userId: user!.id, serviceId: siteId, action: "wpcli.run", message: value as string, res: result.data });
         return json(result.data);
       }
 
