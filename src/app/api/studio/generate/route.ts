@@ -82,9 +82,15 @@ DESCRIPTION: ${pagePrompt}`;
     });
 
     if (!res.ok) {
-      const errText = await res.text();
-      console.error('Claude API error:', res.status, errText);
-      return NextResponse.json({ error: `AI error: ${res.status}` }, { status: 502 });
+      const errBody = await res.text();
+      console.error('Claude API error:', res.status, errBody);
+      // Parse error for user-friendly message
+      let detail = `AI error: ${res.status}`;
+      try {
+        const parsed = JSON.parse(errBody);
+        detail = parsed?.error?.message || detail;
+      } catch {}
+      return NextResponse.json({ error: detail }, { status: 502 });
     }
 
     const data = await res.json();
