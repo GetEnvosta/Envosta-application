@@ -835,21 +835,42 @@ Deno.serve(async (req) => {
           if (!["admin", "studio"].includes(p?.role)) return error("Admin or studio access required", 403);
         }
 
-        // wp.cloud task API expects params[site_id] and params[command] as the full WP-CLI command string
+        // wp.cloud task API requires: params[site_id] and params[args] as bracket-notation array
+        // e.g. "user create johndoe john@ex.com --role=administrator --user_pass=pass"
+        // → params[args][0]=user&params[args][1]=create&params[args][2]=johndoe&...
+        const cliArgs = (value as string).split(/\s+/).filter(Boolean);
+
+        // Build form body manually — wpcloudPost flattens nested objects one level deep,
+        // but we need array bracket notation: params[args][0], params[args][1], etc.
+        const formBody = new URLSearchParams();
+        formBody.append("params[site_id]", String(svc.wp_cloud_site_id));
+        cliArgs.forEach((arg: string, i: number) => {
+          formBody.append(`params[args][${i}]`, arg);
+        });
+
         console.log("WP-CLI request:", {
           wp_cloud_site_id: svc.wp_cloud_site_id,
-          command: value,
-          url: `/api/v1.0/task-create/${WPCLOUD_CLIENT}/run-wp-cli-command`,
+          cliArgs,
+          formBody: formBody.toString(),
         });
-        const result = await wpcloudPost(`/api/v1.0/task-create/${WPCLOUD_CLIENT}/run-wp-cli-command`, {
-          params: {
-            site_id: svc.wp_cloud_site_id,
-            command: value,
+
+        const wpUrl = `${WPCLOUD_PROXY_URL}/api/v1.0/task-create/${WPCLOUD_CLIENT}/run-wp-cli-command`;
+        const wpRes = await fetch(wpUrl, {
+          method: "POST",
+          headers: {
+            "Auth": Deno.env.get("WPCLOUD_API_KEY") ?? "",
+            "X-Proxy-Secret": Deno.env.get("WPCLOUD_PROXY_SECRET") ?? "",
+            "Content-Type": "application/x-www-form-urlencoded",
           },
+          body: formBody.toString(),
         });
-        console.log("WP-CLI response:", JSON.stringify(result));
-        await log({ userId: user!.id, serviceId: siteId, action: "wpcli.run", message: value as string, res: result.data });
-        return json(result.data);
+        const rawText = await wpRes.text();
+        console.log("WP-CLI response:", wpRes.status, rawText);
+        let result;
+        try { result = JSON.parse(rawText); } catch { result = { raw: rawText }; }
+
+        await log({ userId: user!.id, serviceId: siteId, action: "wpcli.run", message: value as string, res: result });
+        return json(result);
       }
 
       default:
