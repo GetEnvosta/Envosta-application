@@ -832,15 +832,15 @@ Deno.serve(async (req) => {
 
         if (!isServiceRole) {
           const { data: p } = await sb.from("users").select("role").eq("id", user!.id).single();
-          if (p?.role !== "admin") return error("Admin only", 403);
+          if (!["admin", "studio"].includes(p?.role)) return error("Admin or studio access required", 403);
         }
 
-        // wp.cloud task API expects `args` as a JSON-encoded array of WP-CLI arguments
-        // e.g. "user create johndoe john@example.com --role=administrator" → ["user","create","johndoe","john@example.com","--role=administrator"]
-        const cliArgs = (value as string).split(/\s+/).filter(Boolean);
+        // wp.cloud task API expects params[site_id] and params[command] as the full WP-CLI command string
         const result = await wpcloudPost(`/api/v1.0/task-create/${WPCLOUD_CLIENT}/run-wp-cli-command`, {
-          args: JSON.stringify(cliArgs),
-          site_id: String(svc.wp_cloud_site_id),
+          params: {
+            site_id: svc.wp_cloud_site_id,
+            command: value,
+          },
         });
         await log({ userId: user!.id, serviceId: siteId, action: "wpcli.run", message: value as string });
         return json(result.data);
