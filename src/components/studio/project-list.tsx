@@ -19,21 +19,21 @@ export function ProjectList({ initialProjects }: { initialProjects: any[] }) {
     if (!name.trim()) return;
     setCreating(true);
 
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setCreating(false); return; }
-
-    const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const { data, error } = await supabase
-      .from('studio_projects')
-      .insert({ name: name.trim(), slug, created_by: user.id })
-      .select('id')
-      .single();
-
-    if (data) {
-      router.push(`/admin/studio/${data.id}`);
-    } else {
-      alert(error?.message || 'Failed to create project');
+    try {
+      const res = await fetch('/api/studio/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.id) {
+        router.push(`/admin/studio/${data.id}`);
+      } else {
+        alert(data.error || 'Failed to create project');
+        setCreating(false);
+      }
+    } catch {
+      alert('Network error');
       setCreating(false);
     }
   }
