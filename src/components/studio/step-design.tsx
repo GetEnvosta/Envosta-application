@@ -6,6 +6,7 @@ import {
   Sparkles, Loader2, Check, FileText, Palette, ArrowRight, Send,
   Monitor, Tablet, Smartphone, Eye, PanelLeftClose, PanelLeftOpen,
   PanelRightClose, PanelRightOpen, Plus, Trash2, LayoutTemplate,
+  Upload, X,
 } from 'lucide-react';
 
 const FONT_OPTIONS = [
@@ -53,6 +54,7 @@ export function StepDesign({
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [referenceHtml, setReferenceHtml] = useState('');
   const [addingPage, setAddingPage] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -115,6 +117,7 @@ export function StepDesign({
           projectId, pageId, style: styleConfig,
           pageName: page.title, pagePrompt: prompt,
           allPageNames: pages.filter(p => !SPECIAL_PAGES.includes(p.title)).map(p => p.title),
+          referenceHtml: referenceHtml || undefined,
         }),
       });
       const data = await res.json();
@@ -142,10 +145,12 @@ export function StepDesign({
   }
 
   async function handleAiEdit() {
-    if (!aiPrompt.trim() || !selectedPage) return;
+    if ((!aiPrompt.trim() && !referenceHtml) || !selectedPage) return;
     setAiLoading(true);
-    await generatePage(selectedPage.id, aiPrompt.trim());
+    const prompt = aiPrompt.trim() || (referenceHtml ? 'Rebuild this page exactly using my style system' : '');
+    await generatePage(selectedPage.id, prompt);
     setAiPrompt('');
+    setReferenceHtml(''); // clear after use
     setAiLoading(false);
   }
 
@@ -345,6 +350,18 @@ export function StepDesign({
 
         {/* AI Chat prompt — bottom bar */}
         <div className="border-t border-gray-200 bg-white px-4 py-3 shrink-0">
+          {/* Reference HTML indicator */}
+          {referenceHtml && (
+            <div className="flex items-center gap-2 max-w-3xl mx-auto mb-2">
+              <div className="flex-1 flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs text-amber-700">
+                <Upload className="w-3 h-3 shrink-0" />
+                <span className="flex-1 truncate">Reference HTML loaded ({Math.round(referenceHtml.length / 1024)}KB) — next generation will rebuild from this</span>
+                <button onClick={() => setReferenceHtml('')} className="p-0.5 rounded hover:bg-amber-100">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
           <div className="flex items-center gap-2 max-w-3xl mx-auto">
             <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
             <input
@@ -353,12 +370,33 @@ export function StepDesign({
               onChange={e => setAiPrompt(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAiEdit(); } }}
               className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
-              placeholder={selectedPage ? `Edit "${selectedPage.title}" — e.g. "make the hero bigger", "add a testimonials section", "change CTA to red"...` : 'Select a page first...'}
+              placeholder={referenceHtml
+                ? 'Describe changes to the reference — or just hit enter to rebuild it with your styles...'
+                : selectedPage
+                ? `Edit "${selectedPage.title}" — e.g. "make the hero bigger", "add testimonials"...`
+                : 'Select a page first...'}
               disabled={!selectedPage || aiLoading}
             />
+            {/* File upload button */}
+            <label className="p-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 cursor-pointer transition-colors" title="Upload HTML reference file">
+              <Upload className="w-4 h-4" />
+              <input
+                type="file"
+                accept=".html,.htm"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const text = await file.text();
+                  setReferenceHtml(text);
+                  if (!aiPrompt.trim()) setAiPrompt('Rebuild this page exactly using my style system');
+                  e.target.value = ''; // reset so same file can be re-uploaded
+                }}
+              />
+            </label>
             <button
               onClick={handleAiEdit}
-              disabled={!aiPrompt.trim() || !selectedPage || aiLoading}
+              disabled={(!aiPrompt.trim() && !referenceHtml) || !selectedPage || aiLoading}
               className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 transition-colors"
             >
               {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
