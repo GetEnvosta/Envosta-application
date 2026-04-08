@@ -6,8 +6,8 @@ import JSZip from 'jszip';
 
 export const dynamic = 'force-dynamic';
 
-// ── WordPress theme.json generator ──
-function buildThemeJson(style: any, slug: string) {
+// ── Child theme.json (overrides parent) ──
+function buildChildThemeJson(style: any) {
   const colors = style.colors || {};
   const fonts = style.fonts || { heading: 'Playfair Display', body: 'Source Sans 3' };
 
@@ -15,85 +15,63 @@ function buildThemeJson(style: any, slug: string) {
     $schema: 'https://schemas.wp.org/trunk/theme.json',
     version: 3,
     settings: {
-      appearanceTools: true,
       color: {
         palette: [
           { slug: 'primary', color: colors.primary || '#1a1a2e', name: 'Primary' },
-          { slug: 'secondary', color: colors.secondary || '#16213e', name: 'Secondary' },
-          { slug: 'accent', color: colors.accent || '#e94560', name: 'Accent' },
-          { slug: 'background', color: colors.background || '#0f0f1a', name: 'Background' },
-          { slug: 'surface', color: colors.surface || '#1a1a2e', name: 'Surface' },
-          { slug: 'text', color: colors.text || '#e8e8e8', name: 'Text' },
-          { slug: 'text-muted', color: colors.textMuted || '#8a8a9a', name: 'Text Muted' },
-          { slug: 'border', color: colors.border || '#2a2a3e', name: 'Border' },
+          { slug: 'primary-light', color: colors.secondary || '#16213e', name: 'Primary Light' },
+          { slug: 'cta', color: colors.accent || '#e94560', name: 'CTA' },
+          { slug: 'cta-hover', color: colors.accent || '#e94560', name: 'CTA Hover' },
+          { slug: 'bg', color: colors.background || '#ffffff', name: 'Background' },
+          { slug: 'bg-soft', color: colors.surface || '#f8f8f6', name: 'Background Soft' },
+          { slug: 'bg-dark', color: colors.primary || '#111111', name: 'Background Dark' },
+          { slug: 'text', color: colors.text || '#1a1a1a', name: 'Text' },
+          { slug: 'text-muted', color: colors.textMuted || '#6b6b6b', name: 'Text Muted' },
+          { slug: 'text-light', color: '#ffffff', name: 'Text Light' },
+          { slug: 'border', color: colors.border || '#e5e5e5', name: 'Border' },
         ],
+        custom: false,
       },
       typography: {
         fontFamilies: [
           { fontFamily: `'${fonts.heading}', serif`, slug: 'heading', name: 'Heading' },
           { fontFamily: `'${fonts.body}', sans-serif`, slug: 'body', name: 'Body' },
         ],
-        fontSizes: [
-          { slug: 'small', size: '0.875rem', name: 'Small' },
-          { slug: 'medium', size: '1rem', name: 'Medium' },
-          { slug: 'large', size: '1.25rem', name: 'Large' },
-          { slug: 'x-large', size: '1.75rem', name: 'X-Large' },
-          { slug: '2x-large', size: '2.5rem', name: '2X-Large' },
-          { slug: '3x-large', size: '3.5rem', name: '3X-Large' },
-        ],
+        customFontSize: false,
       },
       layout: {
-        contentSize: style.maxWidth || '1200px',
-        wideSize: '1400px',
-      },
-      spacing: {
-        units: ['px', 'em', 'rem', 'vh', 'vw', '%'],
+        contentSize: style.maxWidth || '760px',
+        wideSize: '1240px',
       },
     },
     styles: {
-      color: {
-        background: colors.background || '#0f0f1a',
-        text: colors.text || '#e8e8e8',
-      },
-      typography: {
-        fontFamily: `'${fonts.body}', sans-serif`,
-        fontSize: '1rem',
-        lineHeight: '1.7',
-      },
+      color: { background: 'var(--wp--preset--color--bg)', text: 'var(--wp--preset--color--text)' },
+      typography: { fontFamily: 'var(--wp--preset--font-family--body)', fontSize: '1rem', lineHeight: '1.7' },
       elements: {
-        heading: {
-          typography: {
-            fontFamily: `'${fonts.heading}', serif`,
-            fontWeight: '600',
-            lineHeight: '1.2',
-          },
-        },
-        link: {
-          color: { text: colors.accent || '#e94560' },
-          ':hover': { color: { text: colors.primary || '#1a1a2e' } },
-        },
+        heading: { typography: { fontFamily: 'var(--wp--preset--font-family--heading)', fontWeight: '600', lineHeight: '1.2' } },
+        link: { color: { text: 'var(--wp--preset--color--cta)' }, ':hover': { color: { text: 'var(--wp--preset--color--cta-hover)' } } },
         button: {
-          color: { background: colors.accent || '#e94560', text: '#ffffff' },
-          border: { radius: style.borderRadius || '4px' },
-          typography: { fontFamily: `'${fonts.body}', sans-serif`, fontWeight: '600', fontSize: '0.9rem' },
+          color: { background: 'var(--wp--preset--color--cta)', text: '#ffffff' },
+          border: { radius: style.borderRadius || '9999px' },
+          typography: { fontFamily: 'var(--wp--preset--font-family--body)', fontWeight: '600' },
         },
       },
     },
   }, null, 2);
 }
 
-// ── WordPress style.css header ──
-function buildStyleCss(siteName: string, slug: string) {
+// ── Child style.css header ──
+function buildChildStyleCss(siteName: string, slug: string) {
   return `/*
 Theme Name: Envosta - ${siteName}
 Theme URI: https://envosta.com
 Author: Envosta
 Author URI: https://envosta.com
-Description: Custom FSE theme built with Envosta Studio
+Description: Custom child theme for ${siteName}, built with Envosta Studio
 Version: 1.0.0
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.0
+Template: envosta-theme
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: envosta-${slug}
@@ -101,218 +79,138 @@ Text Domain: envosta-${slug}
 `;
 }
 
-// ── functions.php ──
-function buildFunctionsPhp(fonts: any, slug: string) {
+// ── Child functions.php ──
+function buildChildFunctionsPhp(fonts: any, slug: string) {
   const heading = (fonts?.heading || 'Playfair Display').replace(/\s+/g, '+');
   const body = (fonts?.body || 'Source Sans 3').replace(/\s+/g, '+');
   const fontsUrl = `https://fonts.googleapis.com/css2?family=${heading}:wght@400;500;600;700&family=${body}:wght@300;400;500;600;700&display=swap`;
 
   return `<?php
 /**
- * Envosta - ${slug} Theme Functions
+ * Envosta Child Theme - ${slug}
  */
 
 // Enqueue Google Fonts
 add_action('wp_enqueue_scripts', function() {
-    wp_enqueue_style('envosta-google-fonts', '${fontsUrl}', array(), null);
+    wp_enqueue_style('envosta-child-fonts', '${fontsUrl}', array(), null);
 });
 
 add_action('enqueue_block_editor_assets', function() {
-    wp_enqueue_style('envosta-google-fonts-editor', '${fontsUrl}', array(), null);
-});
-
-// Register block pattern category
-add_action('init', function() {
-    register_block_pattern_category('envosta-pages', array(
-        'label' => __('Envosta Pages', 'envosta-${slug}')
-    ));
+    wp_enqueue_style('envosta-child-fonts-editor', '${fontsUrl}', array(), null);
 });
 `;
 }
 
-// ── FSE templates (block markup) ──
-function buildTemplate(type: 'index' | 'front-page' | 'page') {
-  return `<!-- wp:template-part {"slug":"header","area":"header"} /-->
+// ── WXR XML content export ──
+function buildWxrXml(siteName: string, pages: any[]) {
+  const now = new Date().toISOString();
 
-<!-- wp:group {"tagName":"main","layout":{"type":"constrained"}} -->
-<main class="wp-block-group">
-    <!-- wp:post-content /-->
-</main>
-<!-- /wp:group -->
+  const items = pages.filter(p => p.html).map((page, i) => {
+    // Escape CDATA end sequences in content
+    const content = (page.html || '').replace(/]]>/g, ']]]]><![CDATA[>');
 
-<!-- wp:template-part {"slug":"footer","area":"footer"} /-->
-`;
-}
-
-function buildHeaderPart(siteName: string) {
-  return `<!-- wp:group {"layout":{"type":"constrained"}} -->
-<div class="wp-block-group">
-    <!-- wp:group {"layout":{"type":"flex","justifyContent":"space-between","flexWrap":"wrap"}} -->
-    <div class="wp-block-group">
-        <!-- wp:site-title /-->
-        <!-- wp:navigation /-->
-    </div>
-    <!-- /wp:group -->
-</div>
-<!-- /wp:group -->
-`;
-}
-
-function buildFooterPart(siteName: string) {
-  const year = new Date().getFullYear();
-  return `<!-- wp:group {"layout":{"type":"constrained"}} -->
-<div class="wp-block-group">
-    <!-- wp:paragraph {"align":"center","fontSize":"small"} -->
-    <p class="has-text-align-center has-small-font-size">&copy; ${year} ${siteName}. All rights reserved.</p>
-    <!-- /wp:paragraph -->
-</div>
-<!-- /wp:group -->
-`;
-}
-
-// ── Import plugin PHP ──
-function buildImportPlugin(siteName: string, slug: string, pages: any[]) {
-  const pagesPhp = pages.filter(p => p.html).map((page, i) => {
-    const escaped = page.html.replace(/'/g, "\\'").replace(/\\/g, '\\\\');
-    const isHome = i === 0;
     return `
-    // Page: ${page.title}
-    $page_id = wp_insert_post(array(
-        'post_title'   => '${page.title.replace(/'/g, "\\'")}',
-        'post_name'    => '${page.slug}',
-        'post_content' => '${escaped}',
-        'post_status'  => 'publish',
-        'post_type'    => 'page',
-    ));
-    $page_ids[] = $page_id;
-    ${isHome ? `
-    // Set as homepage
-    update_option('page_on_front', $page_id);
-    update_option('show_on_front', 'page');
-    ` : ''}
-    $menu_items[] = array('title' => '${page.title.replace(/'/g, "\\'")}', 'page_id' => $page_id);`;
+    <item>
+      <title>${escapeXml(page.title)}</title>
+      <link></link>
+      <pubDate>${now}</pubDate>
+      <dc:creator><![CDATA[admin]]></dc:creator>
+      <description></description>
+      <content:encoded><![CDATA[${content}]]></content:encoded>
+      <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+      <wp:post_id>${i + 10}</wp:post_id>
+      <wp:post_date>${now}</wp:post_date>
+      <wp:post_date_gmt>${now}</wp:post_date_gmt>
+      <wp:post_modified>${now}</wp:post_modified>
+      <wp:post_modified_gmt>${now}</wp:post_modified_gmt>
+      <wp:comment_status>closed</wp:comment_status>
+      <wp:ping_status>closed</wp:ping_status>
+      <wp:post_name>${escapeXml(page.slug)}</wp:post_name>
+      <wp:status>publish</wp:status>
+      <wp:post_parent>0</wp:post_parent>
+      <wp:menu_order>${i}</wp:menu_order>
+      <wp:post_type>page</wp:post_type>
+      <wp:is_sticky>0</wp:is_sticky>
+    </item>`;
   }).join('\n');
 
-  return `<?php
-/**
- * Plugin Name: Envosta Import - ${siteName}
- * Description: Imports pages and navigation for the ${siteName} website. Activate, click "Import Now", then deactivate and delete.
- * Version: 1.0.0
- * Author: Envosta
- */
+  return `<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0"
+  xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/"
+  xmlns:content="http://purl.org/rss/1.0/modules/content/"
+  xmlns:dc="http://purl.org/dc/elements/1.1/"
+  xmlns:wp="http://wordpress.org/export/1.2/"
+>
+  <channel>
+    <title>${escapeXml(siteName)}</title>
+    <link>https://example.com</link>
+    <description>${escapeXml(siteName)} — Built with Envosta Studio</description>
+    <language>en-US</language>
+    <wp:wxr_version>1.2</wp:wxr_version>
+    <wp:base_site_url>https://example.com</wp:base_site_url>
+    <wp:base_blog_url>https://example.com</wp:base_blog_url>
 
-if (!defined('ABSPATH')) exit;
-
-// Show import button
-add_action('admin_notices', function() {
-    if (get_option('envosta_import_${slug}_done')) {
-        echo '<div class="notice notice-success"><p><strong>Envosta Import:</strong> Pages imported successfully! You can deactivate and delete this plugin.</p></div>';
-        return;
-    }
-    $url = admin_url('admin-post.php?action=envosta_import_${slug}');
-    echo '<div class="notice notice-info"><p><strong>Envosta Import:</strong> Ready to import ${pages.filter(p => p.html).length} pages. <a href="' . esc_url($url) . '" class="button button-primary">Import Now</a></p></div>';
-});
-
-// Handle import
-add_action('admin_post_envosta_import_${slug}', function() {
-    if (!current_user_can('manage_options')) wp_die('Unauthorized');
-    if (get_option('envosta_import_${slug}_done')) {
-        wp_redirect(admin_url());
-        exit;
-    }
-
-    $page_ids = array();
-    $menu_items = array();
-${pagesPhp}
-
-    // Create navigation menu
-    $menu_id = wp_create_nav_menu('${siteName} Navigation');
-    if (!is_wp_error($menu_id)) {
-        foreach ($menu_items as $item) {
-            wp_update_nav_menu_item($menu_id, 0, array(
-                'menu-item-title'     => $item['title'],
-                'menu-item-object'    => 'page',
-                'menu-item-object-id' => $item['page_id'],
-                'menu-item-type'      => 'post_type',
-                'menu-item-status'    => 'publish',
-            ));
-        }
-    }
-
-    update_option('envosta_import_${slug}_done', true);
-    wp_redirect(admin_url('edit.php?post_type=page'));
-    exit;
-});
-`;
+    <wp:author>
+      <wp:author_id>1</wp:author_id>
+      <wp:author_login><![CDATA[admin]]></wp:author_login>
+      <wp:author_email><![CDATA[admin@envosta.com]]></wp:author_email>
+      <wp:author_display_name><![CDATA[Admin]]></wp:author_display_name>
+    </wp:author>
+${items}
+  </channel>
+</rss>`;
 }
 
+function escapeXml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ── Main export handler ──
 export async function POST(req: Request) {
-  // Auth
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (!isStaffRole(profile?.role)) {
-    return NextResponse.json({ error: 'Staff access required' }, { status: 403 });
-  }
+  if (!isStaffRole(profile?.role)) return NextResponse.json({ error: 'Staff access required' }, { status: 403 });
 
   try {
     const { projectId } = await req.json();
     if (!projectId) return NextResponse.json({ error: 'projectId required' }, { status: 400 });
 
-    // Fetch project + pages
-    const sb = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { persistSession: false } },
-    );
-
+    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
     const { data: project } = await sb.from('studio_projects').select('*').eq('id', projectId).single();
     if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
-    const { data: pages } = await sb
-      .from('studio_pages')
-      .select('*')
-      .eq('project_id', projectId)
-      .order('sort_order', { ascending: true });
-
+    const { data: pages } = await sb.from('studio_pages').select('*').eq('project_id', projectId).order('sort_order', { ascending: true });
     const allPages = pages ?? [];
     const pagesWithContent = allPages.filter(p => p.html);
 
     if (pagesWithContent.length === 0) {
-      return NextResponse.json({ error: 'No pages with generated content to export' }, { status: 400 });
+      return NextResponse.json({ error: 'No pages with content to export' }, { status: 400 });
     }
 
     const style = project.style_config || {};
     const slug = project.slug || 'site';
     const siteName = style.siteName || project.name;
-    const themeDir = `envosta-theme-${slug}`;
+    const childDir = `envosta-child-${slug}`;
 
-    // Build ZIP
     const zip = new JSZip();
 
-    // Theme files
-    zip.file(`${themeDir}/theme.json`, buildThemeJson(style, slug));
-    zip.file(`${themeDir}/style.css`, buildStyleCss(siteName, slug));
-    zip.file(`${themeDir}/functions.php`, buildFunctionsPhp(style.fonts, slug));
-    zip.file(`${themeDir}/templates/index.html`, buildTemplate('index'));
-    zip.file(`${themeDir}/templates/front-page.html`, buildTemplate('front-page'));
-    zip.file(`${themeDir}/templates/page.html`, buildTemplate('page'));
-    zip.file(`${themeDir}/parts/header.html`, buildHeaderPart(siteName));
-    zip.file(`${themeDir}/parts/footer.html`, buildFooterPart(siteName));
+    // Child theme files
+    zip.file(`${childDir}/theme.json`, buildChildThemeJson(style));
+    zip.file(`${childDir}/style.css`, buildChildStyleCss(siteName, slug));
+    zip.file(`${childDir}/functions.php`, buildChildFunctionsPhp(style.fonts, slug));
 
-    // Import plugin
-    zip.file(`envosta-import-${slug}.php`, buildImportPlugin(siteName, slug, allPages));
+    // WXR XML content file
+    zip.file(`content-${slug}.xml`, buildWxrXml(siteName, allPages));
 
-    // Generate ZIP buffer
     const buffer = await zip.generateAsync({ type: 'uint8array' });
 
     return new Response(buffer as unknown as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="envosta-theme-${slug}.zip"`,
+        'Content-Disposition': `attachment; filename="envosta-${slug}.zip"`,
       },
     });
   } catch (e: any) {
