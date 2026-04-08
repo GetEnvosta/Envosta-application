@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Palette, FileText, Eye, Download } from 'lucide-react';
+import Link from 'next/link';
+import { Palette, FileText, Eye, Download, ArrowLeft } from 'lucide-react';
 import { StyleEditor } from '@/components/studio/style-editor';
 import { PageEditor } from '@/components/studio/page-editor';
 import { PagePreview } from '@/components/studio/page-preview';
@@ -23,29 +24,33 @@ export function StudioEditor({ project, initialPages }: { project: any; initialP
   const [selectedPageId, setSelectedPageId] = useState(initialPages[0]?.id || '');
 
   return (
-    <div>
-      <h1 className="text-xl font-semibold text-gray-900 mb-4">{project.name}</h1>
-
-      {/* Tab bar */}
-      <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
-              activeTab === tab.id
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            {tab.label}
-          </button>
-        ))}
+    <div className="flex flex-col h-full">
+      {/* Top bar — project name + tabs */}
+      <div className="flex items-center gap-4 px-5 py-3 border-b border-gray-200 bg-white shrink-0">
+        <Link href="/admin/studio" className="p-1.5 -ml-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors" title="Back to projects">
+          <ArrowLeft className="w-4 h-4" />
+        </Link>
+        <h1 className="text-sm font-semibold text-gray-900 truncate">{project.name}</h1>
+        <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5 ml-auto">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                activeTab === tab.id
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <tab.icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Tab content */}
-      <div className="card p-6">
+      {/* Tab content — fills remaining space */}
+      <div className="flex-1 overflow-auto p-5">
         {activeTab === 'style' && (
           <StyleEditor
             projectId={project.id}

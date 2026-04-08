@@ -16,11 +16,7 @@ export default async function StudioProjectPage({
   if (!result) notFound();
 
   return (
-    <div>
-      <Link href="/admin/studio" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-4">
-        <ArrowLeft className="w-4 h-4" />
-        Back to Studio
-      </Link>
+    <div className="h-full flex flex-col">
       <StudioEditor project={result.project} initialPages={result.pages} />
     </div>
   );
