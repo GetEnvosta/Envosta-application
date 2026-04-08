@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   if (!apiKey) return NextResponse.json({ error: 'AI not configured' }, { status: 503 });
 
   try {
-    const { style, pageName, pagePrompt, allPageNames } = await req.json();
+    const { style, pageName, pagePrompt, allPageNames, referenceHtml } = await req.json();
 
     if (!pageName || !pagePrompt) {
       return NextResponse.json({ error: 'Page name and prompt are required' }, { status: 400 });
@@ -64,7 +64,13 @@ Max Width: ${style?.maxWidth || '1200px'}
 Navigation pages: ${(allPageNames || [pageName]).join(', ')}
 
 PAGE TO GENERATE: "${pageName}"
-DESCRIPTION: ${pagePrompt}`;
+DESCRIPTION: ${pagePrompt}${referenceHtml ? `
+
+═══ REFERENCE HTML ═══
+The user has provided an existing HTML page to use as a reference. Rebuild this page with the same layout, structure, sections, and content but apply the style reference above (colors, fonts, spacing). Match the reference design as closely as possible while using the provided design system. If sections are present, keep them in the same order. Replace any branding with the site name and colors above.
+
+REFERENCE:
+${referenceHtml}` : ''}`;
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
