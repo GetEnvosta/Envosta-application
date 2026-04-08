@@ -49,6 +49,7 @@ export function StepWireframe({
   }
 
   function removePage(index: number) {
+    if (wireframe[index]?.type === 'template-part') return; // can't remove header/footer
     const updated = wireframe.filter((_, i) => i !== index);
     onWireframeChange(updated);
   }
@@ -57,6 +58,7 @@ export function StepWireframe({
     onWireframeChange([...wireframe, {
       name: 'New Page',
       slug: 'new-page',
+      type: 'page',
       description: '',
       sections: [],
     }]);
@@ -86,12 +88,49 @@ export function StepWireframe({
 
         {error && <div className="rounded-lg bg-red-50 border border-red-200 p-3 mb-4 text-sm text-red-700">{error}</div>}
 
+        {/* Template Parts */}
+        {wireframe.some(p => p.type === 'template-part') && (
+          <div className="mb-4">
+            <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Template Parts</h3>
+            <div className="grid grid-cols-2 gap-3 mb-2">
+              {wireframe.filter(p => p.type === 'template-part').map((page, _) => {
+                const i = wireframe.indexOf(page);
+                return (
+                  <div key={i} className="rounded-xl border border-purple-200 bg-purple-50/30 p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-medium text-purple-600 uppercase tracking-wide">{page.name}</span>
+                    </div>
+                    <textarea
+                      value={page.description}
+                      onChange={e => updatePage(i, 'description', e.target.value)}
+                      className="text-xs text-gray-600 border-0 outline-none w-full bg-transparent resize-none leading-relaxed"
+                      rows={2}
+                      placeholder="Description..."
+                    />
+                    {page.sections && page.sections.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {page.sections.map((s: string, j: number) => (
+                          <span key={j} className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-purple-100 text-[9px] font-medium text-purple-600">{s}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Page list */}
+        <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Pages</h3>
         <div className="space-y-3 mb-6">
-          {wireframe.map((page, i) => (
+          {wireframe.filter(p => p.type !== 'template-part').map((page, _) => {
+            const i = wireframe.indexOf(page);
+            const pageNum = wireframe.filter((p, idx) => p.type !== 'template-part' && idx <= i).length;
+            return (
             <div key={i} className="rounded-xl border border-gray-200 bg-white p-4 group">
               <div className="flex items-start gap-3">
-                <span className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                <span className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{pageNum}</span>
                 <div className="flex-1 min-w-0">
                   <input
                     type="text"
@@ -122,7 +161,8 @@ export function StepWireframe({
                 </button>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
 
         <button onClick={addPage} className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-indigo-600 mb-6">
