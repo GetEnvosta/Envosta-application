@@ -25,7 +25,11 @@
       "Bash(\"/c/Program Files \\(x86\\)/GitHub CLI/gh.exe\" --version)",
       "Bash(export PATH=\"$PATH:/c/Program Files/GitHub CLI\")",
       "Bash(gh --version)",
-      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" auth login --web)"
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" auth login --web)",
+      "Bash(GIT_TERMINAL_PROMPT=0 git push origin claude/keen-cori)",
+      "WebFetch(domain:supabase.com)",
+      "Bash(GIT_TERMINAL_PROMPT=0 git push origin main)",
+      "WebFetch(domain:wp.cloud)"
     ]
   }
 }
