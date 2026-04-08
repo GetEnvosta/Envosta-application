@@ -61,24 +61,21 @@ export function StepDesign({
   const allGenerated = pages.length > 0 && pages.every(p => p.html);
   const sizeConfig = SIZES.find(s => s.id === previewSize)!;
 
-  // Ensure Header and Footer exist
+  // Ensure Header and Footer exist (fallback if wireframe didn't include them)
   useEffect(() => {
     const hasHeader = pages.some(p => p.title === 'Header');
     const hasFooter = pages.some(p => p.title === 'Footer');
-    if (!hasHeader || !hasFooter) {
-      (async () => {
-        const supabase = createClient();
-        const toCreate = [];
-        if (!hasHeader) toCreate.push({ title: 'Header', slug: 'header', sort_order: -2 });
-        if (!hasFooter) toCreate.push({ title: 'Footer', slug: 'footer', sort_order: -1 });
-        for (const item of toCreate) {
-          const { data } = await supabase.from('studio_pages').insert({
-            project_id: projectId, ...item, prompt: `Site ${item.title.toLowerCase()} with navigation and branding`,
-          }).select('*').single();
-          if (data) onPagesChange([...pages, data]);
-        }
-      })();
-    }
+    if (hasHeader && hasFooter) return;
+    (async () => {
+      const supabase = createClient();
+      const toCreate = [];
+      if (!hasHeader) toCreate.push({ title: 'Header', slug: 'header', sort_order: -2, prompt: 'Site header with logo, primary navigation, and CTA button. Mobile responsive with hamburger menu.' });
+      if (!hasFooter) toCreate.push({ title: 'Footer', slug: 'footer', sort_order: -1, prompt: 'Site footer with company info, quick links, social media icons, and copyright.' });
+      for (const item of toCreate) {
+        const { data } = await supabase.from('studio_pages').insert({ project_id: projectId, ...item }).select('*').single();
+        if (data) onPagesChange([...pages, data]);
+      }
+    })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveStyle = useCallback((config: any) => {

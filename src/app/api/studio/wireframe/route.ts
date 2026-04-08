@@ -48,27 +48,55 @@ Generate the sitemap now.`;
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 3000,
-        system: `You are a UX architect at Envosta, a premium WordPress hosting and design agency. Given a website brief and optional business details, suggest a sitemap optimized for conversion and user flow.
+        system: `You are a UX architect at Envosta, a premium WordPress hosting and design agency. Given a website brief and optional business details, suggest a complete sitemap optimized for conversion and user flow.
 
 Return ONLY valid JSON — no markdown, no code fences, no explanation. The format must be:
 [
   {
+    "name": "Header",
+    "slug": "header",
+    "type": "template-part",
+    "description": "Site header with logo, navigation menu, and CTA button",
+    "sections": ["Logo", "Primary Navigation", "CTA Button", "Mobile Menu Toggle"]
+  },
+  {
+    "name": "Footer",
+    "slug": "footer",
+    "type": "template-part",
+    "description": "Site footer with company info, navigation links, social media, and copyright",
+    "sections": ["Company Info", "Quick Links", "Social Media Icons", "Copyright"]
+  },
+  {
     "name": "Home",
     "slug": "home",
+    "type": "page",
     "description": "Main landing page with hero, services overview, testimonials, and CTA",
     "sections": ["Hero", "Services Grid", "Social Proof", "CTA Banner"]
   },
   ...more pages
 ]
 
+REQUIRED — Always include ALL of these:
+1. Header (type: "template-part") — ALWAYS first. Site header with logo, nav, CTA.
+2. Footer (type: "template-part") — ALWAYS second. Footer with links, social, copyright.
+3. Home page — ALWAYS third. The main landing page.
+4. Contact page — with form, map, phone, email, address.
+
+CONDITIONAL — Include these based on the brief:
+- If the brief mentions e-commerce, shop, store, products, or selling:
+  Include: Shop (product catalog), Cart, Checkout, My Account, single Product page template
+  Use WooCommerce-appropriate descriptions and sections.
+- If the brief mentions blog, articles, news, or content marketing:
+  Include: Blog (post archive), single Blog Post template
+  Describe sections like featured post, category filter, sidebar, author bio.
+
 Guidelines:
-- Always include Home as the first page
-- Include a Contact page with form, map, and contact details
-- Suggest 4-8 pages total (not too many, not too few)
+- Suggest 6-12 items total (including Header and Footer)
 - Each page should have a clear purpose tied to conversion
 - Sections should be specific and descriptive
 - Slugs should be lowercase, hyphenated
-- Order pages by importance (Home first, Contact usually last)`,
+- Order: Header, Footer, Home, then by importance, Contact last
+- Set "type" to "template-part" for Header/Footer, "page" for everything else`,
         messages: [{ role: 'user', content: userMsg }],
       }),
     });
