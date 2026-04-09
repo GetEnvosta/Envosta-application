@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { createClient } from '@/lib/supabase-browser';
 import { Globe, Loader2, CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -32,15 +31,15 @@ export function ConnectedDomainSwitcher({
     setSaving(true);
     setStatus(null);
 
-    const supabase = createClient();
     const newDomain = domains.find((d) => d.id === newDomainId);
 
-    // Unlink the previously connected domain (if any)
+    // Unlink the previously connected domain (if any) via API (browser client blocked by RLS)
     if (previousId) {
-      await supabase
-        .from('domains')
-        .update({ site_id: null })
-        .eq('id', previousId);
+      await fetch('/api/domains', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domainId: previousId, action: 'disconnect' }),
+      });
     }
 
     if (newDomainId && newDomain) {
@@ -118,7 +117,7 @@ export function ConnectedDomainSwitcher({
             disabled={saving || isPending}
             className="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 disabled:opacity-50"
           >
-            <option value="">No domain connected</option>
+            <option value="">Use staging domain (no custom domain)</option>
             {availableDomains.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.domain_name}
