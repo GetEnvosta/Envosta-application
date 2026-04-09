@@ -25,7 +25,7 @@ export default async function AdminDashboardPage() {
     getAbandonedCheckoutCount(),
     getRecentTicketsByType('studio', 5),
     getRecentTicketsByType('support', 5),
-    getRecentTicketsByType('sales', 5),
+    getRecentTicketsByType('onboarding', 5),
   ]);
 
   const mrr = activeSubscriptions.reduce(
@@ -61,7 +61,7 @@ export default async function AdminDashboardPage() {
         {[
           { title: 'Studio Requests', icon: Sparkles, tickets: studioTickets, type: 'studio' },
           { title: 'Support Tickets', icon: MessageSquare, tickets: supportTickets, type: 'support' },
-          { title: 'Sales Inquiries', icon: Phone, tickets: salesTickets, type: 'sales' },
+          { title: 'Onboarding', icon: Phone, tickets: salesTickets, type: 'onboarding' },
         ].map(section => (
           <div key={section.type} className="card">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">

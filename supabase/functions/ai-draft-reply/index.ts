@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
       if (intakeMetadata.timeline) contextLines += `\nTimeline: ${intakeMetadata.timeline}`;
       if (intakeMetadata.plan) contextLines += `\nInterested Plan: ${intakeMetadata.plan} (${intakeMetadata.billing ?? "monthly"})`;
       if (intakeMetadata.closed_on_spot) contextLines += `\nDeal Status: CLOSED ON SPOT`;
-      if (intakeMetadata.sales_rep) contextLines += `\nSales Rep: ${intakeMetadata.sales_rep}`;
+      if (intakeMetadata.sales_rep) contextLines += `\nAffiliate: ${intakeMetadata.sales_rep}`;
     }
 
     const conversationText = thread.map((msg: any) =>
@@ -56,7 +56,7 @@ ${conversationText}
 Draft a professional, warm, concise reply.
 - Support: helpful, technical, reference their setup when relevant
 - Studio: creative, professional, ask about scope if no quote yet, confirm next steps if quoted
-- Sales: enthusiastic not pushy, highlight personal onboarding and concierge service, guide toward signing up
+- Onboarding: enthusiastic not pushy, highlight personal onboarding and concierge service, guide toward signing up
 
 Under 150 words. Be human, not corporate.`;
 

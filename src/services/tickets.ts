@@ -9,7 +9,7 @@ export async function getUserTickets(typeFilter?: string, userId?: string) {
   let query = supabase
     .from('tickets')
     .select('*, ticket_messages(id, sender, message, created_at)')
-    .neq('type', 'sales')
+    .neq('type', 'onboarding')
     .order('updated_at', { ascending: false });
 
   if (typeFilter && typeFilter !== 'all') {
@@ -32,7 +32,7 @@ export async function getTicketById(id: string, userId: string) {
     .select('*, ticket_messages(id, sender, message, created_at), users(full_name, email)')
     .eq('id', id)
     .eq('user_id', userId)
-    .neq('type', 'sales')
+    .neq('type', 'onboarding')
     .single();
   return data;
 }

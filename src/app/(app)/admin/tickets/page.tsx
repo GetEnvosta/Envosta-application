@@ -9,14 +9,14 @@ const TYPE_TABS = [
   { label: 'All', value: 'all' },
   { label: 'Support', value: 'support' },
   { label: 'Studio', value: 'studio' },
-  { label: 'Sales', value: 'sales' },
+  { label: 'Onboarding', value: 'onboarding' },
 ];
 
 function typeBadge(type: string) {
   switch (type) {
     case 'support': return 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20';
     case 'studio': return 'bg-purple-50 text-purple-700 ring-1 ring-purple-600/20';
-    case 'sales': return 'bg-green-50 text-green-700 ring-1 ring-green-600/20';
+    case 'onboarding': return 'bg-green-50 text-green-700 ring-1 ring-green-600/20';
     default: return 'bg-gray-50 text-gray-700 ring-1 ring-gray-600/20';
   }
 }

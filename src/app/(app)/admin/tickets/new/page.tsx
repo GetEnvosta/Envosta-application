@@ -8,7 +8,7 @@ import { ArrowLeft, Loader2, Send } from 'lucide-react';
 
 export default function NewTicketPage() {
   const router = useRouter();
-  const [ticketType, setTicketType] = useState('sales');
+  const [ticketType, setTicketType] = useState('onboarding');
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [subject, setSubject] = useState('');
@@ -93,7 +93,7 @@ export default function NewTicketPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Ticket Type</label>
             <div className="flex gap-2">
               {[
-                { value: 'sales', label: 'Sales', color: 'green' },
+                { value: 'onboarding', label: 'Onboarding', color: 'green' },
                 { value: 'support', label: 'Technical', color: 'blue' },
                 { value: 'studio', label: 'Studio', color: 'purple' },
               ].map(t => (

@@ -69,7 +69,7 @@ export async function POST(req: Request) {
 
   const { type, earner_id, customer_id, ticket_id, amount_cad, payout_method, notes } = await req.json();
 
-  if (!type || !['sales_rep', 'referral'].includes(type)) {
+  if (!type || !['affiliate', 'referral'].includes(type)) {
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
   }
   if (!earner_id) return NextResponse.json({ error: 'earner_id required' }, { status: 400 });
@@ -138,7 +138,7 @@ export async function PUT(req: Request) {
         body: new URLSearchParams({
           amount: (-commission.amount_cad).toString(), // negative = credit
           currency: 'cad',
-          description: `${commission.type === 'referral' ? 'Referral reward' : 'Commission'} — ${commission.notes || 'Envosta'}`,
+          description: `${commission.type === 'referral' ? 'Referral reward' : 'Affiliate commission'} — ${commission.notes || 'Envosta'}`,
         }),
       });
 
