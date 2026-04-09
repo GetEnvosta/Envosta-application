@@ -28,6 +28,22 @@ export function GetStartedFlow() {
   const domain = searchParams.get('domain') ?? undefined;
   const billing = (searchParams.get('billing') === 'annual' ? 'annual' : 'monthly') as 'monthly' | 'annual';
   const promo = searchParams.get('promo') ?? undefined;
+  const ref = searchParams.get('ref') ?? undefined;
+
+  // Track referral click and store code in cookie
+  useEffect(() => {
+    const refCode = ref || document.cookie.match(/envosta_ref=([^;]+)/)?.[1];
+    if (ref) {
+      // Store in cookie (30 day expiry)
+      document.cookie = `envosta_ref=${ref};path=/;max-age=${60 * 60 * 24 * 30}`;
+      // Track the click
+      fetch('/api/referral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: ref, userAgent: navigator.userAgent }),
+      }).catch(() => {});
+    }
+  }, [ref]);
 
   // plan=choose means "show plan picker" (from domains page with domain pre-filled)
   const needsPlanChoice = planParam === 'choose';
@@ -86,6 +102,7 @@ export function GetStartedFlow() {
           initialBilling={billing}
           isTrial={isTrial}
           promoCode={promo}
+          referralCode={ref}
         />
       </div>
     </div>

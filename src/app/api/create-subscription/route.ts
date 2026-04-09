@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
   try {
   const body = await req.json();
-  const { priceId, domainName, name, email, password, trial, promoCode, billing } = body;
+  const { priceId, domainName, name, email, password, trial, promoCode, billing, referralCode } = body;
 
   if (!priceId) return NextResponse.json({ error: 'priceId is required' }, { status: 400 });
 
@@ -116,6 +116,43 @@ export async function POST(req: Request) {
   }
 
   const subscription = await stripe.subscriptions.create(subParams);
+
+  // ── Affiliate referral attribution ──
+  if (referralCode) {
+    try {
+      const { data: affiliate } = await sb
+        .from('users')
+        .select('id')
+        .eq('referral_code', referralCode.toLowerCase())
+        .single();
+
+      if (affiliate) {
+        // Mark user as referred
+        await sb.from('users').update({ referred_by: affiliate.id }).eq('id', userId);
+
+        // Mark referral click as converted
+        await sb.from('referral_clicks')
+          .update({ converted: true, customer_id: userId })
+          .eq('referral_code', referralCode.toLowerCase())
+          .is('converted', false)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        // Auto-create affiliate commission
+        await sb.from('commissions').insert({
+          type: 'affiliate',
+          earner_id: affiliate.id,
+          customer_id: userId,
+          amount_cad: 10000, // $100 default — admin can adjust
+          payout_method: 'etransfer',
+          status: 'pending',
+          notes: `Referral signup: ${name || email}`,
+        });
+      }
+    } catch (e) {
+      console.error('Referral attribution error (non-blocking):', e);
+    }
+  }
 
   // For trials, there's no payment — collect card via separate SetupIntent
   if (trial) {
