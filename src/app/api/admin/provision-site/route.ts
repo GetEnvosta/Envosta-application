@@ -35,9 +35,44 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `Subscription is ${sub.status}, must be active or trialing` }, { status: 400 });
   }
 
-  // Check no site already exists for this subscription
-  const { data: existing } = await supabase.from('sites').select('id').eq('subscription_id', subscriptionId).maybeSingle();
-  if (existing) return NextResponse.json({ error: 'Site already exists for this subscription', siteId: existing.id }, { status: 409 });
+  // Check if site already exists for this subscription
+  const { data: existing } = await supabase.from('sites').select('id, wp_cloud_site_id, status').eq('subscription_id', subscriptionId).maybeSingle();
+  if (existing) {
+    // If the site already has a wp.cloud ID and is active, block
+    if (existing.wp_cloud_site_id && existing.status !== 'provisioning') {
+      return NextResponse.json({ error: 'Site already exists for this subscription', siteId: existing.id }, { status: 409 });
+    }
+    // If the site exists but has no wp.cloud ID (reinstalled/failed), re-provision it
+    if (!existing.wp_cloud_site_id || existing.status === 'provisioning') {
+      const effectivePlanId = planId || sub.product_id;
+      await supabase.from('sites').update({ status: 'provisioning', product_id: effectivePlanId }).eq('id', existing.id);
+      try {
+        const provRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/provision-hosting`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+          body: JSON.stringify({
+            serviceId: existing.id,
+            label: label || 'reprovisioned-site',
+            region: 'dca',
+            phpVersion: '8.4',
+            planId: effectivePlanId,
+            userId,
+          }),
+        });
+        const provData = await provRes.json();
+        if (provRes.ok) {
+          return NextResponse.json({ success: true, siteId: existing.id, provisioning: provData });
+        } else {
+          return NextResponse.json({ success: true, siteId: existing.id, warning: 'Re-provision failed — retry from admin', provisionError: provData.error });
+        }
+      } catch (e: any) {
+        return NextResponse.json({ success: true, siteId: existing.id, warning: 'Re-provision failed', provisionError: e.message });
+      }
+    }
+  }
 
   // Get user info for label
   const { data: userProfile } = await supabase.from('users').select('full_name, email').eq('id', userId).single();
