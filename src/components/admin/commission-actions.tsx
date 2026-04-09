@@ -80,7 +80,7 @@ export function CreateCommissionModal({
 }) {
   const router = useRouter();
   const [form, setForm] = useState({
-    type: 'sales_rep' as string,
+    type: 'affiliate' as string,
     earner_id: '',
     customer_id: '',
     amount: '',
@@ -91,7 +91,7 @@ export function CreateCommissionModal({
   const [errorMsg, setErrorMsg] = useState('');
 
   function reset() {
-    setForm({ type: 'sales_rep', earner_id: '', customer_id: '', amount: '', payout_method: 'etransfer', notes: '' });
+    setForm({ type: 'affiliate', earner_id: '', customer_id: '', amount: '', payout_method: 'etransfer', notes: '' });
     setStatus('idle');
     setErrorMsg('');
   }
@@ -125,8 +125,8 @@ export function CreateCommissionModal({
   const inputClass = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors';
 
   // Filter users for earner dropdown based on type
-  const earnerOptions = form.type === 'sales_rep'
-    ? users.filter(u => ['admin', 'sales', 'studio'].includes(u.role))
+  const earnerOptions = form.type === 'affiliate'
+    ? users.filter(u => ['admin', 'affiliate', 'studio'].includes(u.role))
     : users; // referral can be any user
 
   return (
@@ -140,14 +140,14 @@ export function CreateCommissionModal({
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Type *</label>
             <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} className={inputClass}>
-              <option value="sales_rep">Sales Rep Commission</option>
+              <option value="affiliate">Affiliate Commission</option>
               <option value="referral">Customer Referral ($250 credit)</option>
             </select>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              {form.type === 'referral' ? 'Referring Customer *' : 'Sales Rep *'}
+              {form.type === 'referral' ? 'Referring Customer *' : 'Affiliate *'}
             </label>
             <select required value={form.earner_id} onChange={e => setForm(f => ({ ...f, earner_id: e.target.value }))} className={inputClass}>
               <option value="">Select...</option>

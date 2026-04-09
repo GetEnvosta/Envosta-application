@@ -18,7 +18,7 @@ async function verifyAdmin() {
 
   const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
   const { data: profile } = await admin.from('users').select('role').eq('id', user.id).single();
-  return ['admin', 'sales'].includes(profile?.role) ? user : null;
+  return ['admin', 'affiliate'].includes(profile?.role) ? user : null;
 }
 
 function getStripe() {

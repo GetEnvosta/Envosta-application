@@ -1,13 +1,13 @@
 // ── Role System ─────────────────────────────────────────────
 // Single source of truth for all role constants, access maps, and helpers.
 
-export const STAFF_ROLES = ['admin', 'sales', 'studio'] as const;
-export const ALL_ROLES = ['admin', 'sales', 'studio', 'customer'] as const;
+export const STAFF_ROLES = ['admin', 'affiliate', 'studio'] as const;
+export const ALL_ROLES = ['admin', 'affiliate', 'studio', 'customer'] as const;
 
 export type StaffRole = (typeof STAFF_ROLES)[number];
 export type UserRole = (typeof ALL_ROLES)[number];
 
-/** Returns true if the role is a staff role (admin, sales, studio). */
+/** Returns true if the role is a staff role (admin, affiliate, studio). */
 export function isStaffRole(role?: string | null): boolean {
   return STAFF_ROLES.includes(role as StaffRole);
 }
@@ -18,7 +18,7 @@ export function isStaffRole(role?: string | null): boolean {
 
 export const ADMIN_NAV_ACCESS: Record<string, string[]> = {
   admin: ['*'],
-  sales: [
+  affiliate: [
     '/admin',
     '/admin/customers',
     '/admin/tickets',
@@ -56,10 +56,10 @@ const ADMIN_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/admin/diagnostics':   ['admin'],
   '/admin/logs':          ['admin'],
   '/admin/plans':         ['admin'],
-  '/admin/commissions':   ['admin', 'sales'],
-  '/admin/promotions':    ['admin', 'sales'],
-  '/admin/customers':     ['admin', 'sales', 'studio'],
-  '/admin/tickets':       ['admin', 'sales', 'studio'],
+  '/admin/commissions':   ['admin', 'affiliate'],
+  '/admin/promotions':    ['admin', 'affiliate'],
+  '/admin/customers':     ['admin', 'affiliate', 'studio'],
+  '/admin/tickets':       ['admin', 'affiliate', 'studio'],
   '/admin/studio':        ['admin', 'studio'],
   '/admin/services':      ['admin', 'studio'],
   '/admin/domains':       ['admin', 'studio'],
@@ -102,9 +102,9 @@ export const API_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/api/admin/provision-site':             ['admin', 'studio'],
   '/api/admin/delete-site':                ['admin', 'studio'],
   '/api/admin/attach-domain-subscription': ['admin', 'studio'],
-  '/api/admin/coupons':                    ['admin', 'sales'],
-  '/api/admin/commissions':                ['admin', 'sales'],
-  '/api/admin/delete-ticket':              ['admin', 'sales', 'studio'],
+  '/api/admin/coupons':                    ['admin', 'affiliate'],
+  '/api/admin/commissions':                ['admin', 'affiliate'],
+  '/api/admin/delete-ticket':              ['admin', 'affiliate', 'studio'],
 };
 
 /** Check if a role can access a given admin API route. */
@@ -118,8 +118,8 @@ export function canAccessAdminApi(role: string, pathname: string): boolean {
 // ── Role Badge Colors ───────────────────────────────────────
 
 export const ROLE_BADGE_CLASSES: Record<string, string> = {
-  admin:    'bg-indigo-100 text-indigo-700',
-  sales:    'bg-amber-100 text-amber-700',
-  studio:   'bg-emerald-100 text-emerald-700',
-  customer: 'bg-gray-100 text-gray-600',
+  admin:     'bg-indigo-100 text-indigo-700',
+  affiliate: 'bg-amber-100 text-amber-700',
+  studio:    'bg-emerald-100 text-emerald-700',
+  customer:  'bg-gray-100 text-gray-600',
 };

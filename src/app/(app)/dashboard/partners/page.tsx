@@ -5,14 +5,14 @@ import { useSearchParams } from 'next/navigation';
 import { CheckCircle, Handshake, Loader2 } from 'lucide-react';
 
 const PARTNER_TYPES = [
-  { value: 'sales', label: 'Sales Partner', description: 'Refer businesses to Envosta and earn recurring commissions on every customer you bring in.' },
+  { value: 'affiliate', label: 'Affiliate Partner', description: 'Refer businesses to Envosta and earn recurring commissions on every customer you bring in.' },
   { value: 'agency', label: 'Agency Partner', description: 'Build client sites on Envosta. Get priority support, bulk pricing, and a dedicated account manager.' },
   { value: 'referral', label: 'Referral Program', description: 'Share Envosta with a friend. Simple as that.' },
 ];
 
 export default function PartnersPage() {
   const searchParams = useSearchParams();
-  const initialType = searchParams.get('type') ?? 'sales';
+  const initialType = searchParams.get('type') ?? 'affiliate';
   const [type, setType] = useState(initialType);
   const [form, setForm] = useState({
     fullName: '', email: '', phone: '', companyName: '', websiteUrl: '',
@@ -38,7 +38,7 @@ export default function PartnersPage() {
       // Build subject based on partner type
       let subject = '';
       let description = '';
-      if (type === 'sales') {
+      if (type === 'affiliate') {
         subject = `[Sales Partner] New Application — ${form.fullName}`;
         description = `Company: ${form.companyName || 'N/A'}\nPhone: ${form.phone || 'N/A'}\n\nReferral Strategy:\n${form.message}`;
       } else if (type === 'agency') {
@@ -53,7 +53,7 @@ export default function PartnersPage() {
       const { data: { user } } = await supabase.auth.getUser();
       await supabase.from('tickets').insert({
         user_id: user?.id ?? null,
-        type: 'sales',
+        type: 'affiliate',
         subject,
         description,
         source: 'partner-form',
@@ -143,7 +143,7 @@ export default function PartnersPage() {
           </div>
 
           {/* Sales & Agency: Phone */}
-          {(type === 'sales' || type === 'agency') && (
+          {(type === 'affiliate' || type === 'agency') && (
             <div>
               <label className="label">Phone Number</label>
               <input type="tel" className="input" value={form.phone}
@@ -152,7 +152,7 @@ export default function PartnersPage() {
           )}
 
           {/* Sales: Company */}
-          {type === 'sales' && (
+          {type === 'affiliate' && (
             <>
               <div>
                 <label className="label">Company Name <span className="text-gray-400 font-normal">(optional)</span></label>

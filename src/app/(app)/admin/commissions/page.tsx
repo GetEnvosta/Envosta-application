@@ -90,10 +90,10 @@ export default async function CommissionsPage({
           All
         </a>
         <a
-          href="/admin/commissions?type=sales_rep"
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${type === 'sales_rep' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          href="/admin/commissions?type=affiliate"
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${type === 'affiliate' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
         >
-          Sales Rep
+          Affiliate
         </a>
         <a
           href="/admin/commissions?type=referral"
@@ -155,7 +155,7 @@ export default async function CommissionsPage({
                     </td>
                     <td className="px-5 py-3.5">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${typeBadge(c.type)}`}>
-                        {c.type === 'referral' ? 'Referral' : 'Sales Rep'}
+                        {c.type === 'referral' ? 'Referral' : 'Affiliate'}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-gray-600 text-sm">

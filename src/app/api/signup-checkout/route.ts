@@ -260,7 +260,7 @@ export async function POST(req: Request) {
       const { data: ticket } = await supabaseAdmin.from('tickets').insert({
         user_id: userId,
         subject: `New signup: ${name} — ${planLabel} plan`,
-        type: 'sales',
+        type: 'onboarding',
         status: 'open',
         priority: 'normal',
         metadata: { source: 'signup', plan, domain, onboarding, situation },

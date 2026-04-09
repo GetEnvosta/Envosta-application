@@ -77,7 +77,7 @@ export async function POST(req: Request) {
     const closedLabel = closedOnSpot ? ` [CLOSED — ${plan}, ${billing}]` : '';
     const { data: ticket, error: ticketErr } = await supabase.from('tickets').insert({
       subject: `Intake: ${company} — ${contactName}${closedLabel}`,
-      type: 'sales',
+      type: 'onboarding',
       status: closedOnSpot ? 'approved' : 'open',
       priority: closedOnSpot ? 'high' : 'normal',
       contact_name: contactName,
@@ -114,12 +114,12 @@ export async function POST(req: Request) {
           .from('users')
           .select('id')
           .ilike('full_name', salesRep.trim())
-          .in('role', ['admin', 'sales', 'studio'])
+          .in('role', ['admin', 'affiliate', 'studio'])
           .maybeSingle();
 
         if (repUser) {
           await supabase.from('commissions').insert({
-            type: 'sales_rep',
+            type: 'affiliate',
             earner_id: repUser.id,
             ticket_id: ticket.id,
             amount_cad: 10000, // $100 flat fee default — admin can adjust
