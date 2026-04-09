@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
-import { Loader2, Server, RefreshCw, CheckCircle } from 'lucide-react';
+import { Loader2, Server, RefreshCw, CheckCircle, RotateCcw } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export function AdminSiteActions({
   siteId,
@@ -20,6 +21,7 @@ export function AdminSiteActions({
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const router = useRouter();
   async function handleProvision() {
     setLoading('provision');
     setError('');
@@ -33,6 +35,36 @@ export function AdminSiteActions({
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? 'Provisioning failed');
       setSuccess(data.warning ?? 'Site provisioned on wp.cloud');
+    } catch (e: any) {
+      setError(e.message);
+    }
+    setLoading(null);
+  }
+
+  async function handleReinstall() {
+    if (!confirm(
+      '⚠️ FRESH INSTALL\n\n' +
+      'This will:\n' +
+      '• Permanently delete the current WordPress site from wp.cloud\n' +
+      '• All files, database, themes, and plugins will be destroyed\n' +
+      '• Deploy a brand new WordPress installation\n\n' +
+      'The subscription, domains, and addons will remain linked.\n\n' +
+      'This CANNOT be undone. Continue?'
+    )) return;
+
+    setLoading('reinstall');
+    setError('');
+    setSuccess('');
+    try {
+      const res = await fetch('/api/admin/reinstall-site', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId }),
+      });
+      const data = await res.json();
+      if (!res.ok && !data.partial) throw new Error(data?.error ?? 'Reinstall failed');
+      setSuccess(data.message || data.error || 'Site reinstalled');
+      setTimeout(() => router.refresh(), 2000);
     } catch (e: any) {
       setError(e.message);
     }
@@ -75,9 +107,19 @@ export function AdminSiteActions({
         </div>
       )}
       {wpCloudSiteId && (
-        <div className="flex items-center gap-2 text-xs text-green-600">
-          <CheckCircle className="w-3.5 h-3.5" />
-          wp.cloud site provisioned ({wpCloudSiteId})
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-xs text-green-600">
+            <CheckCircle className="w-3.5 h-3.5" />
+            wp.cloud site provisioned ({wpCloudSiteId})
+          </div>
+          <button
+            onClick={handleReinstall}
+            disabled={loading === 'reinstall'}
+            className="btn-secondary text-xs py-1.5 px-3 inline-flex items-center gap-1.5 text-amber-700 border-amber-300 hover:bg-amber-50"
+          >
+            {loading === 'reinstall' ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+            Fresh Install
+          </button>
         </div>
       )}
 
