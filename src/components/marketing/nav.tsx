@@ -16,7 +16,7 @@ const navLinks: NavLink[] = [
   { label: 'Features', href: '/features' },
   { label: 'Domains', href: '/domains' },
   { label: 'Support', href: '/support' },
-  { label: 'Plans & Pricing', href: '/pricing' },
+  { label: 'Pricing', href: '/pricing' },
 ];
 
 function LogoSvg() {
