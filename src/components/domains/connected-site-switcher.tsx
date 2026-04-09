@@ -71,13 +71,21 @@ export function ConnectedSiteSwitcher({
         return;
       }
     } else {
-      // Disconnect — just unlink in DB
-      const { error } = await supabase
-        .from('domains')
-        .update({ site_id: null })
-        .eq('id', domainId);
-
-      if (error) {
+      // Disconnect — unlink via API (browser client can't update due to RLS)
+      try {
+        const res = await fetch('/api/domains', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domainId, action: 'disconnect' }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data?.error ?? 'Failed to disconnect domain.');
+          setSelectedId(previousId);
+          setSaving(false);
+          return;
+        }
+      } catch {
         alert('Failed to disconnect domain.');
         setSelectedId(previousId);
         setSaving(false);
