@@ -29,7 +29,11 @@
       "Bash(GIT_TERMINAL_PROMPT=0 git push origin claude/keen-cori)",
       "WebFetch(domain:supabase.com)",
       "Bash(GIT_TERMINAL_PROMPT=0 git push origin main)",
-      "WebFetch(domain:wp.cloud)"
+      "WebFetch(domain:wp.cloud)",
+      "WebFetch(domain:ui-ux-pro-max-skill.nextlevelbuilder.io)",
+      "Bash(mkdir -p src/app/\\\\\\(marketing\\\\\\)/plans)",
+      "Bash(cp src/app/\\\\\\(marketing\\\\\\)/pricing/page.tsx src/app/\\\\\\(marketing\\\\\\)/plans/page.tsx)",
+      "Bash(cp src/app/\\\\\\(marketing\\\\\\)/pricing/pricing-client.tsx src/app/\\\\\\(marketing\\\\\\)/plans/pricing-client.tsx)"
     ]
   }
 }
