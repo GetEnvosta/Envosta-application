@@ -69,14 +69,12 @@ Return ONLY valid JSON — no markdown, no code fences, no explanation. The form
       const rate = Number((pricingRow?.metadata as any)?.credits_per_unit ?? 0.5);
       const creditsCharged = Math.round((totalTokens / 1000) * rate * 10000) / 10000;
 
-      await supabase.from('ai_usage_log').insert({
+      await supabase.from('logs').insert({
         user_id: user.id,
-        action: 'studio_brief',
-        input_tokens: inputTokens,
-        output_tokens: outputTokens,
-        total_tokens: totalTokens,
-        credits_charged: creditsCharged,
-        model: 'claude-sonnet-4-20250514',
+        action: 'ai.usage',
+        details: `studio_brief: ${totalTokens} tokens`,
+        level: 'info',
+        metadata: { ai_action: 'studio_brief', input_tokens: inputTokens, output_tokens: outputTokens, total_tokens: totalTokens, credits_charged: creditsCharged, model: 'claude-sonnet-4-20250514' },
       });
 
       if (creditsCharged > 0) {

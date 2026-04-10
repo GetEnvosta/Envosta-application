@@ -118,14 +118,12 @@ ${referenceHtml}` : ''}`;
       const rate = Number((pricingRow?.metadata as any)?.credits_per_unit ?? 0.5);
       const creditsCharged = Math.round((totalTokens / 1000) * rate * 10000) / 10000;
 
-      await supabase.from('ai_usage_log').insert({
+      await supabase.from('logs').insert({
         user_id: user.id,
-        action: 'generate_page',
-        input_tokens: inputTokens,
-        output_tokens: outputTokens,
-        total_tokens: totalTokens,
-        credits_charged: creditsCharged,
-        model: 'claude-sonnet-4-20250514',
+        action: 'ai.usage',
+        details: `generate_page: ${totalTokens} tokens`,
+        level: 'info',
+        metadata: { ai_action: 'generate_page', input_tokens: inputTokens, output_tokens: outputTokens, total_tokens: totalTokens, credits_charged: creditsCharged, model: 'claude-sonnet-4-20250514' },
       });
 
       // Deduct from the staff user's account (or could be a project customer)

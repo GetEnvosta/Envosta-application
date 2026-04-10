@@ -103,14 +103,12 @@ Under 150 words. Be human, not corporate.`;
         const rate = Number((pricingRow?.metadata as any)?.credits_per_unit ?? 0.5);
         const creditsCharged = Math.round((totalTokens / 1000) * rate * 10000) / 10000;
 
-        await sb.from("ai_usage_log").insert({
+        await sb.from("logs").insert({
           user_id: ticketUserId,
-          action: "draft_reply",
-          input_tokens: inputTokens,
-          output_tokens: outputTokens,
-          total_tokens: totalTokens,
-          credits_charged: creditsCharged,
-          model: "claude-sonnet-4-20250514",
+          action: "ai.usage",
+          details: `draft_reply: ${totalTokens} tokens`,
+          level: "info",
+          metadata: { ai_action: "draft_reply", input_tokens: inputTokens, output_tokens: outputTokens, total_tokens: totalTokens, credits_charged: creditsCharged, model: "claude-sonnet-4-20250514" },
         });
 
         if (ticketUserId && creditsCharged > 0) {

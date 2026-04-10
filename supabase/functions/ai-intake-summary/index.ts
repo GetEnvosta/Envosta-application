@@ -67,14 +67,12 @@ Format your response with clear headers. Be concise and actionable.`;
       const creditsCharged = Math.round((result.total_tokens / 1000) * rate * 10000) / 10000;
 
       // Log usage (no user deduction for internal staff tools)
-      await sb.from("ai_usage_log").insert({
-        user_id: null, // internal staff use
-        action: "intake_summary",
-        input_tokens: result.input_tokens,
-        output_tokens: result.output_tokens,
-        total_tokens: result.total_tokens,
-        credits_charged: creditsCharged,
-        model: "claude-sonnet-4-20250514",
+      await sb.from("logs").insert({
+        user_id: null,
+        action: "ai.usage",
+        details: `intake_summary: ${result.total_tokens} tokens`,
+        level: "info",
+        metadata: { ai_action: "intake_summary", input_tokens: result.input_tokens, output_tokens: result.output_tokens, total_tokens: result.total_tokens, credits_charged: creditsCharged, model: "claude-sonnet-4-20250514" },
       });
     } catch (logErr) {
       console.error("AI usage log error (non-fatal):", logErr);

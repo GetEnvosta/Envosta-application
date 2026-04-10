@@ -98,14 +98,12 @@ Be specific and actionable. If information is missing, note it as "TBD — follo
         const rate = Number((pricingRow?.metadata as any)?.credits_per_unit ?? 0.5);
         const creditsCharged = Math.round((result.total_tokens / 1000) * rate * 10000) / 10000;
 
-        await sb.from("ai_usage_log").insert({
+        await sb.from("logs").insert({
           user_id: ticketUserId,
-          action: "onboarding_brief",
-          input_tokens: result.input_tokens,
-          output_tokens: result.output_tokens,
-          total_tokens: result.total_tokens,
-          credits_charged: creditsCharged,
-          model: "claude-sonnet-4-20250514",
+          action: "ai.usage",
+          details: `onboarding_brief: ${result.total_tokens} tokens`,
+          level: "info",
+          metadata: { ai_action: "onboarding_brief", input_tokens: result.input_tokens, output_tokens: result.output_tokens, total_tokens: result.total_tokens, credits_charged: creditsCharged, model: "claude-sonnet-4-20250514" },
         });
 
         if (creditsCharged > 0) {

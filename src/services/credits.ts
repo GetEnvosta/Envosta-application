@@ -21,7 +21,7 @@ export async function getCreditBalance(userId: string) {
   };
 }
 
-// ── Transactions ───────────────────────────────────────────
+// ── Transactions (from logs table, action starts with 'credit.') ──
 
 export async function getCreditTransactions(
   userId: string,
@@ -30,13 +30,29 @@ export async function getCreditTransactions(
 ) {
   const supabase = await createClient();
   const { data, count } = await supabase
-    .from('credit_transactions')
+    .from('logs')
     .select('*', { count: 'exact' })
     .eq('user_id', userId)
+    .like('action', 'credit.%')
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  return { transactions: data ?? [], total: count ?? 0 };
+  // Map logs to transaction-like shape for the UI
+  const transactions = (data ?? []).map((log: any) => {
+    const meta = (log.metadata as any) ?? {};
+    return {
+      id: log.id,
+      type: log.action.replace('credit.', ''),
+      amount: meta.amount ?? 0,
+      subscription_balance_after: meta.subscription_balance_after ?? 0,
+      purchased_balance_after: meta.purchased_balance_after ?? 0,
+      description: log.details,
+      service_type: meta.service_type ?? null,
+      created_at: log.created_at,
+    };
+  });
+
+  return { transactions, total: count ?? 0 };
 }
 
 // ── Usage Breakdown ────────────────────────────────────────
@@ -48,10 +64,10 @@ export async function getUsageBreakdown(
 ) {
   const supabase = await createClient();
   let query = supabase
-    .from('credit_transactions')
-    .select('service_type, amount')
+    .from('logs')
+    .select('metadata')
     .eq('user_id', userId)
-    .eq('type', 'deduction');
+    .eq('action', 'credit.deduction');
 
   if (startDate) query = query.gte('created_at', startDate);
   if (endDate) query = query.lte('created_at', endDate);
@@ -60,8 +76,9 @@ export async function getUsageBreakdown(
 
   const breakdown: Record<string, number> = {};
   for (const row of data ?? []) {
-    const svc = row.service_type ?? 'other';
-    breakdown[svc] = (breakdown[svc] ?? 0) + Math.abs(row.amount);
+    const meta = (row.metadata as any) ?? {};
+    const svc = meta.service_type ?? 'other';
+    breakdown[svc] = (breakdown[svc] ?? 0) + Math.abs(meta.amount ?? 0);
   }
 
   return breakdown;
@@ -282,18 +299,18 @@ export async function getAdminCreditStats() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
   const [
-    { data: totalSold },
-    { data: consumedThisMonth },
+    { data: deposits },
+    { data: deductions },
     { data: negativeUsers },
   ] = await Promise.all([
     supabase
-      .from('credit_transactions')
-      .select('amount')
-      .in('type', ['deposit_purchase']),
+      .from('logs')
+      .select('metadata')
+      .eq('action', 'credit.deposit_purchase'),
     supabase
-      .from('credit_transactions')
-      .select('amount')
-      .eq('type', 'deduction')
+      .from('logs')
+      .select('metadata')
+      .eq('action', 'credit.deduction')
       .gte('created_at', monthStart),
     supabase
       .from('users')
@@ -301,12 +318,12 @@ export async function getAdminCreditStats() {
       .or('subscription_credits.lt.0,purchased_credits.lt.0'),
   ]);
 
-  const totalCreditsSold = (totalSold ?? []).reduce(
-    (sum: number, t: any) => sum + t.amount,
+  const totalCreditsSold = (deposits ?? []).reduce(
+    (sum: number, t: any) => sum + ((t.metadata as any)?.amount ?? 0),
     0,
   );
-  const totalConsumedThisMonth = (consumedThisMonth ?? []).reduce(
-    (sum: number, t: any) => sum + Math.abs(t.amount),
+  const totalConsumedThisMonth = (deductions ?? []).reduce(
+    (sum: number, t: any) => sum + Math.abs((t.metadata as any)?.amount ?? 0),
     0,
   );
 
