@@ -1,8 +1,5 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
-import { createClient } from '@/lib/supabase-browser';
-import { Check } from 'lucide-react';
 import { useState } from 'react';
 
 const FONT_OPTIONS = [
@@ -32,44 +29,18 @@ export function StyleEditor({
   styleConfig: any;
   onStyleChange: (config: any) => void;
 }) {
-  const [saved, setSaved] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const save = useCallback((config: any) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      const supabase = createClient();
-      await supabase.from('studio_projects').update({
-        style_config: config,
-        updated_at: new Date().toISOString(),
-      }).eq('id', projectId);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 1500);
-    }, 500);
-  }, [projectId]);
-
-  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
-
   function update(path: string[], value: string) {
     const next = JSON.parse(JSON.stringify(styleConfig));
     let obj = next;
     for (let i = 0; i < path.length - 1; i++) obj = obj[path[i]] ??= {};
     obj[path[path.length - 1]] = value;
     onStyleChange(next);
-    save(next);
   }
 
   const inputClass = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors';
 
   return (
     <div className="space-y-8 max-w-2xl">
-      {/* Save indicator */}
-      {saved && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm border border-emerald-200">
-          <Check className="w-3 h-3" /> Saved
-        </div>
-      )}
-
       {/* Site Name */}
       <div>
         <h3 className="text-sm font-semibold text-gray-900 mb-3">Site Name</h3>

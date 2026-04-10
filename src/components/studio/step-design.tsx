@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { createClient } from '@/lib/supabase-browser';
 import {
   Sparkles, Loader2, Check, FileText, Palette, ArrowRight, Send,
   Monitor, Tablet, Smartphone, Eye, PanelLeftClose, PanelLeftOpen,
@@ -63,30 +62,19 @@ export function StepDesign({
   const allGenerated = pages.length > 0 && pages.every(p => p.html);
   const sizeConfig = SIZES.find(s => s.id === previewSize)!;
 
-  // Ensure Header and Footer exist (fallback if wireframe didn't include them)
+  // Ensure Header and Footer exist in-memory (fallback if wireframe didn't include them)
   useEffect(() => {
     const hasHeader = pages.some(p => p.title === 'Header');
     const hasFooter = pages.some(p => p.title === 'Footer');
     if (hasHeader && hasFooter) return;
-    (async () => {
-      const supabase = createClient();
-      const toCreate = [];
-      if (!hasHeader) toCreate.push({ title: 'Header', slug: 'header', sort_order: -2, prompt: 'Site header with logo, primary navigation, and CTA button. Mobile responsive with hamburger menu.' });
-      if (!hasFooter) toCreate.push({ title: 'Footer', slug: 'footer', sort_order: -1, prompt: 'Site footer with company info, quick links, social media icons, and copyright.' });
-      for (const item of toCreate) {
-        const { data } = await supabase.from('studio_pages').insert({ project_id: projectId, ...item }).select('*').single();
-        if (data) onPagesChange([...pages, data]);
-      }
-    })();
+    const toAdd: any[] = [];
+    if (!hasHeader) toAdd.push({ id: `local-hdr-${Date.now()}`, title: 'Header', slug: 'header', sort_order: -2, prompt: 'Site header with logo, primary navigation, and CTA button. Mobile responsive with hamburger menu.', html: '' });
+    if (!hasFooter) toAdd.push({ id: `local-ftr-${Date.now()}`, title: 'Footer', slug: 'footer', sort_order: -1, prompt: 'Site footer with company info, quick links, social media icons, and copyright.', html: '' });
+    if (toAdd.length) onPagesChange([...toAdd, ...pages]);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const saveStyle = useCallback((config: any) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      const supabase = createClient();
-      await supabase.from('studio_projects').update({ style_config: config, updated_at: new Date().toISOString() }).eq('id', projectId);
-    }, 500);
-  }, [projectId]);
+  // Style changes are kept in-memory only (no DB persistence)
+  const saveStyle = useCallback((_config: any) => {}, []);
 
   useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
@@ -125,9 +113,6 @@ export function StepDesign({
 
       const updated = pages.map(p => p.id === pageId ? { ...p, html: data.html } : p);
       onPagesChange(updated);
-
-      const supabase = createClient();
-      await supabase.from('studio_pages').update({ html: data.html, updated_at: new Date().toISOString() }).eq('id', pageId);
       setStatus({ type: 'success', msg: `${page.title} generated!` });
     } catch {
       setStatus({ type: 'error', msg: 'Network error' });
@@ -154,28 +139,27 @@ export function StepDesign({
     setAiLoading(false);
   }
 
-  async function addPage() {
+  function addPage() {
     if (!newPageTitle.trim()) return;
-    const supabase = createClient();
     const slug = newPageTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const { data } = await supabase.from('studio_pages').insert({
-      project_id: projectId, title: newPageTitle.trim(), slug, sort_order: pages.length,
+    const newPage = {
+      id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      title: newPageTitle.trim(),
+      slug,
+      sort_order: pages.length,
       prompt: `${newPageTitle.trim()} page for the website`,
-    }).select('*').single();
-    if (data) {
-      onPagesChange([...pages, data]);
-      onSelectPage(data.id);
-      setNewPageTitle('');
-      setAddingPage(false);
-    }
+      html: '',
+    };
+    onPagesChange([...pages, newPage]);
+    onSelectPage(newPage.id);
+    setNewPageTitle('');
+    setAddingPage(false);
   }
 
-  async function deletePage(id: string) {
+  function deletePage(id: string) {
     const page = pages.find(p => p.id === id);
     if (!page || SPECIAL_PAGES.includes(page.title)) return;
     if (!confirm(`Delete "${page.title}"?`)) return;
-    const supabase = createClient();
-    await supabase.from('studio_pages').delete().eq('id', id);
     const updated = pages.filter(p => p.id !== id);
     onPagesChange(updated);
     if (selectedPageId === id) onSelectPage(updated[0]?.id || '');
