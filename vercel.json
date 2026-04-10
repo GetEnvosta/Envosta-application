@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/credit-deductions",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-unclaimed",
+      "schedule": "0 5 * * *"
     }
   ]
 }
