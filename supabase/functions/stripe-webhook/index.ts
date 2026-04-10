@@ -582,9 +582,7 @@ Deno.serve(async (req) => {
                 .maybeSingle();
 
               if (planProduct?.type === "hosting_plan") {
-                // Ensure credit balance exists
-                await sb.from("credit_balances")
-                  .upsert({ user_id: cust.id }, { onConflict: "user_id" });
+                // Credits stored directly on users table — no separate row needed
 
                 // Expire old subscription credits and deposit new ones
                 await sb.rpc("fn_expire_subscription_credits", { p_user_id: cust.id });

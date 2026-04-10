@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
-import { createClient } from '@supabase/supabase-js';
 import { isStaffRole } from '@/lib/roles';
 import JSZip from 'jszip';
 
@@ -174,22 +173,16 @@ export async function POST(req: Request) {
   if (!isStaffRole(profile?.role)) return NextResponse.json({ error: 'Staff access required' }, { status: 403 });
 
   try {
-    const { projectId } = await req.json();
-    if (!projectId) return NextResponse.json({ error: 'projectId required' }, { status: 400 });
+    const { project, pages: allPages, styleConfig } = await req.json();
+    if (!project || !allPages) return NextResponse.json({ error: 'project and pages are required' }, { status: 400 });
 
-    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
-    const { data: project } = await sb.from('studio_projects').select('*').eq('id', projectId).single();
-    if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-
-    const { data: pages } = await sb.from('studio_pages').select('*').eq('project_id', projectId).order('sort_order', { ascending: true });
-    const allPages = pages ?? [];
-    const pagesWithContent = allPages.filter(p => p.html);
+    const pagesWithContent = (allPages ?? []).filter((p: any) => p.html);
 
     if (pagesWithContent.length === 0) {
       return NextResponse.json({ error: 'No pages with content to export' }, { status: 400 });
     }
 
-    const style = project.style_config || {};
+    const style = styleConfig || project.style_config || {};
     const slug = project.slug || 'site';
     const siteName = style.siteName || project.name;
     const childDir = `envosta-child-${slug}`;
