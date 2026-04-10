@@ -14,26 +14,51 @@ export async function GET(req: Request) {
 
   const supabase = await createServerClient();
 
-  const { data: site } = await supabase
-    .from('sites')
-    .select('max_php_workers, max_ssd_gb, bursting_enabled, monthly_ai_token_limit, config')
-    .eq('id', siteId)
-    .eq('user_id', userId)
-    .maybeSingle();
+  // Get this site + user's credit info + all other sites for total commitment
+  const [{ data: site }, { data: user }, { data: otherSites }] = await Promise.all([
+    supabase
+      .from('sites')
+      .select('id, max_php_workers, max_ssd_gb, bursting_enabled, monthly_ai_token_limit, config')
+      .eq('id', siteId)
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabase
+      .from('users')
+      .select('subscription_credits, purchased_credits, auto_refill_enabled, auto_refill_threshold, auto_refill_amount')
+      .eq('id', userId)
+      .single(),
+    supabase
+      .from('sites')
+      .select('id, config, bursting_enabled')
+      .eq('user_id', userId)
+      .neq('id', siteId)
+      .in('status', ['active', 'provisioning']),
+  ]);
 
   if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 });
 
   const config = (site.config as any) ?? {};
 
+  // Calculate committed cost from OTHER sites
+  let otherSitesCost = 0;
+  for (const s of otherSites ?? []) {
+    const c = (s.config as any) ?? {};
+    otherSitesCost += (c.php_workers ?? 2) * 5;
+    otherSitesCost += (c.storage_gb ?? 10) * 0.5;
+    if (s.bursting_enabled) otherSitesCost += 10;
+  }
+
   return NextResponse.json({
-    // Current active values (from config)
     php_workers: config.php_workers ?? 2,
     ssd_gb: config.storage_gb ?? 10,
-    // Guardrail limits
-    max_php_workers: site.max_php_workers ?? null,
-    max_ssd_gb: site.max_ssd_gb ?? null,
     bursting_enabled: site.bursting_enabled ?? false,
     monthly_ai_token_limit: site.monthly_ai_token_limit ?? null,
+    // Credit context for commitment warnings
+    subscription_credits: user?.subscription_credits ?? 50,
+    purchased_credits: user?.purchased_credits ?? 0,
+    auto_refill_enabled: user?.auto_refill_enabled ?? false,
+    auto_refill_amount: user?.auto_refill_amount ?? 50,
+    other_sites_committed_cost: Math.round(otherSitesCost * 100) / 100,
   });
 }
 
