@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
 
     const sb = supabaseAdmin();
     const { data: profile } = await sb.from("users").select("role").eq("id", user.id).single();
-    if (!["admin", "affiliate", "studio"].includes(profile?.role)) {
+    if (!["admin", "affiliate", "staff"].includes(profile?.role)) {
       return error("Staff access required", 403);
     }
 

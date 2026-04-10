@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   );
 
   const { data: profile } = await sb.from('users').select('role').eq('id', user.id).single();
-  const isAdmin = ['admin', 'studio'].includes(profile?.role);
+  const isAdmin = ['admin', 'staff'].includes(profile?.role);
 
   const { siteId, action } = await req.json();
   if (!siteId) return NextResponse.json({ error: 'siteId required' }, { status: 400 });

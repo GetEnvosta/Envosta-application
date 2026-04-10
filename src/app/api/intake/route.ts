@@ -114,7 +114,7 @@ export async function POST(req: Request) {
           .from('users')
           .select('id')
           .ilike('full_name', salesRep.trim())
-          .in('role', ['admin', 'affiliate', 'studio'])
+          .in('role', ['admin', 'affiliate', 'staff'])
           .maybeSingle();
 
         if (repUser) {

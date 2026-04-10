@@ -126,7 +126,7 @@ export function CreateCommissionModal({
 
   // Filter users for earner dropdown based on type
   const earnerOptions = form.type === 'affiliate'
-    ? users.filter(u => ['admin', 'affiliate', 'studio'].includes(u.role))
+    ? users.filter(u => ['admin', 'affiliate', 'staff'].includes(u.role))
     : users; // referral can be any user
 
   return (

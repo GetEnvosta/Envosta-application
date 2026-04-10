@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   );
 
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (!['admin', 'studio'].includes(profile?.role)) return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+  if (!['admin', 'staff'].includes(profile?.role)) return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
 
   const { subscriptionId, userId, planId, label } = await req.json();
   if (!subscriptionId || !userId) return NextResponse.json({ error: 'subscriptionId and userId required' }, { status: 400 });

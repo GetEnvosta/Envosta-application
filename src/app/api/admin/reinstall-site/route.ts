@@ -23,8 +23,8 @@ export async function POST(req: Request) {
   );
 
   const { data: profile } = await sb.from('users').select('role').eq('id', user.id).single();
-  if (!['admin', 'studio'].includes(profile?.role)) {
-    return NextResponse.json({ error: 'Admin or studio access required' }, { status: 403 });
+  if (!['admin', 'staff'].includes(profile?.role)) {
+    return NextResponse.json({ error: 'Admin or staff access required' }, { status: 403 });
   }
 
   try {
