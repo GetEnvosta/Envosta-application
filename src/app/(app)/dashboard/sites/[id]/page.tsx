@@ -17,6 +17,7 @@ import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-swi
 import { SiteAccess } from '@/components/sites/site-access';
 import { SiteIp } from '@/components/sites/site-ip';
 import { SiteGuardrails } from '@/components/sites/site-guardrails';
+import { ReceptionistConfig } from '@/components/sites/receptionist-config';
 
 export default async function SiteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -205,6 +206,11 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
           <h2 className="text-sm font-semibold text-gray-900">SFTP Access</h2>
         </div>
         <SiteAccess siteId={id} wpCloudSiteId={site.wp_cloud_site_id} />
+      </div>
+
+      {/* ═══ AI RECEPTIONIST ═══ */}
+      <div className="card p-6 mb-6">
+        <ReceptionistConfig siteId={id} siteLabel={site.label} />
       </div>
 
       {/* ═══ GUARDRAILS ═══ */}

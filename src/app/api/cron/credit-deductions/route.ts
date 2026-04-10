@@ -75,7 +75,7 @@ export async function GET(req: Request) {
       // This ensures the 50 free monthly credits go toward hosting before anything else.
       const { data: sites } = await sb
         .from('sites')
-        .select('id, label, config, metadata, bursting_enabled')
+        .select('id, label, config, metadata, bursting_enabled, twilio_phone_number')
         .eq('user_id', userId)
         .in('status', ['active', 'provisioning']);
 
@@ -103,6 +103,22 @@ export async function GET(req: Request) {
       }
 
       // Domains are billed as separate Stripe yearly subscriptions (not credits).
+
+      // ── Twilio phone number monthly billing ──
+      const phoneSites = (sites ?? []).filter((s: any) => s.twilio_phone_number);
+      const phoneRate = rates['twilio_number/per_month'] ?? 2;
+      for (const ps of phoneSites) {
+        if (phoneRate > 0) {
+          await sb.rpc('fn_deduct_credits', {
+            p_user_id: userId,
+            p_amount: Math.round(phoneRate),
+            p_service_type: 'twilio_number',
+            p_description: `Phone number: ${ps.twilio_phone_number}`,
+            p_reference_id: ps.id,
+            p_priority: 'purchased',
+          });
+        }
+      }
 
       // ── Check for negative balance → log warning ──
       const { data: userBalance } = await sb
