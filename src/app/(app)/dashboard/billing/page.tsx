@@ -1,13 +1,14 @@
 import { getEffectiveUserId } from '@/services/auth';
 import { getUserInvoices } from '@/services/billing';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
-import { FileText, Download, Coins, BarChart3, Settings2 } from 'lucide-react';
+import { FileText, Download, Coins, BarChart3, Settings2, Brain } from 'lucide-react';
 import { PaymentMethodManager } from '@/components/billing/payment-method-manager';
 import { CreditBalanceCard } from '@/components/billing/credit-balance-card';
 import { BuyCreditsButton } from '@/components/billing/buy-credits-dialog';
 import { UsageBreakdown } from '@/components/billing/usage-breakdown';
 import { CreditTransactions } from '@/components/billing/credit-transactions';
 import { AutoRefillSettings } from '@/components/billing/auto-refill-settings';
+import { AiUsageDashboard } from '@/components/billing/ai-usage-dashboard';
 
 export default async function BillingPage() {
   const userId = await getEffectiveUserId();
@@ -48,6 +49,17 @@ export default async function BillingPage() {
           </div>
         </section>
       </div>
+
+      {/* AI Usage Dashboard */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Brain className="w-4 h-4 text-purple-500" />
+          AI Usage
+        </h2>
+        <div className="card p-5">
+          <AiUsageDashboard />
+        </div>
+      </section>
 
       {/* Credit Transaction History */}
       <section>
