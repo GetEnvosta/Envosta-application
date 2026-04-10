@@ -415,7 +415,7 @@ Deno.serve(async (req) => {
       const pi = event.data.object;
       const metadata = pi.metadata ?? {};
 
-      if (metadata.type === "auto_refill") {
+      if (metadata.type === "auto_refill" || metadata.type === "mandatory_topup") {
         const userId = metadata.user_id;
         const quantity = parseInt(metadata.quantity ?? "0", 10);
         if (userId && quantity > 0) {
@@ -425,14 +425,56 @@ Deno.serve(async (req) => {
               p_amount: quantity,
               p_type: "deposit_purchase",
               p_pool: "purchased",
-              p_description: `Auto-refill: ${quantity} credits`,
+              p_description: metadata.type === "mandatory_topup"
+                ? `Mandatory infrastructure top-up: ${quantity} credits`
+                : `Auto-refill: ${quantity} credits`,
               p_service_type: "purchase",
               p_reference_id: null,
               p_expires_at: null,
             });
-            console.log("Auto-refill credits deposited:", quantity, "for user:", userId);
+            console.log(`${metadata.type} credits deposited:`, quantity, "for user:", userId);
+
+            // If this was a mandatory topup, payment is resolved — reactivate if suspended
+            const { data: userStatus } = await sb.from("users")
+              .select("payment_status, pre_suspension_state")
+              .eq("id", userId).single();
+
+            if (userStatus?.payment_status === "suspended" || userStatus?.payment_status === "grace") {
+              const savedState = (userStatus.pre_suspension_state as any) ?? {};
+
+              // Restore sites
+              if (savedState.sites?.length) {
+                for (const s of savedState.sites) {
+                  await sb.from("sites").update({ status: s.status }).eq("id", s.id);
+                }
+              }
+
+              // Restore domain auto-renew
+              if (savedState.domains?.length) {
+                for (const d of savedState.domains) {
+                  await sb.from("domains").update({ auto_renew: d.auto_renew }).eq("id", d.id);
+                }
+              }
+
+              // Clear payment failure state
+              await sb.from("users").update({
+                payment_status: "current",
+                payment_failed_at: null,
+                suspended_at: null,
+                pre_suspension_state: null,
+              }).eq("id", userId);
+
+              await sb.from("logs").insert({
+                user_id: userId,
+                action: "billing.reactivated",
+                details: "Payment received. Sites and domains restored.",
+                level: "info",
+              });
+
+              console.log("Account reactivated:", userId);
+            }
           } catch (credErr) {
-            console.error("Auto-refill credit deposit error:", credErr);
+            console.error(`${metadata.type} credit deposit error:`, credErr);
           }
         }
       }
@@ -619,6 +661,70 @@ Deno.serve(async (req) => {
                   p_expires_at: periodEnd,
                 });
                 console.log("Subscription credits deposited: 50 for user:", cust.id);
+
+                // ── Layer 2: Mandatory infrastructure top-up ──
+                // If mandatory > 50, auto-charge the difference
+                const { data: userCredits } = await sb.from("users")
+                  .select("mandatory_monthly_credits, stripe_customer_id")
+                  .eq("id", cust.id).single();
+
+                const mandatory = Number(userCredits?.mandatory_monthly_credits ?? 0);
+                if (mandatory > 50 && userCredits?.stripe_customer_id) {
+                  const shortfall = Math.ceil(mandatory - 50);
+                  try {
+                    // Get default payment method
+                    const customer = await stripe.customers.retrieve(userCredits.stripe_customer_id);
+                    const pmId = (customer as any).invoice_settings?.default_payment_method;
+                    if (pmId) {
+                      const pi = await stripe.paymentIntents.create({
+                        amount: shortfall * 100, // cents
+                        currency: "cad",
+                        customer: userCredits.stripe_customer_id,
+                        payment_method: typeof pmId === "string" ? pmId : pmId.id,
+                        off_session: true,
+                        confirm: true,
+                        description: `Mandatory infrastructure top-up: ${shortfall} credits`,
+                        metadata: { type: "mandatory_topup", user_id: cust.id, quantity: String(shortfall) },
+                      });
+
+                      if (pi.status === "succeeded") {
+                        await sb.rpc("fn_deposit_credits", {
+                          p_user_id: cust.id,
+                          p_amount: shortfall,
+                          p_type: "deposit_purchase",
+                          p_pool: "purchased",
+                          p_description: `Mandatory infrastructure top-up: ${shortfall} credits`,
+                          p_service_type: "purchase",
+                          p_reference_id: null,
+                          p_expires_at: null,
+                        });
+                        console.log("Mandatory top-up charged:", shortfall, "credits for user:", cust.id);
+                      }
+                    }
+                  } catch (topupErr) {
+                    console.error("Mandatory top-up failed (entering grace period):", topupErr);
+                    // Payment failed — start grace period
+                    await sb.from("users").update({
+                      payment_status: "grace",
+                      payment_failed_at: new Date().toISOString(),
+                    }).eq("id", cust.id);
+
+                    await sb.from("logs").insert({
+                      user_id: cust.id,
+                      action: "billing.payment_failed",
+                      details: `Mandatory top-up of ${shortfall} credits failed. Grace period started.`,
+                      level: "warn",
+                    });
+                  }
+                }
+
+                // Clear any previous payment issues on successful renewal
+                await sb.from("users").update({
+                  payment_status: "current",
+                  payment_failed_at: null,
+                  suspended_at: null,
+                  pre_suspension_state: null,
+                }).eq("id", cust.id).eq("payment_status", "grace");
               }
             }
           } catch (credErr) {
