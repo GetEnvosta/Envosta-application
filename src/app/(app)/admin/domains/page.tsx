@@ -19,7 +19,7 @@ export default async function DomainsPage({
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div className="page-header">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Domains</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage all registered domains across the platform.</p>
@@ -36,7 +36,7 @@ export default async function DomainsPage({
       </div>
 
       {/* Filters */}
-      <form className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
+      <form className="filter-bar">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

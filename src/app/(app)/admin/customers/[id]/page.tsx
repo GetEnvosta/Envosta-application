@@ -86,9 +86,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
       {/* ── Sites & Hosting ── */}
       <div className="card overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+        <div className="section-card-header">
           <Server className="w-4 h-4 text-gray-400" />
-          <h2 className="text-sm font-semibold text-gray-900">Sites ({services.length})</h2>
+          <h2 className="section-card-title">Sites ({services.length})</h2>
         </div>
         {services.length === 0 && hostingSubs.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-400">No sites or hosting subscriptions.</div>
@@ -161,9 +161,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
       {/* ── Domains & Renewals ── */}
       <div className="card overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+        <div className="section-card-header">
           <Globe className="w-4 h-4 text-gray-400" />
-          <h2 className="text-sm font-semibold text-gray-900">Domains ({domains.length})</h2>
+          <h2 className="section-card-title">Domains ({domains.length})</h2>
         </div>
         {domains.length === 0 && domainSubs.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-400">No domains or domain subscriptions.</div>
@@ -237,9 +237,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
       {/* ── Invoices ── */}
       <div className="card overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+        <div className="section-card-header">
           <FileText className="w-4 h-4 text-gray-400" />
-          <h2 className="text-sm font-semibold text-gray-900">Invoices ({invoices.length})</h2>
+          <h2 className="section-card-title">Invoices ({invoices.length})</h2>
         </div>
         {invoices.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-400">No invoices.</div>
@@ -247,12 +247,12 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50 text-left">
-                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Date</th>
-                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Description</th>
-                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Amount</th>
-                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide">Invoice</th>
+                <tr className="border-b border-gray-100 text-left">
+                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -284,8 +284,8 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
       {/* ── Recent Activity ── */}
       <div className="card overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-900">Recent Activity</h2>
+        <div className="section-card-header">
+          <h2 className="section-card-title">Recent Activity</h2>
         </div>
         <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
           {logs.length === 0 ? (
@@ -312,7 +312,7 @@ function InfoPill({ icon, label, value }: { icon: React.ReactNode; label: string
     <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2.5">
       <span className="text-gray-400 shrink-0">{icon}</span>
       <div className="min-w-0">
-        <p className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</p>
+        <p className="text-[10px] text-gray-400 uppercase tracking-wider">{label}</p>
         <p className="text-sm font-medium text-gray-900 truncate">{value}</p>
       </div>
     </div>
@@ -323,7 +323,7 @@ function CountPill({ label, count }: { label: string; count: number }) {
   return (
     <div className="rounded-lg bg-gray-50 px-3.5 py-3 text-center">
       <p className="text-lg font-semibold text-gray-900">{count}</p>
-      <p className="text-[11px] text-gray-500 uppercase tracking-wide">{label}</p>
+      <p className="text-[11px] text-gray-500 uppercase tracking-wider">{label}</p>
     </div>
   );
 }

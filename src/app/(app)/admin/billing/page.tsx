@@ -38,7 +38,7 @@ export default async function AdminBillingPage() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div className="page-header">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Billing</h1>
           <p className="text-sm text-gray-500 mt-0.5">Revenue, subscriptions, and invoices.</p>
@@ -55,7 +55,7 @@ export default async function AdminBillingPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+      <div className="stat-grid-4">
         <StatCard label="Monthly recurring revenue" value={formatCents(mrr)} icon={DollarSign} sub="MRR" color="green" />
         <StatCard label="Active subscriptions" value={activeCount} icon={Users} color="blue" />
         <StatCard label="Paid invoices" value={paidInvoicesCount} icon={Receipt} color="indigo" />

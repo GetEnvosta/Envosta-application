@@ -31,7 +31,7 @@ export default async function BlogPostsPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="page-header">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Blog Posts</h1>
           <p className="text-sm text-gray-500 mt-0.5">Create and manage blog content.</p>
@@ -45,7 +45,7 @@ export default async function BlogPostsPage({
       </div>
 
       {/* Filters */}
-      <form method="GET" className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6 flex flex-col sm:flex-row gap-3">
+      <form method="GET" className="filter-bar flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input type="text" name="q" defaultValue={q ?? ''} placeholder="Search posts..."
@@ -71,11 +71,11 @@ export default async function BlogPostsPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 text-left">
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Title</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Category</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Published</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Published</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

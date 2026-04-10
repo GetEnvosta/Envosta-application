@@ -42,7 +42,7 @@ export default function AdminEmailsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="page-header">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Email Templates</h1>
           <p className="text-sm text-gray-500 mt-0.5">View and test all transactional email templates.</p>

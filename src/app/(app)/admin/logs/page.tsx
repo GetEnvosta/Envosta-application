@@ -31,9 +31,11 @@ export default async function SystemHealthPage({
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">System Health</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Service status, integrations, and platform logs.</p>
+      <div className="page-header">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">System Health</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Service status, integrations, and platform logs.</p>
+        </div>
       </div>
 
       {/* Health Checks */}
@@ -73,7 +75,7 @@ export default async function SystemHealthPage({
       </div>
 
       {/* Filters */}
-      <form className="card p-4 mb-6">
+      <form className="filter-bar">
         <div className="flex flex-col sm:flex-row gap-3">
           <div>
             <select name="level" defaultValue={levelFilter} className="input w-full sm:w-40">

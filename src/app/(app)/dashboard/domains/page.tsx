@@ -15,7 +15,7 @@ export default async function DomainsPage() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div className="page-header">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold text-gray-900">Your Domains</h1>
           {count > 0 && (
@@ -43,7 +43,7 @@ export default async function DomainsPage() {
       ) : (
         <div className="grid gap-4">
           {domains.map((d: any) => (
-            <div key={d.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div key={d.id} className="card p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center">

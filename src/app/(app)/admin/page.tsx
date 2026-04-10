@@ -50,7 +50,7 @@ export default async function AdminDashboardPage() {
       {/* Affiliate referral card — only shown to affiliates */}
       {isAffiliate && <AffiliateReferralCard />}
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="page-header">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Admin Dashboard</h1>
           <p className="text-sm text-gray-500 mt-0.5">Platform overview and recent activity.</p>
@@ -58,7 +58,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+      <div className="stat-grid-5">
         {stats.map(s => (
           <StatCard key={s.label} {...s} />
         ))}
@@ -72,8 +72,8 @@ export default async function AdminDashboardPage() {
           { title: 'Onboarding', icon: Phone, tickets: salesTickets, type: 'onboarding' },
         ].map(section => (
           <div key={section.type} className="card">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <div className="section-card-header">
+              <h2 className="section-card-title flex items-center gap-2">
                 <section.icon className="w-4 h-4 text-gray-400" />
                 {section.title}
               </h2>
@@ -108,8 +108,8 @@ export default async function AdminDashboardPage() {
       {/* Recent signups + activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-900">Recent signups</h2>
+          <div className="section-card-header">
+            <h2 className="section-card-title">Recent signups</h2>
             <Link href="/admin/customers" className="text-xs text-admin-600 hover:text-admin-700 font-medium flex items-center gap-1">
               View all <ArrowRight className="w-3 h-3" />
             </Link>
@@ -135,8 +135,8 @@ export default async function AdminDashboardPage() {
         </div>
 
         <div className="card">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-900">Recent activity</h2>
+          <div className="section-card-header">
+            <h2 className="section-card-title">Recent activity</h2>
             <Link href="/admin/logs" className="text-xs text-admin-600 hover:text-admin-700 font-medium flex items-center gap-1">
               View all <ArrowRight className="w-3 h-3" />
             </Link>

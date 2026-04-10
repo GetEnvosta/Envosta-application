@@ -32,7 +32,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
       </Link>
 
       {/* Domain header + quick settings */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+      <div className="card p-6 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-brand-50 flex items-center justify-center">
@@ -76,7 +76,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
       </div>
 
       {/* DNS Management (includes nameserver selection) */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="card p-6">
         <DnsManager
           domainId={domain.id}
           domainName={domain.domain_name}

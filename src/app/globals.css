@@ -99,6 +99,63 @@
     background: currentColor;
     transform: translate(30%, -30%);
   }
+
+  /* ── Page layout ── */
+  .page-header {
+    @apply flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6;
+  }
+  .section {
+    @apply mb-8;
+  }
+  .section-divider {
+    @apply border-t border-gray-100 my-6;
+  }
+
+  /* ── Stat grids ── */
+  .stat-grid {
+    @apply grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8;
+  }
+  .stat-grid-4 {
+    @apply grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8;
+  }
+  .stat-grid-5 {
+    @apply grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8;
+  }
+
+  /* ── Filter bar ── */
+  .filter-bar {
+    @apply card p-4 mb-6;
+  }
+  .filter-pill {
+    @apply inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer;
+  }
+  .filter-pill-active {
+    @apply filter-pill bg-gray-900 text-white;
+  }
+  .filter-pill-inactive {
+    @apply filter-pill bg-gray-100 text-gray-600 hover:bg-gray-200;
+  }
+
+  /* ── Section card headers ── */
+  .section-card-header {
+    @apply px-5 py-4 border-b border-gray-100 flex items-center justify-between;
+  }
+  .section-card-title {
+    @apply text-sm font-semibold text-gray-900;
+  }
+
+  /* ── Empty state ── */
+  .empty-state {
+    @apply px-5 py-12 text-center;
+  }
+
+  /* ── Button sizes ── */
+  .btn-sm {
+    @apply btn text-xs py-1.5 px-3;
+  }
+  .btn-lg {
+    @apply btn text-base py-3 px-6;
+  }
 }
 
 @keyframes fade-in {

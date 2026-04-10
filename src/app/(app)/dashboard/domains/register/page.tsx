@@ -117,7 +117,7 @@ export default function RegisterDomainPage() {
           : 'Search for available domain names and register them instantly.'}
       </p>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 max-w-lg">
+      <div className="card p-6 max-w-lg">
         <form onSubmit={checkAvailability} className="space-y-4">
           {error && (
             <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>

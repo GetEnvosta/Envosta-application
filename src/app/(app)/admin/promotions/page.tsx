@@ -3,9 +3,11 @@ import { CouponManager } from '@/components/admin/coupon-manager';
 export default function PromotionsPage() {
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Promotions</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Create and manage discount codes. Share links that auto-apply at checkout.</p>
+      <div className="page-header">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Promotions</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Create and manage discount codes. Share links that auto-apply at checkout.</p>
+        </div>
       </div>
 
       <div className="card p-5 mb-6 bg-indigo-50 border-indigo-200">

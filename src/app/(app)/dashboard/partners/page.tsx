@@ -78,9 +78,11 @@ export default function PartnersPage() {
   if (submitted) {
     return (
       <div>
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold text-gray-900">Partner with Envosta</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Join our partner program and grow with us.</p>
+        <div className="page-header">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">Partner with Envosta</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Join our partner program and grow with us.</p>
+          </div>
         </div>
         <div className="card p-12 text-center">
           <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-4" />

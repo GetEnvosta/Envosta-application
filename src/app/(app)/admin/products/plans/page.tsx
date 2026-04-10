@@ -15,7 +15,7 @@ export default async function AdminPlansPage() {
         <ArrowLeft className="w-4 h-4" /> Back to Products
       </Link>
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="page-header">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Hosting Plans</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage hosting plans, pricing, and wp.cloud resources.</p>
@@ -32,7 +32,7 @@ export default async function AdminPlansPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
+              <tr className="border-b border-gray-100">
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly</th>
                 <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Storage</th>

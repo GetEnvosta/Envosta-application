@@ -70,7 +70,7 @@ export default async function AdminTicketsPage({
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="page-header">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Tickets</h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -95,25 +95,21 @@ export default async function AdminTicketsPage({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="stat-grid">
         <StatCard label="Open" value={counts.open} icon={AlertCircle} color="amber" />
         <StatCard label="In Progress" value={counts.inProgress} icon={Clock} color="blue" />
         <StatCard label="Total" value={counts.total} icon={Inbox} color="gray" />
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1 mb-4 border-b border-gray-200">
+      <div className="flex items-center gap-1 mb-4">
         {TYPE_TABS.map(tab => {
           const isActive = typeFilter === tab.value;
           return (
             <Link
               key={tab.value}
               href={`/admin/tickets${tab.value === 'all' ? '' : `?type=${tab.value}`}${search ? `${tab.value === 'all' ? '?' : '&'}q=${search}` : ''}`}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                isActive
-                  ? 'border-admin-600 text-admin-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+              className={isActive ? 'filter-pill-active' : 'filter-pill-inactive'}
             >
               {tab.label}
             </Link>
@@ -122,7 +118,7 @@ export default async function AdminTicketsPage({
       </div>
 
       {/* Search */}
-      <form method="GET" className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
+      <form method="GET" className="filter-bar">
         {typeFilter !== 'all' && <input type="hidden" name="type" value={typeFilter} />}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

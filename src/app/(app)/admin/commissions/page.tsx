@@ -57,7 +57,7 @@ export default async function CommissionsPage({
       <CommissionsHeader users={userList} />
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="stat-grid">
         <StatCard
           label="Pending"
           value={formatCents(stats.pendingTotal, 'cad')}
@@ -85,38 +85,38 @@ export default async function CommissionsPage({
       <div className="flex gap-2 mb-4">
         <a
           href="/admin/commissions"
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${!type && !statusFilter ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          className={!type && !statusFilter ? 'filter-pill-active' : 'filter-pill-inactive'}
         >
           All
         </a>
         <a
           href="/admin/commissions?type=affiliate"
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${type === 'affiliate' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          className={type === 'affiliate' ? 'filter-pill-active' : 'filter-pill-inactive'}
         >
           Affiliate
         </a>
         <a
           href="/admin/commissions?type=referral"
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${type === 'referral' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          className={type === 'referral' ? 'filter-pill-active' : 'filter-pill-inactive'}
         >
           Referral
         </a>
         <span className="w-px bg-gray-200 mx-1" />
         <a
           href="/admin/commissions?status=pending"
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          className={statusFilter === 'pending' ? 'filter-pill-active' : 'filter-pill-inactive'}
         >
           Pending
         </a>
         <a
           href="/admin/commissions?status=approved"
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          className={statusFilter === 'approved' ? 'filter-pill-active' : 'filter-pill-inactive'}
         >
           Approved
         </a>
         <a
           href="/admin/commissions?status=paid"
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${statusFilter === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          className={statusFilter === 'paid' ? 'filter-pill-active' : 'filter-pill-inactive'}
         >
           Paid
         </a>
@@ -128,14 +128,14 @@ export default async function CommissionsPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 text-left">
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Earner</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Type</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Customer</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-right">Amount</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Method</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Date</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Earner</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Amount</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

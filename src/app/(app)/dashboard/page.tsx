@@ -32,7 +32,7 @@ export default async function DashboardPage() {
       <div>
         {/* Welcome hero */}
         <div className="card overflow-hidden mb-8">
-          <div className="relative p-8 sm:p-12" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 50%, #f0fdf4 100%)' }}>
+          <div className="relative p-8 sm:p-12 bg-gradient-to-br from-gray-50 via-blue-50/50 to-green-50/30">
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-100/30 rounded-full -translate-y-1/2 translate-x-1/3" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-green-100/20 rounded-full translate-y-1/2 -translate-x-1/4" />
             <div className="relative">
@@ -150,7 +150,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div className="page-header">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -174,7 +174,7 @@ export default async function DashboardPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="stat-grid">
         {stats.map(s => {
           const c = colorMap[s.color] ?? colorMap.blue;
           return (
@@ -196,8 +196,8 @@ export default async function DashboardPage() {
       {/* Recent sites + domains */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-900">Recent sites</h2>
+          <div className="section-card-header">
+            <h2 className="section-card-title">Recent sites</h2>
             <Link href="/dashboard/sites" className="text-xs text-brand-600 hover:text-brand-700 font-medium">View all</Link>
           </div>
           <div className="divide-y divide-gray-100">
@@ -214,8 +214,8 @@ export default async function DashboardPage() {
         </div>
 
         <div className="card">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-900">Recent domains</h2>
+          <div className="section-card-header">
+            <h2 className="section-card-title">Recent domains</h2>
             <Link href="/dashboard/domains" className="text-xs text-brand-600 hover:text-brand-700 font-medium">View all</Link>
           </div>
           <div className="divide-y divide-gray-100">

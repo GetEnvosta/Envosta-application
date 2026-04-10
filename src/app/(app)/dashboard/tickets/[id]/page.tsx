@@ -8,27 +8,19 @@ import { StudioProgressBar } from '@/components/admin/studio-progress';
 
 function TypeBadge({ type }: { type: string }) {
   if (type === 'studio') {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-        Studio
-      </span>
-    );
+    return <span className="badge-purple">Studio</span>;
   }
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-      Support
-    </span>
-  );
+  return <span className="badge-blue">Support</span>;
 }
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    open: 'bg-yellow-100 text-yellow-700',
-    'in-progress': 'bg-blue-100 text-blue-700',
-    quoted: 'bg-purple-100 text-purple-700',
-    approved: 'bg-green-100 text-green-700',
-    completed: 'bg-green-100 text-green-700',
-    closed: 'bg-gray-100 text-gray-600',
+    open: 'badge-yellow',
+    'in-progress': 'badge-blue',
+    quoted: 'badge-purple',
+    approved: 'badge-green',
+    completed: 'badge-green',
+    closed: 'badge-gray',
   };
 
   const label = status
@@ -37,11 +29,7 @@ function StatusBadge({ status }: { status: string }) {
     .join(' ');
 
   return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-        styles[status] ?? 'bg-gray-100 text-gray-600'
-      }`}
-    >
+    <span className={styles[status] ?? 'badge-gray'}>
       {label}
     </span>
   );
