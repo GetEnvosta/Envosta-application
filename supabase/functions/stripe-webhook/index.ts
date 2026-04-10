@@ -394,6 +394,15 @@ Deno.serve(async (req) => {
               p_expires_at: null,
             });
             console.log("Credits deposited:", quantity, "for user:", userId);
+
+            // Send purchase confirmation email
+            const { data: buyer } = await sb.from("users").select("email, full_name, subscription_credits, purchased_credits").eq("id", userId).single();
+            if (buyer?.email) {
+              const newBalance = (buyer.subscription_credits ?? 0) + (buyer.purchased_credits ?? 0);
+              const { creditsPurchasedEmail } = await import("../_shared/email.ts");
+              const email = creditsPurchasedEmail(buyer.full_name ?? "there", quantity, newBalance);
+              await sendEmail({ to: buyer.email, ...email });
+            }
           } catch (credErr) {
             console.error("Credit deposit error:", credErr);
           }

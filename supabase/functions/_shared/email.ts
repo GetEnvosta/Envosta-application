@@ -172,6 +172,83 @@ export function domainExpiryWarningEmail(name: string, domain: string, daysLeft:
   };
 }
 
+// ════════════════════════════════════════
+// CREDIT EMAIL TEMPLATES
+// ════════════════════════════════════════
+
+export function creditsLowEmail(name: string, remaining: number, threshold: number): { subject: string; html: string } {
+  return {
+    subject: `Low credit balance — ${remaining} credits remaining`,
+    html: template(`
+      <h1>Your credits are running low</h1>
+      <p>Hey ${name}, your Envosta credit balance has dropped to <strong>${remaining} credits</strong>.</p>
+      <div class="detail">
+        <div class="detail-row"><span class="detail-label">Current Balance</span><span class="detail-value">${remaining} credits</span></div>
+        <div class="detail-row"><span class="detail-label">Alert Threshold</span><span class="detail-value">${threshold} credits</span></div>
+      </div>
+      <p>If your balance reaches zero, your services will continue but your account will carry a negative balance.</p>
+      <a href="https://my.envosta.com/dashboard/billing" class="btn">Buy Credits</a>
+      <p style="font-size:13px;color:#888;">You can enable auto-refill in your billing settings to avoid running out.</p>
+    `),
+  };
+}
+
+export function creditsAutoRefillEmail(name: string, amount: number, newBalance: number): { subject: string; html: string } {
+  return {
+    subject: `Auto-refill: ${amount} credits added`,
+    html: template(`
+      <h1>Credits auto-refilled</h1>
+      <p>Hey ${name}, your credit balance was running low so we automatically added <strong>${amount} credits</strong> to your account.</p>
+      <div class="detail">
+        <div class="detail-row"><span class="detail-label">Credits Added</span><span class="detail-value">${amount}</span></div>
+        <div class="detail-row"><span class="detail-label">Amount Charged</span><span class="detail-value">$${amount}.00 CAD</span></div>
+        <div class="detail-row"><span class="detail-label">New Balance</span><span class="detail-value">${newBalance} credits</span></div>
+      </div>
+      <a href="https://my.envosta.com/dashboard/billing" class="btn">View Billing</a>
+      <p style="font-size:13px;color:#888;">You can adjust auto-refill settings or disable it anytime from your <a href="https://my.envosta.com/dashboard/billing">billing dashboard</a>.</p>
+    `),
+  };
+}
+
+export function creditsPurchasedEmail(name: string, amount: number, newBalance: number): { subject: string; html: string } {
+  return {
+    subject: `${amount} credits added to your account`,
+    html: template(`
+      <h1>Credits purchased</h1>
+      <p>Hey ${name}, <strong>${amount} credits</strong> have been added to your account.</p>
+      <div class="detail">
+        <div class="detail-row"><span class="detail-label">Credits Added</span><span class="detail-value">${amount}</span></div>
+        <div class="detail-row"><span class="detail-label">Amount Charged</span><span class="detail-value">$${amount}.00 CAD</span></div>
+        <div class="detail-row"><span class="detail-label">New Balance</span><span class="detail-value">${newBalance} credits</span></div>
+      </div>
+      <a href="https://my.envosta.com/dashboard/billing" class="btn">View Billing</a>
+    `),
+  };
+}
+
+export function creditsNegativeEmail(name: string, balance: number): { subject: string; html: string } {
+  return {
+    subject: `Action needed — negative credit balance`,
+    html: template(`
+      <h1>Your account has a negative balance</h1>
+      <p>Hey ${name}, your Envosta credit balance is <strong style="color:#dc2626;">${balance} credits</strong>. Your services are still running, but please add credits to bring your account current.</p>
+      <a href="https://my.envosta.com/dashboard/billing" class="btn">Add Credits Now</a>
+      <p style="font-size:13px;color:#888;">Enable auto-refill to prevent this in the future.</p>
+    `),
+  };
+}
+
+export function creditsDailySpendAlertEmail(userName: string, userEmail: string, dailySpend: number): { subject: string; html: string } {
+  return {
+    subject: `[Admin Alert] High daily credit spend: ${userEmail}`,
+    html: template(`
+      <h1>High daily credit spend detected</h1>
+      <p>User <strong>${userName}</strong> (${userEmail}) has spent <strong>${dailySpend} credits</strong> today. This may indicate unusual activity.</p>
+      <a href="https://my.envosta.com/admin/customers" class="btn">Review Account</a>
+    `),
+  };
+}
+
 export function provisioningFailedEmail(name: string, siteName: string): { subject: string; html: string } {
   return {
     subject: `Action needed — site setup issue`,

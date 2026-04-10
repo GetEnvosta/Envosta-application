@@ -140,6 +140,52 @@ export async function GET(req: Request) {
     }
   }
 
+  // ── Daily spend alerting — notify admin of high spenders ──
+  const HIGH_SPEND_THRESHOLD = 100;
+  try {
+    const { data: todayDeductions } = await sb
+      .from('logs')
+      .select('user_id, metadata')
+      .eq('action', 'credit.deduction')
+      .gte('created_at', new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString());
+
+    const dailySpend: Record<string, number> = {};
+    for (const d of todayDeductions ?? []) {
+      const amt = Math.abs((d.metadata as any)?.amount ?? 0);
+      dailySpend[d.user_id] = (dailySpend[d.user_id] ?? 0) + amt;
+    }
+
+    for (const [uid, spend] of Object.entries(dailySpend)) {
+      if (spend > HIGH_SPEND_THRESHOLD) {
+        const { data: u } = await sb.from('users').select('full_name, email').eq('id', uid).single();
+        await sb.from('logs').insert({
+          user_id: uid,
+          action: 'credits.high_daily_spend',
+          details: `Daily spend: ${spend} credits (threshold: ${HIGH_SPEND_THRESHOLD})`,
+          level: 'warn',
+          metadata: { daily_spend: spend, threshold: HIGH_SPEND_THRESHOLD },
+        });
+
+        // Email admin
+        const resendKey = process.env.RESEND_API_KEY;
+        if (resendKey) {
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'Envosta <noreply@email.envosta.com>',
+              to: 'admin@envosta.com',
+              subject: `[Alert] High daily spend: ${u?.email ?? uid}`,
+              html: `<p><strong>${u?.full_name ?? 'User'}</strong> (${u?.email ?? uid}) spent <strong>${spend} credits</strong> today (threshold: ${HIGH_SPEND_THRESHOLD}).</p>`,
+            }),
+          });
+        }
+      }
+    }
+  } catch (alertErr) {
+    console.error('Daily spend alert error (non-fatal):', alertErr);
+  }
+
   return NextResponse.json({
     message: `Credit deductions completed`,
     processed,

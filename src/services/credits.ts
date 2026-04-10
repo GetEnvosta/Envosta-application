@@ -1,5 +1,25 @@
 import { createClient } from '@/lib/supabase-server';
 
+// ── Email helper (Resend) ──────────────────────────────────
+
+async function sendCreditEmail(to: string, subject: string, html: string) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return;
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'Envosta <noreply@email.envosta.com>', to, subject, html }),
+    });
+  } catch (e) {
+    console.error('Credit email error (non-fatal):', e);
+  }
+}
+
+function creditEmailTemplate(content: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:0;background:#f4f4f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif}.wrap{max-width:560px;margin:0 auto;padding:40px 20px}.card{background:#fff;border-radius:12px;padding:40px 32px;box-shadow:0 1px 3px rgba(0,0,0,.08)}h1{font-size:22px;font-weight:600;color:#111;margin:0 0 16px}p{font-size:15px;color:#555;line-height:1.7;margin:0 0 16px}.btn{display:inline-block;background:#111;color:#fff!important;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:500;margin:8px 0 24px}.detail{background:#f8f9fb;border-radius:8px;padding:16px 20px;margin:16px 0}.detail-row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px}.detail-label{color:#888}.detail-value{color:#111;font-weight:500}.footer{text-align:center;padding:24px 0;font-size:12px;color:#aaa}</style></head><body><div class="wrap"><div class="card">${content}</div><div class="footer"><p>Envosta Inc. · Calgary, Alberta, Canada</p></div></div></body></html>`;
+}
+
 // ── Balance ────────────────────────────────────────────────
 
 export async function getCreditBalance(userId: string) {
@@ -151,6 +171,25 @@ export async function deductCredits(
 
   if (result) {
     const total = (result.subscription_credits ?? 0) + (result.purchased_credits ?? 0);
+
+    // Send credit notification emails
+    const supabase2 = await createClient();
+    const { data: user } = await supabase2.from('users').select('email, full_name, auto_refill_enabled').eq('id', userId).single();
+
+    if (user?.email) {
+      if (total < 0) {
+        // Negative balance alert
+        await sendCreditEmail(user.email, `Action needed — negative credit balance`,
+          creditEmailTemplate(`<h1>Your account has a negative balance</h1><p>Hey ${user.full_name ?? 'there'}, your credit balance is <strong style="color:#dc2626;">${total} credits</strong>. Your services are still running, but please add credits.</p><a href="https://my.envosta.com/dashboard/billing" class="btn">Add Credits Now</a>`)
+        );
+      } else if (total <= 10 && total > 0 && !user.auto_refill_enabled) {
+        // Low balance warning (only if auto-refill is off)
+        await sendCreditEmail(user.email, `Low credit balance — ${total} credits remaining`,
+          creditEmailTemplate(`<h1>Your credits are running low</h1><p>Hey ${user.full_name ?? 'there'}, you have <strong>${total} credits</strong> remaining. Consider enabling auto-refill or purchasing credits.</p><a href="https://my.envosta.com/dashboard/billing" class="btn">Buy Credits</a>`)
+        );
+      }
+    }
+
     await checkAndTriggerAutoRefill(userId, total);
   }
 
@@ -281,7 +320,17 @@ async function checkAndTriggerAutoRefill(userId: string, currentTotal: number) {
     const pi = await piRes.json();
 
     if (pi.status === 'succeeded') {
-      await depositPurchasedCredits(userId, settings.refill_amount, pi.id);
+      const result = await depositPurchasedCredits(userId, settings.refill_amount, pi.id);
+      const newBalance = result ? (result.subscription_credits + result.purchased_credits) : settings.refill_amount;
+
+      // Send auto-refill notification email
+      const supabase3 = await createClient();
+      const { data: usr } = await supabase3.from('users').select('email, full_name').eq('id', userId).single();
+      if (usr?.email) {
+        await sendCreditEmail(usr.email, `Auto-refill: ${settings.refill_amount} credits added`,
+          creditEmailTemplate(`<h1>Credits auto-refilled</h1><p>Hey ${usr.full_name ?? 'there'}, we added <strong>${settings.refill_amount} credits</strong> to your account.</p><div class="detail"><div class="detail-row"><span class="detail-label">Credits Added</span><span class="detail-value">${settings.refill_amount}</span></div><div class="detail-row"><span class="detail-label">Charged</span><span class="detail-value">$${settings.refill_amount}.00 CAD</span></div><div class="detail-row"><span class="detail-label">New Balance</span><span class="detail-value">${newBalance} credits</span></div></div><a href="https://my.envosta.com/dashboard/billing" class="btn">View Billing</a><p style="font-size:13px;color:#888;">Adjust auto-refill settings anytime from your billing dashboard.</p>`)
+        );
+      }
     } else {
       console.error('Auto-refill payment failed:', pi.status, pi.id);
     }
