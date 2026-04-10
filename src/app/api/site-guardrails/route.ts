@@ -147,6 +147,9 @@ export async function PUT(req: Request) {
     }
   }
 
+  // Recalculate user's total mandatory monthly credits across all sites
+  await recalcMandatoryCredits(supabase, userId);
+
   return NextResponse.json({
     php_workers: newWorkers,
     ssd_gb: newStorage,
@@ -155,4 +158,27 @@ export async function PUT(req: Request) {
     bursting_enabled: newBursting,
     monthly_ai_token_limit: monthly_ai_token_limit ?? null,
   });
+}
+
+/** Recalculate mandatory_monthly_credits on the user from all active sites */
+async function recalcMandatoryCredits(supabase: any, userId: string) {
+  const { data: allSites } = await supabase
+    .from('sites')
+    .select('config, bursting_enabled, twilio_phone_number')
+    .eq('user_id', userId)
+    .in('status', ['active', 'provisioning']);
+
+  let total = 0;
+  for (const s of allSites ?? []) {
+    const c = (s.config as any) ?? {};
+    total += (c.php_workers ?? 2) * 5;
+    total += (c.storage_gb ?? 25) * 0.5;
+    if (s.bursting_enabled) total += 10;
+    if (s.twilio_phone_number) total += 2;
+  }
+
+  await supabase
+    .from('users')
+    .update({ mandatory_monthly_credits: Math.round(total * 100) / 100 })
+    .eq('id', userId);
 }

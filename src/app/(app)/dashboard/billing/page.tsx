@@ -9,6 +9,7 @@ import { UsageBreakdown } from '@/components/billing/usage-breakdown';
 import { CreditTransactions } from '@/components/billing/credit-transactions';
 import { AutoRefillSettings } from '@/components/billing/auto-refill-settings';
 import { AiUsageDashboard } from '@/components/billing/ai-usage-dashboard';
+import { NextCyclePreview } from '@/components/billing/next-cycle-preview';
 
 export default async function BillingPage() {
   const userId = await getEffectiveUserId();
@@ -26,6 +27,9 @@ export default async function BillingPage() {
 
       {/* Credit Balance */}
       <CreditBalanceCard />
+
+      {/* Next Billing Cycle — mandatory vs variable */}
+      <NextCyclePreview />
 
       {/* Usage & Auto-Refill Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
