@@ -14,27 +14,20 @@ export async function GET(req: Request) {
 
   const supabase = await createServerClient();
 
-  // Verify user owns this site
   const { data: site } = await supabase
     .from('sites')
-    .select('id')
+    .select('max_php_workers, max_ssd_gb, bursting_enabled, monthly_ai_token_limit')
     .eq('id', siteId)
     .eq('user_id', userId)
     .maybeSingle();
 
   if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 });
 
-  const { data: guardrails } = await supabase
-    .from('site_guardrails')
-    .select('*')
-    .eq('site_id', siteId)
-    .maybeSingle();
-
-  return NextResponse.json(guardrails ?? {
-    max_php_workers: null,
-    max_ssd_gb: null,
-    bursting_enabled: false,
-    monthly_ai_token_limit: null,
+  return NextResponse.json({
+    max_php_workers: site.max_php_workers ?? null,
+    max_ssd_gb: site.max_ssd_gb ?? null,
+    bursting_enabled: site.bursting_enabled ?? false,
+    monthly_ai_token_limit: site.monthly_ai_token_limit ?? null,
   });
 }
 
@@ -47,7 +40,7 @@ export async function PUT(req: Request) {
 
   const supabase = await createServerClient();
 
-  // Verify user owns this site
+  // Verify ownership
   const { data: site } = await supabase
     .from('sites')
     .select('id')
@@ -58,19 +51,16 @@ export async function PUT(req: Request) {
   if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 });
 
   const { data } = await supabase
-    .from('site_guardrails')
-    .upsert(
-      {
-        site_id: siteId,
-        max_php_workers: max_php_workers ?? null,
-        max_ssd_gb: max_ssd_gb ?? null,
-        bursting_enabled: bursting_enabled ?? false,
-        monthly_ai_token_limit: monthly_ai_token_limit ?? null,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'site_id' },
-    )
-    .select()
+    .from('sites')
+    .update({
+      max_php_workers: max_php_workers ?? null,
+      max_ssd_gb: max_ssd_gb ?? null,
+      bursting_enabled: bursting_enabled ?? false,
+      monthly_ai_token_limit: monthly_ai_token_limit ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', siteId)
+    .select('max_php_workers, max_ssd_gb, bursting_enabled, monthly_ai_token_limit')
     .single();
 
   return NextResponse.json(data);

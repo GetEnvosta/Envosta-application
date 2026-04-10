@@ -11,7 +11,7 @@ import {
   Check, AlertTriangle, Link2, Cloud,
 } from 'lucide-react';
 import { PlanSwitcher } from '@/components/sites/plan-switcher';
-import { SiteAddons } from '@/components/sites/site-addons';
+// SiteAddons removed — addons are credit-metered via site config now
 import { SitePerformance } from '@/components/sites/site-performance';
 import { SiteAccess } from '@/components/sites/site-access';
 import { CancelSubscriptionButton } from '@/components/admin/cancel-subscription-button';
@@ -177,7 +177,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
               <PlanSwitcher siteId={service.id} currentPlanId={service.product_id} />
             </div>
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Add-ons</p>
-            <SiteAddons siteId={service.id} />
+            <p className="text-sm text-gray-500">Add-ons are now managed via credits and site guardrails.</p>
           </div>
         </div>
       </div>

@@ -529,58 +529,31 @@ Deno.serve(async (req) => {
           if (p?.role !== "admin") return error("Forbidden", 403);
         }
 
+        // Addons are now managed via site config and charged through credits.
+        // Toggle the feature directly on the site's config/guardrails.
         const { data: addon } = await sb.from("products").select("*").eq("id", addonId).single();
         if (!addon) return error("Addon not found", 404);
 
-        // Check if already active
-        const { data: existing } = await sb.from("site_addons").select("id").eq("site_id", siteId).eq("product_id", addonId).eq("status", "active").maybeSingle();
-        if (existing) return error("Addon already active on this site", 409);
-
-        let stripeItemId: string | null = null;
-
-        // Add to Stripe subscription (for recurring addons)
-        const sub = (svc as any).subscriptions;
-        if (sub?.stripe_subscription_id && addon.stripe_price_id && addon.billing !== "one_time") {
-          try {
-            const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
-            const res = await fetch(`https://api.stripe.com/v1/subscription_items`, {
-              method: "POST",
-              headers: {
-                Authorization: `Basic ${btoa(stripeKey + ":")}`,
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-              body: `subscription=${sub.stripe_subscription_id}&price=${addon.stripe_price_id}&proration_behavior=create_prorations`,
-            });
-            const item = await res.json();
-            stripeItemId = item.id ?? null;
-            console.log("Stripe addon item added:", item.id);
-          } catch (e) {
-            console.error("Stripe addon add failed:", e);
-          }
-        }
-
-        // Apply wp.cloud action if configured in addon metadata
         const addonMeta = addon.metadata as any ?? {};
+
+        // Apply wp.cloud action if configured
         if (svc.wp_cloud_site_id && addonMeta.wpcloud_key) {
           await wpcloudPost(`/api/v1.0/site-meta/${svc.wp_cloud_site_id}/${addonMeta.wpcloud_key}/update`, {
             value: addonMeta.enable_value ?? addonMeta.increment ?? 1,
           });
-          console.log("wp.cloud addon applied:", addonMeta.wpcloud_key, "=", addonMeta.enable_value ?? addonMeta.increment);
+          console.log("wp.cloud addon applied:", addonMeta.wpcloud_key);
         }
 
-        // Create service_addon record
-        const { data: sa } = await sb.from("site_addons").insert({
-          site_id: siteId,
-          product_id: addonId,
-          status: "active",
-          stripe_subscription_item_id: stripeItemId,
-        }).select("id").single();
+        // Enable bursting flag on site if this is the bursting addon
+        if (addon.slug === "bursting") {
+          await sb.from("sites").update({ bursting_enabled: true }).eq("id", siteId);
+        }
 
         await log({ userId: user.id, serviceId: siteId, action: "addon.enabled", message: `${addon.name} enabled` });
-        return json({ success: true, serviceAddonId: sa?.id, addon: addon.name });
+        return json({ success: true, addon: addon.name });
       }
 
-      // Remove addon from site — removes Stripe item + reverses wp.cloud config
+      // Remove addon — reverses wp.cloud config
       case "remove-addon": {
         const { addonId: removeAddonId } = await req.clone().json().catch(() => ({}));
         if (!siteId || !removeAddonId) return error("siteId and addonId are required");
@@ -588,41 +561,25 @@ Deno.serve(async (req) => {
         const sb = supabaseAdmin();
         const { data: svc } = await sb.from("sites").select("wp_cloud_site_id, user_id").eq("id", siteId).single();
 
-        // Verify ownership or admin
         if (svc && !isServiceRole && svc.user_id !== user!.id) {
           const { data: p } = await sb.from("users").select("role").eq("id", user!.id).single();
           if (p?.role !== "admin") return error("Forbidden", 403);
         }
-        const { data: sa } = await sb.from("site_addons").select("*, products(*)").eq("site_id", siteId).eq("product_id", removeAddonId).eq("status", "active").maybeSingle();
-        if (!sa) return error("Addon not active on this site", 404);
 
-        const addon = (sa as any).products;
+        const { data: addon } = await sb.from("products").select("*").eq("id", removeAddonId).single();
+        if (!addon) return error("Addon not found", 404);
 
-        // Remove from Stripe subscription
-        if (sa.stripe_subscription_item_id) {
-          try {
-            const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
-            await fetch(`https://api.stripe.com/v1/subscription_items/${sa.stripe_subscription_item_id}`, {
-              method: "DELETE",
-              headers: { Authorization: `Basic ${btoa(stripeKey + ":")}` },
-            });
-            console.log("Stripe addon item removed:", sa.stripe_subscription_item_id);
-          } catch (e) {
-            console.error("Stripe addon remove failed:", e);
-          }
-        }
-
-        // Reverse wp.cloud action
         const rmMeta = addon?.metadata as any ?? {};
         if (svc?.wp_cloud_site_id && rmMeta.wpcloud_key) {
           await wpcloudPost(`/api/v1.0/site-meta/${svc.wp_cloud_site_id}/${rmMeta.wpcloud_key}/update`, {
             value: rmMeta.disable_value ?? 0,
           });
-          console.log("wp.cloud addon reversed:", rmMeta.wpcloud_key, "=", rmMeta.disable_value ?? 0);
+          console.log("wp.cloud addon reversed:", rmMeta.wpcloud_key);
         }
 
-        // Update record
-        await sb.from("site_addons").update({ status: "cancelled", metadata: { disabled_at: new Date().toISOString() } }).eq("id", sa.id);
+        if (addon.slug === "bursting") {
+          await sb.from("sites").update({ bursting_enabled: false }).eq("id", siteId);
+        }
 
         await log({ userId: user.id, serviceId: siteId, action: "addon.disabled", message: `${addon?.name ?? "Addon"} disabled` });
         return json({ success: true, addon: addon?.name });

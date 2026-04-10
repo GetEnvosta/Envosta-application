@@ -14,7 +14,6 @@ import {
   Shield, Layers, Package, Zap, Key, Calendar, User,
 } from 'lucide-react';
 import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-switcher';
-import { SiteAddons } from '@/components/sites/site-addons';
 import { SiteAccess } from '@/components/sites/site-access';
 import { SiteIp } from '@/components/sites/site-ip';
 import { SiteGuardrails } from '@/components/sites/site-guardrails';
