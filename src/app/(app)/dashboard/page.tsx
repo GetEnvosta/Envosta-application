@@ -3,9 +3,10 @@ export const dynamic = 'force-dynamic';
 import { getEffectiveUserId } from '@/services/auth';
 import { getUserDashboardCounts, getRecentUserServices, getRecentUserDomains } from '@/services/admin';
 import { getActiveSubscription } from '@/services/subscriptions';
+import { getCreditBalance } from '@/services/credits';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { Server, Globe, Globe2, CreditCard, Plus, Rocket, CheckCircle, ArrowRight, Sparkles, Shield, Zap } from 'lucide-react';
+import { Server, Globe, Globe2, CreditCard, Coins, Plus, Rocket, CheckCircle, ArrowRight, Sparkles, Shield, Zap } from 'lucide-react';
 
 export default async function DashboardPage() {
   const userId = await getEffectiveUserId();
@@ -15,11 +16,13 @@ export default async function DashboardPage() {
     services,
     domains,
     subscription,
+    creditBalance,
   ] = await Promise.all([
     getUserDashboardCounts(userId!),
     getRecentUserServices(userId!, 5),
     getRecentUserDomains(userId!, 5),
     getActiveSubscription(userId!),
+    getCreditBalance(userId!),
   ]);
 
   const isNew = !services || services.length === 0;
@@ -136,16 +139,21 @@ export default async function DashboardPage() {
   }
 
   // Existing user dashboard
+  const isLowCredits = creditBalance.total <= 10 && creditBalance.total >= 0;
+  const isNegativeCredits = creditBalance.total < 0;
+
   const stats = [
     { label: 'Active sites', value: sitesCount, icon: Server, href: '/dashboard/sites', color: 'blue' },
     { label: 'Domains', value: domainsCount, icon: Globe, href: '/dashboard/domains', color: 'purple' },
-    { label: 'Support', value: 'Standard', icon: CreditCard, href: '/dashboard/tickets', color: 'green' },
+    { label: 'Credits', value: creditBalance.total, icon: Coins, href: '/dashboard/billing', color: isNegativeCredits ? 'red' : isLowCredits ? 'amber' : 'green', sub: isNegativeCredits ? 'Add credits now' : isLowCredits ? 'Running low' : undefined },
   ];
 
   const colorMap: Record<string, { bg: string; text: string; hover: string }> = {
     blue: { bg: 'bg-blue-50', text: 'text-blue-600', hover: 'group-hover:bg-blue-100' },
     purple: { bg: 'bg-purple-50', text: 'text-purple-600', hover: 'group-hover:bg-purple-100' },
     green: { bg: 'bg-emerald-50', text: 'text-emerald-600', hover: 'group-hover:bg-emerald-100' },
+    amber: { bg: 'bg-amber-50', text: 'text-amber-600', hover: 'group-hover:bg-amber-100' },
+    red: { bg: 'bg-red-50', text: 'text-red-600', hover: 'group-hover:bg-red-100' },
   };
 
   return (
@@ -184,8 +192,9 @@ export default async function DashboardPage() {
                   <s.icon className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold text-gray-900">{s.value}</p>
+                  <p className={`text-2xl font-semibold ${s.color === 'red' ? 'text-red-600' : s.color === 'amber' ? 'text-amber-600' : 'text-gray-900'}`}>{s.value}</p>
                   <p className="text-sm text-gray-500">{s.label}</p>
+                  {(s as any).sub && <p className={`text-xs mt-0.5 ${s.color === 'red' ? 'text-red-500' : 'text-amber-500'}`}>{(s as any).sub}</p>}
                 </div>
               </div>
             </Link>

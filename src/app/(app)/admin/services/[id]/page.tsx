@@ -176,8 +176,36 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Change Plan</p>
               <PlanSwitcher siteId={service.id} currentPlanId={service.product_id} />
             </div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Add-ons</p>
-            <p className="text-sm text-gray-500">Add-ons are now managed via credits and site guardrails.</p>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Resources & Credits</p>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">PHP Workers</span>
+                <span className="text-gray-900 font-medium">{(service.config as any)?.php_workers ?? 2} ({((service.config as any)?.php_workers ?? 2) * 5} cr/mo)</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">SSD Storage</span>
+                <span className="text-gray-900 font-medium">{(service.config as any)?.storage_gb ?? 25}GB ({((service.config as any)?.storage_gb ?? 25) * 0.5} cr/mo)</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Bursting</span>
+                <span className="text-gray-900 font-medium">{service.bursting_enabled ? 'On (10 cr/mo)' : 'Off'}</span>
+              </div>
+              {service.twilio_phone_number && (
+                <>
+                  <div className="border-t border-gray-100 pt-2 mt-2" />
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">AI Receptionist</span>
+                    <span className={`font-medium ${service.receptionist_enabled ? 'text-emerald-600' : 'text-gray-400'}`}>
+                      {service.receptionist_enabled ? 'Active' : 'Disabled'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Phone Number</span>
+                    <span className="text-gray-900 font-mono text-xs">{service.twilio_phone_number} (2 cr/mo)</span>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
