@@ -8,7 +8,7 @@ const PLAN_CREDITS = 50; // base plan monthly deposit
 export function SiteGuardrails({ siteId }: { siteId: string }) {
   const [config, setConfig] = useState({
     php_workers: 2,
-    ssd_gb: 10,
+    ssd_gb: 25,
     bursting_enabled: false,
     monthly_ai_token_limit: null as number | null,
   });
@@ -30,7 +30,7 @@ export function SiteGuardrails({ siteId }: { siteId: string }) {
       .then((data) => {
         setConfig({
           php_workers: data.php_workers ?? 2,
-          ssd_gb: data.ssd_gb ?? 10,
+          ssd_gb: data.ssd_gb ?? 25,
           bursting_enabled: data.bursting_enabled ?? false,
           monthly_ai_token_limit: data.monthly_ai_token_limit ?? null,
         });

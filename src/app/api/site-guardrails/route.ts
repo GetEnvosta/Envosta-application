@@ -44,13 +44,13 @@ export async function GET(req: Request) {
   for (const s of otherSites ?? []) {
     const c = (s.config as any) ?? {};
     otherSitesCost += (c.php_workers ?? 2) * 5;
-    otherSitesCost += (c.storage_gb ?? 10) * 0.5;
+    otherSitesCost += (c.storage_gb ?? 25) * 0.5;
     if (s.bursting_enabled) otherSitesCost += 10;
   }
 
   return NextResponse.json({
     php_workers: config.php_workers ?? 2,
-    ssd_gb: config.storage_gb ?? 10,
+    ssd_gb: config.storage_gb ?? 25,
     bursting_enabled: site.bursting_enabled ?? false,
     monthly_ai_token_limit: site.monthly_ai_token_limit ?? null,
     // Credit context for commitment warnings
@@ -84,7 +84,7 @@ export async function PUT(req: Request) {
 
   const currentConfig = (site.config as any) ?? {};
   const oldWorkers = currentConfig.php_workers ?? 2;
-  const oldStorage = currentConfig.storage_gb ?? 10;
+  const oldStorage = currentConfig.storage_gb ?? 25;
   const oldBursting = site.bursting_enabled ?? false;
 
   // Determine new values (use current if not provided)

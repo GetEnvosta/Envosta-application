@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
           const domainFromMeta = sub.metadata?.domain_name ?? null;
           const planMeta = plan?.metadata as any ?? {};
 
-          // Insert site — only columns in schema
+          // Insert site with base config defaults (2 workers, 25GB, 512MB, no bursting)
           const { data: svc, error: svcErr } = await sb.from("sites").insert({
             user_id: cust.id,
             subscription_id: dbSub.id,
@@ -147,6 +147,14 @@ Deno.serve(async (req) => {
             status: "provisioning",
             server_region: "dca",
             domain_name: domainFromMeta,
+            config: {
+              php_workers: 2,
+              storage_gb: 25,
+              php_memory_mb: 512,
+            },
+            bursting_enabled: false,
+            max_php_workers: 2,
+            max_ssd_gb: 25,
             metadata: {
               auto_provisioned: true,
               plan_slug: plan?.slug ?? "minimum",
@@ -623,6 +631,10 @@ Deno.serve(async (req) => {
                 user_id: cust.id, subscription_id: dbSub.id, product_id: dbSub.product_id,
                 label: `${name}-site`, status: "provisioning",
                 server_region: "dca",
+                config: { php_workers: 2, storage_gb: 25, php_memory_mb: 512 },
+                bursting_enabled: false,
+                max_php_workers: 2,
+                max_ssd_gb: 25,
                 metadata: { auto_provisioned: true, plan_slug: planSlug ?? "minimum", via: "invoice.paid" },
               });
               console.log("Site created via invoice.paid fallback");

@@ -82,7 +82,7 @@ export async function GET(req: Request) {
       for (const site of sites ?? []) {
         const config = (site.config as any) ?? {};
         const phpWorkers = config.php_workers ?? 2;
-        const ssdGb = config.storage_gb ?? 10;
+        const ssdGb = config.storage_gb ?? 25;
         const bursting = site.bursting_enabled ?? false;
 
         let siteCost = 0;

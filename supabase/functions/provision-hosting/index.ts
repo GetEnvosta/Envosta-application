@@ -249,7 +249,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Store applied features in site config
+      // Store applied features in site config + guardrail defaults
       await sb.from("sites").update({
         config: {
           storage_gb: storageGb,
@@ -260,6 +260,9 @@ Deno.serve(async (req) => {
           has_waf: hasWaf,
           has_staging: hasStaging,
         },
+        max_php_workers: defaultWorkers,
+        max_ssd_gb: storageGb,
+        bursting_enabled: false,
       }).eq("id", svc.id);
     }
 
