@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { CalendarClock, Server, Phone, AlertTriangle, Check, Coins } from 'lucide-react';
 
-const PLAN_CREDITS = 50;
+const PLAN_CREDITS = 36;
 
 export function NextCyclePreview() {
   const [data, setData] = useState<any>(null);

@@ -180,11 +180,11 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">PHP Workers</span>
-                <span className="text-gray-900 font-medium">{(service.config as any)?.php_workers ?? 2} ({((service.config as any)?.php_workers ?? 2) * 5} cr/mo)</span>
+                <span className="text-gray-900 font-medium">{(service.config as any)?.php_workers ?? 2} ({((service.config as any)?.php_workers ?? 2) * 8} cr/mo)</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">SSD Storage</span>
-                <span className="text-gray-900 font-medium">{(service.config as any)?.storage_gb ?? 25}GB ({((service.config as any)?.storage_gb ?? 25) * 0.5} cr/mo)</span>
+                <span className="text-gray-900 font-medium">{(service.config as any)?.storage_gb ?? 25}GB ({((service.config as any)?.storage_gb ?? 25) * 0.8} cr/mo)</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Bursting</span>

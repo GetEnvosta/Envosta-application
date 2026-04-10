@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     // Recalculate mandatory monthly credits (phone adds 2 cr/mo)
     const { data: allSites } = await supabase.from('sites').select('config, bursting_enabled, twilio_phone_number').eq('user_id', userId).in('status', ['active', 'provisioning']);
     let mandatory = 0;
-    for (const s of allSites ?? []) { const c = (s.config as any) ?? {}; mandatory += (c.php_workers ?? 2) * 5 + (c.storage_gb ?? 25) * 0.5 + (s.bursting_enabled ? 10 : 0) + (s.twilio_phone_number ? 2 : 0); }
+    for (const s of allSites ?? []) { const c = (s.config as any) ?? {}; mandatory += (c.php_workers ?? 2) * 8 + (c.storage_gb ?? 25) * 0.8 + (s.bursting_enabled ? 10 : 0) + (s.twilio_phone_number ? 2 : 0); }
     await supabase.from('users').update({ mandatory_monthly_credits: Math.round(mandatory * 100) / 100 }).eq('id', userId);
 
     return NextResponse.json(result);

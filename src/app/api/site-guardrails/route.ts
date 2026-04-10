@@ -43,8 +43,8 @@ export async function GET(req: Request) {
   let otherSitesCost = 0;
   for (const s of otherSites ?? []) {
     const c = (s.config as any) ?? {};
-    otherSitesCost += (c.php_workers ?? 2) * 5;
-    otherSitesCost += (c.storage_gb ?? 25) * 0.5;
+    otherSitesCost += (c.php_workers ?? 2) * 8;
+    otherSitesCost += (c.storage_gb ?? 25) * 0.8;
     if (s.bursting_enabled) otherSitesCost += 10;
   }
 
@@ -171,8 +171,8 @@ async function recalcMandatoryCredits(supabase: any, userId: string) {
   let total = 0;
   for (const s of allSites ?? []) {
     const c = (s.config as any) ?? {};
-    total += (c.php_workers ?? 2) * 5;
-    total += (c.storage_gb ?? 25) * 0.5;
+    total += (c.php_workers ?? 2) * 8;
+    total += (c.storage_gb ?? 25) * 0.8;
     if (s.bursting_enabled) total += 10;
     if (s.twilio_phone_number) total += 2;
   }

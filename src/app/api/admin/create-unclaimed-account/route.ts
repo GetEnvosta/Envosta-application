@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       // If creator is a partner, auto-assign as partner
       partner_id: callerProfile?.role === 'partner' ? user.id : null,
       // Start with 50 subscription credits
-      subscription_credits: 50,
+      subscription_credits: 36,
     }, { onConflict: 'id' });
 
     // Create a site if label provided

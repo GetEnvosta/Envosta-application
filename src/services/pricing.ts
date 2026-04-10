@@ -73,8 +73,8 @@ export async function calculateSiteCreditCost(config: {
   }
 
   let total = 0;
-  total += (config.php_workers ?? 2) * (rates['php_worker'] ?? 5);
-  total += (config.ssd_gb ?? 10) * (rates['ssd_gb'] ?? 0.5);
+  total += (config.php_workers ?? 2) * (rates['php_worker'] ?? 8);
+  total += (config.ssd_gb ?? 25) * (rates['ssd_gb'] ?? 0.8);
   if (config.bursting) total += rates['bursting'] ?? 10;
 
   return Math.round(total * 100) / 100;

@@ -86,8 +86,8 @@ export async function GET(req: Request) {
         const bursting = site.bursting_enabled ?? false;
 
         let siteCost = 0;
-        siteCost += phpWorkers * (rates['wordpress/php_worker'] ?? 5);
-        siteCost += ssdGb * (rates['wordpress/ssd_gb'] ?? 0.5);
+        siteCost += phpWorkers * (rates['wordpress/php_worker'] ?? 8);
+        siteCost += ssdGb * (rates['wordpress/ssd_gb'] ?? 0.8);
         if (bursting) siteCost += rates['wordpress/bursting'] ?? 10;
 
         if (siteCost > 0) {

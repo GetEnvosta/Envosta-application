@@ -58,7 +58,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const ssdGb = config.storage_gb ?? 25;
   const bursting = (site as any).bursting_enabled ?? false;
   const hasTwilio = !!(site as any).twilio_phone_number;
-  const hostingCost = (phpWorkers * 5) + (ssdGb * 0.5) + (bursting ? 10 : 0);
+  const hostingCost = (phpWorkers * 8) + (ssdGb * 0.8) + (bursting ? 10 : 0);
   const twilioCost = hasTwilio ? 2 : 0;
   const totalMonthlyCost = hostingCost + twilioCost;
 
@@ -132,7 +132,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
           </div>
           <div className="space-y-1 text-xs text-gray-500">
             <div className="flex justify-between">
-              <span>Hosting ({phpWorkers} workers × 5 + {ssdGb}GB × 0.50{bursting ? ' + bursting' : ''})</span>
+              <span>Hosting ({phpWorkers} workers × 8 + {ssdGb}GB × 0.80{bursting ? ' + bursting' : ''})</span>
               <span className="font-medium text-gray-700">{hostingCost} cr</span>
             </div>
             {hasTwilio && (

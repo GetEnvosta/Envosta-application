@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Loader2, Shield, Server, HardDrive, Zap, Brain, AlertTriangle, Check, Info } from 'lucide-react';
 
-const PLAN_CREDITS = 50; // base plan monthly deposit
+const PLAN_CREDITS = 36; // base plan monthly deposit ($36 USD)
 
 export function SiteGuardrails({ siteId }: { siteId: string }) {
   const [config, setConfig] = useState({
@@ -13,7 +13,7 @@ export function SiteGuardrails({ siteId }: { siteId: string }) {
     monthly_ai_token_limit: null as number | null,
   });
   const [creditCtx, setCreditCtx] = useState({
-    subscription_credits: 50,
+    subscription_credits: 36,
     purchased_credits: 0,
     auto_refill_enabled: false,
     auto_refill_amount: 50,
@@ -47,7 +47,7 @@ export function SiteGuardrails({ siteId }: { siteId: string }) {
   }, [siteId]);
 
   // Calculate costs
-  const thisSiteCost = (config.php_workers * 5) + (config.ssd_gb * 0.5) + (config.bursting_enabled ? 10 : 0);
+  const thisSiteCost = (config.php_workers * 8) + (config.ssd_gb * 0.8) + (config.bursting_enabled ? 10 : 0);
   const totalCommitted = thisSiteCost + creditCtx.other_sites_committed_cost;
   const remaining = PLAN_CREDITS - totalCommitted;
   const exceedsPlan = totalCommitted > PLAN_CREDITS;
@@ -106,7 +106,7 @@ export function SiteGuardrails({ siteId }: { siteId: string }) {
             max={16}
             className="w-full px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-brand-400 focus:ring-1 focus:ring-brand-400 outline-none"
           />
-          <p className="text-[10px] text-gray-400 mt-0.5">5 credits/worker/mo — <span className="font-medium text-gray-600">{config.php_workers * 5} credits</span></p>
+          <p className="text-[10px] text-gray-400 mt-0.5">8 credits/worker/mo — <span className="font-medium text-gray-600">{config.php_workers * 8} credits</span></p>
         </div>
         <div>
           <label className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
@@ -120,7 +120,7 @@ export function SiteGuardrails({ siteId }: { siteId: string }) {
             max={500}
             className="w-full px-2.5 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-brand-400 focus:ring-1 focus:ring-brand-400 outline-none"
           />
-          <p className="text-[10px] text-gray-400 mt-0.5">0.50 credits/GB/mo — <span className="font-medium text-gray-600">{config.ssd_gb * 0.5} credits</span></p>
+          <p className="text-[10px] text-gray-400 mt-0.5">0.80 credits/GB/mo — <span className="font-medium text-gray-600">{config.ssd_gb * 0.8} credits</span></p>
         </div>
         <div>
           <label className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">

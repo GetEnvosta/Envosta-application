@@ -90,10 +90,10 @@ Deno.serve(async (req) => {
 
           await sb.rpc("fn_deposit_credits", {
             p_user_id: cust.id,
-            p_amount: 50,
+            p_amount: 36,
             p_type: "deposit_subscription",
             p_pool: "subscription",
-            p_description: "Initial subscription deposit: 50 credits",
+            p_description: "Initial subscription deposit: 36 credits",
             p_service_type: "subscription",
             p_reference_id: null,
             p_expires_at: periodEnd,
@@ -652,25 +652,25 @@ Deno.serve(async (req) => {
 
                 await sb.rpc("fn_deposit_credits", {
                   p_user_id: cust.id,
-                  p_amount: 50,
+                  p_amount: 36,
                   p_type: "deposit_subscription",
                   p_pool: "subscription",
-                  p_description: "Monthly subscription deposit: 50 credits",
+                  p_description: "Monthly subscription deposit: 36 credits",
                   p_service_type: "subscription",
                   p_reference_id: null,
                   p_expires_at: periodEnd,
                 });
-                console.log("Subscription credits deposited: 50 for user:", cust.id);
+                console.log("Subscription credits deposited: 36 for user:", cust.id);
 
                 // ── Layer 2: Mandatory infrastructure top-up ──
-                // If mandatory > 50, auto-charge the difference
+                // If mandatory > 36, auto-charge the difference
                 const { data: userCredits } = await sb.from("users")
                   .select("mandatory_monthly_credits, stripe_customer_id")
                   .eq("id", cust.id).single();
 
                 const mandatory = Number(userCredits?.mandatory_monthly_credits ?? 0);
-                if (mandatory > 50 && userCredits?.stripe_customer_id) {
-                  const shortfall = Math.ceil(mandatory - 50);
+                if (mandatory > 36 && userCredits?.stripe_customer_id) {
+                  const shortfall = Math.ceil(mandatory - 36);
                   try {
                     // Get default payment method
                     const customer = await stripe.customers.retrieve(userCredits.stripe_customer_id);
