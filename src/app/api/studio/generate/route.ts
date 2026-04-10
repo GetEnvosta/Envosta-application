@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { isStaffRole } from '@/lib/roles';
+import { checkAiTokenBudget } from '@/lib/ai-budget';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Claude can take a while for large pages
@@ -36,6 +37,14 @@ export async function POST(req: Request) {
   if (!apiKey) return NextResponse.json({ error: 'AI not configured' }, { status: 503 });
 
   try {
+    // Check AI token budget before calling Claude
+    const budget = await checkAiTokenBudget(user.id);
+    if (!budget.allowed) {
+      return NextResponse.json({
+        error: `AI token limit reached. Used ${budget.dailyUsed.toLocaleString()} of ${budget.dailyLimit?.toLocaleString()} tokens today. Increase your limit in site settings.`,
+      }, { status: 429 });
+    }
+
     const { style, pageName, pagePrompt, allPageNames, referenceHtml } = await req.json();
 
     if (!pageName || !pagePrompt) {

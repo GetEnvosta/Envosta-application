@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { isStaffRole } from '@/lib/roles';
+import { checkAiTokenBudget } from '@/lib/ai-budget';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -16,6 +17,13 @@ export async function POST(req: Request) {
   if (!apiKey) return NextResponse.json({ error: 'AI not configured' }, { status: 503 });
 
   try {
+    const budget = await checkAiTokenBudget(user.id);
+    if (!budget.allowed) {
+      return NextResponse.json({
+        error: `AI token limit reached. Used ${budget.dailyUsed.toLocaleString()} of ${budget.dailyLimit?.toLocaleString()} tokens today.`,
+      }, { status: 429 });
+    }
+
     const { brief } = await req.json();
     if (!brief || typeof brief !== 'string' || brief.trim().length < 10) {
       return NextResponse.json({ error: 'Please describe the website in at least a few words' }, { status: 400 });
