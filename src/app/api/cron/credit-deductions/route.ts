@@ -50,15 +50,19 @@ export async function GET(req: Request) {
     }
   }
 
-  // Load service credit pricing
+  // Load credit rates from products table (type='credit_rate')
   const { data: pricing } = await sb
-    .from('service_credit_pricing')
-    .select('*')
+    .from('products')
+    .select('metadata, is_active')
+    .eq('type', 'credit_rate')
     .eq('is_active', true);
 
   const rates: Record<string, number> = {};
   for (const p of pricing ?? []) {
-    rates[`${p.service_type}/${p.metric}`] = Number(p.credits_per_unit);
+    const m = (p.metadata as any) ?? {};
+    if (m.service_type && m.metric) {
+      rates[`${m.service_type}/${m.metric}`] = Number(m.credits_per_unit ?? 0);
+    }
   }
 
   let processed = 0;
@@ -71,7 +75,7 @@ export async function GET(req: Request) {
       // This ensures the 50 free monthly credits go toward hosting before anything else.
       const { data: sites } = await sb
         .from('sites')
-        .select('id, label, config, metadata')
+        .select('id, label, config, metadata, bursting_enabled')
         .eq('user_id', userId)
         .in('status', ['active', 'provisioning']);
 
@@ -79,7 +83,7 @@ export async function GET(req: Request) {
         const config = (site.config as any) ?? {};
         const phpWorkers = config.php_workers ?? 2;
         const ssdGb = config.storage_gb ?? 10;
-        const bursting = config.bursting ?? false;
+        const bursting = site.bursting_enabled ?? false;
 
         let siteCost = 0;
         siteCost += phpWorkers * (rates['wordpress/php_worker'] ?? 5);
@@ -101,14 +105,14 @@ export async function GET(req: Request) {
       // Domains are billed as separate Stripe yearly subscriptions (not credits).
 
       // ── Check for negative balance → log warning ──
-      const { data: balance } = await sb
-        .from('credit_balances')
-        .select('subscription_credits, purchased_credits')
-        .eq('user_id', userId)
+      const { data: userBalance } = await sb
+        .from('users')
+        .select('subscription_credits, purchased_credits, auto_refill_enabled, auto_refill_threshold')
+        .eq('id', userId)
         .single();
 
-      if (balance) {
-        const total = (balance.subscription_credits ?? 0) + (balance.purchased_credits ?? 0);
+      if (userBalance) {
+        const total = (userBalance.subscription_credits ?? 0) + (userBalance.purchased_credits ?? 0);
         if (total < 0) {
           await sb.from('logs').insert({
             user_id: userId,
@@ -118,20 +122,11 @@ export async function GET(req: Request) {
           });
         }
 
-        // Check auto-refill
-        const { data: refillSettings } = await sb
-          .from('auto_refill_settings')
-          .select('*')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-        if (refillSettings?.enabled && total < refillSettings.threshold) {
-          // Auto-refill is handled by the credits service via Stripe charge
-          // We just log here; the actual charge happens in the Next.js service layer
+        if (userBalance.auto_refill_enabled && total < (userBalance.auto_refill_threshold ?? 10)) {
           await sb.from('logs').insert({
             user_id: userId,
             action: 'credits.auto_refill_needed',
-            details: `Balance ${total} below threshold ${refillSettings.threshold}`,
+            details: `Balance ${total} below threshold ${userBalance.auto_refill_threshold}`,
             level: 'info',
           });
         }

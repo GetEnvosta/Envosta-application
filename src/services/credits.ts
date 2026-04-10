@@ -5,10 +5,10 @@ import { createClient } from '@/lib/supabase-server';
 export async function getCreditBalance(userId: string) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('credit_balances')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
+    .from('users')
+    .select('subscription_credits, purchased_credits, subscription_credits_expire_at')
+    .eq('id', userId)
+    .single();
 
   const sub = data?.subscription_credits ?? 0;
   const pur = data?.purchased_credits ?? 0;
@@ -19,13 +19,6 @@ export async function getCreditBalance(userId: string) {
     total: sub + pur,
     expires_at: data?.subscription_credits_expire_at ?? null,
   };
-}
-
-export async function ensureCreditBalance(userId: string) {
-  const supabase = await createClient();
-  await supabase
-    .from('credit_balances')
-    .upsert({ user_id: userId }, { onConflict: 'user_id' });
 }
 
 // ── Transactions ───────────────────────────────────────────
@@ -65,7 +58,6 @@ export async function getUsageBreakdown(
 
   const { data } = await query;
 
-  // Aggregate by service_type
   const breakdown: Record<string, number> = {};
   for (const row of data ?? []) {
     const svc = row.service_type ?? 'other';
@@ -84,10 +76,8 @@ export async function depositSubscriptionCredits(
 ) {
   const supabase = await createClient();
 
-  // Expire old subscription credits first
   await supabase.rpc('fn_expire_subscription_credits', { p_user_id: userId });
 
-  // Deposit new
   const { data } = await supabase.rpc('fn_deposit_credits', {
     p_user_id: userId,
     p_amount: amount,
@@ -142,7 +132,6 @@ export async function deductCredits(
 
   const result = data?.[0] ?? null;
 
-  // Check auto-refill after deduction
   if (result) {
     const total = (result.subscription_credits ?? 0) + (result.purchased_credits ?? 0);
     await checkAndTriggerAutoRefill(userId, total);
@@ -162,7 +151,6 @@ export async function adjustCredits(
   const supabase = await createClient();
 
   if (amount > 0) {
-    // Positive adjustment → add to purchased pool
     const { data } = await supabase.rpc('fn_deposit_credits', {
       p_user_id: userId,
       p_amount: amount,
@@ -175,7 +163,6 @@ export async function adjustCredits(
     });
     return data?.[0] ?? null;
   } else {
-    // Negative adjustment → deduct
     const { data } = await supabase.rpc('fn_deduct_credits', {
       p_user_id: userId,
       p_amount: Math.abs(amount),
@@ -192,12 +179,16 @@ export async function adjustCredits(
 export async function getAutoRefillSettings(userId: string) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('auto_refill_settings')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
+    .from('users')
+    .select('auto_refill_enabled, auto_refill_threshold, auto_refill_amount')
+    .eq('id', userId)
+    .single();
 
-  return data ?? { enabled: false, threshold: 10, refill_amount: 50 };
+  return {
+    enabled: data?.auto_refill_enabled ?? false,
+    threshold: data?.auto_refill_threshold ?? 10,
+    refill_amount: data?.auto_refill_amount ?? 50,
+  };
 }
 
 export async function updateAutoRefillSettings(
@@ -206,28 +197,27 @@ export async function updateAutoRefillSettings(
 ) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('auto_refill_settings')
-    .upsert(
-      {
-        user_id: userId,
-        enabled: settings.enabled,
-        threshold: settings.threshold,
-        refill_amount: settings.refill_amount,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' },
-    )
-    .select()
+    .from('users')
+    .update({
+      auto_refill_enabled: settings.enabled,
+      auto_refill_threshold: settings.threshold,
+      auto_refill_amount: settings.refill_amount,
+    })
+    .eq('id', userId)
+    .select('auto_refill_enabled, auto_refill_threshold, auto_refill_amount')
     .single();
 
-  return data;
+  return {
+    enabled: data?.auto_refill_enabled ?? false,
+    threshold: data?.auto_refill_threshold ?? 10,
+    refill_amount: data?.auto_refill_amount ?? 50,
+  };
 }
 
 async function checkAndTriggerAutoRefill(userId: string, currentTotal: number) {
   const settings = await getAutoRefillSettings(userId);
   if (!settings.enabled || currentTotal >= settings.threshold) return;
 
-  // Get Stripe customer ID
   const supabase = await createClient();
   const { data: user } = await supabase
     .from('users')
@@ -241,7 +231,6 @@ async function checkAndTriggerAutoRefill(userId: string, currentTotal: number) {
   if (!stripeKey) return;
 
   try {
-    // Get default payment method
     const custRes = await fetch(
       `https://api.stripe.com/v1/customers/${user.stripe_customer_id}`,
       { headers: { Authorization: `Bearer ${stripeKey}` } },
@@ -250,9 +239,8 @@ async function checkAndTriggerAutoRefill(userId: string, currentTotal: number) {
     const pmId = customer.invoice_settings?.default_payment_method;
     if (!pmId) return;
 
-    // Create off-session payment intent
     const params = new URLSearchParams({
-      amount: String(settings.refill_amount * 100), // cents
+      amount: String(settings.refill_amount * 100),
       currency: 'cad',
       customer: user.stripe_customer_id,
       payment_method: typeof pmId === 'string' ? pmId : pmId.id,
@@ -276,7 +264,6 @@ async function checkAndTriggerAutoRefill(userId: string, currentTotal: number) {
     const pi = await piRes.json();
 
     if (pi.status === 'succeeded') {
-      // Deposit credits immediately (webhook will also fire but idempotency handles it)
       await depositPurchasedCredits(userId, settings.refill_amount, pi.id);
     } else {
       console.error('Auto-refill payment failed:', pi.status, pi.id);
@@ -309,10 +296,9 @@ export async function getAdminCreditStats() {
       .eq('type', 'deduction')
       .gte('created_at', monthStart),
     supabase
-      .from('credit_balances')
-      .select('user_id, subscription_credits, purchased_credits, users(full_name, email)')
-      .filter('subscription_credits', 'lt', 0)
-      .or('purchased_credits.lt.0'),
+      .from('users')
+      .select('id, full_name, email, subscription_credits, purchased_credits')
+      .or('subscription_credits.lt.0,purchased_credits.lt.0'),
   ]);
 
   const totalCreditsSold = (totalSold ?? []).reduce(

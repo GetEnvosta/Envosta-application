@@ -58,12 +58,12 @@ Format your response with clear headers. Be concise and actionable.`;
     try {
       const sb = supabaseAdmin();
       // Look up token credit rate
-      const { data: pricingRow } = await sb.from("service_credit_pricing")
-        .select("credits_per_unit")
-        .eq("service_type", "ai_tokens")
-        .eq("metric", "per_1k_tokens")
+      const { data: pricingRow } = await sb.from("products")
+        .select("metadata")
+        .eq("type", "credit_rate")
+        .eq("slug", "ai_tokens-per_1k_tokens")
         .maybeSingle();
-      const rate = Number(pricingRow?.credits_per_unit ?? 0.5);
+      const rate = Number((pricingRow?.metadata as any)?.credits_per_unit ?? 0.5);
       const creditsCharged = Math.round((result.total_tokens / 1000) * rate * 10000) / 10000;
 
       // Log usage (no user deduction for internal staff tools)

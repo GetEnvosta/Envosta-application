@@ -110,12 +110,12 @@ ${referenceHtml}` : ''}`;
 
     // Log AI usage and deduct credits
     try {
-      const { data: pricingRow } = await supabase.from('service_credit_pricing')
-        .select('credits_per_unit')
-        .eq('service_type', 'ai_tokens')
-        .eq('metric', 'per_1k_tokens')
+      const { data: pricingRow } = await supabase.from('products')
+        .select('metadata')
+        .eq('type', 'credit_rate')
+        .eq('slug', 'ai_tokens-per_1k_tokens')
         .maybeSingle();
-      const rate = Number(pricingRow?.credits_per_unit ?? 0.5);
+      const rate = Number((pricingRow?.metadata as any)?.credits_per_unit ?? 0.5);
       const creditsCharged = Math.round((totalTokens / 1000) * rate * 10000) / 10000;
 
       await supabase.from('ai_usage_log').insert({

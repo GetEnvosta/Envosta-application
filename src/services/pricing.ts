@@ -1,14 +1,27 @@
 import { createClient } from '@/lib/supabase-server';
 
+/**
+ * Get all credit rate products (type='credit_rate').
+ * Each has metadata: { service_type, metric, credits_per_unit }
+ */
 export async function getServicePricing() {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('service_credit_pricing')
+    .from('products')
     .select('*')
+    .eq('type', 'credit_rate')
     .eq('is_active', true)
-    .order('service_type');
+    .order('slug');
 
-  return data ?? [];
+  return (data ?? []).map((p: any) => ({
+    id: p.id,
+    service_type: p.metadata?.service_type ?? '',
+    metric: p.metadata?.metric ?? '',
+    credits_per_unit: Number(p.metadata?.credits_per_unit ?? 0),
+    description: p.description,
+    is_active: p.is_active,
+    slug: p.slug,
+  }));
 }
 
 export async function updateServicePricing(
@@ -16,9 +29,25 @@ export async function updateServicePricing(
   updates: { credits_per_unit?: number; is_active?: boolean; description?: string },
 ) {
   const supabase = await createClient();
+
+  // Read current metadata to merge
+  const { data: current } = await supabase
+    .from('products')
+    .select('metadata')
+    .eq('id', id)
+    .single();
+
+  const currentMeta = (current?.metadata as any) ?? {};
+  const newMeta = { ...currentMeta };
+  if (updates.credits_per_unit !== undefined) newMeta.credits_per_unit = updates.credits_per_unit;
+
+  const dbUpdates: any = { metadata: newMeta, updated_at: new Date().toISOString() };
+  if (updates.is_active !== undefined) dbUpdates.is_active = updates.is_active;
+  if (updates.description !== undefined) dbUpdates.description = updates.description;
+
   const { data } = await supabase
-    .from('service_credit_pricing')
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .from('products')
+    .update(dbUpdates)
     .eq('id', id)
     .select()
     .single();
@@ -27,7 +56,7 @@ export async function updateServicePricing(
 }
 
 /**
- * Calculate monthly credit cost for a WordPress site based on its config.
+ * Calculate monthly credit cost for a WordPress site.
  */
 export async function calculateSiteCreditCost(config: {
   php_workers?: number;
@@ -39,7 +68,7 @@ export async function calculateSiteCreditCost(config: {
   const rates: Record<string, number> = {};
   for (const p of pricing) {
     if (p.service_type === 'wordpress') {
-      rates[p.metric] = Number(p.credits_per_unit);
+      rates[p.metric] = p.credits_per_unit;
     }
   }
 
@@ -59,6 +88,6 @@ export async function calculateAiTokenCost(totalTokens: number) {
   const match = pricing.find(
     (p) => p.service_type === 'ai_tokens' && p.metric === 'per_1k_tokens',
   );
-  const rate = match ? Number(match.credits_per_unit) : 0.5;
+  const rate = match ? match.credits_per_unit : 0.5;
   return Math.round((totalTokens / 1000) * rate * 10000) / 10000;
 }

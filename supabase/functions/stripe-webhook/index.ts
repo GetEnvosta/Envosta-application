@@ -82,8 +82,7 @@ Deno.serve(async (req) => {
       const isNewActiveSub = sub.status === "active" || (sub.status === "trialing" && !!sub.default_payment_method);
       if (event.type === "customer.subscription.created" && isNewActiveSub && plan?.type === "hosting_plan") {
         try {
-          await sb.from("credit_balances")
-            .upsert({ user_id: cust.id }, { onConflict: "user_id" });
+          // Credits now stored directly on users table — no separate row needed
 
           const periodEnd = sub.current_period_end
             ? new Date(sub.current_period_end * 1000).toISOString()

@@ -67,10 +67,10 @@ export default async function AdminCreditsPage() {
                 {stats.usersWithNegativeBalance.map((u: any) => {
                   const total = (u.subscription_credits ?? 0) + (u.purchased_credits ?? 0);
                   return (
-                    <tr key={u.user_id} className="hover:bg-gray-50/50">
+                    <tr key={u.id} className="hover:bg-gray-50/50">
                       <td className="px-4 py-2.5 text-sm">
-                        <span className="font-medium text-gray-900">{u.users?.full_name ?? 'Unknown'}</span>
-                        <span className="text-gray-400 ml-2 text-xs">{u.users?.email ?? ''}</span>
+                        <span className="font-medium text-gray-900">{u.full_name ?? 'Unknown'}</span>
+                        <span className="text-gray-400 ml-2 text-xs">{u.email ?? ''}</span>
                       </td>
                       <td className="px-4 py-2.5 text-sm text-right text-gray-600">{u.subscription_credits}</td>
                       <td className="px-4 py-2.5 text-sm text-right text-gray-600">{u.purchased_credits}</td>

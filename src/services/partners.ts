@@ -110,7 +110,7 @@ export async function getPartnerClients(partnerId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('users')
-    .select('id, full_name, email, created_at, credit_balances(subscription_credits, purchased_credits)')
+    .select('id, full_name, email, created_at, subscription_credits, purchased_credits')
     .eq('partner_id', partnerId)
     .order('created_at', { ascending: false });
 
@@ -125,14 +125,13 @@ export async function getPartnerClients(partnerId: string) {
         .eq('user_id', client.id)
         .in('status', ['active', 'provisioning']);
 
-      const bal = client.credit_balances?.[0] ?? client.credit_balances;
       return {
         id: client.id,
         full_name: client.full_name,
         email: client.email,
         created_at: client.created_at,
         sites_count: count ?? 0,
-        credit_balance: (bal?.subscription_credits ?? 0) + (bal?.purchased_credits ?? 0),
+        credit_balance: (client.subscription_credits ?? 0) + (client.purchased_credits ?? 0),
       };
     }),
   );
@@ -146,14 +145,14 @@ export async function getPartnerClientDetail(partnerId: string, clientId: string
   // Verify this client belongs to this partner
   const { data: client } = await supabase
     .from('users')
-    .select('id, full_name, email, created_at')
+    .select('id, full_name, email, created_at, subscription_credits, purchased_credits')
     .eq('id', clientId)
     .eq('partner_id', partnerId)
     .single();
 
   if (!client) return null;
 
-  const [{ data: sites }, { data: domains }, { data: balance }] = await Promise.all([
+  const [{ data: sites }, { data: domains }] = await Promise.all([
     supabase
       .from('sites')
       .select('id, label, status, domain_name, config, products(name, slug)')
@@ -164,11 +163,6 @@ export async function getPartnerClientDetail(partnerId: string, clientId: string
       .select('id, domain_name, tld, status, expiry_date')
       .eq('user_id', clientId)
       .not('status', 'eq', 'deleted'),
-    supabase
-      .from('credit_balances')
-      .select('subscription_credits, purchased_credits')
-      .eq('user_id', clientId)
-      .maybeSingle(),
   ]);
 
   return {
@@ -176,9 +170,9 @@ export async function getPartnerClientDetail(partnerId: string, clientId: string
     sites: sites ?? [],
     domains: domains ?? [],
     credit_balance: {
-      subscription: balance?.subscription_credits ?? 0,
-      purchased: balance?.purchased_credits ?? 0,
-      total: (balance?.subscription_credits ?? 0) + (balance?.purchased_credits ?? 0),
+      subscription: client.subscription_credits ?? 0,
+      purchased: client.purchased_credits ?? 0,
+      total: (client.subscription_credits ?? 0) + (client.purchased_credits ?? 0),
     },
   };
 }
