@@ -9,7 +9,7 @@ import { DeleteSiteButton } from '@/components/sites/delete-site-button';
 import { SiteBackups } from '@/components/sites/site-backups';
 import { SslStatus } from '@/components/sites/ssl-status';
 import { SitePerformance } from '@/components/sites/site-performance';
-import { SitePlanUpgrade, TrialActivate } from '@/components/sites/site-plan-upgrade';
+// Plans removed — customers scale via credits and site resources
 import {
   ArrowLeft, ExternalLink, Globe, HardDrive, Server, MapPin,
   Shield, Zap, Key, Calendar, User, Coins, Phone, Settings, Trash2,
@@ -36,7 +36,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const plan = (site as any).products;
   const sub = (site as any).subscriptions;
   const planName = plan?.name ?? 'Unknown';
-  const planSlug: string = plan?.slug ?? '';
   const pm = plan?.metadata ?? {};
   const status: string = site.status ?? 'provisioning';
   const meta = (site as any).metadata ?? {};
@@ -48,7 +47,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const storageTotal = config.storage_gb ?? 25;
   const storagePct = Math.min(100, (storageUsed / storageTotal) * 100);
   const isTrial = sub?.status === 'trialing';
-  const isTopPlan = planSlug === 'performance' || planSlug === 'enterprise';
 
   const regions: Record<string, string> = { dca: 'US East', bur: 'US West', dfw: 'US Central', ams: 'EU West' };
   const statusDot: Record<string, string> = { active: 'bg-emerald-500', provisioning: 'bg-amber-500 animate-pulse', suspended: 'bg-red-500' };
@@ -109,12 +107,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      {/* Trial banner */}
-      {isTrial && (
-        <div className="mb-6">
-          <TrialActivate siteId={id} planName={planName} trialEnd={sub?.current_period_end ?? new Date(Date.now() + 14 * 86400000).toISOString()} />
-        </div>
-      )}
 
       {/* ═══════════════════════════════════════════════════════ */}
       {/* OVERVIEW — Monthly cost + site specs at a glance       */}
@@ -192,12 +184,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
         <SiteGuardrails siteId={id} />
       </div>
 
-      {/* Upgrade prompt */}
-      {!isTrial && !isTopPlan && (
-        <div className="mb-6">
-          <SitePlanUpgrade siteId={id} currentPlanSlug={planSlug} currentSortOrder={plan?.sort_order ?? 0} />
-        </div>
-      )}
 
       {/* ═══════════════════════════════════════════════════════ */}
       {/* AI RECEPTIONIST — Phone, config, call history          */}
