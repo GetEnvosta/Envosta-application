@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/health-check",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/credit-deductions",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/partner-commissions",
+      "schedule": "0 8 * * *"
     }
   ]
 }

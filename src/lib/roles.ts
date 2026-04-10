@@ -2,7 +2,7 @@
 // Single source of truth for all role constants, access maps, and helpers.
 
 export const STAFF_ROLES = ['admin', 'affiliate', 'studio'] as const;
-export const ALL_ROLES = ['admin', 'affiliate', 'studio', 'customer'] as const;
+export const ALL_ROLES = ['admin', 'affiliate', 'studio', 'customer', 'partner'] as const;
 
 export type StaffRole = (typeof STAFF_ROLES)[number];
 export type UserRole = (typeof ALL_ROLES)[number];
@@ -49,6 +49,8 @@ export function canAccessAdminNav(role: string, href: string): boolean {
 
 const ADMIN_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/admin/billing':       ['admin'],
+  '/admin/credits':       ['admin'],
+  '/admin/partners':      ['admin'],
   '/admin/products':      ['admin'],
   '/admin/subscriptions': ['admin'],
   '/admin/blog':          ['admin'],
@@ -102,6 +104,10 @@ export const API_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/api/admin/provision-site':             ['admin', 'studio'],
   '/api/admin/delete-site':                ['admin', 'studio'],
   '/api/admin/attach-domain-subscription': ['admin', 'studio'],
+  '/api/admin/credits/adjust':              ['admin'],
+  '/api/admin/credits/pricing':             ['admin'],
+  '/api/admin/partners/review':             ['admin'],
+  '/api/admin/partners/change-requests':    ['admin'],
   '/api/admin/coupons':                    ['admin', 'affiliate'],
   '/api/admin/commissions':                ['admin', 'affiliate'],
   '/api/admin/delete-ticket':              ['admin', 'affiliate', 'studio'],
@@ -122,4 +128,5 @@ export const ROLE_BADGE_CLASSES: Record<string, string> = {
   affiliate: 'bg-amber-100 text-amber-700',
   studio:    'bg-emerald-100 text-emerald-700',
   customer:  'bg-gray-100 text-gray-600',
+  partner:   'bg-sky-100 text-sky-700',
 };

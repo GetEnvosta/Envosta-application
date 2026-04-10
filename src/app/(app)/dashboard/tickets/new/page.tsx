@@ -49,6 +49,13 @@ export default function NewTicketPage() {
         return;
       }
 
+      // Check if user has an assigned partner (route ticket to them)
+      const { data: profile } = await supabase
+        .from('users')
+        .select('partner_id')
+        .eq('id', user.id)
+        .single();
+
       // Insert ticket
       const { data: ticket, error: ticketError } = await supabase
         .from('tickets')
@@ -58,6 +65,7 @@ export default function NewTicketPage() {
           subject,
           status: 'open',
           priority: ticketType === 'support' ? priority : 'normal',
+          partner_id: profile?.partner_id ?? null,
           metadata: {
             ...(ticketType === 'studio' && siteId ? { site_id: siteId } : {}),
           },

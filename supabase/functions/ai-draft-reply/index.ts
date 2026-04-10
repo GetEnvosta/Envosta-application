@@ -83,8 +83,49 @@ Under 150 words. Be human, not corporate.`;
 
     const anthropicData = await anthropicRes.json();
     const draft = anthropicData?.content?.[0]?.text ?? "";
+    const inputTokens = anthropicData?.usage?.input_tokens ?? 0;
+    const outputTokens = anthropicData?.usage?.output_tokens ?? 0;
+    const totalTokens = inputTokens + outputTokens;
 
-    console.log("AI draft generated for ticket:", ticketId, "length:", draft.length);
+    console.log("AI draft generated for ticket:", ticketId, "length:", draft.length, "tokens:", totalTokens);
+
+    // Log AI usage and deduct credits from the customer whose ticket this is
+    try {
+      if (ticketId) {
+        const { data: ticket } = await sb.from("tickets").select("user_id").eq("id", ticketId).maybeSingle();
+        const ticketUserId = ticket?.user_id;
+
+        const { data: pricingRow } = await sb.from("service_credit_pricing")
+          .select("credits_per_unit")
+          .eq("service_type", "ai_tokens")
+          .eq("metric", "per_1k_tokens")
+          .maybeSingle();
+        const rate = Number(pricingRow?.credits_per_unit ?? 0.5);
+        const creditsCharged = Math.round((totalTokens / 1000) * rate * 10000) / 10000;
+
+        await sb.from("ai_usage_log").insert({
+          user_id: ticketUserId,
+          action: "draft_reply",
+          input_tokens: inputTokens,
+          output_tokens: outputTokens,
+          total_tokens: totalTokens,
+          credits_charged: creditsCharged,
+          model: "claude-sonnet-4-20250514",
+        });
+
+        if (ticketUserId && creditsCharged > 0) {
+          await sb.rpc("fn_deduct_credits", {
+            p_user_id: ticketUserId,
+            p_amount: Math.ceil(creditsCharged),
+            p_service_type: "ai_tokens",
+            p_description: `AI draft reply: ${totalTokens} tokens`,
+            p_reference_id: ticketId,
+          });
+        }
+      }
+    } catch (logErr) {
+      console.error("AI usage log error (non-fatal):", logErr);
+    }
 
     return json({ draft });
   } catch (e) {

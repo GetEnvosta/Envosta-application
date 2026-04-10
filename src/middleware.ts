@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
   // Everything below is for the app domain (my.envosta.com / localhost)
   let supabaseResponse = NextResponse.next({ request });
 
-  if (pathname.startsWith('/dashboard') || pathname.startsWith('/admin') || pathname.startsWith('/api')) {
+  if (pathname.startsWith('/dashboard') || pathname.startsWith('/admin') || pathname.startsWith('/partner') || pathname.startsWith('/api')) {
     supabaseResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   }
 
@@ -78,6 +78,18 @@ export async function middleware(request: NextRequest) {
     // Check if this staff role can access the specific admin route
     if (!canAccessAdminRoute(profile!.role, pathname)) {
       return addSecurityHeaders(NextResponse.redirect(new URL('/admin', request.url)));
+    }
+  }
+
+  // Protect partner routes
+  if (pathname.startsWith('/partner')) {
+    if (!user) {
+      return addSecurityHeaders(NextResponse.redirect(new URL('/auth/login', request.url)));
+    }
+    const { data: profile } = await supabase
+      .from('users').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'partner') {
+      return addSecurityHeaders(NextResponse.redirect(new URL('/dashboard', request.url)));
     }
   }
 

@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { AttachDomainSubscription } from '@/components/admin/attach-domain-subscription';
+import { getAdminUserCreditInfo } from '@/services/credits';
+import { AdminCreditAdjust } from '@/components/admin/admin-credit-adjust';
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,7 +33,11 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     );
   }
 
-  const { services, domains, subscriptions, invoices, logs } = await getCustomerRelatedData(user.id);
+  const [relatedData, creditInfo] = await Promise.all([
+    getCustomerRelatedData(user.id),
+    getAdminUserCreditInfo(user.id),
+  ]);
+  const { services, domains, subscriptions, invoices, logs } = relatedData;
 
   // Split subscriptions: hosting vs domain
   const hostingSubs = subscriptions.filter((s: any) => s.products?.type === 'hosting_plan' || (!s.products?.type && !((s.metadata as any)?.type === 'domain_renewal')));
@@ -233,6 +239,58 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             })}
           </div>
         )}
+      </div>
+
+      {/* ── Credits ── */}
+      <div className="card overflow-hidden mb-6">
+        <div className="section-card-header">
+          <CreditCard className="w-4 h-4 text-gray-400" />
+          <h2 className="section-card-title">Credits</h2>
+        </div>
+        <div className="p-5">
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div>
+              <p className="text-xs text-gray-500">Subscription Credits</p>
+              <p className="text-lg font-semibold text-gray-900">{creditInfo.balance.subscription_credits}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Purchased Credits</p>
+              <p className="text-lg font-semibold text-gray-900">{creditInfo.balance.purchased_credits}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Total</p>
+              <p className={`text-lg font-semibold ${creditInfo.balance.total < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                {creditInfo.balance.total}
+              </p>
+            </div>
+          </div>
+
+          <AdminCreditAdjust userId={user.id} />
+
+          {creditInfo.recentTransactions.length > 0 && (
+            <div className="mt-4 border-t border-gray-100 pt-4">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Recent Transactions</p>
+              <div className="space-y-1.5">
+                {creditInfo.recentTransactions.slice(0, 10).map((tx: any) => (
+                  <div key={tx.id} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-1.5 h-1.5 rounded-full ${tx.amount > 0 ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                      <span className="text-gray-600 truncate max-w-[250px]">{tx.description ?? tx.type}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={tx.amount > 0 ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>
+                        {tx.amount > 0 ? '+' : ''}{tx.amount}
+                      </span>
+                      <span className="text-gray-400 w-20 text-right">
+                        {new Date(tx.created_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Invoices ── */}

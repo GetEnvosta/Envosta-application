@@ -1,21 +1,21 @@
 import type { Metadata } from 'next';
-import PricingPage from './pricing-page';
+import PlansPage from '../plans/page';
 
 export const metadata: Metadata = {
-  title: 'Pricing — Envosta | AI Receptionist + Website for Small Business',
-  description: 'One plan. $129/month. AI receptionist, professional website, lead capture, booking — all managed. Add what you need as you grow.',
+  title: 'Pricing — Envosta Managed WordPress Hosting',
+  description: 'Managed WordPress hosting plans. Minimum $50/mo, Growth $129/mo, Performance $350/mo CAD.',
   alternates: { canonical: 'https://envosta.com/pricing' },
   openGraph: {
-    title: 'Pricing — One Plan. Everything Your Business Needs.',
-    description: 'AI receptionist answers calls 24/7, books appointments, captures leads. Professional website included. $129/month.',
+    title: 'Plans & Pricing — Envosta Managed WordPress Hosting',
+    description: 'From $50 CAD/mo. Enterprise wp.cloud hosting with personal onboarding, free SSL, CDN, and daily backups.',
     url: 'https://envosta.com/pricing',
   },
   twitter: {
-    title: 'Envosta Pricing — $129/mo for AI receptionist + website',
-    description: 'Stop missing customers. One plan, everything managed.',
+    title: 'Envosta Pricing — Managed WordPress from $50 CAD/mo',
+    description: 'Enterprise hosting with personal onboarding. Minimum, Growth, and Performance plans.',
   },
 };
 
 export default function Page() {
-  return <PricingPage />;
+  return <PlansPage />;
 }

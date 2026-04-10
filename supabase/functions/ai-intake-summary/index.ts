@@ -52,9 +52,35 @@ ${intakeData}
 
 Format your response with clear headers. Be concise and actionable.`;
 
-    const summary = await callClaude(systemPrompt, userMessage, 600);
+    const result = await callClaude(systemPrompt, userMessage, 600);
 
-    return json({ summary });
+    // Log AI usage and deduct credits (best-effort, non-blocking)
+    try {
+      const sb = supabaseAdmin();
+      // Look up token credit rate
+      const { data: pricingRow } = await sb.from("service_credit_pricing")
+        .select("credits_per_unit")
+        .eq("service_type", "ai_tokens")
+        .eq("metric", "per_1k_tokens")
+        .maybeSingle();
+      const rate = Number(pricingRow?.credits_per_unit ?? 0.5);
+      const creditsCharged = Math.round((result.total_tokens / 1000) * rate * 10000) / 10000;
+
+      // Log usage (no user deduction for internal staff tools)
+      await sb.from("ai_usage_log").insert({
+        user_id: null, // internal staff use
+        action: "intake_summary",
+        input_tokens: result.input_tokens,
+        output_tokens: result.output_tokens,
+        total_tokens: result.total_tokens,
+        credits_charged: creditsCharged,
+        model: "claude-sonnet-4-20250514",
+      });
+    } catch (logErr) {
+      console.error("AI usage log error (non-fatal):", logErr);
+    }
+
+    return json({ summary: result.text });
   } catch (e) {
     console.error("AI intake summary error:", e);
     return error(String(e), 500);

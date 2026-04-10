@@ -78,6 +78,33 @@ Deno.serve(async (req) => {
 
       console.log("Subscription upserted:", dbSub?.id, "status:", sub.status);
 
+      // ── Initialize credit balance for new subscriptions ──
+      const isNewActiveSub = sub.status === "active" || (sub.status === "trialing" && !!sub.default_payment_method);
+      if (event.type === "customer.subscription.created" && isNewActiveSub && plan?.type === "hosting_plan") {
+        try {
+          await sb.from("credit_balances")
+            .upsert({ user_id: cust.id }, { onConflict: "user_id" });
+
+          const periodEnd = sub.current_period_end
+            ? new Date(sub.current_period_end * 1000).toISOString()
+            : null;
+
+          await sb.rpc("fn_deposit_credits", {
+            p_user_id: cust.id,
+            p_amount: 50,
+            p_type: "deposit_subscription",
+            p_pool: "subscription",
+            p_description: "Initial subscription deposit: 50 credits",
+            p_service_type: "subscription",
+            p_reference_id: null,
+            p_expires_at: periodEnd,
+          });
+          console.log("Initial credits deposited for new subscriber:", cust.id);
+        } catch (credErr) {
+          console.error("Initial credit deposit error (non-fatal):", credErr);
+        }
+      }
+
       // Auto-create site for active subscriptions with a hosting plan
       const isDomainRenewal = sub.metadata?.type === "domain_renewal";
       const isDomainPurchase = sub.metadata?.is_domain_purchase === "true";
@@ -342,6 +369,57 @@ Deno.serve(async (req) => {
           console.log("Studio ticket created:", ticket?.id);
         }
       }
+
+      // ── Credit Purchase ──
+      if (metadata.type === "credit_purchase") {
+        const userId = metadata.supabase_user_id;
+        const quantity = parseInt(metadata.quantity ?? "0", 10);
+        if (userId && quantity > 0) {
+          try {
+            await sb.rpc("fn_deposit_credits", {
+              p_user_id: userId,
+              p_amount: quantity,
+              p_type: "deposit_purchase",
+              p_pool: "purchased",
+              p_description: `Purchased ${quantity} credits`,
+              p_service_type: "purchase",
+              p_reference_id: null,
+              p_expires_at: null,
+            });
+            console.log("Credits deposited:", quantity, "for user:", userId);
+          } catch (credErr) {
+            console.error("Credit deposit error:", credErr);
+          }
+        }
+      }
+    }
+
+    // ── Auto-refill payment success ──
+    else if (event.type === "payment_intent.succeeded") {
+      const pi = event.data.object;
+      const metadata = pi.metadata ?? {};
+
+      if (metadata.type === "auto_refill") {
+        const userId = metadata.user_id;
+        const quantity = parseInt(metadata.quantity ?? "0", 10);
+        if (userId && quantity > 0) {
+          try {
+            await sb.rpc("fn_deposit_credits", {
+              p_user_id: userId,
+              p_amount: quantity,
+              p_type: "deposit_purchase",
+              p_pool: "purchased",
+              p_description: `Auto-refill: ${quantity} credits`,
+              p_service_type: "purchase",
+              p_reference_id: null,
+              p_expires_at: null,
+            });
+            console.log("Auto-refill credits deposited:", quantity, "for user:", userId);
+          } catch (credErr) {
+            console.error("Auto-refill credit deposit error:", credErr);
+          }
+        }
+      }
     }
 
     else if (event.type === "customer.subscription.deleted") {
@@ -488,6 +566,49 @@ Deno.serve(async (req) => {
             }
           } catch (renewErr) {
             console.error("Domain renewal processing error (non-fatal):", renewErr);
+          }
+        }
+
+        // ── Credit deposit on base plan renewal ──
+        if (event.type === "invoice.paid" && inv.subscription) {
+          const subStripeIdCredit = typeof inv.subscription === "string" ? inv.subscription : inv.subscription.id;
+          try {
+            const stripeSub = await stripe.subscriptions.retrieve(subStripeIdCredit);
+            // Check if this is a base plan (hosting_plan type, not domain_renewal)
+            if (stripeSub.metadata?.type !== "domain_renewal") {
+              const priceId = stripeSub.items?.data?.[0]?.price?.id ?? "";
+              const { data: planProduct } = await sb.from("products")
+                .select("type, slug")
+                .or(`stripe_price_id.eq.${priceId},stripe_price_id_yearly.eq.${priceId}`)
+                .maybeSingle();
+
+              if (planProduct?.type === "hosting_plan") {
+                // Ensure credit balance exists
+                await sb.from("credit_balances")
+                  .upsert({ user_id: cust.id }, { onConflict: "user_id" });
+
+                // Expire old subscription credits and deposit new ones
+                await sb.rpc("fn_expire_subscription_credits", { p_user_id: cust.id });
+
+                const periodEnd = stripeSub.current_period_end
+                  ? new Date(stripeSub.current_period_end * 1000).toISOString()
+                  : null;
+
+                await sb.rpc("fn_deposit_credits", {
+                  p_user_id: cust.id,
+                  p_amount: 50,
+                  p_type: "deposit_subscription",
+                  p_pool: "subscription",
+                  p_description: "Monthly subscription deposit: 50 credits",
+                  p_service_type: "subscription",
+                  p_reference_id: null,
+                  p_expires_at: periodEnd,
+                });
+                console.log("Subscription credits deposited: 50 for user:", cust.id);
+              }
+            }
+          } catch (credErr) {
+            console.error("Credit deposit on renewal error (non-fatal):", credErr);
           }
         }
 

@@ -1,8 +1,13 @@
 import { getEffectiveUserId } from '@/services/auth';
 import { getUserInvoices } from '@/services/billing';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, Coins, BarChart3, Settings2 } from 'lucide-react';
 import { PaymentMethodManager } from '@/components/billing/payment-method-manager';
+import { CreditBalanceCard } from '@/components/billing/credit-balance-card';
+import { BuyCreditsButton } from '@/components/billing/buy-credits-dialog';
+import { UsageBreakdown } from '@/components/billing/usage-breakdown';
+import { CreditTransactions } from '@/components/billing/credit-transactions';
+import { AutoRefillSettings } from '@/components/billing/auto-refill-settings';
 
 export default async function BillingPage() {
   const userId = await getEffectiveUserId();
@@ -10,10 +15,50 @@ export default async function BillingPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900 mb-1">Billing</h1>
-        <p className="text-sm text-gray-500">Manage your payment methods and view invoices.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900 mb-1">Billing</h1>
+          <p className="text-sm text-gray-500">Manage credits, payment methods, and view usage.</p>
+        </div>
+        <BuyCreditsButton />
       </div>
+
+      {/* Credit Balance */}
+      <CreditBalanceCard />
+
+      {/* Usage & Auto-Refill Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-gray-400" />
+            Usage Breakdown
+          </h2>
+          <div className="card p-5">
+            <UsageBreakdown />
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Settings2 className="w-4 h-4 text-gray-400" />
+            Auto-Refill
+          </h2>
+          <div className="card p-5">
+            <AutoRefillSettings />
+          </div>
+        </section>
+      </div>
+
+      {/* Credit Transaction History */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Coins className="w-4 h-4 text-gray-400" />
+          Credit History
+        </h2>
+        <div className="card overflow-hidden">
+          <CreditTransactions />
+        </div>
+      </section>
 
       {/* Payment Methods */}
       <section>

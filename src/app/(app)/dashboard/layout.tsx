@@ -18,6 +18,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         email: profile?.email ?? user.email ?? '',
         avatar_url: null,
         role: profile?.role ?? 'customer',
+        partner_id: profile?.partner_id ?? null,
       }}
       impersonationBanner={
         impersonation ? (

@@ -17,6 +17,7 @@ interface DashboardUser {
   email: string;
   avatar_url: string | null;
   role: string;
+  partner_id?: string | null;
 }
 
 const nav = [
@@ -161,20 +162,49 @@ export function DashboardShell({
           </Link>
         ))}
       </nav>
-      <div className="px-3 py-3 border-t border-gray-100">
-        <Link
-          href="/dashboard/partners"
-          onClick={() => setMobileOpen(false)}
-          className={cn(
-            'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-200',
-            isActive('/dashboard/partners')
-              ? 'bg-gray-900 text-white font-medium shadow-sm'
-              : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'
-          )}
-        >
-          <Users className="w-[18px] h-[18px] shrink-0" />
-          Become a Partner
-        </Link>
+      <div className="px-3 py-3 border-t border-gray-100 space-y-1">
+        {user.partner_id && (
+          <Link
+            href="/dashboard/my-partner"
+            onClick={() => setMobileOpen(false)}
+            className={cn(
+              'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-200',
+              isActive('/dashboard/my-partner')
+                ? 'bg-gray-900 text-white font-medium shadow-sm'
+                : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'
+            )}
+          >
+            <Users className="w-[18px] h-[18px] shrink-0" />
+            My Partner
+          </Link>
+        )}
+        {!user.partner_id && user.role !== 'partner' && (
+          <>
+            <Link
+              href="/dashboard/marketplace"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-200',
+                isActive('/dashboard/marketplace')
+                  ? 'bg-gray-900 text-white font-medium shadow-sm'
+                  : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'
+              )}
+            >
+              <Users className="w-[18px] h-[18px] shrink-0" />
+              Find a Partner
+            </Link>
+          </>
+        )}
+        {user.role === 'partner' && (
+          <Link
+            href="/partner"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] text-sky-600 hover:text-sky-700 hover:bg-sky-50 transition-all duration-200"
+          >
+            <Users className="w-[18px] h-[18px] shrink-0" />
+            Partner Dashboard
+          </Link>
+        )}
       </div>
     </div>
   );

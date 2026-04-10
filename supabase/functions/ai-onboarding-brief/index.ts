@@ -84,9 +84,45 @@ Generate the brief with these sections:
 
 Be specific and actionable. If information is missing, note it as "TBD — follow up with client."`;
 
-    const brief = await callClaude(systemPrompt, userMessage, 1200);
+    const result = await callClaude(systemPrompt, userMessage, 1200);
 
-    return json({ brief });
+    // Log AI usage and deduct credits from the customer's account
+    try {
+      const ticketUserId = ticket.user_id;
+      if (ticketUserId) {
+        const { data: pricingRow } = await sb.from("service_credit_pricing")
+          .select("credits_per_unit")
+          .eq("service_type", "ai_tokens")
+          .eq("metric", "per_1k_tokens")
+          .maybeSingle();
+        const rate = Number(pricingRow?.credits_per_unit ?? 0.5);
+        const creditsCharged = Math.round((result.total_tokens / 1000) * rate * 10000) / 10000;
+
+        await sb.from("ai_usage_log").insert({
+          user_id: ticketUserId,
+          action: "onboarding_brief",
+          input_tokens: result.input_tokens,
+          output_tokens: result.output_tokens,
+          total_tokens: result.total_tokens,
+          credits_charged: creditsCharged,
+          model: "claude-sonnet-4-20250514",
+        });
+
+        if (creditsCharged > 0) {
+          await sb.rpc("fn_deduct_credits", {
+            p_user_id: ticketUserId,
+            p_amount: Math.ceil(creditsCharged),
+            p_service_type: "ai_tokens",
+            p_description: `AI onboarding brief: ${result.total_tokens} tokens`,
+            p_reference_id: ticketId,
+          });
+        }
+      }
+    } catch (logErr) {
+      console.error("AI usage log error (non-fatal):", logErr);
+    }
+
+    return json({ brief: result.text });
   } catch (e) {
     console.error("AI onboarding brief error:", e);
     return error(String(e), 500);
