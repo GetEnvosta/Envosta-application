@@ -1,11 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
 import { Loader2, CheckCircle, AlertCircle, Lock, CreditCard } from 'lucide-react';
 
 export default function ClaimAccountPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#f8f9fb]"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>}>
+      <ClaimAccountContent />
+    </Suspense>
+  );
+}
+
+function ClaimAccountContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token');
