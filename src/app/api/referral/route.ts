@@ -49,11 +49,13 @@ export async function POST(req: Request) {
 
     if (!affiliate) return NextResponse.json({ ok: true });
 
-    await sb.from('referral_clicks').insert({
-      referral_code: code.toLowerCase(),
-      affiliate_id: affiliate.id,
+    await sb.from('logs').insert({
+      user_id: affiliate.id,
+      action: 'referral.click',
+      details: `Referral click for code: ${code.toLowerCase()}`,
+      level: 'info',
       ip_address: ip,
-      user_agent: userAgent || null,
+      metadata: { referral_code: code.toLowerCase(), user_agent: userAgent || null, converted: false },
     });
 
     return NextResponse.json({ ok: true, affiliateId: affiliate.id });

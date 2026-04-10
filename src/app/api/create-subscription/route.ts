@@ -130,13 +130,14 @@ export async function POST(req: Request) {
         // Mark user as referred
         await sb.from('users').update({ referred_by: affiliate.id }).eq('id', userId);
 
-        // Mark referral click as converted
-        await sb.from('referral_clicks')
-          .update({ converted: true, customer_id: userId })
-          .eq('referral_code', referralCode.toLowerCase())
-          .is('converted', false)
-          .order('created_at', { ascending: false })
-          .limit(1);
+        // Log conversion
+        await sb.from('logs').insert({
+          user_id: affiliate.id,
+          action: 'referral.converted',
+          details: `Referral converted: ${name || email}`,
+          level: 'info',
+          metadata: { referral_code: referralCode.toLowerCase(), customer_id: userId },
+        });
 
         // Auto-create affiliate commission
         await sb.from('commissions').insert({

@@ -1,9 +1,7 @@
 import { getEffectiveUserId } from '@/services/auth';
 import { getClientPartnerInfo } from '@/services/partners';
 import { redirect } from 'next/navigation';
-import { Star, MapPin, Award } from 'lucide-react';
-import { PartnerRating } from '@/components/partners/partner-rating';
-import { PartnerChangeRequest } from '@/components/partners/partner-change-request';
+import { MapPin, Award } from 'lucide-react';
 
 export default async function MyPartnerPage() {
   const userId = await getEffectiveUserId();
@@ -59,19 +57,7 @@ export default async function MyPartnerPage() {
                 <MapPin className="w-3.5 h-3.5" /> {partner.location}
               </p>
             )}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-0.5">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    className={`w-4 h-4 ${s <= Math.round(partner.avg_rating) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-200'}`}
-                  />
-                ))}
-              </div>
-              <span className="text-sm text-gray-500">
-                {partner.avg_rating > 0 ? partner.avg_rating.toFixed(1) : 'New'} ({partner.client_count} client{partner.client_count !== 1 ? 's' : ''})
-              </span>
-            </div>
+            <p className="text-xs text-gray-400">{partner.client_count} client{partner.client_count !== 1 ? 's' : ''}</p>
           </div>
         </div>
 
@@ -88,25 +74,9 @@ export default async function MyPartnerPage() {
         )}
 
         <p className="text-xs text-gray-400">
-          Contact your partner directly for support. When you create a ticket, it goes to them first.
+          When you create a support ticket or studio request, it goes directly to your partner.
         </p>
       </div>
-
-      {/* Rate Partner */}
-      <section>
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Rate Your Partner</h2>
-        <div className="card p-5">
-          <PartnerRating partnerId={partner.user_id} />
-        </div>
-      </section>
-
-      {/* Change Request */}
-      <section>
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Change Partner</h2>
-        <div className="card p-5">
-          <PartnerChangeRequest />
-        </div>
-      </section>
     </div>
   );
 }

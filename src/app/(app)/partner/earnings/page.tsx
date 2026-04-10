@@ -14,9 +14,7 @@ export default async function PartnerEarningsPage() {
     getPartnerProfile(user.id),
   ]);
 
-  const avgRating = profile?.avg_rating ?? 0;
-  const currentTier = avgRating >= 4.5 ? '25%' : avgRating >= 4.0 ? '20%' : '15%';
-  const nextTier = avgRating >= 4.5 ? null : avgRating >= 4.0 ? { target: 4.5, rate: '25%' } : { target: 4.0, rate: '20%' };
+  // Ratings/tiers to be added later
 
   return (
     <div className="space-y-8">
@@ -44,12 +42,8 @@ export default async function PartnerEarningsPage() {
             <Star className="w-4 h-4 text-yellow-500" />
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Current Tier</p>
           </div>
-          <p className="text-2xl font-bold text-sky-600">{currentTier}</p>
-          {nextTier && (
-            <p className="text-xs text-gray-400 mt-1">
-              Reach {nextTier.target} stars for {nextTier.rate}
-            </p>
-          )}
+          <p className="text-2xl font-bold text-sky-600">{profile?.client_count ?? 0}</p>
+          <p className="text-xs text-gray-400 mt-1">active clients</p>
         </div>
       </div>
 

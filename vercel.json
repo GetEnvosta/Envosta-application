@@ -7,10 +7,6 @@
     {
       "path": "/api/cron/credit-deductions",
       "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron/partner-commissions",
-      "schedule": "0 8 * * *"
     }
   ]
 }

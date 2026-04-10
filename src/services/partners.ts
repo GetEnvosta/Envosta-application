@@ -1,36 +1,24 @@
 import { createClient } from '@/lib/supabase-server';
 
-// ── Partner Profile ────────────────────────────────────────
+// ── Partner Profile (from users table) ─────────────────────
 
 export async function getPartnerProfile(userId: string) {
   const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from('partner_profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (!profile) return null;
-
-  // Get avg rating and client count
-  const [{ data: ratingData }, { count: clientCount }] = await Promise.all([
-    supabase.rpc('fn_calculate_partner_avg_rating', { p_partner_id: userId }),
-    supabase.from('users').select('id', { count: 'exact', head: true }).eq('partner_id', userId),
-  ]);
-
-  const { data: user } = await supabase
+  const { data } = await supabase
     .from('users')
-    .select('full_name, email')
+    .select('id, full_name, email, bio, specializations, industries, portfolio_links, location, setup_fee_range, photo_url, featured, partner_status, partner_applied_at, partner_approved_at')
     .eq('id', userId)
     .single();
 
-  return {
-    ...profile,
-    full_name: user?.full_name ?? null,
-    email: user?.email ?? null,
-    avg_rating: Number(ratingData ?? 0),
-    client_count: clientCount ?? 0,
-  };
+  if (!data || data.partner_status !== 'approved') return null;
+
+  // Get client count
+  const { count } = await supabase
+    .from('users')
+    .select('id', { count: 'exact', head: true })
+    .eq('partner_id', userId);
+
+  return { ...data, client_count: count ?? 0 };
 }
 
 export async function updatePartnerProfile(
@@ -47,10 +35,10 @@ export async function updatePartnerProfile(
 ) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('partner_profiles')
+    .from('users')
     .update(updates)
-    .eq('user_id', userId)
-    .select()
+    .eq('id', userId)
+    .select('bio, specializations, industries, portfolio_links, location, setup_fee_range, photo_url')
     .single();
   return data;
 }
@@ -60,15 +48,14 @@ export async function updatePartnerProfile(
 export async function getApprovedPartners(filters?: {
   specialization?: string;
   industry?: string;
-  minRating?: number;
 }) {
   const supabase = await createClient();
   let query = supabase
-    .from('partner_profiles')
-    .select('*, users(id, full_name, email)')
-    .eq('status', 'approved')
-    .order('featured', { ascending: false })
-    .order('applied_at', { ascending: true });
+    .from('users')
+    .select('id, full_name, email, bio, specializations, industries, portfolio_links, location, setup_fee_range, photo_url, featured')
+    .eq('role', 'partner')
+    .eq('partner_status', 'approved')
+    .order('featured', { ascending: false });
 
   if (filters?.specialization) {
     query = query.contains('specializations', [filters.specialization]);
@@ -77,31 +64,21 @@ export async function getApprovedPartners(filters?: {
     query = query.contains('industries', [filters.industry]);
   }
 
-  const { data: profiles } = await query;
-  if (!profiles?.length) return [];
+  const { data } = await query;
+  if (!data?.length) return [];
 
-  // Enrich with ratings and client counts
+  // Enrich with client counts
   const enriched = await Promise.all(
-    profiles.map(async (p: any) => {
-      const [{ data: ratingData }, { count: clientCount }] = await Promise.all([
-        supabase.rpc('fn_calculate_partner_avg_rating', { p_partner_id: p.user_id }),
-        supabase.from('users').select('id', { count: 'exact', head: true }).eq('partner_id', p.user_id),
-      ]);
-      const avgRating = Number(ratingData ?? 0);
-
-      if (filters?.minRating && avgRating < filters.minRating) return null;
-
-      return {
-        ...p,
-        full_name: p.users?.full_name ?? null,
-        email: p.users?.email ?? null,
-        avg_rating: avgRating,
-        client_count: clientCount ?? 0,
-      };
+    data.map(async (p: any) => {
+      const { count } = await supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('partner_id', p.id);
+      return { ...p, client_count: count ?? 0 };
     }),
   );
 
-  return enriched.filter(Boolean);
+  return enriched;
 }
 
 // ── Partner Clients ────────────────────────────────────────
@@ -116,7 +93,6 @@ export async function getPartnerClients(partnerId: string) {
 
   if (!data) return [];
 
-  // Get site counts per client
   const enriched = await Promise.all(
     data.map(async (client: any) => {
       const { count } = await supabase
@@ -142,7 +118,6 @@ export async function getPartnerClients(partnerId: string) {
 export async function getPartnerClientDetail(partnerId: string, clientId: string) {
   const supabase = await createClient();
 
-  // Verify this client belongs to this partner
   const { data: client } = await supabase
     .from('users')
     .select('id, full_name, email, created_at, subscription_credits, purchased_credits')
@@ -218,7 +193,7 @@ export async function getPartnerCommissions(partnerId: string, limit = 50) {
     .from('commissions')
     .select('*, users:customer_id(full_name, email)')
     .eq('earner_id', partnerId)
-    .eq('type', 'partner')
+    .in('type', ['partner', 'affiliate', 'referral'])
     .order('created_at', { ascending: false })
     .limit(limit);
   return data ?? [];
@@ -232,9 +207,8 @@ export async function getPartnerEarningStats(partnerId: string) {
 
   const { data: commissions } = await supabase
     .from('commissions')
-    .select('amount_cad, created_at, status')
-    .eq('earner_id', partnerId)
-    .eq('type', 'partner');
+    .select('amount_cad, created_at')
+    .eq('earner_id', partnerId);
 
   let thisMonth = 0, lastMonth = 0, allTime = 0;
   for (const c of commissions ?? []) {
@@ -244,14 +218,6 @@ export async function getPartnerEarningStats(partnerId: string) {
   }
 
   return { thisMonth, lastMonth, allTime, count: commissions?.length ?? 0 };
-}
-
-// ── Commission Rate ────────────────────────────────────────
-
-export function calculatePartnerCommissionRate(avgRating: number): number {
-  if (avgRating >= 4.5) return 0.25;
-  if (avgRating >= 4.0) return 0.20;
-  return 0.15;
 }
 
 // ── Application ────────────────────────────────────────────
@@ -272,104 +238,33 @@ export async function applyAsPartner(
   const supabase = await createClient();
 
   // Check if already applied
-  const { data: existing } = await supabase
-    .from('partner_profiles')
-    .select('user_id, status')
-    .eq('user_id', userId)
-    .maybeSingle();
+  const { data: user } = await supabase
+    .from('users')
+    .select('partner_status')
+    .eq('id', userId)
+    .single();
 
-  if (existing) {
-    return { error: `Application already exists (status: ${existing.status})`, data: null };
+  if (user?.partner_status) {
+    return { error: `Application already exists (status: ${user.partner_status})`, data: null };
   }
 
   const { data, error } = await supabase
-    .from('partner_profiles')
-    .insert({
-      user_id: userId,
+    .from('users')
+    .update({
       bio: profileData.bio,
       specializations: profileData.specializations,
       industries: profileData.industries,
       portfolio_links: profileData.portfolio_links ?? [],
       location: profileData.location ?? null,
       setup_fee_range: profileData.setup_fee_range ?? null,
+      partner_status: 'pending',
+      partner_applied_at: new Date().toISOString(),
       metadata: {
         company_name: profileData.company_name,
         website: profileData.website,
       },
     })
-    .select()
-    .single();
-
-  return { data, error: error?.message ?? null };
-}
-
-// ── Rating ─────────────────────────────────────────────────
-
-export async function ratePartner(
-  clientId: string,
-  partnerId: string,
-  rating: number,
-  comment?: string,
-) {
-  const supabase = await createClient();
-
-  // Verify client actually has this partner
-  const { data: client } = await supabase
-    .from('users')
-    .select('partner_id')
-    .eq('id', clientId)
-    .single();
-
-  if (client?.partner_id !== partnerId) {
-    return { error: 'This is not your assigned partner' };
-  }
-
-  const { data, error } = await supabase
-    .from('partner_ratings')
-    .upsert(
-      { partner_id: partnerId, client_id: clientId, rating, comment },
-      { onConflict: 'partner_id,client_id' },
-    )
-    .select()
-    .single();
-
-  return { data, error: error?.message ?? null };
-}
-
-// ── Change Request ─────────────────────────────────────────
-
-export async function requestPartnerChange(clientId: string, reason: string) {
-  const supabase = await createClient();
-
-  const { data: client } = await supabase
-    .from('users')
-    .select('partner_id')
-    .eq('id', clientId)
-    .single();
-
-  if (!client?.partner_id) {
-    return { error: 'You do not have a partner assigned' };
-  }
-
-  // Check for existing pending request
-  const { data: existing } = await supabase
-    .from('partner_change_requests')
-    .select('id')
-    .eq('client_id', clientId)
-    .eq('status', 'pending')
-    .maybeSingle();
-
-  if (existing) {
-    return { error: 'You already have a pending change request' };
-  }
-
-  const { data, error } = await supabase
-    .from('partner_change_requests')
-    .insert({
-      client_id: clientId,
-      current_partner_id: client.partner_id,
-      reason,
-    })
+    .eq('id', userId)
     .select()
     .single();
 
@@ -395,11 +290,12 @@ export async function getClientPartnerInfo(clientId: string) {
 export async function getPartnerApplications(statusFilter?: string) {
   const supabase = await createClient();
   let query = supabase
-    .from('partner_profiles')
-    .select('*, users(full_name, email)')
-    .order('applied_at', { ascending: false });
+    .from('users')
+    .select('id, full_name, email, bio, specializations, industries, partner_status, partner_applied_at, partner_approved_at, featured')
+    .not('partner_status', 'is', null)
+    .order('partner_applied_at', { ascending: false });
 
-  if (statusFilter) query = query.eq('status', statusFilter);
+  if (statusFilter) query = query.eq('partner_status', statusFilter);
   const { data } = await query;
   return data ?? [];
 }
@@ -407,35 +303,28 @@ export async function getPartnerApplications(statusFilter?: string) {
 export async function adminReviewPartner(
   userId: string,
   action: 'approve' | 'reject' | 'suspend' | 'remove',
-  adminNotes?: string,
 ) {
   const supabase = await createClient();
 
   if (action === 'approve') {
     await supabase
-      .from('partner_profiles')
-      .update({ status: 'approved', approved_at: new Date().toISOString() })
-      .eq('user_id', userId);
-    await supabase
       .from('users')
-      .update({ role: 'partner' })
+      .update({ partner_status: 'approved', partner_approved_at: new Date().toISOString(), role: 'partner' })
       .eq('id', userId);
   } else if (action === 'reject' || action === 'remove') {
     await supabase
-      .from('partner_profiles')
-      .update({ status: 'removed' })
-      .eq('user_id', userId);
-    // Revert role to customer if removing
+      .from('users')
+      .update({ partner_status: 'removed' })
+      .eq('id', userId);
     if (action === 'remove') {
       await supabase.from('users').update({ role: 'customer' }).eq('id', userId);
-      // Unassign all clients
       await supabase.from('users').update({ partner_id: null }).eq('partner_id', userId);
     }
   } else if (action === 'suspend') {
     await supabase
-      .from('partner_profiles')
-      .update({ status: 'suspended' })
-      .eq('user_id', userId);
+      .from('users')
+      .update({ partner_status: 'suspended' })
+      .eq('id', userId);
   }
 
   return { success: true };
@@ -443,68 +332,24 @@ export async function adminReviewPartner(
 
 export async function togglePartnerFeatured(userId: string, featured: boolean) {
   const supabase = await createClient();
-  await supabase
-    .from('partner_profiles')
-    .update({ featured })
-    .eq('user_id', userId);
+  await supabase.from('users').update({ featured }).eq('id', userId);
 }
 
-export async function getPartnerChangeRequests(statusFilter?: string) {
-  const supabase = await createClient();
-  let query = supabase
-    .from('partner_change_requests')
-    .select('*, client:client_id(full_name, email), partner:current_partner_id(full_name, email)')
-    .order('created_at', { ascending: false });
+// ── Referral click tracking (now via logs table) ───────────
 
-  if (statusFilter) query = query.eq('status', statusFilter);
-  const { data } = await query;
-  return data ?? [];
-}
-
-export async function resolvePartnerChangeRequest(
-  requestId: string,
-  action: 'approve' | 'deny',
-  newPartnerId?: string,
-  adminNotes?: string,
+export async function trackReferralClick(
+  referralCode: string,
+  affiliateId: string,
+  ipAddress: string,
+  userAgent: string,
 ) {
   const supabase = await createClient();
-
-  const { data: request } = await supabase
-    .from('partner_change_requests')
-    .select('*')
-    .eq('id', requestId)
-    .single();
-
-  if (!request || request.status !== 'pending') {
-    return { error: 'Request not found or already resolved' };
-  }
-
-  if (action === 'approve') {
-    // Update the client's partner_id
-    await supabase
-      .from('users')
-      .update({ partner_id: newPartnerId ?? null })
-      .eq('id', request.client_id);
-
-    await supabase
-      .from('partner_change_requests')
-      .update({
-        status: 'approved',
-        new_partner_id: newPartnerId ?? null,
-        admin_notes: adminNotes,
-        resolved_at: new Date().toISOString(),
-      })
-      .eq('id', requestId);
-  } else {
-    await supabase
-      .from('partner_change_requests')
-      .update({
-        status: 'denied',
-        admin_notes: adminNotes,
-        resolved_at: new Date().toISOString(),
-      })
-      .eq('id', requestId);
-  }
-
-  return { success: true };
+  await supabase.from('logs').insert({
+    user_id: affiliateId,
+    action: 'referral.click',
+    details: `Referral click for code: ${referralCode}`,
+    level: 'info',
+    ip_address: ipAddress,
+    metadata: { referral_code: referralCode, user_agent: userAgent, converted: false },
+  });
 }

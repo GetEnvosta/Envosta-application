@@ -50,14 +50,10 @@ export default async function PartnerDashboard() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-2">
             <Star className="w-4 h-4 text-yellow-500" />
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</span>
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Clients</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
-            {profile?.avg_rating ? profile.avg_rating.toFixed(1) : '—'}
-          </p>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {profile?.avg_rating && profile.avg_rating >= 4.5 ? '25% tier' : profile?.avg_rating && profile.avg_rating >= 4.0 ? '20% tier' : '15% tier'}
-          </p>
+          <p className="text-2xl font-bold text-gray-900">{profile?.client_count ?? 0}</p>
+          <p className="text-xs text-gray-400 mt-0.5">active clients</p>
         </div>
       </div>
 

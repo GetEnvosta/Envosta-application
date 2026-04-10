@@ -13,7 +13,6 @@ interface Partner {
   setup_fee_range: string;
   photo_url: string;
   featured: boolean;
-  avg_rating: number;
   client_count: number;
 }
 
@@ -124,20 +123,9 @@ export default function MarketplacePage() {
                 </div>
               </div>
 
-              {/* Rating */}
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex items-center gap-0.5">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star
-                      key={s}
-                      className={`w-3.5 h-3.5 ${s <= Math.round(p.avg_rating) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-200'}`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs text-gray-500">
-                  {p.avg_rating > 0 ? p.avg_rating.toFixed(1) : 'New'} ({p.client_count} client{p.client_count !== 1 ? 's' : ''})
-                </span>
-              </div>
+              <p className="text-xs text-gray-500 mb-3">
+                {p.client_count} client{p.client_count !== 1 ? 's' : ''}
+              </p>
 
               <p className="text-sm text-gray-600 mb-3 line-clamp-3">{p.bio}</p>
 

@@ -12,7 +12,6 @@ export async function GET(req: Request) {
   const partners = await getApprovedPartners({
     specialization: searchParams.get('specialization') ?? undefined,
     industry: searchParams.get('industry') ?? undefined,
-    minRating: searchParams.get('minRating') ? Number(searchParams.get('minRating')) : undefined,
   });
 
   return NextResponse.json(partners);

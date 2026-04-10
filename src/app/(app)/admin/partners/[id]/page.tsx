@@ -1,5 +1,4 @@
 import { getPartnerProfile, getPartnerClients, getPartnerCommissions, getPartnerEarningStats } from '@/services/partners';
-import { createClient } from '@/lib/supabase-server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Star, Users, DollarSign, MapPin, Award } from 'lucide-react';
@@ -17,15 +16,7 @@ export default async function AdminPartnerDetailPage({ params }: { params: Promi
     getPartnerEarningStats(id),
   ]);
 
-  // Get ratings
-  const supabase = await createClient();
-  const { data: ratings } = await supabase
-    .from('partner_ratings')
-    .select('*, users:client_id(full_name, email)')
-    .eq('partner_id', id)
-    .order('created_at', { ascending: false });
-
-  const currentTier = profile.avg_rating >= 4.5 ? '25%' : profile.avg_rating >= 4.0 ? '20%' : '15%';
+  // Ratings to be added later
 
   return (
     <div>
@@ -47,7 +38,7 @@ export default async function AdminPartnerDetailPage({ params }: { params: Promi
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <h1 className="text-xl font-semibold text-gray-900">{profile.full_name}</h1>
-                <span className={statusColor(profile.status)}>{profile.status}</span>
+                <span className={statusColor(profile.partner_status)}>{profile.partner_status}</span>
                 {profile.featured && (
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full">
                     <Award className="w-3 h-3" /> Featured
@@ -62,7 +53,7 @@ export default async function AdminPartnerDetailPage({ params }: { params: Promi
               )}
             </div>
           </div>
-          <PartnerActions userId={id} status={profile.status} featured={profile.featured} />
+          <PartnerActions userId={id} status={profile.partner_status} featured={profile.featured} />
         </div>
 
         {profile.bio && <p className="text-sm text-gray-600 mt-4 mb-3">{profile.bio}</p>}
@@ -84,8 +75,8 @@ export default async function AdminPartnerDetailPage({ params }: { params: Promi
             <Star className="w-4 h-4 text-yellow-500" />
             <span className="text-xs text-gray-500 uppercase tracking-wider">Rating</span>
           </div>
-          <p className="text-xl font-bold">{profile.avg_rating > 0 ? profile.avg_rating.toFixed(1) : '—'}</p>
-          <p className="text-xs text-gray-400">{currentTier} commission tier</p>
+          <p className="text-xl font-bold">—</p>
+          <p className="text-xs text-gray-400">Ratings coming soon</p>
         </div>
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-1">
@@ -145,28 +136,6 @@ export default async function AdminPartnerDetailPage({ params }: { params: Promi
       )}
 
       {/* Ratings */}
-      {ratings && ratings.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">Ratings ({ratings.length})</h2>
-          <div className="space-y-2">
-            {ratings.map((r: any) => (
-              <div key={r.id} className="card p-4">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-sm font-medium text-gray-900">{r.users?.full_name ?? r.users?.email ?? 'Client'}</p>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-200'}`} />
-                    ))}
-                  </div>
-                </div>
-                {r.comment && <p className="text-sm text-gray-600">{r.comment}</p>}
-                <p className="text-xs text-gray-400 mt-1">{formatDate(r.created_at)}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* Recent Commissions */}
       {commissions.length > 0 && (
         <section>

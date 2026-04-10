@@ -1,17 +1,14 @@
-import { getPartnerApplications, getPartnerChangeRequests } from '@/services/partners';
+import { getPartnerApplications } from '@/services/partners';
 import { formatDate, statusColor } from '@/lib/utils';
-import { Handshake, Clock, Users, AlertCircle, Star } from 'lucide-react';
+import { Handshake, Clock, Users } from 'lucide-react';
 import { PartnerActions } from './partner-actions';
 
 export default async function AdminPartnersPage() {
-  const [applications, changeRequests] = await Promise.all([
-    getPartnerApplications(),
-    getPartnerChangeRequests('pending'),
-  ]);
+  const applications = await getPartnerApplications();
 
-  const pending = applications.filter((p: any) => p.status === 'pending');
-  const approved = applications.filter((p: any) => p.status === 'approved');
-  const suspended = applications.filter((p: any) => p.status === 'suspended');
+  const pending = applications.filter((p: any) => p.partner_status === 'pending');
+  const approved = applications.filter((p: any) => p.partner_status === 'approved');
+  const suspended = applications.filter((p: any) => p.partner_status === 'suspended');
 
   return (
     <div className="space-y-8">
@@ -35,8 +32,8 @@ export default async function AdminPartnersPage() {
           <p className="text-2xl font-bold text-red-600">{suspended.length}</p>
         </div>
         <div className="card p-4">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Change Requests</p>
-          <p className="text-2xl font-bold text-blue-600">{changeRequests.length}</p>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total</p>
+          <p className="text-2xl font-bold text-blue-600">{applications.length}</p>
         </div>
       </div>
 
@@ -59,10 +56,10 @@ export default async function AdminPartnersPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {pending.map((p: any) => (
-                  <tr key={p.user_id} className="hover:bg-gray-50/50">
+                  <tr key={p.id} className="hover:bg-gray-50/50">
                     <td className="px-4 py-3">
-                      <p className="text-sm font-medium text-gray-900">{p.users?.full_name ?? 'Unknown'}</p>
-                      <p className="text-xs text-gray-500">{p.users?.email}</p>
+                      <p className="text-sm font-medium text-gray-900">{p.full_name ?? 'Unknown'}</p>
+                      <p className="text-xs text-gray-500">{p.email}</p>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
@@ -71,9 +68,9 @@ export default async function AdminPartnersPage() {
                         ))}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{formatDate(p.applied_at)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{formatDate(p.partner_applied_at)}</td>
                     <td className="px-4 py-3 text-right">
-                      <PartnerActions userId={p.user_id} status={p.status} />
+                      <PartnerActions userId={p.id} status={p.partner_status} />
                     </td>
                   </tr>
                 ))}
@@ -103,11 +100,11 @@ export default async function AdminPartnersPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {approved.map((p: any) => (
-                  <tr key={p.user_id} className="hover:bg-gray-50/50">
+                  <tr key={p.id} className="hover:bg-gray-50/50">
                     <td className="px-4 py-3">
-                      <a href={`/admin/partners/${p.user_id}`} className="hover:text-admin-600">
-                        <p className="text-sm font-medium text-gray-900">{p.users?.full_name ?? 'Unknown'}</p>
-                        <p className="text-xs text-gray-500">{p.users?.email}</p>
+                      <a href={`/admin/partners/${p.id}`} className="hover:text-admin-600">
+                        <p className="text-sm font-medium text-gray-900">{p.full_name ?? 'Unknown'}</p>
+                        <p className="text-xs text-gray-500">{p.email}</p>
                       </a>
                     </td>
                     <td className="px-4 py-3">
@@ -124,9 +121,9 @@ export default async function AdminPartnersPage() {
                         <span className="text-xs text-gray-400">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{formatDate(p.approved_at)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{formatDate(p.partner_approved_at)}</td>
                     <td className="px-4 py-3 text-right">
-                      <PartnerActions userId={p.user_id} status={p.status} featured={p.featured} />
+                      <PartnerActions userId={p.id} status={p.partner_status} featured={p.featured} />
                     </td>
                   </tr>
                 ))}
@@ -138,48 +135,6 @@ export default async function AdminPartnersPage() {
         )}
       </section>
 
-      {/* Change Requests */}
-      {changeRequests.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-blue-500" />
-            Pending Change Requests ({changeRequests.length})
-          </h2>
-          <div className="card overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Client</th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Current Partner</th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Reason</th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Date</th>
-                  <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {changeRequests.map((r: any) => (
-                  <tr key={r.id} className="hover:bg-gray-50/50">
-                    <td className="px-4 py-3 text-sm text-gray-900">{r.client?.full_name ?? r.client?.email ?? '—'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{r.partner?.full_name ?? r.partner?.email ?? '—'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500 max-w-[200px] truncate">{r.reason ?? '—'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{formatDate(r.created_at)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <ChangeRequestActions requestId={r.id} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
     </div>
   );
 }
-
-// Inline client components for actions
-function ChangeRequestActions({ requestId }: { requestId: string }) {
-  return <ChangeRequestActionsClient requestId={requestId} />;
-}
-
-import { ChangeRequestActionsClient } from './change-request-actions';

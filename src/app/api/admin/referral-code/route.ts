@@ -22,8 +22,8 @@ export async function GET() {
     { count: signupCount },
     { data: commissions },
   ] = await Promise.all([
-    sb.from('referral_clicks').select('id', { count: 'exact', head: true }).eq('affiliate_id', user.id),
-    sb.from('referral_clicks').select('id', { count: 'exact', head: true }).eq('affiliate_id', user.id).eq('converted', true),
+    sb.from('logs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('action', 'referral.click'),
+    sb.from('logs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('action', 'referral.click').filter('metadata->>converted', 'eq', 'true'),
     sb.from('commissions').select('amount_cad, status').eq('earner_id', user.id),
   ]);
 
