@@ -18,6 +18,7 @@ import { AdminSiteActions } from '@/components/admin/admin-site-actions';
 import { AdminErrorLogs } from '@/components/admin/admin-error-logs';
 import { AdminWpUser } from '@/components/admin/admin-wp-user';
 import { SiteIp } from '@/components/sites/site-ip';
+import { SiteOwnerAssign } from '@/components/admin/site-owner-assign';
 
 export default async function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -115,17 +116,9 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
 
-          {/* Owner + Domains + Subscription row */}
+          {/* Owner + Domains row */}
           <div className="flex flex-col sm:flex-row gap-3 mb-5">
-            {owner && (
-              <div className="flex items-center gap-2 rounded-xl bg-gray-50 px-4 py-2.5 flex-1">
-                <User className="w-4 h-4 text-gray-400 shrink-0" />
-                <Link href={`/admin/customers/${owner.id}`} className="text-sm font-medium text-admin-600 hover:text-admin-700 truncate">
-                  {owner.full_name || owner.email}
-                </Link>
-                {owner.full_name && <span className="text-xs text-gray-400 truncate hidden sm:inline">{owner.email}</span>}
-              </div>
-            )}
+            <SiteOwnerAssign siteId={service.id} currentOwner={owner ? { id: owner.id, full_name: owner.full_name, email: owner.email } : null} />
             <div className="flex items-center gap-2 rounded-xl bg-gray-50 px-4 py-2.5 flex-1">
               <Globe className="w-4 h-4 text-gray-400 shrink-0" />
               {domains.length === 0 ? (
