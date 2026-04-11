@@ -20,7 +20,6 @@ const allNav = [
   { name: 'Tickets', href: '/admin/tickets', icon: MessageSquare },
   { name: 'Billing', href: '/admin/billing', icon: CreditCard },
   { name: 'Partners', href: '/admin/partners', icon: Handshake },
-  { name: 'Commissions', href: '/admin/commissions', icon: DollarSign },
   { name: 'Promotions', href: '/admin/promotions', icon: Percent },
   { name: 'Blog', href: '/admin/blog', icon: PenSquare },
   { name: 'Emails', href: '/admin/emails', icon: Mail },
