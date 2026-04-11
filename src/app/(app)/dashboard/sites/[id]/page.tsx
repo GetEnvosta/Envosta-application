@@ -18,6 +18,7 @@ import { SiteAccess } from '@/components/sites/site-access';
 import { SiteIp } from '@/components/sites/site-ip';
 import { SiteGuardrails } from '@/components/sites/site-guardrails';
 import { ReceptionistConfig } from '@/components/sites/receptionist-config';
+import { SiteUsage } from '@/components/sites/site-usage';
 
 export default async function SiteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -134,6 +135,12 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
                 {usageMeter.usage_this_cycle} / {usageMeter.included_credits} included
               </span>
             </div>
+          </div>
+
+          {/* Per-site variable usage (AI + Receptionist) */}
+          <div className="rounded-xl bg-gray-50 px-4 py-3">
+            <p className="text-xs text-gray-500 mb-2">Variable usage this cycle</p>
+            <SiteUsage siteId={id} />
           </div>
 
           {/* Storage */}
