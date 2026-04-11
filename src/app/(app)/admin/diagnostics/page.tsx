@@ -6,6 +6,10 @@ import Link from 'next/link';
 import { AlertTriangle, Server, Globe, CreditCard, CheckCircle, ShoppingCart } from 'lucide-react';
 import { getAbandonedCheckouts } from '@/services/subscriptions';
 import { ExternalSyncCheck } from '@/components/admin/external-sync-check';
+import { getAdminLogs } from '@/services/admin';
+import { SystemHealthChecks } from '@/app/(app)/admin/logs/health-checks';
+import { SystemTabs } from './system-tabs';
+import { formatDateTime } from '@/lib/utils';
 
 export default async function DiagnosticsPage() {
   const supabase = await createClient();
@@ -79,12 +83,17 @@ export default async function DiagnosticsPage() {
 
   const totalIssues = hostingSubsNoSite.length + domainSubsNoDomain.length + (stuckSites?.length ?? 0) + (failedSites?.length ?? 0) + (problemDomains?.length ?? 0);
 
+  // Fetch logs for the logs tab
+  const logs = await getAdminLogs({}, 50);
+
+  const levelBadge: Record<string, string> = { info: 'badge-blue', warn: 'badge-yellow', error: 'badge-red', debug: 'badge-gray' };
+
   return (
     <div>
       <div className="page-header">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">System Diagnostics</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Orphaned records, failed provisioning, and sync issues.</p>
+          <h1 className="text-xl font-semibold text-gray-900">System</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Diagnostics, logs, and health checks.</p>
         </div>
         <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${totalIssues === 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
           {totalIssues === 0 ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
@@ -92,7 +101,10 @@ export default async function DiagnosticsPage() {
         </div>
       </div>
 
-      {/* External service sync */}
+      <SystemTabs>
+        {{
+          diagnostics: (
+            <div>
       <ExternalSyncCheck />
 
       {/* Hosting subscriptions without a site */}
@@ -214,6 +226,35 @@ export default async function DiagnosticsPage() {
           />
         ))}
       </DiagCard>
+            </div>
+          ),
+
+          logs: (
+            <div className="card overflow-hidden">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-gray-100 text-left">
+                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
+                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                </tr></thead>
+                <tbody className="divide-y divide-gray-100">
+                  {(logs ?? []).map((log: any) => (
+                    <tr key={log.id} className="hover:bg-gray-50">
+                      <td className="px-5 py-2.5 text-xs font-mono text-gray-700">{log.action}</td>
+                      <td className="px-5 py-2.5 text-xs text-gray-500 max-w-[300px] truncate">{log.details ?? '—'}</td>
+                      <td className="px-5 py-2.5"><span className={levelBadge[log.level] ?? 'badge-gray'}>{log.level}</span></td>
+                      <td className="px-5 py-2.5 text-xs text-gray-400">{formatDateTime(log.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ),
+
+          health: <SystemHealthChecks />,
+        }}
+      </SystemTabs>
     </div>
   );
 }

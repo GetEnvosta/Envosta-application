@@ -21,8 +21,7 @@ const allNav = [
   { name: 'Billing', href: '/admin/billing', icon: CreditCard },
   { name: 'Blog', href: '/admin/blog', icon: PenSquare },
   { name: 'Emails', href: '/admin/emails', icon: Mail },
-  { name: 'Diagnostics', href: '/admin/diagnostics', icon: AlertTriangle },
-  { name: 'System Health', href: '/admin/logs', icon: Activity },
+  { name: 'System', href: '/admin/diagnostics', icon: Activity },
 ];
 
 export function AdminShell({
