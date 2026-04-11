@@ -10,8 +10,7 @@ import {
   HardDrive, Wifi, Clock, CreditCard, Cpu, Database, MapPin, Zap, Key, Terminal, Shield,
   Check, AlertTriangle, Link2, Cloud,
 } from 'lucide-react';
-import { PlanSwitcher } from '@/components/sites/plan-switcher';
-// SiteAddons removed — addons are credit-metered via site config now
+// Plans/subscriptions removed — sites are credit-metered now
 import { SitePerformance } from '@/components/sites/site-performance';
 import { SiteAccess } from '@/components/sites/site-access';
 import { CancelSubscriptionButton } from '@/components/admin/cancel-subscription-button';
@@ -41,8 +40,6 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
   const [domains, logs] = await Promise.all([getServiceDomains(service.id), getServiceLogs(service.id, 20)]);
 
   const owner = service.users as any;
-  const plan = service.products as any;
-  const sub = service.subscriptions as any;
   const meta = (service as any).metadata ?? {};
   const config = service.config ?? {};
   const siteDomain = service.wp_cloud_url?.replace('https://', '') ?? '';
@@ -104,11 +101,10 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
 
           {/* Metrics strip */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-px bg-gray-100 rounded-xl overflow-hidden mb-4">
-            <Stat icon={<Layers className="w-3.5 h-3.5" />} label="Plan" value={plan?.name ?? '\u2014'} />
             <Stat icon={<Server className="w-3.5 h-3.5" />} label="PHP" value={service.php_version ?? '8.4'} />
             <Stat icon={<MapPin className="w-3.5 h-3.5" />} label="Region" value={regions[service.server_region as string] ?? 'US East'} />
-            <Stat icon={<Cpu className="w-3.5 h-3.5" />} label="Workers" value={`${(config as any).php_workers ?? plan?.metadata?.php_workers_default ?? 2}`} />
-            <Stat icon={<Database className="w-3.5 h-3.5" />} label="Memory" value={`${(config as any).php_memory_mb ?? plan?.metadata?.php_memory_mb ?? 512}MB`} />
+            <Stat icon={<Cpu className="w-3.5 h-3.5" />} label="Workers" value={`${(config as any).php_workers ?? 2}`} />
+            <Stat icon={<Database className="w-3.5 h-3.5" />} label="Memory" value={`${(config as any).php_memory_mb ?? 512}MB`} />
             <Stat icon={<HardDrive className="w-3.5 h-3.5" />} label="Disk" value={service.disk_usage_mb ? `${(service.disk_usage_mb / 1024).toFixed(1)}GB` : '\u2014'} />
             <div className="bg-white px-4 py-3">
               <div className="flex items-center gap-1.5 mb-0.5">
@@ -144,38 +140,8 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
 
-          {/* Subscription status */}
-          <div className={`rounded-xl px-4 py-3 mb-5 ${sub ? 'bg-emerald-50 border border-emerald-200' : 'bg-amber-50 border border-amber-200'}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {sub ? (
-                  <>
-                    <Link2 className="w-4 h-4 text-emerald-600" />
-                    <span className="text-sm font-medium text-emerald-900">Subscription {sub.status}</span>
-                    {sub.billing_period && <span className="text-xs text-emerald-600">· {sub.billing_period}</span>}
-                  </>
-                ) : (
-                  <>
-                    <AlertTriangle className="w-4 h-4 text-amber-600" />
-                    <span className="text-sm font-medium text-amber-900">No subscription linked</span>
-                  </>
-                )}
-              </div>
-              {sub?.stripe_subscription_id && (
-                <a href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
-                  className="text-xs text-gray-500 hover:text-admin-600 font-mono inline-flex items-center gap-1">
-                  <ExternalLink className="w-3 h-3" /> {sub.stripe_subscription_id.slice(-8)}
-                </a>
-              )}
-            </div>
-          </div>
-
-          {/* Plan selector + Add-ons */}
+          {/* Resources & Credits */}
           <div className="border-t border-gray-100 pt-5">
-            <div className="mb-5 pb-5 border-b border-gray-100">
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Change Plan</p>
-              <PlanSwitcher siteId={service.id} currentPlanId={service.product_id} />
-            </div>
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Resources & Credits</p>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -224,7 +190,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             siteId={service.id}
             wpCloudSiteId={service.wp_cloud_site_id}
             config={service.config ?? {}}
-            planMetadata={plan?.metadata ?? {}}
+            planMetadata={{}}
           />
         </div>
 

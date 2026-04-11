@@ -17,26 +17,26 @@ export async function getUserSites(userId?: string) {
 }
 
 /**
- * Single site by id with product (plan) join.
+ * Single site by id.
  */
 export async function getSiteById(id: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('sites')
-    .select('*, products(name, slug, metadata, features, price_cad, price_yearly_cad, sort_order), subscriptions(id, status, billing_period, current_period_end, stripe_subscription_id)')
+    .select('*')
     .eq('id', id)
     .single();
   return data;
 }
 
 /**
- * Sites with product + subscription joins (listing page).
+ * Sites for listing page.
  */
 export async function getUserSitesWithSubscriptions(userId?: string) {
   const supabase = await createClient();
   let query = supabase
     .from('sites')
-    .select('*, products(name, slug), subscriptions(id, status, current_period_end)')
+    .select('*')
     .not('status', 'in', '("cancelled","deleted")')
     .order('created_at', { ascending: false });
   if (userId) query = query.eq('user_id', userId);
@@ -45,25 +45,25 @@ export async function getUserSitesWithSubscriptions(userId?: string) {
 }
 
 /**
- * Sites basic info (for billing page).
+ * Sites basic info.
  */
 export async function getUserServicesBasic() {
   const supabase = await createClient();
   const { data } = await supabase
     .from('sites')
-    .select('id, label, subscription_id')
+    .select('id, label')
     .order('created_at', { ascending: false });
   return data ?? [];
 }
 
 /**
- * Admin: all sites with user + product joins and optional filters.
+ * Admin: all sites with user joins and optional filters.
  */
 export async function getAllServices(filters?: { q?: string; status?: string }) {
   const supabase = await createClient();
   let query = supabase
     .from('sites')
-    .select('*, users(full_name, email), products(name, slug), domains(id, domain_name, status)')
+    .select('*, users(full_name, email), domains(id, domain_name, status)')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -81,25 +81,24 @@ export async function getUserServicesList(userId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('sites')
-    .select('id, label, status, subscriptions(status)')
+    .select('id, label, status')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
   return (data ?? []).map((s: any) => ({
     id: s.id,
     label: s.label,
     status: s.status,
-    isTrialing: s.subscriptions?.status === 'trialing',
   }));
 }
 
 /**
- * Admin: single site detail with user + product joins.
+ * Admin: single site detail with user join.
  */
 export async function getServiceDetailById(id: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('sites')
-    .select('*, users(id, full_name, email, company_name), products(name, slug, metadata), subscriptions(id, status, billing_period, stripe_subscription_id)')
+    .select('*, users(id, full_name, email, company_name)')
     .eq('id', id)
     .single();
   return data;

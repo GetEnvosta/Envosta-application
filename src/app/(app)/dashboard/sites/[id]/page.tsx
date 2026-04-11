@@ -32,10 +32,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   if (!site) notFound();
 
   const connectedDomain = (domains ?? []).find((d: any) => d.site_id === id) ?? null;
-  const plan = (site as any).products;
-  const sub = (site as any).subscriptions;
-  const planName = plan?.name ?? 'Starter';
-  const pm = plan?.metadata ?? {};
   const status: string = site.status ?? 'provisioning';
   const meta = (site as any).metadata ?? {};
   const config = (site as any).config ?? {};
@@ -45,7 +41,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const storageUsed = ((site as any).disk_usage_mb ?? 0) / 1024;
   const storageTotal = config.storage_gb ?? 25;
   const storagePct = Math.min(100, (storageUsed / storageTotal) * 100);
-  const isTrial = sub?.status === 'trialing';
 
   const regions: Record<string, string> = { dca: 'US East', bur: 'US West', dfw: 'US Central', ams: 'EU West' };
   const statusDot: Record<string, string> = { active: 'bg-emerald-500', provisioning: 'bg-amber-500 animate-pulse', suspended: 'bg-red-500' };
@@ -84,7 +79,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
                     <div className={`w-2 h-2 rounded-full ${statusDot[status] ?? 'bg-gray-400'}`} />
                     <span className="text-xs text-gray-500 capitalize">{status}</span>
                   </div>
-                  {isTrial && <span className="badge-green text-[10px]">Trial</span>}
                 </div>
                 {siteUrl && (
                   <a href={siteUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-brand-600 transition-colors">
