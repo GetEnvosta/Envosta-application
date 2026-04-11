@@ -107,17 +107,21 @@ export default async function AdminBillingPage() {
                 <h3 className="text-sm font-semibold text-gray-900 mb-1">Plans</h3>
                 <p className="text-xs text-gray-500 mb-4">Stripe subscription products. Price and billing managed in Stripe.</p>
                 <div className="card overflow-hidden">
-                  <table className="w-full">
+                  <table className="w-full table-fixed">
                     <thead><tr className="border-b border-gray-100">
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Plan</th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Included</th>
-                      <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Price</th>
+                      <th className="w-[25%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Plan</th>
+                      <th className="w-[40%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Included</th>
+                      <th className="w-[20%] text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Price</th>
+                      <th className="w-[15%] text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Synced</th>
                     </tr></thead>
                     <tbody>
                       <tr className="border-b border-gray-50 hover:bg-gray-50/50">
                         <td className="px-4 py-2.5 text-sm font-medium text-gray-900">Minimum</td>
-                        <td className="px-4 py-2.5 text-sm text-gray-600">36 credits/mo</td>
-                        <td className="px-4 py-2.5 text-sm font-medium text-gray-900 text-right">$36 USD/mo</td>
+                        <td className="px-4 py-2.5 text-xs text-gray-600">36 credits/mo — base site fully covered</td>
+                        <td className="px-4 py-2.5 text-sm font-medium text-gray-900 text-right">$36/mo</td>
+                        <td className="px-4 py-2.5 text-center">
+                          <a href="https://dashboard.stripe.com/products" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700">Stripe ✓</a>
+                        </td>
                       </tr>
                     </tbody>
                   </table>

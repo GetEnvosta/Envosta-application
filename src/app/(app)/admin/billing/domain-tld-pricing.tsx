@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Check, X, Globe } from 'lucide-react';
+import { Loader2, Check, X, Globe, AlertTriangle } from 'lucide-react';
 
 interface TldProduct {
   id: string;
@@ -45,12 +45,13 @@ export function DomainTldPricing({ initialTlds }: { initialTlds: TldProduct[] })
 
   return (
     <div className="card overflow-hidden">
-      <table className="w-full">
+      <table className="w-full table-fixed">
         <thead>
           <tr className="border-b border-gray-100">
-            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">TLD</th>
-            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Billing</th>
-            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Price</th>
+            <th className="w-[25%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">TLD</th>
+            <th className="w-[40%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Billing</th>
+            <th className="w-[20%] text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Price</th>
+            <th className="w-[15%] text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Synced</th>
           </tr>
         </thead>
         <tbody>
@@ -61,7 +62,6 @@ export function DomainTldPricing({ initialTlds }: { initialTlds: TldProduct[] })
               </td>
               <td className="px-4 py-2.5 text-xs text-gray-600">
                 Annual (Stripe subscription)
-                {!tld.stripe_price_id && <span className="ml-2 text-amber-600">· not synced</span>}
               </td>
               <td className="px-4 py-2.5 text-right">
                 {editingId === tld.id ? (
@@ -83,6 +83,15 @@ export function DomainTldPricing({ initialTlds }: { initialTlds: TldProduct[] })
                     className="text-sm font-medium text-gray-900 hover:text-brand-600 transition-colors">
                     ${(tld.price_cad / 100).toFixed(2)}/yr
                   </button>
+                )}
+              </td>
+              <td className="px-4 py-2.5 text-center">
+                {tld.stripe_price_id ? (
+                  <span className="text-xs text-emerald-600">Stripe ✓</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                    <AlertTriangle className="w-3 h-3" /> Not synced
+                  </span>
                 )}
               </td>
             </tr>

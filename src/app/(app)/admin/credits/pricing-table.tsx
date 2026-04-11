@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Check, X } from 'lucide-react';
+import { Loader2, Check, X, Database } from 'lucide-react';
 
 interface PricingRow {
   id: string;
@@ -49,19 +49,12 @@ export function CreditPricingTable({ initialPricing }: { initialPricing: Pricing
         const updated = await res.json();
         setPricing(pricing.map((p) => (p.id === id ? { ...p, ...updated } : p)));
       }
-    } catch (e) {
-      console.error('Save error:', e);
-    } finally {
-      setSaving(null);
-      setEditingId(null);
-    }
+    } catch (e) { console.error(e); }
+    setSaving(null);
+    setEditingId(null);
   }
 
-  async function toggleActive(row: PricingRow) {
-    await handleSave(row.id, { is_active: !row.is_active });
-  }
-
-  // Group by platform label (merges twilio_receptionist + twilio_number into "Twilio")
+  // Group by platform label
   const grouped: Record<string, PricingRow[]> = {};
   for (const row of pricing) {
     const label = SERVICE_LABELS[row.service_type] ?? row.service_type;
@@ -71,12 +64,13 @@ export function CreditPricingTable({ initialPricing }: { initialPricing: Pricing
 
   return (
     <div className="card overflow-hidden">
-      <table className="w-full">
+      <table className="w-full table-fixed">
         <thead>
           <tr className="border-b border-gray-100">
-            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Service</th>
-            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Metric</th>
-            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Rate (credits)</th>
+            <th className="w-[25%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Service</th>
+            <th className="w-[40%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Metric</th>
+            <th className="w-[20%] text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Rate</th>
+            <th className="w-[15%] text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Synced</th>
           </tr>
         </thead>
         <tbody>
@@ -111,6 +105,11 @@ export function CreditPricingTable({ initialPricing }: { initialPricing: Pricing
                       {Number(row.credits_per_unit).toFixed(2)}
                     </button>
                   )}
+                </td>
+                <td className="px-4 py-2.5 text-center">
+                  <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+                    <Database className="w-3 h-3" /> DB
+                  </span>
                 </td>
               </tr>
             ))
