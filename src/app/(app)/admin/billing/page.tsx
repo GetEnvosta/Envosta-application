@@ -3,6 +3,7 @@ import { getAllActiveSubscriptions, getAllSubscriptionsAdmin, toMonthly } from '
 import { getAdminBillingStats, getAdminRecentInvoices } from '@/services/billing';
 import { getAdminUsageStats } from '@/services/usage';
 import { getServicePricing } from '@/services/pricing';
+import { createClient } from '@/lib/supabase-server';
 import { getAllCommissions, getCommissionStats } from '@/services/commissions';
 import { formatCents, formatDate } from '@/lib/utils';
 import { DollarSign, Receipt, AlertCircle, Users, ExternalLink, Gauge, TrendingUp, Banknote } from 'lucide-react';
@@ -13,6 +14,7 @@ import { CreditPricingTable } from '@/app/(app)/admin/credits/pricing-table';
 import { CommissionRowActions } from '@/components/admin/commission-actions';
 import { CouponManager } from '@/components/admin/coupon-manager';
 import { BillingTabs } from './billing-tabs';
+import { DomainTldPricing } from './domain-tld-pricing';
 
 export default async function AdminBillingPage() {
   const [
@@ -34,6 +36,14 @@ export default async function AdminBillingPage() {
     getCommissionStats(),
     getAllCommissions({}, 30),
   ]);
+
+  // Fetch domain TLD pricing
+  const supabase = await createClient();
+  const { data: domainTlds } = await supabase
+    .from('products')
+    .select('id, name, slug, price_cad, is_active, stripe_price_id')
+    .eq('type', 'domain_tld')
+    .order('slug');
 
   const mrr = activeSubscriptions.reduce((sum: number, sub: any) => sum + toMonthly(sub), 0);
   const activeCount = allSubscriptions.filter((s: any) => s.status === 'active').length;
@@ -83,7 +93,21 @@ export default async function AdminBillingPage() {
       {/* Tabbed content */}
       <BillingTabs>
         {{
-          pricing: <CreditPricingTable initialPricing={pricing} />,
+          pricing: (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Usage Rates</h3>
+                <p className="text-xs text-gray-500 mb-4">Click any rate to edit. Changes apply system-wide to all sites and users immediately.</p>
+                <CreditPricingTable initialPricing={pricing} />
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Domain TLD Pricing</h3>
+                <p className="text-xs text-gray-500 mb-4">Annual registration/renewal prices. Billed as separate Stripe subscriptions.</p>
+                <DomainTldPricing initialTlds={domainTlds ?? []} />
+              </div>
+            </div>
+          ),
 
           subscriptions: <SubscriptionFilters subscriptions={allSubscriptions as any} />,
 
