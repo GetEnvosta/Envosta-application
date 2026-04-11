@@ -101,7 +101,7 @@ export default async function PartnerDashboard() {
                 <p className="text-xs text-gray-500 mb-2">{c.email}</p>
                 <div className="flex items-center gap-3 text-xs text-gray-400">
                   <span>{c.sites_count} site{c.sites_count !== 1 ? 's' : ''}</span>
-                  <span>{c.credit_balance} credits</span>
+                  <span>{Math.round(c.usage)}/{c.included} usage</span>
                 </div>
               </a>
             ))}

@@ -26,9 +26,9 @@ export default async function PartnerClientDetailPage({ params }: { params: Prom
 
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <p className="text-xs text-gray-500 mb-1">Credit Balance</p>
-            <p className={`text-lg font-semibold ${client.credit_balance.total < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-              {client.credit_balance.total}
+            <p className="text-xs text-gray-500 mb-1">Usage</p>
+            <p className="text-lg font-semibold text-gray-900">
+              {Math.round(client.usage)}/{client.included}
             </p>
           </div>
           <div>

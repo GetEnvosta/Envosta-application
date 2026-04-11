@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { isStaffRole } from '@/lib/roles';
-import { adjustCredits } from '@/services/credits';
+import { adjustUsage } from '@/services/usage';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +23,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'amount must be a non-zero number' }, { status: 400 });
   }
 
-  const result = await adjustCredits(userId, amount, description, user.id);
-  return NextResponse.json(result);
+  const result = await adjustUsage(userId, amount, description);
+  return NextResponse.json({ usage_this_cycle: result });
 }
