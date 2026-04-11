@@ -81,6 +81,13 @@ Deno.serve(async (req) => {
         return json(result.data);
       }
 
+      // List all wp.cloud sites for this client (admin/service-role only)
+      case "list-all-sites": {
+        if (!isServiceRole) return error("Service role required", 403);
+        const result = await wpcloudGet(`/api/v1.0/get-sites/${WPCLOUD_CLIENT}/+`);
+        return json(result.data ?? []);
+      }
+
       // Get site details from wp.cloud
       case "get-site": {
         if (!siteId) return error("siteId is required");
