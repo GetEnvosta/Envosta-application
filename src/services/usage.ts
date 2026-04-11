@@ -7,7 +7,7 @@ export async function getUsageMeter(userId: string) {
 
   const { data: user } = await supabase
     .from('users')
-    .select('usage_this_cycle, included_credits, cycle_start')
+    .select('usage_this_cycle, included_credits, cycle_start, spending_cap')
     .eq('id', userId)
     .single();
 
@@ -34,6 +34,7 @@ export async function getUsageMeter(userId: string) {
     days_remaining: daysRemaining,
     usage_percent: usagePercent,
     current_overage: currentOverage,
+    spending_cap: user?.spending_cap ?? null,
     projected_total: projectedTotal,
     projected_overage: projectedOverage,
     estimated_bill: included > 0 ? 36 + Math.max(0, projectedOverage) : 0, // $36 base + overage

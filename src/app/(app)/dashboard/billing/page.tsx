@@ -7,6 +7,7 @@ import { UsageMeter } from '@/components/billing/usage-meter';
 import { UsageBreakdown } from '@/components/billing/usage-breakdown';
 import { UsageLog } from '@/components/billing/usage-log';
 import { AiUsageDashboard } from '@/components/billing/ai-usage-dashboard';
+import { SpendingCap } from '@/components/billing/spending-cap';
 
 export default async function BillingPage() {
   const userId = await getEffectiveUserId();
@@ -21,6 +22,13 @@ export default async function BillingPage() {
 
       {/* Usage Meter */}
       <UsageMeter />
+
+      {/* Spending Cap */}
+      <section>
+        <div className="card p-5">
+          <SpendingCap />
+        </div>
+      </section>
 
       {/* Usage Breakdown */}
       <section>

@@ -11,15 +11,19 @@ export function SiteGuardrails({ siteId }: { siteId: string }) {
     monthly_ai_token_limit: null as number | null,
   });
   const [usageMeter, setUsageMeter] = useState({ usage_this_cycle: 0, included_credits: 36, projected_overage: 0 });
+  const [spendingCap, setSpendingCap] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/site-guardrails?siteId=${siteId}`).then(r => r.json()),
       fetch('/api/usage/meter').then(r => r.json()),
-    ]).then(([configData, meterData]) => {
+      fetch('/api/usage/cap').then(r => r.json()),
+    ]).then(([configData, meterData, capData]) => {
+      setSpendingCap(capData.spending_cap ?? null);
       setConfig({
         php_workers: configData.php_workers ?? 2,
         ssd_gb: configData.ssd_gb ?? 25,
@@ -30,9 +34,17 @@ export function SiteGuardrails({ siteId }: { siteId: string }) {
     }).catch(console.error).finally(() => setLoading(false));
   }, [siteId]);
 
+  const thisSiteCost = (config.php_workers * 8) + (config.ssd_gb * 0.8) + (config.bursting_enabled ? 10 : 0);
+  const exceedsCap = spendingCap !== null && thisSiteCost > spendingCap;
+
   async function handleSave() {
+    if (exceedsCap) {
+      setError(`This configuration costs ${thisSiteCost} cr/mo which exceeds your $${spendingCap} spending cap. Increase your cap in billing settings first.`);
+      return;
+    }
     setSaving(true);
     setSaved(false);
+    setError('');
     try {
       const res = await fetch('/api/site-guardrails', {
         method: 'PUT',
@@ -45,8 +57,6 @@ export function SiteGuardrails({ siteId }: { siteId: string }) {
   }
 
   if (loading) return <div className="animate-pulse h-32 bg-gray-100 rounded" />;
-
-  const thisSiteCost = (config.php_workers * 8) + (config.ssd_gb * 0.8) + (config.bursting_enabled ? 10 : 0);
 
   return (
     <div className="space-y-4">
@@ -97,22 +107,32 @@ export function SiteGuardrails({ siteId }: { siteId: string }) {
       </div>
 
       {/* Impact preview */}
-      <div className="rounded-xl bg-gray-50 px-4 py-3 space-y-2">
+      <div className={`rounded-xl px-4 py-3 space-y-2 ${exceedsCap ? 'bg-red-50 border border-red-200' : 'bg-gray-50'}`}>
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-500 flex items-center gap-1"><TrendingUp className="w-3 h-3" /> This site adds</span>
-          <span className="text-sm font-bold text-gray-900">{thisSiteCost} cr/mo</span>
+          <span className={`text-sm font-bold ${exceedsCap ? 'text-red-600' : 'text-gray-900'}`}>{thisSiteCost} cr/mo</span>
         </div>
-        {thisSiteCost > usageMeter.included_credits && (
-          <p className="text-xs text-amber-600">
-            This site alone exceeds your {usageMeter.included_credits} included credits.
-            Overage of ${Math.round(thisSiteCost - usageMeter.included_credits)} will be charged at cycle end.
+        {exceedsCap && (
+          <p className="text-xs text-red-600 font-medium">
+            Exceeds your ${spendingCap} spending cap. Increase your cap in billing settings to apply this configuration.
           </p>
+        )}
+        {!exceedsCap && thisSiteCost > usageMeter.included_credits && (
+          <p className="text-xs text-amber-600">
+            Exceeds your {usageMeter.included_credits} included credits.
+            ${Math.round(thisSiteCost - usageMeter.included_credits)} overage charged at cycle end.
+          </p>
+        )}
+        {spendingCap && !exceedsCap && (
+          <p className="text-xs text-gray-400">Spending cap: ${spendingCap}/mo</p>
         )}
       </div>
 
+      {error && <p className="text-xs text-red-600">{error}</p>}
+
       <div className="flex justify-end">
-        <button onClick={handleSave} disabled={saving}
-          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg disabled:opacity-50 transition-colors">
+        <button onClick={handleSave} disabled={saving || exceedsCap}
+          className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white rounded-lg disabled:opacity-50 transition-colors ${exceedsCap ? 'bg-gray-400 cursor-not-allowed' : 'bg-brand-600 hover:bg-brand-700'}`}>
           {saving && <Loader2 className="w-3 h-3 animate-spin" />}
           {saved ? 'Saved & Applied!' : 'Save & Apply'}
         </button>
