@@ -94,7 +94,6 @@ export function ReceptionistConfig({ siteId, siteLabel }: { siteId: string; site
   }
 
   async function releaseNumber() {
-    if (!confirm('Release this phone number? It cannot be recovered.')) return;
     setReleasing(true);
     try {
       const res = await fetch('/api/twilio/numbers/release', {
@@ -178,23 +177,34 @@ export function ReceptionistConfig({ siteId, siteLabel }: { siteId: string; site
           <p className="text-[10px] text-gray-400">2 credits/month for the phone number. Calls billed separately.</p>
         </div>
       ) : (
-        <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className={`w-2.5 h-2.5 rounded-full ${enabled ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-            <div>
-              <p className="text-sm font-mono font-medium text-gray-900">{phoneNumber}</p>
-              <p className="text-xs text-gray-500">{enabled ? 'Active — receiving calls' : 'Inactive'}</p>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className={`w-2.5 h-2.5 rounded-full ${enabled ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+              <div>
+                <p className="text-sm font-mono font-medium text-gray-900">{phoneNumber}</p>
+                <p className="text-xs text-gray-500">{enabled ? 'Active — receiving calls' : 'Disabled — not receiving calls'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { setEnabled(!enabled); }} className={`px-3 py-1 text-xs font-medium rounded-md ${enabled ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}>
+                {enabled ? 'Disable' : 'Enable'}
+              </button>
+              <button onClick={() => {
+                if (!confirm('This releases the number permanently. You\'ll stop being charged but lose this number forever. This cannot be undone.')) return;
+                releaseNumber();
+              }} disabled={releasing}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded-md">
+                {releasing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                Release
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => { setEnabled(!enabled); }} className={`px-3 py-1 text-xs font-medium rounded-md ${enabled ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}`}>
-              {enabled ? 'Disable' : 'Enable'}
-            </button>
-            <button onClick={releaseNumber} disabled={releasing}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md">
-              {releasing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-            </button>
-          </div>
+          <p className="text-[10px] text-gray-400 px-1">
+            {enabled
+              ? 'Disable to stop AI from answering calls. Number is kept and reserved at 2 cr/mo.'
+              : 'Number reserved at 2 cr/mo even when disabled. Release to delete permanently and stop charges.'}
+          </p>
         </div>
       )}
 
