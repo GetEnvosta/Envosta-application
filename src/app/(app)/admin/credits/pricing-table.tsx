@@ -13,22 +13,22 @@ interface PricingRow {
 }
 
 const SERVICE_LABELS: Record<string, string> = {
-  wordpress: 'WordPress Hosting',
-  ai_tokens: 'AI Tokens',
-  twilio_receptionist: 'AI Receptionist',
-  twilio_number: 'Phone Numbers',
-  resend: 'Resend (Email)',
+  wordpress: 'wp.cloud',
+  ai_tokens: 'Claude (Anthropic)',
+  twilio_receptionist: 'Twilio',
+  twilio_number: 'Twilio',
+  resend: 'Resend',
 };
 
 const METRIC_LABELS: Record<string, string> = {
-  php_worker: 'Per PHP worker/mo',
-  ssd_gb: 'Per GB storage/mo',
-  bursting: 'Bursting enabled/mo',
-  per_1k_tokens: 'Per 1,000 tokens',
-  per_minute: 'Per minute',
-  per_month: 'Per number/mo',
-  per_sms: 'Per SMS',
-  per_email: 'Per email',
+  php_worker: 'PHP Worker (per worker/mo)',
+  ssd_gb: 'SSD Storage (per GB/mo)',
+  bursting: 'Bursting (per site/mo)',
+  per_1k_tokens: 'AI Tokens (per 1,000)',
+  per_minute: 'Receptionist Call (per min)',
+  per_month: 'Phone Number (per number/mo)',
+  per_sms: 'SMS (per message)',
+  per_email: 'Email (per send)',
 };
 
 export function CreditPricingTable({ initialPricing }: { initialPricing: PricingRow[] }) {
@@ -61,10 +61,12 @@ export function CreditPricingTable({ initialPricing }: { initialPricing: Pricing
     await handleSave(row.id, { is_active: !row.is_active });
   }
 
+  // Group by platform label (merges twilio_receptionist + twilio_number into "Twilio")
   const grouped: Record<string, PricingRow[]> = {};
   for (const row of pricing) {
-    if (!grouped[row.service_type]) grouped[row.service_type] = [];
-    grouped[row.service_type].push(row);
+    const label = SERVICE_LABELS[row.service_type] ?? row.service_type;
+    if (!grouped[label]) grouped[label] = [];
+    grouped[label].push(row);
   }
 
   return (
@@ -78,12 +80,12 @@ export function CreditPricingTable({ initialPricing }: { initialPricing: Pricing
           </tr>
         </thead>
         <tbody>
-          {Object.entries(grouped).map(([serviceType, rows]) => (
+          {Object.entries(grouped).map(([label, rows]) => (
             rows.map((row, idx) => (
               <tr key={row.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                 {idx === 0 && (
                   <td className="px-4 py-2.5 text-sm font-medium text-gray-900" rowSpan={rows.length}>
-                    {SERVICE_LABELS[serviceType] ?? serviceType}
+                    {label}
                   </td>
                 )}
                 <td className="px-4 py-2.5 text-xs text-gray-600">
