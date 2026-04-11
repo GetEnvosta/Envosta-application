@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getEffectiveUserId } from '@/services/auth';
-import { getCreditTransactions } from '@/services/credits';
+import { getUsageHistory } from '@/services/usage';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +12,6 @@ export async function GET(req: Request) {
   const limit = Math.min(Number(searchParams.get('limit') || 50), 100);
   const offset = Number(searchParams.get('offset') || 0);
 
-  const result = await getCreditTransactions(userId, limit, offset);
+  const result = await getUsageHistory(userId, limit, offset);
   return NextResponse.json(result);
 }

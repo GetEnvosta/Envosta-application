@@ -26,7 +26,7 @@ export function UsageBreakdown() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/credits/usage')
+    fetch('/api/usage')
       .then((r) => r.json())
       .then(setUsage)
       .catch(console.error)

@@ -27,7 +27,7 @@ export function AiUsageDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/credits/ai-usage')
+    fetch('/api/usage/ai')
       .then((r) => r.json())
       .then(setData)
       .catch(console.error)

@@ -1,15 +1,12 @@
 import { getEffectiveUserId } from '@/services/auth';
 import { getUserInvoices } from '@/services/billing';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
-import { FileText, Download, Coins, BarChart3, Settings2, Brain } from 'lucide-react';
+import { FileText, Download, BarChart3, Brain, Clock } from 'lucide-react';
 import { PaymentMethodManager } from '@/components/billing/payment-method-manager';
-import { CreditBalanceCard } from '@/components/billing/credit-balance-card';
-import { BuyCreditsButton } from '@/components/billing/buy-credits-dialog';
+import { UsageMeter } from '@/components/billing/usage-meter';
 import { UsageBreakdown } from '@/components/billing/usage-breakdown';
-import { CreditTransactions } from '@/components/billing/credit-transactions';
-import { AutoRefillSettings } from '@/components/billing/auto-refill-settings';
+import { UsageLog } from '@/components/billing/usage-log';
 import { AiUsageDashboard } from '@/components/billing/ai-usage-dashboard';
-import { NextCyclePreview } from '@/components/billing/next-cycle-preview';
 
 export default async function BillingPage() {
   const userId = await getEffectiveUserId();
@@ -17,42 +14,24 @@ export default async function BillingPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900 mb-1">Billing</h1>
-          <p className="text-sm text-gray-500">Manage credits, payment methods, and view usage.</p>
+      <div>
+        <h1 className="text-xl font-semibold text-gray-900 mb-1">Billing</h1>
+        <p className="text-sm text-gray-500">Track usage, view invoices, and manage payment methods.</p>
+      </div>
+
+      {/* Usage Meter */}
+      <UsageMeter />
+
+      {/* Usage Breakdown */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-gray-400" />
+          Usage Breakdown
+        </h2>
+        <div className="card p-5">
+          <UsageBreakdown />
         </div>
-        <BuyCreditsButton />
-      </div>
-
-      {/* Credit Balance */}
-      <CreditBalanceCard />
-
-      {/* Next Billing Cycle — mandatory vs variable */}
-      <NextCyclePreview />
-
-      {/* Usage & Auto-Refill Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <section>
-          <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-gray-400" />
-            Usage Breakdown
-          </h2>
-          <div className="card p-5">
-            <UsageBreakdown />
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Settings2 className="w-4 h-4 text-gray-400" />
-            Auto-Refill
-          </h2>
-          <div className="card p-5">
-            <AutoRefillSettings />
-          </div>
-        </section>
-      </div>
+      </section>
 
       {/* AI Usage Dashboard */}
       <section>
@@ -65,14 +44,14 @@ export default async function BillingPage() {
         </div>
       </section>
 
-      {/* Credit Transaction History */}
+      {/* Usage Log */}
       <section>
         <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Coins className="w-4 h-4 text-gray-400" />
-          Credit History
+          <Clock className="w-4 h-4 text-gray-400" />
+          Usage Log
         </h2>
         <div className="card overflow-hidden">
-          <CreditTransactions />
+          <UsageLog />
         </div>
       </section>
 
@@ -86,8 +65,7 @@ export default async function BillingPage() {
 
       {/* Invoice History */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Invoice History</h2>
-
+        <h2 className="text-sm font-semibold text-gray-900 mb-4">Invoices</h2>
         {invoices && invoices.length > 0 ? (
           <div className="card overflow-hidden">
             <table className="w-full">
@@ -97,33 +75,22 @@ export default async function BillingPage() {
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Description</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Amount</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Status</th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Invoice</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {invoices.map((inv: any) => {
                   const meta = (inv.metadata as any) ?? {};
-                  const pdfUrl = meta.invoice_pdf ?? null;
-                  const viewUrl = inv.hosted_invoice_url ?? null;
                   return (
                     <tr key={inv.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{formatDate(inv.created_at)}</td>
-                      <td className="px-5 py-3.5 text-sm text-gray-900">{inv.description || meta.description || 'Invoice'}</td>
+                      <td className="px-5 py-3.5 text-sm text-gray-900">{inv.description || 'Invoice'}</td>
                       <td className="px-5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{formatCents(inv.amount_cad ?? 0, 'cad')}</td>
                       <td className="px-5 py-3.5"><span className={statusColor(inv.status)}>{inv.status}</span></td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
-                          {pdfUrl && (
-                            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700">
-                              <Download className="w-3.5 h-3.5" /> PDF
-                            </a>
-                          )}
-                          {viewUrl && (
-                            <a href={viewUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-                              <FileText className="w-3.5 h-3.5" /> View
-                            </a>
-                          )}
-                          {!pdfUrl && !viewUrl && <span className="text-sm text-gray-400">&mdash;</span>}
+                          {meta.invoice_pdf && <a href={meta.invoice_pdf} target="_blank" rel="noopener noreferrer" className="text-sm text-brand-600 hover:text-brand-700"><Download className="w-3.5 h-3.5" /></a>}
+                          {inv.hosted_invoice_url && <a href={inv.hosted_invoice_url} target="_blank" rel="noopener noreferrer" className="text-sm text-gray-500 hover:text-gray-700"><FileText className="w-3.5 h-3.5" /></a>}
                         </div>
                       </td>
                     </tr>
@@ -135,8 +102,8 @@ export default async function BillingPage() {
         ) : (
           <div className="card p-12 text-center">
             <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-sm font-medium text-gray-700 mb-1">No billing history</p>
-            <p className="text-xs text-gray-400">Invoices will appear here after your first payment.</p>
+            <p className="text-sm font-medium text-gray-700 mb-1">No invoices yet</p>
+            <p className="text-xs text-gray-400">Invoices appear after your first billing cycle.</p>
           </div>
         )}
       </section>

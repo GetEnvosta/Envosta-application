@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { getEffectiveUserId } from '@/services/auth';
 import { getUserDashboardCounts, getRecentUserServices, getRecentUserDomains } from '@/services/admin';
 import { getActiveSubscription } from '@/services/subscriptions';
-import { getCreditBalance } from '@/services/credits';
+import { getUsageMeter } from '@/services/usage';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { Server, Globe, Globe2, CreditCard, Coins, Plus, Rocket, CheckCircle, ArrowRight, Sparkles, Shield, Zap } from 'lucide-react';
@@ -16,13 +16,13 @@ export default async function DashboardPage() {
     services,
     domains,
     subscription,
-    creditBalance,
+    usageMeter,
   ] = await Promise.all([
     getUserDashboardCounts(userId!),
     getRecentUserServices(userId!, 5),
     getRecentUserDomains(userId!, 5),
     getActiveSubscription(userId!),
-    getCreditBalance(userId!),
+    getUsageMeter(userId!),
   ]);
 
   const isNew = !services || services.length === 0;
@@ -139,13 +139,14 @@ export default async function DashboardPage() {
   }
 
   // Existing user dashboard
-  const isLowCredits = creditBalance.total <= 10 && creditBalance.total >= 0;
-  const isNegativeCredits = creditBalance.total < 0;
+  const usagePct = usageMeter.usage_percent;
+  const isOver = usagePct > 100;
+  const isNear = usagePct >= 80;
 
   const stats = [
     { label: 'Active sites', value: sitesCount, icon: Server, href: '/dashboard/sites', color: 'blue' },
     { label: 'Domains', value: domainsCount, icon: Globe, href: '/dashboard/domains', color: 'purple' },
-    { label: 'Credits', value: creditBalance.total, icon: Coins, href: '/dashboard/billing', color: isNegativeCredits ? 'red' : isLowCredits ? 'amber' : 'green', sub: isNegativeCredits ? 'Add credits now' : isLowCredits ? 'Running low' : undefined },
+    { label: 'Usage', value: `${usageMeter.usage_this_cycle}/${usageMeter.included_credits}`, icon: Coins, href: '/dashboard/billing', color: isOver ? 'red' : isNear ? 'amber' : 'green', sub: isOver ? `$${usageMeter.projected_overage} overage` : isNear ? 'Approaching limit' : 'On track' },
   ];
 
   const colorMap: Record<string, { bg: string; text: string; hover: string }> = {

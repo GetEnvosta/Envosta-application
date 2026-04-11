@@ -1,7 +1,7 @@
 import { getEffectiveUserId } from '@/services/auth';
 import { getSiteById } from '@/services/sites';
 import { getUserDomainsForSite } from '@/services/domains';
-import { getCreditBalance } from '@/services/credits';
+import { getUsageMeter } from '@/services/usage';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -24,10 +24,10 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const userId = await getEffectiveUserId();
   if (!userId) notFound();
 
-  const [site, domains, creditBalance] = await Promise.all([
+  const [site, domains, usageMeter] = await Promise.all([
     getSiteById(id),
     getUserDomainsForSite(userId),
-    getCreditBalance(userId),
+    getUsageMeter(userId),
   ]);
   if (!site) notFound();
 
@@ -129,9 +129,9 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
               {hasTwilio && <div className="flex justify-between"><span>Phone number</span><span className="font-medium text-gray-700">2 cr</span></div>}
             </div>
             <div className="mt-2 pt-2 border-t border-gray-200 flex justify-between text-xs">
-              <span className="text-gray-500">Credit balance</span>
-              <span className={`font-medium ${creditBalance.total < 0 ? 'text-red-600' : creditBalance.total <= 10 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                {creditBalance.total} credits
+              <span className="text-gray-500">Cycle usage</span>
+              <span className={`font-medium ${usageMeter.usage_percent > 100 ? 'text-red-600' : usageMeter.usage_percent >= 80 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                {usageMeter.usage_this_cycle} / {usageMeter.included_credits} included
               </span>
             </div>
           </div>

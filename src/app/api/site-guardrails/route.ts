@@ -14,51 +14,22 @@ export async function GET(req: Request) {
 
   const supabase = await createServerClient();
 
-  // Get this site + user's credit info + all other sites for total commitment
-  const [{ data: site }, { data: user }, { data: otherSites }] = await Promise.all([
-    supabase
-      .from('sites')
-      .select('id, max_php_workers, max_ssd_gb, bursting_enabled, monthly_ai_token_limit, config')
-      .eq('id', siteId)
-      .eq('user_id', userId)
-      .maybeSingle(),
-    supabase
-      .from('users')
-      .select('subscription_credits, purchased_credits, auto_refill_enabled, auto_refill_threshold, auto_refill_amount')
-      .eq('id', userId)
-      .single(),
-    supabase
-      .from('sites')
-      .select('id, config, bursting_enabled')
-      .eq('user_id', userId)
-      .neq('id', siteId)
-      .in('status', ['active', 'provisioning']),
-  ]);
+  const { data: site } = await supabase
+    .from('sites')
+    .select('id, max_php_workers, max_ssd_gb, bursting_enabled, monthly_ai_token_limit, config')
+    .eq('id', siteId)
+    .eq('user_id', userId)
+    .maybeSingle();
 
   if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 });
 
   const config = (site.config as any) ?? {};
-
-  // Calculate committed cost from OTHER sites
-  let otherSitesCost = 0;
-  for (const s of otherSites ?? []) {
-    const c = (s.config as any) ?? {};
-    otherSitesCost += (c.php_workers ?? 2) * 8;
-    otherSitesCost += (c.storage_gb ?? 25) * 0.8;
-    if (s.bursting_enabled) otherSitesCost += 10;
-  }
 
   return NextResponse.json({
     php_workers: config.php_workers ?? 2,
     ssd_gb: config.storage_gb ?? 25,
     bursting_enabled: site.bursting_enabled ?? false,
     monthly_ai_token_limit: site.monthly_ai_token_limit ?? null,
-    // Credit context for commitment warnings
-    subscription_credits: user?.subscription_credits ?? 50,
-    purchased_credits: user?.purchased_credits ?? 0,
-    auto_refill_enabled: user?.auto_refill_enabled ?? false,
-    auto_refill_amount: user?.auto_refill_amount ?? 50,
-    other_sites_committed_cost: Math.round(otherSitesCost * 100) / 100,
   });
 }
 
@@ -147,9 +118,6 @@ export async function PUT(req: Request) {
     }
   }
 
-  // Recalculate user's total mandatory monthly credits across all sites
-  await recalcMandatoryCredits(supabase, userId);
-
   return NextResponse.json({
     php_workers: newWorkers,
     ssd_gb: newStorage,
@@ -158,27 +126,4 @@ export async function PUT(req: Request) {
     bursting_enabled: newBursting,
     monthly_ai_token_limit: monthly_ai_token_limit ?? null,
   });
-}
-
-/** Recalculate mandatory_monthly_credits on the user from all active sites */
-async function recalcMandatoryCredits(supabase: any, userId: string) {
-  const { data: allSites } = await supabase
-    .from('sites')
-    .select('config, bursting_enabled, twilio_phone_number')
-    .eq('user_id', userId)
-    .in('status', ['active', 'provisioning']);
-
-  let total = 0;
-  for (const s of allSites ?? []) {
-    const c = (s.config as any) ?? {};
-    total += (c.php_workers ?? 2) * 8;
-    total += (c.storage_gb ?? 25) * 0.8;
-    if (s.bursting_enabled) total += 10;
-    if (s.twilio_phone_number) total += 2;
-  }
-
-  await supabase
-    .from('users')
-    .update({ mandatory_monthly_credits: Math.round(total * 100) / 100 })
-    .eq('id', userId);
 }

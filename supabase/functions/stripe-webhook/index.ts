@@ -78,29 +78,23 @@ Deno.serve(async (req) => {
 
       console.log("Subscription upserted:", dbSub?.id, "status:", sub.status);
 
-      // ── Initialize credit balance for new subscriptions ──
+      // ── Initialize metered billing for new subscriptions ──
       const isNewActiveSub = sub.status === "active" || (sub.status === "trialing" && !!sub.default_payment_method);
       if (event.type === "customer.subscription.created" && isNewActiveSub && plan?.type === "hosting_plan") {
         try {
-          // Credits now stored directly on users table — no separate row needed
+          const periodStart = sub.current_period_start
+            ? new Date(sub.current_period_start * 1000).toISOString()
+            : new Date().toISOString();
 
-          const periodEnd = sub.current_period_end
-            ? new Date(sub.current_period_end * 1000).toISOString()
-            : null;
+          await sb.from("users").update({
+            usage_this_cycle: 0,
+            included_credits: 36,
+            cycle_start: periodStart,
+          }).eq("id", cust.id);
 
-          await sb.rpc("fn_deposit_credits", {
-            p_user_id: cust.id,
-            p_amount: 36,
-            p_type: "deposit_subscription",
-            p_pool: "subscription",
-            p_description: "Initial subscription deposit: 36 credits",
-            p_service_type: "subscription",
-            p_reference_id: null,
-            p_expires_at: periodEnd,
-          });
-          console.log("Initial credits deposited for new subscriber:", cust.id);
-        } catch (credErr) {
-          console.error("Initial credit deposit error (non-fatal):", credErr);
+          console.log("Metered billing initialized for new subscriber:", cust.id);
+        } catch (err) {
+          console.error("Metered billing init error (non-fatal):", err);
         }
       }
 
@@ -377,107 +371,14 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ── Credit Purchase ──
-      if (metadata.type === "credit_purchase") {
-        const userId = metadata.supabase_user_id;
-        const quantity = parseInt(metadata.quantity ?? "0", 10);
-        if (userId && quantity > 0) {
-          try {
-            await sb.rpc("fn_deposit_credits", {
-              p_user_id: userId,
-              p_amount: quantity,
-              p_type: "deposit_purchase",
-              p_pool: "purchased",
-              p_description: `Purchased ${quantity} credits`,
-              p_service_type: "purchase",
-              p_reference_id: null,
-              p_expires_at: null,
-            });
-            console.log("Credits deposited:", quantity, "for user:", userId);
-
-            // Send purchase confirmation email
-            const { data: buyer } = await sb.from("users").select("email, full_name, subscription_credits, purchased_credits").eq("id", userId).single();
-            if (buyer?.email) {
-              const newBalance = (buyer.subscription_credits ?? 0) + (buyer.purchased_credits ?? 0);
-              const { creditsPurchasedEmail } = await import("../_shared/email.ts");
-              const email = creditsPurchasedEmail(buyer.full_name ?? "there", quantity, newBalance);
-              await sendEmail({ to: buyer.email, ...email });
-            }
-          } catch (credErr) {
-            console.error("Credit deposit error:", credErr);
-          }
-        }
-      }
+      // Credit purchases removed — metered billing charges overage at cycle end
     }
 
-    // ── Auto-refill payment success ──
+    // ── Overage invoice payment tracking ──
     else if (event.type === "payment_intent.succeeded") {
-      const pi = event.data.object;
-      const metadata = pi.metadata ?? {};
-
-      if (metadata.type === "auto_refill" || metadata.type === "mandatory_topup") {
-        const userId = metadata.user_id;
-        const quantity = parseInt(metadata.quantity ?? "0", 10);
-        if (userId && quantity > 0) {
-          try {
-            await sb.rpc("fn_deposit_credits", {
-              p_user_id: userId,
-              p_amount: quantity,
-              p_type: "deposit_purchase",
-              p_pool: "purchased",
-              p_description: metadata.type === "mandatory_topup"
-                ? `Mandatory infrastructure top-up: ${quantity} credits`
-                : `Auto-refill: ${quantity} credits`,
-              p_service_type: "purchase",
-              p_reference_id: null,
-              p_expires_at: null,
-            });
-            console.log(`${metadata.type} credits deposited:`, quantity, "for user:", userId);
-
-            // If this was a mandatory topup, payment is resolved — reactivate if suspended
-            const { data: userStatus } = await sb.from("users")
-              .select("payment_status, pre_suspension_state")
-              .eq("id", userId).single();
-
-            if (userStatus?.payment_status === "suspended" || userStatus?.payment_status === "grace") {
-              const savedState = (userStatus.pre_suspension_state as any) ?? {};
-
-              // Restore sites
-              if (savedState.sites?.length) {
-                for (const s of savedState.sites) {
-                  await sb.from("sites").update({ status: s.status }).eq("id", s.id);
-                }
-              }
-
-              // Restore domain auto-renew
-              if (savedState.domains?.length) {
-                for (const d of savedState.domains) {
-                  await sb.from("domains").update({ auto_renew: d.auto_renew }).eq("id", d.id);
-                }
-              }
-
-              // Clear payment failure state
-              await sb.from("users").update({
-                payment_status: "current",
-                payment_failed_at: null,
-                suspended_at: null,
-                pre_suspension_state: null,
-              }).eq("id", userId);
-
-              await sb.from("logs").insert({
-                user_id: userId,
-                action: "billing.reactivated",
-                details: "Payment received. Sites and domains restored.",
-                level: "info",
-              });
-
-              console.log("Account reactivated:", userId);
-            }
-          } catch (credErr) {
-            console.error(`${metadata.type} credit deposit error:`, credErr);
-          }
-        }
-      }
+      // Overage payments are handled automatically by Stripe via the invoice system
+      // Grace period is cleared on successful subscription renewal (above)
+      console.log("Payment intent succeeded:", event.data.object.id);
     }
 
     else if (event.type === "customer.subscription.deleted") {
@@ -627,12 +528,11 @@ Deno.serve(async (req) => {
           }
         }
 
-        // ── Credit deposit on base plan renewal ──
+        // ── Metered billing: overage charge + cycle reset on renewal ──
         if (event.type === "invoice.paid" && inv.subscription) {
           const subStripeIdCredit = typeof inv.subscription === "string" ? inv.subscription : inv.subscription.id;
           try {
             const stripeSub = await stripe.subscriptions.retrieve(subStripeIdCredit);
-            // Check if this is a base plan (hosting_plan type, not domain_renewal)
             if (stripeSub.metadata?.type !== "domain_renewal") {
               const priceId = stripeSub.items?.data?.[0]?.price?.id ?? "";
               const { data: planProduct } = await sb.from("products")
@@ -641,94 +541,71 @@ Deno.serve(async (req) => {
                 .maybeSingle();
 
               if (planProduct?.type === "hosting_plan") {
-                // Credits stored directly on users table — no separate row needed
-
-                // Expire old subscription credits and deposit new ones
-                await sb.rpc("fn_expire_subscription_credits", { p_user_id: cust.id });
-
-                const periodEnd = stripeSub.current_period_end
-                  ? new Date(stripeSub.current_period_end * 1000).toISOString()
-                  : null;
-
-                await sb.rpc("fn_deposit_credits", {
-                  p_user_id: cust.id,
-                  p_amount: 36,
-                  p_type: "deposit_subscription",
-                  p_pool: "subscription",
-                  p_description: "Monthly subscription deposit: 36 credits",
-                  p_service_type: "subscription",
-                  p_reference_id: null,
-                  p_expires_at: periodEnd,
-                });
-                console.log("Subscription credits deposited: 36 for user:", cust.id);
-
-                // ── Layer 2: Mandatory infrastructure top-up ──
-                // If mandatory > 36, auto-charge the difference
-                const { data: userCredits } = await sb.from("users")
-                  .select("mandatory_monthly_credits, stripe_customer_id")
+                // Check usage and charge overage
+                const { data: userData } = await sb.from("users")
+                  .select("usage_this_cycle, included_credits, stripe_customer_id")
                   .eq("id", cust.id).single();
 
-                const mandatory = Number(userCredits?.mandatory_monthly_credits ?? 0);
-                if (mandatory > 36 && userCredits?.stripe_customer_id) {
-                  const shortfall = Math.ceil(mandatory - 36);
-                  try {
-                    // Get default payment method
-                    const customer = await stripe.customers.retrieve(userCredits.stripe_customer_id);
-                    const pmId = (customer as any).invoice_settings?.default_payment_method;
-                    if (pmId) {
-                      const pi = await stripe.paymentIntents.create({
-                        amount: shortfall * 100, // cents
-                        currency: "cad",
-                        customer: userCredits.stripe_customer_id,
-                        payment_method: typeof pmId === "string" ? pmId : pmId.id,
-                        off_session: true,
-                        confirm: true,
-                        description: `Mandatory infrastructure top-up: ${shortfall} credits`,
-                        metadata: { type: "mandatory_topup", user_id: cust.id, quantity: String(shortfall) },
-                      });
+                const usage = Number(userData?.usage_this_cycle ?? 0);
+                const included = userData?.included_credits ?? 36;
 
-                      if (pi.status === "succeeded") {
-                        await sb.rpc("fn_deposit_credits", {
-                          p_user_id: cust.id,
-                          p_amount: shortfall,
-                          p_type: "deposit_purchase",
-                          p_pool: "purchased",
-                          p_description: `Mandatory infrastructure top-up: ${shortfall} credits`,
-                          p_service_type: "purchase",
-                          p_reference_id: null,
-                          p_expires_at: null,
-                        });
-                        console.log("Mandatory top-up charged:", shortfall, "credits for user:", cust.id);
-                      }
-                    }
-                  } catch (topupErr) {
-                    console.error("Mandatory top-up failed (entering grace period):", topupErr);
-                    // Payment failed — start grace period
+                if (usage > included && userData?.stripe_customer_id) {
+                  const overage = Math.ceil(usage - included);
+                  try {
+                    // Create overage invoice item + invoice
+                    await stripe.invoiceItems.create({
+                      customer: userData.stripe_customer_id,
+                      amount: overage * 100, // cents USD
+                      currency: "usd",
+                      description: `Usage overage: ${overage} credits at $1/credit (used ${Math.round(usage)} of ${included} included)`,
+                    });
+
+                    const overageInvoice = await stripe.invoices.create({
+                      customer: userData.stripe_customer_id,
+                      auto_advance: true,
+                      collection_method: "charge_automatically",
+                      metadata: { type: "overage", user_id: cust.id, usage: String(Math.round(usage)), included: String(included) },
+                    });
+
+                    await stripe.invoices.finalizeInvoice(overageInvoice.id);
+                    console.log("Overage invoice created:", overageInvoice.id, "amount:", overage, "for user:", cust.id);
+
+                    await sb.from("logs").insert({
+                      user_id: cust.id,
+                      action: "billing.overage_charged",
+                      details: `Overage: ${overage} credits ($${overage} USD). Used ${Math.round(usage)} of ${included} included.`,
+                      level: "info",
+                      metadata: { overage, usage: Math.round(usage), included, invoice_id: overageInvoice.id },
+                    });
+                  } catch (overageErr) {
+                    console.error("Overage invoice creation failed:", overageErr);
+                    // Start grace period if overage billing fails
                     await sb.from("users").update({
                       payment_status: "grace",
                       payment_failed_at: new Date().toISOString(),
                     }).eq("id", cust.id);
-
-                    await sb.from("logs").insert({
-                      user_id: cust.id,
-                      action: "billing.payment_failed",
-                      details: `Mandatory top-up of ${shortfall} credits failed. Grace period started.`,
-                      level: "warn",
-                    });
                   }
                 }
 
-                // Clear any previous payment issues on successful renewal
+                // Reset usage meter for new cycle
+                const periodStart = stripeSub.current_period_start
+                  ? new Date(stripeSub.current_period_start * 1000).toISOString()
+                  : new Date().toISOString();
+
                 await sb.from("users").update({
+                  usage_this_cycle: 0,
+                  cycle_start: periodStart,
                   payment_status: "current",
                   payment_failed_at: null,
                   suspended_at: null,
                   pre_suspension_state: null,
-                }).eq("id", cust.id).eq("payment_status", "grace");
+                }).eq("id", cust.id);
+
+                console.log("Usage meter reset for user:", cust.id);
               }
             }
           } catch (credErr) {
-            console.error("Credit deposit on renewal error (non-fatal):", credErr);
+            console.error("Metered billing cycle error (non-fatal):", credErr);
           }
         }
 
