@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Receipt, Banknote, Settings, Users } from 'lucide-react';
+import { Receipt, Banknote, Settings, Users, Percent } from 'lucide-react';
 
 const TABS = [
   { id: 'pricing', label: 'Pricing', icon: Settings },
   { id: 'subscriptions', label: 'Subscriptions', icon: Users },
   { id: 'commissions', label: 'Commissions', icon: Banknote },
+  { id: 'promotions', label: 'Promotions', icon: Percent },
   { id: 'invoices', label: 'Invoices', icon: Receipt },
 ] as const;
 

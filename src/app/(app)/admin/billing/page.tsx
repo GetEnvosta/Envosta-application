@@ -11,6 +11,7 @@ import { InvoiceFilters } from '@/components/admin/invoice-filters';
 import { SubscriptionFilters } from '@/components/admin/subscription-filters';
 import { CreditPricingTable } from '@/app/(app)/admin/credits/pricing-table';
 import { CommissionRowActions } from '@/components/admin/commission-actions';
+import { CouponManager } from '@/components/admin/coupon-manager';
 import { BillingTabs } from './billing-tabs';
 
 export default async function AdminBillingPage() {
@@ -131,6 +132,8 @@ export default async function AdminBillingPage() {
               )}
             </div>
           ),
+
+          promotions: <CouponManager />,
 
           invoices: <InvoiceFilters invoices={taggedInvoices} />,
         }}

@@ -15,7 +15,7 @@ export function CustomersHeader({ isAdmin }: { isAdmin: boolean }) {
     <div className="space-y-4 mb-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Customers</h1>
+          <h1 className="text-xl font-semibold text-gray-900">Users</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Manage and view all customer accounts.
           </p>
