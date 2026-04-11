@@ -2,7 +2,7 @@ export const revalidate = 5;
 import { getAllCustomers } from '@/services/admin';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
-import { Search, Users, Server, Globe } from 'lucide-react';
+import { Search, Users, Server, Globe, Gauge } from 'lucide-react';
 import { ImpersonateButton } from '@/components/admin/impersonate-button';
 import { getCurrentUser, getUserProfile } from '@/services/auth';
 import { CustomersHeader } from './customers-header';
@@ -62,6 +62,12 @@ export default async function CustomersPage({
                   Domains
                 </th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Status
+                </th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">
+                  Usage
+                </th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
                   Role
                 </th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -75,7 +81,7 @@ export default async function CustomersPage({
             <tbody className="divide-y divide-gray-100">
               {(!users || users.length === 0) ? (
                 <tr>
-                  <td colSpan={9} className="px-5 py-12 text-center">
+                  <td colSpan={11} className="px-5 py-12 text-center">
                     <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                     <p className="text-sm text-gray-400">
                       {q ? 'No customers match your search.' : 'No customers yet.'}
@@ -116,6 +122,34 @@ export default async function CustomersPage({
                         </span>
                       ) : (
                         <span className="text-xs text-gray-300">0</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {u.sub_status ? (
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                          u.sub_status === 'active' ? 'bg-emerald-50 text-emerald-700' :
+                          u.sub_status === 'trialing' ? 'bg-blue-50 text-blue-700' :
+                          u.sub_status === 'past_due' ? 'bg-red-50 text-red-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>{u.sub_status}</span>
+                      ) : u.claimed === false ? (
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-amber-50 text-amber-700">unclaimed</span>
+                      ) : (
+                        <span className="text-xs text-gray-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-center">
+                      {u.usage_this_cycle > 0 ? (
+                        <span className={`inline-flex items-center gap-1 text-xs font-medium ${
+                          Number(u.usage_this_cycle) > (u.included_credits ?? 36) ? 'text-red-600' :
+                          Number(u.usage_this_cycle) > (u.included_credits ?? 36) * 0.8 ? 'text-amber-600' :
+                          'text-gray-600'
+                        }`}>
+                          <Gauge className="w-3 h-3" />
+                          {Math.round(Number(u.usage_this_cycle))}/{u.included_credits ?? 36}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-300">0/{u.included_credits ?? 36}</span>
                       )}
                     </td>
                     <td className="px-5 py-3.5">

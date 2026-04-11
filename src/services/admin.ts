@@ -57,7 +57,7 @@ export async function getAllCustomers(search?: string) {
 
   let query = supabase
     .from('users')
-    .select('*, sites(id), domains(id)')
+    .select('*, sites(id), domains(id), subscriptions(id, status, billing_period)')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -66,13 +66,19 @@ export async function getAllCustomers(search?: string) {
   }
 
   const { data } = await query;
-  return (data ?? []).map((u: any) => ({
-    ...u,
-    site_count: Array.isArray(u.sites) ? u.sites.length : 0,
-    domain_count: Array.isArray(u.domains) ? u.domains.length : 0,
-    sites: undefined,
-    domains: undefined,
-  }));
+  return (data ?? []).map((u: any) => {
+    const subs = Array.isArray(u.subscriptions) ? u.subscriptions : [];
+    const activeSub = subs.find((s: any) => s.status === 'active') ?? subs.find((s: any) => s.status === 'trialing') ?? null;
+    return {
+      ...u,
+      site_count: Array.isArray(u.sites) ? u.sites.length : 0,
+      domain_count: Array.isArray(u.domains) ? u.domains.length : 0,
+      sub_status: activeSub?.status ?? (subs.length > 0 ? subs[0].status : null),
+      sites: undefined,
+      domains: undefined,
+      subscriptions: undefined,
+    };
+  });
 }
 
 /**
