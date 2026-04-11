@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Activity, AlertTriangle, ScrollText } from 'lucide-react';
+import { Activity, AlertTriangle, ScrollText, Mail } from 'lucide-react';
 
 const TABS = [
   { id: 'diagnostics', label: 'Diagnostics', icon: AlertTriangle },
   { id: 'logs', label: 'Logs', icon: ScrollText },
   { id: 'health', label: 'Health Checks', icon: Activity },
+  { id: 'emails', label: 'Emails', icon: Mail },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];

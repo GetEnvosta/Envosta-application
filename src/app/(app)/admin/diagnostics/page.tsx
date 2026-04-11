@@ -8,6 +8,7 @@ import { getAbandonedCheckouts } from '@/services/subscriptions';
 import { ExternalSyncCheck } from '@/components/admin/external-sync-check';
 import { getAdminLogs } from '@/services/admin';
 import { SystemHealthChecks } from '@/app/(app)/admin/logs/health-checks';
+import AdminEmailsPage from '@/app/(app)/admin/emails/page';
 import { SystemTabs } from './system-tabs';
 import { formatDateTime } from '@/lib/utils';
 
@@ -253,6 +254,8 @@ export default async function DiagnosticsPage() {
           ),
 
           health: <SystemHealthChecks />,
+
+          emails: <AdminEmailsPage />,
         }}
       </SystemTabs>
     </div>

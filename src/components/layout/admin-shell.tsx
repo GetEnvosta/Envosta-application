@@ -16,12 +16,10 @@ const allNav = [
   { name: 'Users', href: '/admin/customers', icon: Users },
   { name: 'Sites', href: '/admin/services', icon: Server },
   { name: 'Domains', href: '/admin/domains', icon: Globe },
-  { name: 'Studio', href: '/admin/studio', icon: Paintbrush },
   { name: 'Tickets', href: '/admin/tickets', icon: MessageSquare },
   { name: 'Billing', href: '/admin/billing', icon: CreditCard },
   { name: 'Reporting', href: '/admin/reporting', icon: BarChart3 },
   { name: 'Blog', href: '/admin/blog', icon: PenSquare },
-  { name: 'Emails', href: '/admin/emails', icon: Mail },
   { name: 'System', href: '/admin/diagnostics', icon: Activity },
 ];
 
