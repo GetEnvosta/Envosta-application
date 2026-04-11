@@ -49,6 +49,7 @@ export function canAccessAdminNav(role: string, href: string): boolean {
 
 const ADMIN_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/admin/billing':       ['admin'],
+  '/admin/reporting':     ['admin'],
   '/admin/credits':       ['admin'],
   '/admin/partners':      ['admin'],
   '/admin/products':      ['admin'],
