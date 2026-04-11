@@ -66,7 +66,6 @@ export function DomainTldPricing({ initialTlds }: { initialTlds: TldProduct[] })
             <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">TLD</th>
             <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Price (CAD/yr)</th>
             <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Stripe</th>
-            <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Active</th>
           </tr>
         </thead>
         <tbody>
@@ -103,14 +102,6 @@ export function DomainTldPricing({ initialTlds }: { initialTlds: TldProduct[] })
                 ) : (
                   <span className="text-xs text-amber-600">Not synced</span>
                 )}
-              </td>
-              <td className="px-4 py-2.5 text-center">
-                <button onClick={() => toggleActive(tld)} disabled={saving === tld.id}
-                  className={`inline-flex items-center px-2 py-0.5 text-xs rounded-full transition-colors ${
-                    tld.is_active ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                  }`}>
-                  {tld.is_active ? 'Active' : 'Off'}
-                </button>
               </td>
             </tr>
           ))}
