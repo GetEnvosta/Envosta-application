@@ -105,14 +105,24 @@ export async function GET(req: Request) {
 
       const ourWpIds = new Set((ourSites ?? []).map((s: any) => s.wp_cloud_site_id));
 
-      // Find orphans: in wp.cloud but not in our DB
+      // Find orphans: in wp.cloud but not in our DB — auto-create site rows
       const orphanedInWpCloud: any[] = [];
       for (const wpSite of wpSites ?? []) {
         const wpId = String(wpSite.atomic_site_id ?? wpSite.id ?? wpSite.blog_id);
         if (!ourWpIds.has(wpId)) {
-          orphanedInWpCloud.push({
-            wp_cloud_id: wpId,
-            domain: wpSite.domain ?? wpSite.home_url ?? 'unknown',
+          const domain = wpSite.domain ?? wpSite.home_url ?? 'unknown';
+          orphanedInWpCloud.push({ wp_cloud_id: wpId, domain });
+
+          // Auto-create an unlinked site row so it shows up in admin Sites tab
+          await sb.from('sites').insert({
+            wp_cloud_site_id: wpId,
+            wp_cloud_url: domain.startsWith('http') ? domain : `https://${domain}`,
+            label: domain.replace(/^https?:\/\//, '').split('.')[0] || 'orphaned-site',
+            status: 'active',
+            user_id: null,
+            server_region: wpSite.geo_affinity ?? 'dca',
+            config: { php_workers: 2, storage_gb: 25, php_memory_mb: 512 },
+            metadata: { orphaned: true, discovered_at: new Date().toISOString(), source: 'wp_cloud_sync' },
           });
         }
       }
