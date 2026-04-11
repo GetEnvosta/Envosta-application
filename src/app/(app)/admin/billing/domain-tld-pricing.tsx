@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Check, X, Globe, ExternalLink } from 'lucide-react';
+import { Loader2, Check, X, Globe } from 'lucide-react';
 
 interface TldProduct {
   id: string;
@@ -34,26 +34,11 @@ export function DomainTldPricing({ initialTlds }: { initialTlds: TldProduct[] })
     setEditingId(null);
   }
 
-  async function toggleActive(tld: TldProduct) {
-    setSaving(tld.id);
-    try {
-      const res = await fetch('/api/admin/update-tld-price', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: tld.id, is_active: !tld.is_active }),
-      });
-      if (res.ok) {
-        setTlds(tlds.map(t => t.id === tld.id ? { ...t, is_active: !t.is_active } : t));
-      }
-    } catch (e) { console.error(e); }
-    setSaving(null);
-  }
-
   if (tlds.length === 0) {
     return (
       <div className="card p-8 text-center text-sm text-gray-400">
         <Globe className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-        No domain TLDs configured. Add them in the products table.
+        No domain TLDs configured.
       </div>
     );
   }
@@ -64,8 +49,8 @@ export function DomainTldPricing({ initialTlds }: { initialTlds: TldProduct[] })
         <thead>
           <tr className="border-b border-gray-100">
             <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">TLD</th>
-            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Price (CAD/yr)</th>
-            <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Stripe</th>
+            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Billing</th>
+            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Price</th>
           </tr>
         </thead>
         <tbody>
@@ -73,6 +58,10 @@ export function DomainTldPricing({ initialTlds }: { initialTlds: TldProduct[] })
             <tr key={tld.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
               <td className="px-4 py-2.5 text-sm font-medium text-gray-900">
                 {tld.slug.replace('tld-', '.')}
+              </td>
+              <td className="px-4 py-2.5 text-xs text-gray-600">
+                Annual (Stripe subscription)
+                {!tld.stripe_price_id && <span className="ml-2 text-amber-600">· not synced</span>}
               </td>
               <td className="px-4 py-2.5 text-right">
                 {editingId === tld.id ? (
@@ -92,15 +81,8 @@ export function DomainTldPricing({ initialTlds }: { initialTlds: TldProduct[] })
                 ) : (
                   <button onClick={() => { setEditingId(tld.id); setEditValue(String(tld.price_cad / 100)); }}
                     className="text-sm font-medium text-gray-900 hover:text-brand-600 transition-colors">
-                    ${(tld.price_cad / 100).toFixed(2)}
+                    ${(tld.price_cad / 100).toFixed(2)}/yr
                   </button>
-                )}
-              </td>
-              <td className="px-4 py-2.5 text-center">
-                {tld.stripe_price_id ? (
-                  <span className="text-xs text-emerald-600">Linked</span>
-                ) : (
-                  <span className="text-xs text-amber-600">Not synced</span>
                 )}
               </td>
             </tr>
