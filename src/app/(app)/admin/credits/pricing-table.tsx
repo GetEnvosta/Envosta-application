@@ -17,7 +17,6 @@ const SERVICE_LABELS: Record<string, string> = {
   ai_tokens: 'AI Tokens',
   twilio_receptionist: 'AI Receptionist',
   twilio_number: 'Phone Numbers',
-  vapi: 'Vapi (Voice)',
   resend: 'Resend (Email)',
 };
 
