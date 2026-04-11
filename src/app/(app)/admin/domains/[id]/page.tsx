@@ -9,6 +9,7 @@ import { DnsManager } from '@/components/domains/dns-manager';
 import { DomainSettings } from '@/components/domains/domain-settings';
 import { AttachDomainSubscription } from '@/components/admin/attach-domain-subscription';
 import { DomainRetryRegister } from '@/components/domains/domain-retry-register';
+import { DomainOwnerAssign } from '@/components/admin/domain-owner-assign';
 
 export default async function AdminDomainDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -60,16 +61,7 @@ export default async function AdminDomainDetailPage({ params }: { params: Promis
           )}
 
           {/* Owner */}
-          {owner && (
-            <div className="flex items-center gap-2 rounded-xl bg-gray-50 px-4 py-2.5 mb-4">
-              <User className="w-4 h-4 text-gray-400 shrink-0" />
-              <span className="text-sm text-gray-600">Owner:</span>
-              <Link href={`/admin/customers/${owner.id}`} className="text-sm font-medium text-admin-600 hover:text-admin-700">
-                {owner.full_name || owner.email}
-              </Link>
-              {owner.full_name && <span className="text-xs text-gray-400">{owner.email}</span>}
-            </div>
-          )}
+          <DomainOwnerAssign domainId={domain.id} currentOwner={owner ? { id: owner.id, full_name: owner.full_name, email: owner.email } : null} />
 
           {/* Connected site */}
           <div className="flex items-center gap-2 rounded-xl bg-gray-50 px-4 py-2.5 mb-4">
