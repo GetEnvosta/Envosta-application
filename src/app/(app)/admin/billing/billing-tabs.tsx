@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Receipt, Banknote, Settings, Users, Percent } from 'lucide-react';
 
 const TABS = [
-  { id: 'pricing', label: 'Usage Pricing', icon: Settings },
+  { id: 'pricing', label: 'Pricing', icon: Settings },
   { id: 'subscriptions', label: 'Subscriptions', icon: Users },
   { id: 'commissions', label: 'Commissions', icon: Banknote },
   { id: 'promotions', label: 'Promotions', icon: Percent },

@@ -95,6 +95,33 @@ export default async function AdminBillingPage() {
         {{
           pricing: (
             <div className="space-y-8">
+              {/* Plans */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Plans</h3>
+                <div className="card overflow-hidden">
+                  <table className="w-full">
+                    <thead><tr className="border-b border-gray-100">
+                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Plan</th>
+                      <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Price</th>
+                      <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Included Credits</th>
+                      <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Stripe</th>
+                    </tr></thead>
+                    <tbody>
+                      <tr className="border-b border-gray-50 hover:bg-gray-50/50">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">Minimum</td>
+                        <td className="px-4 py-3 text-sm text-gray-900 text-right">$36 USD/mo</td>
+                        <td className="px-4 py-3 text-sm text-gray-900 text-right">36 credits</td>
+                        <td className="px-4 py-3 text-center">
+                          <a href="https://dashboard.stripe.com/products" target="_blank" rel="noopener noreferrer" className="text-xs text-brand-600 hover:text-brand-700">Manage →</a>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">Base site (2 workers + 25GB) costs exactly 36 credits — fully covered by the plan. Upgrades and usage beyond that are billed as overage at $1/credit.</p>
+              </div>
+
+              {/* Usage Rates */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Usage Rates</h3>
                 <p className="text-xs text-gray-500 mb-4">Click any rate to edit. Changes apply system-wide to all sites and users immediately.</p>
