@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Check, X, Globe, AlertTriangle } from 'lucide-react';
+import { Loader2, Check, X, Globe, AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface TldProduct {
   id: string;
@@ -17,6 +17,7 @@ export function DomainTldPricing({ initialTlds }: { initialTlds: TldProduct[] })
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
 
   async function handleSave(id: string, newPrice: number) {
     setSaving(id);
@@ -32,6 +33,24 @@ export function DomainTldPricing({ initialTlds }: { initialTlds: TldProduct[] })
     } catch (e) { console.error(e); }
     setSaving(null);
     setEditingId(null);
+  }
+
+  async function handleSync(id: string) {
+    setSyncing(id);
+    try {
+      const res = await fetch('/api/admin/update-tld-price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, sync: true }),
+      });
+      const data = await res.json();
+      if (res.ok && data.stripe_price_id) {
+        setTlds(tlds.map(t => t.id === id ? { ...t, stripe_price_id: data.stripe_price_id } : t));
+      } else {
+        alert(data.error ?? 'Sync failed');
+      }
+    } catch (e) { console.error(e); }
+    setSyncing(null);
   }
 
   if (tlds.length === 0) {
@@ -89,9 +108,11 @@ export function DomainTldPricing({ initialTlds }: { initialTlds: TldProduct[] })
                 {tld.stripe_price_id ? (
                   <span className="text-xs text-emerald-600">Stripe ✓</span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-xs text-amber-600">
-                    <AlertTriangle className="w-3 h-3" /> Not synced
-                  </span>
+                  <button onClick={() => handleSync(tld.id)} disabled={syncing === tld.id}
+                    className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 font-medium disabled:opacity-50">
+                    {syncing === tld.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    Sync
+                  </button>
                 )}
               </td>
             </tr>
