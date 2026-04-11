@@ -14,7 +14,7 @@ import { canAccessAdminNav } from '@/lib/roles';
 const allNav = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Customers', href: '/admin/customers', icon: Users },
-  { name: 'Services', href: '/admin/services', icon: Server },
+  { name: 'Sites', href: '/admin/services', icon: Server },
   { name: 'Domains', href: '/admin/domains', icon: Globe },
   { name: 'Studio', href: '/admin/studio', icon: Paintbrush },
   { name: 'Tickets', href: '/admin/tickets', icon: MessageSquare },
