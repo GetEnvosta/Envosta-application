@@ -69,49 +69,19 @@ export default async function AdminBillingPage() {
         <StatCard label="Invoices" value={paidInvoicesCount} icon={Receipt} sub={`${outstandingInvoicesCount} outstanding`} color="indigo" />
       </div>
 
+      {/* Overage alert — always visible above tabs */}
+      {usageStats.usersOverIncluded.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3 mb-6 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+          <span className="text-xs text-amber-800">
+            <strong>{usageStats.usersOverIncluded.length} user{usageStats.usersOverIncluded.length !== 1 ? 's' : ''}</strong> over included credits — ${usageStats.projectedOverageRevenue} projected overage revenue
+          </span>
+        </div>
+      )}
+
       {/* Tabbed content */}
       <BillingTabs>
         {{
-          overview: (
-            <div className="space-y-6">
-              {usageStats.usersOverIncluded.length > 0 ? (
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-500" />
-                    Users Over Included ({usageStats.usersOverIncluded.length})
-                  </h3>
-                  <div className="card overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-100">
-                          <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2">User</th>
-                          <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2">Used</th>
-                          <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2">Included</th>
-                          <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2">Overage</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {usageStats.usersOverIncluded.map((u: any) => (
-                          <tr key={u.id} className="hover:bg-gray-50/50">
-                            <td className="px-4 py-2.5 text-sm">
-                              <span className="font-medium text-gray-900">{u.full_name ?? 'Unknown'}</span>
-                              <span className="text-gray-400 ml-2 text-xs">{u.email}</span>
-                            </td>
-                            <td className="px-4 py-2.5 text-sm text-right text-gray-600">{Number(u.usage_this_cycle).toFixed(1)}</td>
-                            <td className="px-4 py-2.5 text-sm text-right text-gray-600">{u.included_credits ?? 36}</td>
-                            <td className="px-4 py-2.5 text-sm text-right font-medium text-amber-600">${u.overage}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : (
-                <div className="card p-8 text-center text-sm text-gray-400">All users within their included credits. No overage expected.</div>
-              )}
-            </div>
-          ),
-
           pricing: <CreditPricingTable initialPricing={pricing} />,
 
           subscriptions: <SubscriptionFilters subscriptions={allSubscriptions as any} />,
