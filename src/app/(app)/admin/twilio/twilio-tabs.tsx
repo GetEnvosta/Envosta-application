@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Phone, ScrollText, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
+import { Phone, ScrollText, BarChart3, ChevronDown, ChevronUp, Loader2, Trash2 } from 'lucide-react';
 
 const TABS = [
   { id: 'numbers', label: 'Numbers', icon: Phone },
@@ -70,5 +70,41 @@ export function CallTranscript({ transcript }: { transcript: { speaker: string; 
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Release number button — used in the Numbers tab.
+ */
+export function ReleaseNumberButton({ siteId, phoneNumber }: { siteId: string; phoneNumber: string }) {
+  const [releasing, setReleasing] = useState(false);
+
+  async function handleRelease() {
+    if (!confirm(`Release ${phoneNumber}? This permanently deletes the number from Twilio.`)) return;
+    setReleasing(true);
+    try {
+      const res = await fetch('/api/admin/release-number', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId }),
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to release number');
+      }
+    } catch (e: any) {
+      alert(e.message);
+    }
+    setReleasing(false);
+  }
+
+  return (
+    <button onClick={handleRelease} disabled={releasing}
+      className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded-md disabled:opacity-50">
+      {releasing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+      Release
+    </button>
   );
 }

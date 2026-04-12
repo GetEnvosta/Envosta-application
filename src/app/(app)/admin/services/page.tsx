@@ -6,6 +6,7 @@ import { Search, Globe, ExternalLink, CheckCircle, XCircle, Shield, AlertTriangl
 import { ProvisionButton } from '@/components/admin/provision-button';
 import { ImpersonateButton } from '@/components/admin/impersonate-button';
 import { StatCard } from '@/components/admin/stat-card';
+import { AdminCreateSite } from '@/components/admin/admin-create-site';
 
 const STATUSES = ['active', 'suspended', 'cancelled', 'pending', 'provisioning', 'failed'] as const;
 
@@ -32,10 +33,13 @@ export default async function SitesAdminPage({
           <h1 className="text-xl font-semibold text-gray-900">Sites</h1>
           <p className="text-sm text-gray-500 mt-0.5">Monitor and manage all customer WordPress sites.</p>
         </div>
-        <a href="https://atomic-api.wordpress.com" target="_blank" rel="noopener noreferrer"
-          className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0">
-          <ExternalLink className="w-4 h-4" /> wp.cloud
-        </a>
+        <div className="flex items-center gap-2">
+          <AdminCreateSite />
+          <a href="https://atomic-api.wordpress.com" target="_blank" rel="noopener noreferrer"
+            className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0">
+            <ExternalLink className="w-4 h-4" /> wp.cloud
+          </a>
+        </div>
       </div>
 
       {/* Stats */}

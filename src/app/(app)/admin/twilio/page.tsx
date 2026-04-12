@@ -3,7 +3,8 @@ export const revalidate = 10;
 import { getTwilioStats, getAllPhoneNumbers, getAllCallLogs, getTwilioUsageByUser } from '@/services/twilio-admin';
 import { Phone, PhoneCall, Clock, Coins, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { TwilioTabs, CallTranscript } from './twilio-tabs';
+import { TwilioTabs, CallTranscript, ReleaseNumberButton } from './twilio-tabs';
+import { AdminBuyNumber } from '@/components/admin/admin-buy-number';
 
 export default async function AdminTwilioPage() {
   const [stats, numbers, calls, usage] = await Promise.all([
@@ -34,10 +35,13 @@ export default async function AdminTwilioPage() {
           <h1 className="text-xl font-semibold text-gray-900">Twilio</h1>
           <p className="text-sm text-gray-500 mt-0.5">Phone numbers, call logs, and AI receptionist usage</p>
         </div>
-        <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer"
-          className="btn-admin inline-flex items-center gap-1.5">
-          Twilio Console <ExternalLink className="w-3.5 h-3.5" />
-        </a>
+        <div className="flex items-center gap-2">
+          <AdminBuyNumber />
+          <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer"
+            className="btn-admin inline-flex items-center gap-1.5">
+            Twilio Console <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
       </div>
 
       {/* Stat Cards */}
@@ -94,6 +98,7 @@ function NumbersTab({ numbers }: { numbers: any[] }) {
               <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Owner</th>
               <th className="px-5 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
               <th className="px-5 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Cost</th>
+              <th className="px-5 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -122,6 +127,9 @@ function NumbersTab({ numbers }: { numbers: any[] }) {
                   </span>
                 </td>
                 <td className="px-5 py-3 text-right text-xs text-gray-500">2 cr/mo</td>
+                <td className="px-5 py-3 text-right">
+                  <ReleaseNumberButton siteId={n.id} phoneNumber={n.phone_number} />
+                </td>
               </tr>
             ))}
           </tbody>
