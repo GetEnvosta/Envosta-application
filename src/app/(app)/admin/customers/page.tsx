@@ -3,13 +3,14 @@ import { getAllCustomers } from '@/services/admin';
 import { getPartnerApplications } from '@/services/partners';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
-import { Search, Users, Server, Globe, Gauge } from 'lucide-react';
+import { Search, Users, Server, Globe, Gauge, UserCheck, UserX, Handshake, ShieldCheck } from 'lucide-react';
 import { ImpersonateButton } from '@/components/admin/impersonate-button';
 import { getCurrentUser, getUserProfile } from '@/services/auth';
 import { CustomersHeader } from './customers-header';
 import { UsersTabs } from './users-tabs';
 import { ROLE_BADGE_CLASSES } from '@/lib/roles';
 import { PartnerActions } from '@/app/(app)/admin/partners/partner-actions';
+import { StatCard } from '@/components/admin/stat-card';
 
 export default async function UsersPage({
   searchParams,
@@ -28,6 +29,10 @@ export default async function UsersPage({
   const customers = allUsers.filter((u: any) => u.role === 'customer');
   const partners = allUsers.filter((u: any) => u.role === 'partner');
   const staff = allUsers.filter((u: any) => ['admin', 'staff', 'affiliate'].includes(u.role));
+
+  const activeCustomers = customers.filter((u: any) => u.sub_status === 'active' || u.sub_status === 'trialing').length;
+  const withSites = customers.filter((u: any) => u.site_count > 0).length;
+  const overUsage = customers.filter((u: any) => Number(u.usage_this_cycle) > (u.included_credits ?? 36)).length;
 
   function UserTable({ users, showUsage = false }: { users: any[]; showUsage?: boolean }) {
     return (
@@ -110,6 +115,15 @@ export default async function UsersPage({
   return (
     <div>
       <CustomersHeader isAdmin={isAdmin} />
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <StatCard label="Total Users" value={allUsers.length} icon={Users} color="blue" />
+        <StatCard label="Active Customers" value={activeCustomers} icon={UserCheck} color="green" />
+        <StatCard label="Partners" value={partners.length} icon={Handshake} color="purple" />
+        <StatCard label="With Sites" value={withSites} icon={Server} color="cyan" />
+        <StatCard label="Over Usage" value={overUsage} icon={Gauge} color={overUsage > 0 ? 'red' : 'gray'} />
+      </div>
 
       {/* Search */}
       <form method="GET" className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
