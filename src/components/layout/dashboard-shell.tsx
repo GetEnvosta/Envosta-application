@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/avatar';
 import {
   Globe, Globe2, CreditCard, Mail, MessageCircle, Users,
-  LogOut, Menu, X, Settings, Shield, LayoutDashboard,
+  LogOut, Menu, X, Settings, Shield, LayoutDashboard, Building2,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { isStaffRole } from '@/lib/roles';
@@ -24,6 +24,7 @@ const nav = [
   { name: 'Overview',       href: '/dashboard',                icon: LayoutDashboard },
   { name: 'Sites',          href: '/dashboard/sites',          icon: Globe },
   { name: 'Domains',        href: '/dashboard/domains',        icon: Globe2 },
+  { name: 'Business',       href: '/dashboard/business',       icon: Building2 },
   { name: 'Email',          href: '/dashboard/email',          icon: Mail },
   { name: 'Tickets',        href: '/dashboard/tickets',        icon: MessageCircle },
   { name: 'Billing',        href: '/dashboard/billing',        icon: CreditCard },

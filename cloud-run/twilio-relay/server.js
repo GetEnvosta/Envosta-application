@@ -89,6 +89,17 @@ wss.on("connection", (socket, req) => {
           let siteLabel = "";
           let siteDomain = "";
 
+          // Load user's business info as base defaults
+          let businessDefaults = {};
+          if (userId) {
+            const { data: userRec } = await sb
+              .from("users")
+              .select("metadata")
+              .eq("id", userId)
+              .single();
+            businessDefaults = userRec?.metadata?.business || {};
+          }
+
           if (phoneNumberId) {
             const { data: phoneRec } = await sb
               .from("phone_numbers")
@@ -99,9 +110,10 @@ wss.on("connection", (socket, req) => {
             const phoneConfig = phoneRec?.config || {};
             const linkedSite = phoneRec?.sites || null;
             const siteConfig = linkedSite?.receptionist_config || {};
-            config = { ...siteConfig, ...phoneConfig }; // phone overrides site
+            // business defaults < site config < phone config
+            config = { ...businessDefaults, ...siteConfig, ...phoneConfig };
             siteLabel = linkedSite?.label || "";
-            siteDomain = linkedSite?.domain_name || "";
+            siteDomain = linkedSite?.domain_name || businessDefaults.website || "";
           } else if (siteId) {
             // Legacy fallback: load from sites table
             const { data: site } = await sb
@@ -109,9 +121,11 @@ wss.on("connection", (socket, req) => {
               .select("label, domain_name, receptionist_config")
               .eq("id", siteId)
               .single();
-            config = site?.receptionist_config || {};
+            config = { ...businessDefaults, ...(site?.receptionist_config || {}) };
             siteLabel = site?.label || "";
-            siteDomain = site?.domain_name || "";
+            siteDomain = site?.domain_name || businessDefaults.website || "";
+          } else {
+            config = { ...businessDefaults };
           }
 
           maxCallMs = (config.max_call_minutes || 6) * 60 * 1000;
@@ -295,7 +309,12 @@ function sendEnd(socket) {
 }
 
 function buildSystemPrompt(config, siteLabel, domain) {
-  const businessName = config.business_name || siteLabel || "our business";
+  // config.name = business profile field; config.business_name = receptionist_config field
+  const businessName = config.business_name || config.name || siteLabel || "our business";
+  const businessHours = config.business_hours;
+  const services = config.services_offered || config.services;
+  const address = [config.address, config.city, config.province].filter(Boolean).join(", ");
+
   const parts = [
     `You are a friendly, professional AI receptionist for ${businessName}.`,
     `You answer phone calls on behalf of the business. Be warm, concise, and helpful.`,
@@ -305,8 +324,10 @@ function buildSystemPrompt(config, siteLabel, domain) {
   ];
 
   if (domain) parts.push(`Website: ${domain}`);
-  if (config.business_hours) parts.push(`Business hours: ${config.business_hours}`);
-  if (config.services_offered) parts.push(`Services offered: ${config.services_offered}`);
+  if (businessHours) parts.push(`Business hours: ${businessHours}`);
+  if (services) parts.push(`Services offered: ${services}`);
+  if (address) parts.push(`Location: ${address}`);
+  if (config.description) parts.push(`About the business: ${config.description}`);
   if (config.booking_instructions) parts.push(`Booking instructions: ${config.booking_instructions}`);
   if (config.custom_prompt) parts.push(`Additional instructions: ${config.custom_prompt}`);
 
