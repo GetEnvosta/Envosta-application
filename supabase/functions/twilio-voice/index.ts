@@ -67,31 +67,87 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Look up site by phone number
+    // Look up phone number from phone_numbers table, join site if linked
     const sb = supabaseAdmin();
-    const { data: site } = await sb
-      .from("sites")
-      .select("id, user_id, label, receptionist_enabled, receptionist_config")
-      .eq("twilio_phone_number", to)
+    const { data: phoneRecord } = await sb
+      .from("phone_numbers")
+      .select("id, user_id, site_id, phone_number, enabled, config, sites(id, label, receptionist_config)")
+      .eq("phone_number", to)
       .maybeSingle();
 
-    if (!site) {
-      console.log("No site found for number:", to);
-      return new Response(
-        `<Response><Say>Sorry, this number is not configured. Goodbye.</Say></Response>`,
-        { headers: { "Content-Type": "text/xml" } },
-      );
+    if (!phoneRecord) {
+      // Fallback: check sites table for legacy numbers not yet migrated
+      const { data: legacySite } = await sb
+        .from("sites")
+        .select("id, user_id, label, receptionist_enabled, receptionist_config")
+        .eq("twilio_phone_number", to)
+        .maybeSingle();
+
+      if (!legacySite) {
+        console.log("No phone number found:", to);
+        return new Response(
+          `<Response><Say>Sorry, this number is not configured. Goodbye.</Say></Response>`,
+          { headers: { "Content-Type": "text/xml" } },
+        );
+      }
+
+      // Use legacy site data
+      if (!legacySite.receptionist_enabled) {
+        return new Response(
+          `<Response><Say>This service is currently unavailable. Please try again later. Goodbye.</Say></Response>`,
+          { headers: { "Content-Type": "text/xml" } },
+        );
+      }
+
+      const legacyConfig = (legacySite.receptionist_config as any) ?? {};
+      const legacyGreeting = legacyConfig.greeting_message || `Thanks for calling ${legacyConfig.business_name || legacySite.label || "us"}! How can I help you today?`;
+      const legacyVoice = legacyConfig.voice || "Google.en-US-Journey-F";
+      const wsUrl = TWILIO_RELAY_URL || `${SUPABASE_URL.replace("https://", "wss://")}/functions/v1/twilio-voice-ws`;
+
+      const customParams = JSON.stringify({
+        siteId: legacySite.id,
+        userId: legacySite.user_id,
+        callerNumber: from,
+        callSid: callSid,
+      });
+
+      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Connect>
+    <ConversationRelay
+      url="${wsUrl}"
+      voice="${legacyVoice}"
+      transcriptionProvider="deepgram"
+      ttsProvider="google"
+      dtmfDetection="true"
+      interruptible="true"
+      welcomeGreeting="${legacyGreeting.replace(/"/g, '&quot;')}"
+      welcomeGreetingInterruptible="true"
+    >
+      <Parameter name="context" value='${customParams.replace(/'/g, "&#39;")}' />
+    </ConversationRelay>
+  </Connect>
+</Response>`;
+
+      console.log("Legacy call routed:", { callSid, from, to, siteId: legacySite.id });
+      return new Response(twiml, { headers: { "Content-Type": "text/xml" } });
     }
 
-    if (!site.receptionist_enabled) {
+    // ── New phone_numbers table path ──
+    if (!phoneRecord.enabled) {
       return new Response(
         `<Response><Say>This service is currently unavailable. Please try again later. Goodbye.</Say></Response>`,
         { headers: { "Content-Type": "text/xml" } },
       );
     }
 
-    const config = (site.receptionist_config as any) ?? {};
-    const greeting = config.greeting_message || `Thanks for calling ${config.business_name || site.label || "us"}! How can I help you today?`;
+    // Config comes from phone_numbers.config first, fallback to linked site's receptionist_config
+    const site = (phoneRecord.sites as any) ?? null;
+    const phoneConfig = (phoneRecord.config as any) ?? {};
+    const siteConfig = (site?.receptionist_config as any) ?? {};
+    const config = { ...siteConfig, ...phoneConfig }; // phone config overrides site config
+
+    const greeting = config.greeting_message || `Thanks for calling ${config.business_name || site?.label || "us"}! How can I help you today?`;
     const voice = config.voice || "Google.en-US-Journey-F";
     // Use Cloud Run relay for reliable long-running WebSocket connections
     // Falls back to Supabase Edge Function (has ~150s timeout limit)
@@ -99,10 +155,11 @@ Deno.serve(async (req) => {
 
     // Build custom parameters to pass to WebSocket handler
     const customParams = JSON.stringify({
-      siteId: site.id,
-      userId: site.user_id,
+      siteId: site?.id ?? "",
+      userId: phoneRecord.user_id,
       callerNumber: from,
       callSid: callSid,
+      phoneNumberId: phoneRecord.id,
     });
 
     // Return TwiML that starts ConversationRelay
@@ -124,7 +181,7 @@ Deno.serve(async (req) => {
   </Connect>
 </Response>`;
 
-    console.log("Call routed:", { callSid, from, to, siteId: site.id });
+    console.log("Call routed:", { callSid, from, to, userId: phoneRecord.user_id, siteId: site?.id ?? "none" });
 
     return new Response(twiml, {
       headers: { "Content-Type": "text/xml" },

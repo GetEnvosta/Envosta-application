@@ -77,21 +77,45 @@ wss.on("connection", (socket, req) => {
           userId = ctx.userId || "";
           callerNumber = data.from || ctx.callerNumber || "";
           callSid = data.callSid || ctx.callSid || "";
+          const phoneNumberId = ctx.phoneNumberId || "";
           startTime = Date.now();
 
-          console.log("Setup:", { siteId, userId, callerNumber, callSid });
+          console.log("Setup:", { siteId, userId, callerNumber, callSid, phoneNumberId });
 
-          // Load site config
           const sb = supabaseAdmin();
-          const { data: site } = await sb
-            .from("sites")
-            .select("label, domain_name, receptionist_config")
-            .eq("id", siteId)
-            .single();
 
-          const config = (site?.receptionist_config) || {};
+          // Load config: phone_numbers table first, then site as fallback
+          let config = {};
+          let siteLabel = "";
+          let siteDomain = "";
+
+          if (phoneNumberId) {
+            const { data: phoneRec } = await sb
+              .from("phone_numbers")
+              .select("config, sites(label, domain_name, receptionist_config)")
+              .eq("id", phoneNumberId)
+              .single();
+
+            const phoneConfig = phoneRec?.config || {};
+            const linkedSite = phoneRec?.sites || null;
+            const siteConfig = linkedSite?.receptionist_config || {};
+            config = { ...siteConfig, ...phoneConfig }; // phone overrides site
+            siteLabel = linkedSite?.label || "";
+            siteDomain = linkedSite?.domain_name || "";
+          } else if (siteId) {
+            // Legacy fallback: load from sites table
+            const { data: site } = await sb
+              .from("sites")
+              .select("label, domain_name, receptionist_config")
+              .eq("id", siteId)
+              .single();
+            config = site?.receptionist_config || {};
+            siteLabel = site?.label || "";
+            siteDomain = site?.domain_name || "";
+          }
+
           maxCallMs = (config.max_call_minutes || 6) * 60 * 1000;
-          systemPrompt = buildSystemPrompt(config, site?.label, site?.domain_name);
+          systemPrompt = buildSystemPrompt(config, siteLabel, siteDomain);
           break;
         }
 
