@@ -63,7 +63,7 @@ export async function getAllServices(filters?: { q?: string; status?: string }) 
   const supabase = await createClient();
   let query = supabase
     .from('sites')
-    .select('*, users(full_name, email), domains(id, domain_name, status)')
+    .select('*, users(full_name, email, subscriptions(id, status, products(name))), domains(id, domain_name, status)')
     .order('created_at', { ascending: false })
     .limit(50);
 

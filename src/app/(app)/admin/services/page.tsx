@@ -72,7 +72,7 @@ export default async function SitesAdminPage({
               <tr className="border-b border-gray-100 text-left">
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Site</th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Owner</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Subscription</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Plan</th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Domain</th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">Health</th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">SSL</th>
@@ -98,8 +98,11 @@ export default async function SitesAdminPage({
                   const isDeleted = s.status === 'deleted' || s.status === 'cancelled';
                   const hasDomain = !!domain?.domain_name;
 
-                  // Determine subscription status from the owner's payment_status
-                  const paymentStatus = s.payment_status ?? 'current';
+                  // Get user's active subscription info
+                  const userSubs = (owner?.subscriptions as any[]) ?? [];
+                  const activeSub = userSubs.find((sub: any) => sub.status === 'active' || sub.status === 'trialing');
+                  const planName = activeSub?.products?.name ?? null;
+                  const subStatus = activeSub?.status ?? null;
 
                   return (
                     <tr key={s.id} className="hover:bg-gray-50 transition-colors">
@@ -119,12 +122,18 @@ export default async function SitesAdminPage({
                         ) : <span className="text-gray-400 text-xs">—</span>}
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                          paymentStatus === 'current' ? 'bg-emerald-50 text-emerald-700' :
-                          paymentStatus === 'grace' ? 'bg-amber-50 text-amber-700' :
-                          paymentStatus === 'suspended' ? 'bg-red-50 text-red-700' :
-                          'bg-gray-100 text-gray-600'
-                        }`}>{paymentStatus}</span>
+                        {activeSub ? (
+                          <div>
+                            <span className="text-xs font-medium text-gray-700">{planName || 'Plan'}</span>
+                            <span className={`ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                              subStatus === 'active' ? 'bg-emerald-50 text-emerald-700' :
+                              subStatus === 'trialing' ? 'bg-blue-50 text-blue-700' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>{subStatus}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">No plan</span>
+                        )}
                       </td>
                       <td className="px-5 py-3.5">
                         {hasDomain ? (
