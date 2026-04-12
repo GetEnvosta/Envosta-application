@@ -8,7 +8,7 @@ import { ImpersonateButton } from '@/components/admin/impersonate-button';
 import { StatCard } from '@/components/admin/stat-card';
 import { AdminCreateSite } from '@/components/admin/admin-create-site';
 
-const STATUSES = ['active', 'suspended', 'cancelled', 'pending', 'provisioning', 'failed'] as const;
+const STATUSES = ['active', 'suspended', 'cancelled', 'deleted', 'pending', 'provisioning', 'failed'] as const;
 
 export default async function SitesAdminPage({
   searchParams,
@@ -95,6 +95,7 @@ export default async function SitesAdminPage({
                   const domains = (s.domains as any[]) ?? [];
                   const domain = domains[0];
                   const isUp = s.status === 'active';
+                  const isDeleted = s.status === 'deleted' || s.status === 'cancelled';
                   const hasDomain = !!domain?.domain_name;
 
                   // Determine subscription status from the owner's payment_status
@@ -137,6 +138,10 @@ export default async function SitesAdminPage({
                           <span className="inline-flex items-center gap-1 text-xs text-emerald-600" title="Site is up">
                             <CheckCircle className="w-3.5 h-3.5" /> Up
                           </span>
+                        ) : isDeleted ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-gray-400" title="Deleted">
+                            <XCircle className="w-3.5 h-3.5" /> Deleted
+                          </span>
                         ) : s.status === 'provisioning' ? (
                           <span className="inline-flex items-center gap-1 text-xs text-amber-600" title="Provisioning">
                             <AlertTriangle className="w-3.5 h-3.5" /> Setup
@@ -160,7 +165,7 @@ export default async function SitesAdminPage({
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1.5">
-                          <span className={statusColor(s.status)}>{s.status}</span>
+                          <span className={statusColor(isDeleted ? 'deleted' : s.status)}>{isDeleted ? 'deleted' : s.status}</span>
                           {s.status === 'failed' && <span className="badge-red text-[10px]">!</span>}
                           {s.status === 'provisioning' && new Date(s.created_at) < new Date(Date.now() - 3600000) && <span className="badge-yellow text-[10px]">Stuck</span>}
                         </div>
