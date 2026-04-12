@@ -2,9 +2,10 @@ export const revalidate = 5;
 import { getAllServices } from '@/services/sites';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { Search, Globe, ExternalLink, CheckCircle, XCircle, Shield, AlertTriangle } from 'lucide-react';
+import { Search, Globe, ExternalLink, CheckCircle, XCircle, Shield, AlertTriangle, Server, Zap, Phone, HardDrive } from 'lucide-react';
 import { ProvisionButton } from '@/components/admin/provision-button';
 import { ImpersonateButton } from '@/components/admin/impersonate-button';
+import { StatCard } from '@/components/admin/stat-card';
 
 const STATUSES = ['active', 'suspended', 'cancelled', 'pending', 'provisioning', 'failed'] as const;
 
@@ -15,6 +16,14 @@ export default async function SitesAdminPage({
 }) {
   const { q, status } = await searchParams;
   const services = await getAllServices({ q, status });
+
+  // Compute stats from data
+  const totalSites = services.length;
+  const activeSites = services.filter((s: any) => s.status === 'active').length;
+  const provisioningSites = services.filter((s: any) => s.status === 'provisioning').length;
+  const suspendedSites = services.filter((s: any) => s.status === 'suspended').length;
+  const withPhone = services.filter((s: any) => s.twilio_phone_number).length;
+  const totalStorageGb = services.reduce((sum: number, s: any) => sum + ((s.config as any)?.storage_gb ?? 25), 0);
 
   return (
     <div>
@@ -27,6 +36,15 @@ export default async function SitesAdminPage({
           className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0">
           <ExternalLink className="w-4 h-4" /> wp.cloud
         </a>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <StatCard label="Total Sites" value={totalSites} icon={Server} color="blue" />
+        <StatCard label="Active" value={activeSites} icon={CheckCircle} color="green" />
+        <StatCard label="Provisioning" value={provisioningSites} icon={Zap} color="amber" />
+        <StatCard label="Suspended" value={suspendedSites} icon={AlertTriangle} color="red" />
+        <StatCard label="With Receptionist" value={withPhone} icon={Phone} color="purple" />
       </div>
 
       {/* Search + Filter */}

@@ -1,8 +1,9 @@
 export const revalidate = 5;
 import { getAllDomains } from '@/services/domains';
 import { formatDate, statusColor } from '@/lib/utils';
-import { Globe, Search, ExternalLink, Server, CreditCard } from 'lucide-react';
+import { Globe, Search, ExternalLink, Server, CreditCard, CheckCircle, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { StatCard } from '@/components/admin/stat-card';
 
 const STATUSES = ['available', 'registered', 'transferring', 'expired', 'pending_dns', 'failed'] as const;
 
@@ -16,6 +17,19 @@ export default async function DomainsPage({
   const search = params.q ?? '';
 
   const domains = await getAllDomains({ q: search, status: statusFilter });
+
+  // Compute stats
+  const totalDomains = domains.length;
+  const registered = domains.filter((d: any) => d.status === 'registered').length;
+  const transferring = domains.filter((d: any) => d.status === 'transferring').length;
+  const now = new Date();
+  const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const expiringSoon = domains.filter((d: any) => {
+    if (d.status !== 'registered' || !d.expiry_date) return false;
+    const exp = new Date(d.expiry_date);
+    return exp <= thirtyDays && exp >= now;
+  }).length;
+  const autoRenew = domains.filter((d: any) => (d.metadata as any)?.auto_renew).length;
 
   return (
     <div>
@@ -33,6 +47,15 @@ export default async function DomainsPage({
           <ExternalLink className="w-4 h-4" />
           OpenSRS Dashboard
         </a>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <StatCard label="Total Domains" value={totalDomains} icon={Globe} color="blue" />
+        <StatCard label="Registered" value={registered} icon={CheckCircle} color="green" />
+        <StatCard label="Transferring" value={transferring} icon={Clock} color="amber" />
+        <StatCard label="Expiring Soon" value={expiringSoon} icon={AlertTriangle} color={expiringSoon > 0 ? 'red' : 'gray'} sub={expiringSoon > 0 ? 'Within 30 days' : ''} />
+        <StatCard label="Auto-Renew" value={autoRenew} icon={RefreshCw} color="purple" />
       </div>
 
       {/* Filters */}
