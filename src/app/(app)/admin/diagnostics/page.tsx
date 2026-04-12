@@ -3,7 +3,8 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase-server';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { AlertTriangle, Server, Globe, CreditCard, CheckCircle, ShoppingCart } from 'lucide-react';
+import { AlertTriangle, Server, Globe, CreditCard, CheckCircle, ShoppingCart, Activity, ScrollText } from 'lucide-react';
+import { StatCard } from '@/components/admin/stat-card';
 import { getAbandonedCheckouts } from '@/services/subscriptions';
 import { ExternalSyncCheck } from '@/components/admin/external-sync-check';
 import { getAdminLogs } from '@/services/admin';
@@ -100,6 +101,15 @@ export default async function DiagnosticsPage() {
           {totalIssues === 0 ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
           {totalIssues === 0 ? 'All clear' : `${totalIssues} issues found`}
         </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <StatCard label="Total Issues" value={totalIssues} icon={AlertTriangle} color={totalIssues > 0 ? 'red' : 'green'} />
+        <StatCard label="Orphaned Subs" value={hostingSubsNoSite.length} icon={CreditCard} color={hostingSubsNoSite.length > 0 ? 'amber' : 'gray'} />
+        <StatCard label="Stuck Sites" value={(stuckSites?.length ?? 0) + (failedSites?.length ?? 0)} icon={Server} color={(stuckSites?.length ?? 0) + (failedSites?.length ?? 0) > 0 ? 'amber' : 'gray'} />
+        <StatCard label="Problem Domains" value={problemDomains?.length ?? 0} icon={Globe} color={(problemDomains?.length ?? 0) > 0 ? 'amber' : 'gray'} />
+        <StatCard label="Abandoned Carts" value={abandonedCheckouts.length} icon={ShoppingCart} color={abandonedCheckouts.length > 0 ? 'amber' : 'gray'} />
       </div>
 
       <SystemTabs>
