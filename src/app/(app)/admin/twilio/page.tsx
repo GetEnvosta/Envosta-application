@@ -5,6 +5,7 @@ import { Phone, PhoneCall, Clock, Coins, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { TwilioTabs, CallTranscript, ReleaseNumberButton } from './twilio-tabs';
 import { AdminBuyNumber } from '@/components/admin/admin-buy-number';
+import { TwilioSyncCheck } from '@/components/admin/twilio-sync-check';
 
 export default async function AdminTwilioPage() {
   const [stats, numbers, calls, usage] = await Promise.all([
@@ -63,6 +64,9 @@ export default async function AdminTwilioPage() {
           );
         })}
       </div>
+
+      {/* Sync Check */}
+      <TwilioSyncCheck />
 
       {/* Tabs */}
       <TwilioTabs>
