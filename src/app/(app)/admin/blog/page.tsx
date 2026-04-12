@@ -2,8 +2,9 @@ export const revalidate = 5;
 import { getAllPosts } from '@/services/blog';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
-import { FileText, Plus, Search } from 'lucide-react';
+import { FileText, Plus, Search, CheckCircle, PenLine, Tag } from 'lucide-react';
 import { SeedBlogButton } from './seed-button';
+import { StatCard } from '@/components/admin/stat-card';
 
 export default async function BlogPostsPage({
   searchParams,
@@ -29,6 +30,10 @@ export default async function BlogPostsPage({
   // Get unique categories
   const categories = Array.from(new Set(allPosts.map((p: any) => p.category).filter(Boolean))) as string[];
 
+  // Stats
+  const published = allPosts.filter((p: any) => p.status === 'published').length;
+  const drafts = allPosts.filter((p: any) => p.status === 'draft').length;
+
   return (
     <div>
       <div className="page-header">
@@ -43,6 +48,39 @@ export default async function BlogPostsPage({
           </Link>
         </div>
       </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Total Posts" value={allPosts.length} icon={FileText} color="blue" />
+        <StatCard label="Published" value={published} icon={CheckCircle} color="green" />
+        <StatCard label="Drafts" value={drafts} icon={PenLine} color={drafts > 0 ? 'amber' : 'gray'} />
+        <StatCard label="Categories" value={categories.length} icon={Tag} color="purple" />
+      </div>
+
+      {/* Category quick links */}
+      {categories.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap mb-6">
+          <Link
+            href="/admin/blog"
+            className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+              !category ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            All
+          </Link>
+          {categories.sort().map(c => (
+            <Link
+              key={c}
+              href={`/admin/blog?category=${encodeURIComponent(c)}`}
+              className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+                category === c ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {c}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Filters */}
       <form method="GET" className="filter-bar flex flex-col sm:flex-row gap-3">
