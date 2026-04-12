@@ -128,12 +128,10 @@ export default async function SitesPage() {
                   {/* Actions */}
                   <div className="flex items-center gap-2 shrink-0">
                     {site.wp_cloud_url && (
-                      <span onClick={e => e.stopPropagation()}>
-                        <a href={`${site.wp_cloud_url}/wp-admin`} target="_blank" rel="noopener noreferrer"
-                          className="text-xs text-gray-500 hover:text-gray-700 px-2.5 py-1.5 rounded-md hover:bg-gray-100 transition-colors">
-                          WP Admin
-                        </a>
-                      </span>
+                      <a href={`${site.wp_cloud_url}/wp-admin`} target="_blank" rel="noopener noreferrer"
+                        className="text-xs text-gray-500 hover:text-gray-700 px-2.5 py-1.5 rounded-md hover:bg-gray-100 transition-colors relative z-10">
+                        WP Admin
+                      </a>
                     )}
                     <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-brand-600 transition-colors" />
                   </div>
