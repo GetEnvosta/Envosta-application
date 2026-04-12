@@ -86,13 +86,22 @@ Deno.serve(async (req) => {
             ? new Date(sub.current_period_start * 1000).toISOString()
             : new Date().toISOString();
 
+          // Map plan slug to included credits
+          const planSlug = plan?.slug ?? "minimum";
+          const creditsByPlan: Record<string, number> = {
+            minimum: 36,
+            growth: 297,
+            performance: 350,
+          };
+          const credits = creditsByPlan[planSlug] ?? 36;
+
           await sb.from("users").update({
             usage_this_cycle: 0,
-            included_credits: 36,
+            included_credits: credits,
             cycle_start: periodStart,
           }).eq("id", cust.id);
 
-          console.log("Metered billing initialized for new subscriber:", cust.id);
+          console.log("Metered billing initialized for new subscriber:", cust.id, "plan:", planSlug, "credits:", credits);
         } catch (err) {
           console.error("Metered billing init error (non-fatal):", err);
         }

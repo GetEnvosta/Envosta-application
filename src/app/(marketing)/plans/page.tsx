@@ -3,16 +3,16 @@ import PricingClient from './pricing-client';
 
 export const metadata: Metadata = {
   title: 'Hosting Plans — Envosta Managed WordPress Hosting',
-  description: 'Managed WordPress hosting plans. Minimum $50/mo, Growth $129/mo, Performance $350/mo CAD.',
+  description: 'Managed WordPress hosting plans. Growth $297 USD/mo with 297 credits included. Enterprise wp.cloud hosting.',
   alternates: { canonical: 'https://envosta.com/plans' },
   openGraph: {
     title: 'Plans & Pricing — Envosta Managed WordPress Hosting',
-    description: 'From $50 CAD/mo. Enterprise wp.cloud hosting with personal onboarding, free SSL, CDN, and daily backups.',
+    description: 'Enterprise wp.cloud hosting from $297 USD/mo. Personal onboarding, free SSL, CDN, daily backups, and 297 credits included.',
     url: 'https://envosta.com/pricing',
   },
   twitter: {
-    title: 'Envosta Pricing — Managed WordPress from $50 CAD/mo',
-    description: 'Enterprise hosting with personal onboarding. Minimum, Growth, and Performance plans.',
+    title: 'Envosta Pricing — Managed WordPress Hosting',
+    description: 'Enterprise hosting with personal onboarding. Growth and Performance plans with credits included.',
   },
 };
 
@@ -36,7 +36,7 @@ export default function PricingPage() {
         .toggle.on{background:var(--gold);border-color:var(--gold)}.toggle.on::after{transform:translateX(24px)}
         .save-badge{display:inline-block;background:rgba(34,197,94,.12);color:#22c55e;font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:100px;margin-left:4px}
         .pricing-grid{padding:0 0 100px}
-        .pricing-grid .c{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+        .pricing-grid .c{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;max-width:860px;margin:0 auto}
         .p-card{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:40px 32px;position:relative;transition:transform .3s,border-color .3s;display:flex;flex-direction:column}
         .p-card:hover{transform:translateY(-4px);border-color:var(--bdr2)}
         .p-card.featured{border-color:var(--gold);background:linear-gradient(180deg,rgba(37,99,235,.06),var(--card) 50%)}
@@ -121,7 +121,7 @@ export default function PricingPage() {
         .faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .4s ease}
         .faq-item.open .faq-a{max-height:300px;padding-bottom:20px}
         .faq-a p{font-size:.84rem;color:var(--t2);line-height:1.7;font-weight:300}
-        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(3,1fr);gap:14px}.p-card{padding:32px 20px}.p-card-price .amount{font-size:2.4rem}.studio-card{grid-template-columns:1fr;gap:40px}.all-plans-grid{grid-template-columns:repeat(3,1fr)}}
+        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:14px}.p-card{padding:32px 20px}.p-card-price .amount{font-size:2.4rem}.studio-card{grid-template-columns:1fr;gap:40px}.all-plans-grid{grid-template-columns:repeat(3,1fr)}}
         @media(max-width:768px){.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:40px 32px}.p-card-price .amount{font-size:3rem}.studio-card{padding:40px 28px}.all-plans-grid{grid-template-columns:1fr}}
       `}</style>
 
@@ -147,53 +147,30 @@ export default function PricingPage() {
       {/* PRICING CARDS */}
       <section className="pricing-grid rv"><div className="c">
 
-        {/* Minimum */}
-        <div className="p-card">
-          <div className="p-card-name">Minimum</div>
-          <div className="p-card-price">
-            <span className="currency">$</span>
-            <span className="amount price-val" data-monthly="50" data-annual="42">50</span>
-            <span className="period">CAD/mo</span>
-          </div>
-          <div className="annual-note" style={{ display: 'none' }}>Billed annually at $500 CAD/yr</div>
-          <p className="p-card-desc">Everything you need to launch a fast, secure WordPress site with hands-on support.</p>
-          <ul>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>10 GB SSD storage</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>50 GB bandwidth</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Staging environment</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Daily backups</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Email support</li>
-            <li className="feat-label">Onboarding</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>1-on-1 setup consultation</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>WordPress install &amp; configuration</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Domain &amp; SSL setup</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Free site migration</li>
-          </ul>
-          <a href="/get-started?plan=minimum" className="bp ghost">Get Started</a>
-        </div>
-
         {/* Growth (Featured) */}
         <div className="p-card featured">
           <div className="p-card-name">Growth</div>
           <div className="p-card-price">
             <span className="currency">$</span>
-            <span className="amount price-val" data-monthly="129" data-annual="108">129</span>
-            <span className="period">CAD/mo</span>
+            <span className="amount price-val" data-monthly="297" data-annual="248">297</span>
+            <span className="period">USD/mo</span>
           </div>
-          <div className="annual-note" style={{ display: 'none' }}>Billed annually at $1,290 CAD/yr</div>
-          <p className="p-card-desc">For growing businesses that need more storage, staging, and hands-on support.</p>
+          <div className="annual-note" style={{ display: 'none' }}>Billed annually at $2,970 USD/yr</div>
+          <p className="p-card-desc">Everything you need to launch and grow. 297 credits included — covers hosting, AI tools, and add-ons.</p>
           <ul>
+            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>297 credits included monthly</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>30 GB SSD storage</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>200 GB bandwidth</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Staging environment</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Daily backups</li>
+            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>AI receptionist &amp; tools</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Email support</li>
             <li className="feat-label">Onboarding</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Everything in Minimum</li>
+            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>1-on-1 setup consultation</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>SEO audit &amp; configuration</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Plugin recommendations &amp; setup</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Performance optimization</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>WooCommerce setup</li>
+            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Free site migration</li>
           </ul>
           <a href="/get-started?plan=growth" className="bp blue">Get Started</a>
         </div>
@@ -225,7 +202,11 @@ export default function PricingPage() {
           <a href="/get-started?plan=performance" className="bp ghost">Get Started</a>
         </div>
 
-      </div></section>
+      </div>
+      <p style={{ textAlign: 'center', marginTop: 28, fontSize: '.82rem', color: 'var(--t3)', fontWeight: 300 }}>
+        Just need a simple WordPress site? <a href="/get-started?plan=minimum" style={{ color: 'var(--gold)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>Talk to us about our Starter plan</a> — starting at $50 CAD/mo.
+      </p>
+      </section>
 
       {/* STUDIO PLAN */}
       <section className="studio rv"><div className="c">
@@ -345,28 +326,29 @@ export default function PricingPage() {
           <thead>
             <tr>
               <th>Feature</th>
-              <th>Minimum</th>
               <th className="feat">Growth</th>
               <th>Performance</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td>WordPress sites</td><td>1</td><td>1</td><td>1</td></tr>
-            <tr><td>SSD storage</td><td>10 GB</td><td>30 GB</td><td>100 GB</td></tr>
-            <tr><td>Bandwidth</td><td>50 GB</td><td>200 GB</td><td>Unlimited</td></tr>
-            <tr><td>Free SSL certificate</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Global CDN</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Staging environment</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Daily backups</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Web application firewall</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>DDoS protection</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Personal onboarding</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>SEO audit &amp; setup</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>WooCommerce setup</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Custom theme included</td><td className="dash">{'\u2014'}</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Dedicated account manager</td><td className="dash">{'\u2014'}</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Support</td><td>Email</td><td>Email</td><td>Priority</td></tr>
-            <tr><td>Uptime SLA</td><td>99.99%</td><td>99.99%</td><td>99.99%</td></tr>
+            <tr><td>Credits included</td><td>297/mo</td><td>350/mo</td></tr>
+            <tr><td>WordPress sites</td><td>1</td><td>1</td></tr>
+            <tr><td>SSD storage</td><td>30 GB</td><td>100 GB</td></tr>
+            <tr><td>Bandwidth</td><td>200 GB</td><td>Unlimited</td></tr>
+            <tr><td>Free SSL certificate</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>Global CDN</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>Staging environment</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>Daily backups</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>Web application firewall</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>DDoS protection</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>AI receptionist &amp; tools</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>Personal onboarding</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>SEO audit &amp; setup</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>WooCommerce setup</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>Custom theme included</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>Dedicated account manager</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>Support</td><td>Email</td><td>Priority (4hr)</td></tr>
+            <tr><td>Uptime SLA</td><td>99.99%</td><td>99.99%</td></tr>
           </tbody>
         </table>
       </div></section>

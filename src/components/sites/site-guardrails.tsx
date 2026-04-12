@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, Shield, Server, HardDrive, Zap, Brain, TrendingUp } from 'lucide-react';
+import { Loader2, Settings, Server, HardDrive, Zap, Brain, TrendingUp, ChevronDown } from 'lucide-react';
 
 export function SiteGuardrails({ siteId }: { siteId: string }) {
   const [config, setConfig] = useState({
@@ -56,16 +56,26 @@ export function SiteGuardrails({ siteId }: { siteId: string }) {
     setSaving(false);
   }
 
-  if (loading) return <div className="animate-pulse h-32 bg-gray-100 rounded" />;
+  const [open, setOpen] = useState(false);
+
+  if (loading) return <div className="animate-pulse h-8 bg-gray-100 rounded" />;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Shield className="w-4 h-4 text-brand-600" />
-        <h3 className="text-sm font-semibold text-gray-900">Site Resources</h3>
-      </div>
-      <p className="text-xs text-gray-500 -mt-2">
-        Scale your site's resources. Changes affect your monthly usage and are billed at cycle end.
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between py-1 group"
+      >
+        <div className="flex items-center gap-2">
+          <Settings className="w-4 h-4 text-gray-400 group-hover:text-brand-600 transition-colors" />
+          <h3 className="text-sm font-semibold text-gray-900">Advanced Settings</h3>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && <div className="space-y-4 pt-4 border-t border-gray-100 mt-3">
+      <p className="text-xs text-gray-500">
+        Scale your site&apos;s resources. Changes affect your monthly credit usage.
       </p>
 
       <div className="grid grid-cols-2 gap-4">
@@ -137,6 +147,7 @@ export function SiteGuardrails({ siteId }: { siteId: string }) {
           {saved ? 'Saved & Applied!' : 'Save & Apply'}
         </button>
       </div>
+    </div>}
     </div>
   );
 }
