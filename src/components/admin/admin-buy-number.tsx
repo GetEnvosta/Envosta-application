@@ -5,10 +5,10 @@ import { Loader2, Plus, Search, X, Phone } from 'lucide-react';
 
 export function AdminBuyNumber() {
   const [open, setOpen] = useState(false);
-  const [siteSearch, setSiteSearch] = useState('');
-  const [sites, setSites] = useState<any[]>([]);
-  const [searchingSites, setSearchingSites] = useState(false);
-  const [selectedSite, setSelectedSite] = useState<any>(null);
+  const [search, setSearch] = useState('');
+  const [users, setUsers] = useState<any[]>([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [country, setCountry] = useState('CA');
   const [areaCode, setAreaCode] = useState('');
   const [searching, setSearching] = useState(false);
@@ -16,16 +16,15 @@ export function AdminBuyNumber() {
   const [buying, setBuying] = useState<string | null>(null);
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
-  async function searchSites() {
-    if (!siteSearch.trim()) return;
-    setSearchingSites(true);
+  async function searchUsers() {
+    if (!search.trim()) return;
+    setSearchingUsers(true);
     try {
-      // Use search-users endpoint to find sites (search by site label via admin services)
-      const res = await fetch(`/api/admin/search-sites?q=${encodeURIComponent(siteSearch.trim())}`);
-      if (res.ok) setSites(await res.json());
-      else setSites([]);
-    } catch { setSites([]); }
-    setSearchingSites(false);
+      const res = await fetch(`/api/admin/search-users?q=${encodeURIComponent(search.trim())}`);
+      if (res.ok) setUsers(await res.json());
+      else setUsers([]);
+    } catch { setUsers([]); }
+    setSearchingUsers(false);
   }
 
   async function searchNumbers() {
@@ -41,18 +40,18 @@ export function AdminBuyNumber() {
   }
 
   async function buyNumber(phoneNumber: string) {
-    if (!selectedSite) return;
+    if (!selectedUser) return;
     setBuying(phoneNumber);
     setResult(null);
     try {
       const res = await fetch('/api/admin/buy-number', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber, siteId: selectedSite.id }),
+        body: JSON.stringify({ phoneNumber, userId: selectedUser.id }),
       });
       const data = await res.json();
       if (res.ok) {
-        setResult({ ok: true, msg: `Purchased ${phoneNumber} for "${selectedSite.label}"` });
+        setResult({ ok: true, msg: `Purchased ${phoneNumber} for ${selectedUser.full_name || selectedUser.email}` });
         setNumbers([]);
         setTimeout(() => window.location.reload(), 1500);
       } else {
@@ -83,33 +82,32 @@ export function AdminBuyNumber() {
           className="p-1 text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
       </div>
 
-      {/* Site search */}
+      {/* User search */}
       <div>
-        <label className="block text-xs text-gray-500 mb-1">Assign to Site</label>
-        {selectedSite ? (
+        <label className="block text-xs text-gray-500 mb-1">Assign to User</label>
+        {selectedUser ? (
           <div className="flex items-center gap-2 bg-indigo-50 px-3 py-2 rounded-lg">
-            <span className="text-sm font-medium text-gray-900">{selectedSite.label}</span>
-            <span className="text-xs text-gray-400">{selectedSite.user_email || ''}</span>
-            <button onClick={() => { setSelectedSite(null); setSites([]); }} className="ml-auto text-xs text-red-500">Change</button>
+            <span className="text-sm font-medium text-gray-900">{selectedUser.full_name || 'Unnamed'}</span>
+            <span className="text-xs text-gray-400">{selectedUser.email}</span>
+            <button onClick={() => { setSelectedUser(null); setUsers([]); }} className="ml-auto text-xs text-red-500">Change</button>
           </div>
         ) : (
           <div className="flex gap-2">
-            <input type="text" value={siteSearch} onChange={e => setSiteSearch(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); searchSites(); } }}
-              placeholder="Search sites by name..." className="flex-1 input text-sm" />
-            <button onClick={searchSites} disabled={searchingSites} className="btn-admin px-3">
-              {searchingSites ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); searchUsers(); } }}
+              placeholder="Search by name or email..." className="flex-1 input text-sm" />
+            <button onClick={searchUsers} disabled={searchingUsers} className="btn-admin px-3">
+              {searchingUsers ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
             </button>
           </div>
         )}
-        {sites.length > 0 && !selectedSite && (
+        {users.length > 0 && !selectedUser && (
           <div className="mt-1 border border-gray-200 rounded-lg max-h-32 overflow-auto divide-y divide-gray-100">
-            {sites.map((s: any) => (
-              <button key={s.id} onClick={() => setSelectedSite(s)}
+            {users.map((u: any) => (
+              <button key={u.id} onClick={() => setSelectedUser(u)}
                 className="w-full px-3 py-2 text-left text-xs hover:bg-indigo-50 transition-colors">
-                <span className="font-medium text-gray-900">{s.label}</span>
-                <span className="text-gray-400 ml-2">{s.user_name || s.user_email || ''}</span>
-                {s.twilio_phone_number && <span className="text-red-400 ml-2">(already has number)</span>}
+                <span className="font-medium text-gray-900">{u.full_name || 'Unnamed'}</span>
+                <span className="text-gray-400 ml-2">{u.email}</span>
               </button>
             ))}
           </div>
@@ -117,7 +115,7 @@ export function AdminBuyNumber() {
       </div>
 
       {/* Number search */}
-      {selectedSite && (
+      {selectedUser && (
         <div className="space-y-3">
           <div className="flex gap-2">
             <select value={country} onChange={e => setCountry(e.target.value)} className="input w-auto text-sm">

@@ -25,28 +25,44 @@ export async function POST(req: Request) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (profile?.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 });
 
-  const { phoneNumber, siteId } = await req.json();
-  if (!phoneNumber || !siteId) return NextResponse.json({ error: 'phoneNumber and siteId required' }, { status: 400 });
+  const { phoneNumber, userId } = await req.json();
+  if (!phoneNumber || !userId) return NextResponse.json({ error: 'phoneNumber and userId required' }, { status: 400 });
 
-  // Verify site exists
-  const { data: site } = await supabase.from('sites').select('id, label, user_id, twilio_phone_number').eq('id', siteId).single();
-  if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 });
-  if (site.twilio_phone_number) return NextResponse.json({ error: 'Site already has a phone number' }, { status: 409 });
+  // Verify user exists
+  const { data: targetUser } = await supabase.from('users').select('id, full_name, email').eq('id', userId).single();
+  if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+  // Find user's first active site to attach the number to (webhook needs it on a site)
+  const { data: userSite } = await supabase
+    .from('sites')
+    .select('id, label, twilio_phone_number')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .is('twilio_phone_number', null)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (!userSite) {
+    return NextResponse.json({
+      error: 'User has no active site without a phone number. Create a site first or free up an existing number.',
+    }, { status: 400 });
+  }
 
   try {
-    const result = await purchasePhoneNumber(phoneNumber, siteId);
+    const result = await purchasePhoneNumber(phoneNumber, userSite.id);
 
     // Log
     await supabase.from('logs').insert({
       user_id: user.id,
-      site_id: siteId,
+      site_id: userSite.id,
       action: 'admin.number_purchased',
-      details: `Admin purchased ${phoneNumber} for site "${site.label}"`,
+      details: `Admin purchased ${phoneNumber} for ${targetUser.full_name || targetUser.email} (site: ${userSite.label})`,
       level: 'info',
-      metadata: { phone_number: phoneNumber, site_owner: site.user_id },
+      metadata: { phone_number: phoneNumber, target_user: userId, site_id: userSite.id },
     });
 
-    return NextResponse.json({ success: true, ...result });
+    return NextResponse.json({ success: true, siteId: userSite.id, siteLabel: userSite.label, ...result });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
