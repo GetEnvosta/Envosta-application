@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Users, Server, Globe, CreditCard, ScrollText, BarChart3,
-  Activity, LogOut, Menu, X, ArrowLeft, Tag, PenSquare, MessageSquare, Mail, Percent, AlertTriangle, DollarSign, Paintbrush, Coins, Handshake,
+  Activity, LogOut, Menu, X, ArrowLeft, Tag, PenSquare, MessageSquare, Mail, Percent, AlertTriangle, DollarSign, Paintbrush, Coins, Handshake, Phone,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Avatar } from '@/components/ui/avatar';
@@ -18,6 +18,7 @@ const allNav = [
   { name: 'Domains', href: '/admin/domains', icon: Globe },
   { name: 'Tickets', href: '/admin/tickets', icon: MessageSquare },
   { name: 'Billing', href: '/admin/billing', icon: CreditCard },
+  { name: 'Twilio', href: '/admin/twilio', icon: Phone },
   { name: 'Reporting', href: '/admin/reporting', icon: BarChart3 },
   { name: 'Blog', href: '/admin/blog', icon: PenSquare },
   { name: 'System', href: '/admin/diagnostics', icon: Activity },
