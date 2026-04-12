@@ -1,5 +1,9 @@
 import { supabaseAdmin, TWILIO_AUTH_TOKEN, SUPABASE_URL, cors, json, error } from "../_shared/deps.ts";
 
+// Cloud Run relay for long-running WebSocket connections (6 min calls)
+// Falls back to Supabase Edge Function WS if not set
+const TWILIO_RELAY_URL = Deno.env.get("TWILIO_RELAY_URL") ?? "";
+
 /**
  * Twilio Voice Webhook — handles incoming calls.
  * Looks up the site by phone number, returns TwiML to start ConversationRelay.
@@ -89,7 +93,9 @@ Deno.serve(async (req) => {
     const config = (site.receptionist_config as any) ?? {};
     const greeting = config.greeting_message || `Thanks for calling ${config.business_name || site.label || "us"}! How can I help you today?`;
     const voice = config.voice || "Google.en-US-Journey-F";
-    const wsUrl = `${SUPABASE_URL.replace("https://", "wss://")}/functions/v1/twilio-voice-ws`;
+    // Use Cloud Run relay for reliable long-running WebSocket connections
+    // Falls back to Supabase Edge Function (has ~150s timeout limit)
+    const wsUrl = TWILIO_RELAY_URL || `${SUPABASE_URL.replace("https://", "wss://")}/functions/v1/twilio-voice-ws`;
 
     // Build custom parameters to pass to WebSocket handler
     const customParams = JSON.stringify({
