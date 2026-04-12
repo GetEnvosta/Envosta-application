@@ -6,11 +6,10 @@ import { createClient } from '@/lib/supabase-server';
 export async function getTwilioStats() {
   const supabase = await createClient();
 
-  // Count active phone numbers
+  // Count phone numbers from phone_numbers table
   const { count: activeNumbers } = await supabase
-    .from('sites')
-    .select('id', { count: 'exact', head: true })
-    .not('twilio_phone_number', 'is', null);
+    .from('phone_numbers')
+    .select('id', { count: 'exact', head: true });
 
   // Get call logs this month
   const monthStart = new Date();
@@ -43,25 +42,26 @@ export async function getTwilioStats() {
 }
 
 /**
- * Get all sites with phone numbers + owner info.
+ * Get all phone numbers from phone_numbers table + owner/site info.
  */
 export async function getAllPhoneNumbers() {
   const supabase = await createClient();
 
   const { data } = await supabase
-    .from('sites')
-    .select('id, label, twilio_phone_number, receptionist_enabled, user_id, users(full_name, email)')
-    .not('twilio_phone_number', 'is', null)
+    .from('phone_numbers')
+    .select('id, phone_number, enabled, site_id, user_id, created_at, users(full_name, email), sites(id, label)')
     .order('created_at', { ascending: false });
 
-  return (data ?? []).map((s: any) => ({
-    id: s.id,
-    label: s.label,
-    phone_number: s.twilio_phone_number,
-    enabled: s.receptionist_enabled ?? false,
-    user_id: s.user_id,
-    user_name: s.users?.full_name ?? '',
-    user_email: s.users?.email ?? '',
+  return (data ?? []).map((p: any) => ({
+    id: p.id,
+    phone_number: p.phone_number,
+    enabled: p.enabled ?? false,
+    site_id: p.site_id,
+    site_label: p.sites?.label ?? null,
+    user_id: p.user_id,
+    user_name: p.users?.full_name ?? '',
+    user_email: p.users?.email ?? '',
+    created_at: p.created_at,
   }));
 }
 
@@ -134,11 +134,10 @@ export async function getTwilioUsageByUser() {
     .eq('action', 'receptionist.call')
     .gte('created_at', monthStart.toISOString());
 
-  // Get number counts per user
+  // Get number counts per user from phone_numbers table
   const { data: numberSites } = await supabase
-    .from('sites')
-    .select('user_id')
-    .not('twilio_phone_number', 'is', null);
+    .from('phone_numbers')
+    .select('user_id');
 
   // Aggregate per user
   const userMap = new Map<string, {

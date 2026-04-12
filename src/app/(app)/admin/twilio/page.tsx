@@ -94,8 +94,8 @@ function NumbersTab({ numbers }: { numbers: any[] }) {
           <thead>
             <tr className="border-b border-gray-100">
               <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Phone Number</th>
-              <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Site</th>
               <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Owner</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Linked Site</th>
               <th className="px-5 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
               <th className="px-5 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Cost</th>
               <th className="px-5 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
@@ -106,15 +106,21 @@ function NumbersTab({ numbers }: { numbers: any[] }) {
               <tr key={n.id} className="hover:bg-gray-50">
                 <td className="px-5 py-3 font-mono text-sm font-medium text-gray-900">{n.phone_number}</td>
                 <td className="px-5 py-3">
-                  <Link href={`/admin/services/${n.id}`} className="text-brand-600 hover:text-brand-700 font-medium">
-                    {n.label}
-                  </Link>
-                </td>
-                <td className="px-5 py-3">
                   <div>
-                    <p className="text-sm text-gray-900">{n.user_name}</p>
+                    <Link href={`/admin/customers/${n.user_id}`} className="text-sm text-brand-600 hover:text-brand-700 font-medium">
+                      {n.user_name || 'Unnamed'}
+                    </Link>
                     <p className="text-xs text-gray-400">{n.user_email}</p>
                   </div>
+                </td>
+                <td className="px-5 py-3">
+                  {n.site_id ? (
+                    <Link href={`/admin/services/${n.site_id}`} className="text-xs text-brand-600 hover:text-brand-700 font-medium">
+                      {n.site_label}
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-gray-400">Not linked</span>
+                  )}
                 </td>
                 <td className="px-5 py-3 text-center">
                   <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -128,7 +134,7 @@ function NumbersTab({ numbers }: { numbers: any[] }) {
                 </td>
                 <td className="px-5 py-3 text-right text-xs text-gray-500">2 cr/mo</td>
                 <td className="px-5 py-3 text-right">
-                  <ReleaseNumberButton siteId={n.id} phoneNumber={n.phone_number} />
+                  <ReleaseNumberButton phoneNumberId={n.id} phoneNumber={n.phone_number} />
                 </td>
               </tr>
             ))}

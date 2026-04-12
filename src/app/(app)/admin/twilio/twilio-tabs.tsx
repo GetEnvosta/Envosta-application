@@ -76,7 +76,7 @@ export function CallTranscript({ transcript }: { transcript: { speaker: string; 
 /**
  * Release number button — used in the Numbers tab.
  */
-export function ReleaseNumberButton({ siteId, phoneNumber }: { siteId: string; phoneNumber: string }) {
+export function ReleaseNumberButton({ phoneNumberId, phoneNumber }: { phoneNumberId: string; phoneNumber: string }) {
   const [releasing, setReleasing] = useState(false);
 
   async function handleRelease() {
@@ -86,7 +86,7 @@ export function ReleaseNumberButton({ siteId, phoneNumber }: { siteId: string; p
       const res = await fetch('/api/admin/release-number', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteId }),
+        body: JSON.stringify({ phoneNumberId }),
       });
       if (res.ok) {
         window.location.reload();

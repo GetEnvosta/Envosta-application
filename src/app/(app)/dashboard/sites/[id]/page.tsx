@@ -14,25 +14,36 @@ import {
   Shield, Zap, Key, Calendar, User, Coins, Settings, Trash2,
 } from 'lucide-react';
 import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-switcher';
+import { ConnectedNumberSwitcher } from '@/components/sites/connected-number-switcher';
 import { SiteAccess } from '@/components/sites/site-access';
 import { SiteIp } from '@/components/sites/site-ip';
 import { SiteGuardrails } from '@/components/sites/site-guardrails';
 import { ReceptionistConfig } from '@/components/sites/receptionist-config';
 import { SiteUsage } from '@/components/sites/site-usage';
+import { Phone } from 'lucide-react';
+import { createClient } from '@/lib/supabase-server';
 
 export default async function SiteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const userId = await getEffectiveUserId();
   if (!userId) notFound();
 
-  const [site, domains, usageMeter] = await Promise.all([
+  const supabase = await createClient();
+
+  const [site, domains, usageMeter, { data: phoneNumbers }] = await Promise.all([
     getSiteById(id),
     getUserDomainsForSite(userId),
     getUsageMeter(userId),
+    supabase
+      .from('phone_numbers')
+      .select('id, phone_number, site_id')
+      .eq('user_id', userId)
+      .order('created_at'),
   ]);
   if (!site) notFound();
 
   const connectedDomain = (domains ?? []).find((d: any) => d.site_id === id) ?? null;
+  const connectedNumber = (phoneNumbers ?? []).find((n: any) => n.site_id === id) ?? null;
   const status: string = site.status ?? 'provisioning';
   const meta = (site as any).metadata ?? {};
   const config = (site as any).config ?? {};
@@ -161,6 +172,15 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Connected Domain</p>
             </div>
             <ConnectedDomainSwitcher siteId={id} currentDomainId={connectedDomain?.id ?? null} domains={domains ?? []} />
+          </div>
+
+          {/* Phone Number */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Phone className="w-3.5 h-3.5 text-gray-400" />
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Connected Phone Number</p>
+            </div>
+            <ConnectedNumberSwitcher siteId={id} currentNumberId={connectedNumber?.id ?? null} numbers={phoneNumbers ?? []} />
           </div>
 
           {/* Performance */}

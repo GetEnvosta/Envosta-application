@@ -2,9 +2,12 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
-import { purchasePhoneNumber } from '@/services/twilio';
 
 export const dynamic = 'force-dynamic';
+
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID ?? '';
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN ?? '';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 
 export async function POST(req: Request) {
   const cookieStore = await cookies();
@@ -32,37 +35,59 @@ export async function POST(req: Request) {
   const { data: targetUser } = await supabase.from('users').select('id, full_name, email').eq('id', userId).single();
   if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-  // Find user's first active site to attach the number to (webhook needs it on a site)
-  const { data: userSite } = await supabase
-    .from('sites')
-    .select('id, label, twilio_phone_number')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .is('twilio_phone_number', null)
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  // Check number isn't already owned
+  const { data: existing } = await supabase.from('phone_numbers').select('id').eq('phone_number', phoneNumber).maybeSingle();
+  if (existing) return NextResponse.json({ error: 'Number already owned' }, { status: 409 });
 
-  if (!userSite) {
-    return NextResponse.json({
-      error: 'User has no active site without a phone number. Create a site first or free up an existing number.',
-    }, { status: 400 });
-  }
-
+  // Buy from Twilio
   try {
-    const result = await purchasePhoneNumber(phoneNumber, userSite.id);
+    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers.json`;
+    const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64');
+
+    const voiceUrl = `${SUPABASE_URL}/functions/v1/twilio-voice`;
+
+    const body = new URLSearchParams({
+      PhoneNumber: phoneNumber,
+      VoiceUrl: voiceUrl,
+      VoiceMethod: 'POST',
+      StatusCallback: voiceUrl,
+      StatusCallbackMethod: 'POST',
+    });
+
+    const twilioRes = await fetch(twilioUrl, {
+      method: 'POST',
+      headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+
+    if (!twilioRes.ok) {
+      const err = await twilioRes.json();
+      return NextResponse.json({ error: err.message || 'Twilio purchase failed' }, { status: 500 });
+    }
+
+    const twilioData = await twilioRes.json();
+
+    // Insert into phone_numbers table (not linked to any site yet)
+    const { data: phoneRecord, error: insertErr } = await supabase.from('phone_numbers').insert({
+      user_id: userId,
+      phone_number: phoneNumber,
+      enabled: true,
+      twilio_sid: twilioData.sid ?? null,
+      config: {},
+    }).select('id').single();
+
+    if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 500 });
 
     // Log
     await supabase.from('logs').insert({
       user_id: user.id,
-      site_id: userSite.id,
       action: 'admin.number_purchased',
-      details: `Admin purchased ${phoneNumber} for ${targetUser.full_name || targetUser.email} (site: ${userSite.label})`,
+      details: `Admin purchased ${phoneNumber} for ${targetUser.full_name || targetUser.email}`,
       level: 'info',
-      metadata: { phone_number: phoneNumber, target_user: userId, site_id: userSite.id },
+      metadata: { phone_number: phoneNumber, target_user: userId, phone_number_id: phoneRecord.id },
     });
 
-    return NextResponse.json({ success: true, siteId: userSite.id, siteLabel: userSite.label, ...result });
+    return NextResponse.json({ success: true, phoneNumber, id: phoneRecord.id });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
