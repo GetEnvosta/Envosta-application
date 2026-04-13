@@ -1,0 +1,50 @@
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322
+major_version = 15
+
+[auth]
+enabled = true
+site_url = "https://envosta-application.vercel.app"
+additional_redirect_urls = ["https://envosta-application.vercel.app/auth/callback"]
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+
+# Edge function JWT verification — disabled for functions that handle auth internally.
+# This prevents the platform-level JWT check from rejecting valid tokens before
+# our function code runs. Auth is enforced in the function code itself.
+[functions.site-info]
+verify_jwt = false
+
+[functions.ai-draft-reply]
+verify_jwt = false
+
+[functions.ai-intake-summary]
+verify_jwt = false
+
+[functions.ai-onboarding-brief]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.provision-hosting]
+verify_jwt = false
+
+[functions.register-domain]
+verify_jwt = false
+
+[functions.health-check]
+verify_jwt = false
+
+[functions.log-action]
+verify_jwt = false
+
+[functions.stripe-checkout]
+verify_jwt = false

@@ -129,7 +129,14 @@ wss.on("connection", (socket, req) => {
           }
 
           maxCallMs = (config.max_call_minutes || 6) * 60 * 1000;
-          systemPrompt = buildSystemPrompt(config, siteLabel, siteDomain);
+
+          // Load Google Calendar availability if connected
+          let calendarContext = null;
+          if (userId) {
+            calendarContext = await getCalendarAvailability(sb, userId, config);
+          }
+
+          systemPrompt = buildSystemPrompt(config, siteLabel, siteDomain, calendarContext);
           break;
         }
 
@@ -308,7 +315,7 @@ function sendEnd(socket) {
   }
 }
 
-function buildSystemPrompt(config, siteLabel, domain) {
+function buildSystemPrompt(config, siteLabel, domain, calendarContext) {
   // config.name = business profile field; config.business_name = receptionist_config field
   const businessName = config.business_name || config.name || siteLabel || "our business";
   const businessHours = config.business_hours;
@@ -331,6 +338,19 @@ function buildSystemPrompt(config, siteLabel, domain) {
   if (config.booking_instructions) parts.push(`Booking instructions: ${config.booking_instructions}`);
   if (config.custom_prompt) parts.push(`Additional instructions: ${config.custom_prompt}`);
 
+  // Inject real-time calendar availability
+  if (calendarContext) {
+    parts.push(
+      `\n--- LIVE CALENDAR AVAILABILITY ---`,
+      calendarContext,
+      `If the caller wants to book an appointment, offer them one of these available times.`,
+      `Confirm the caller's name and phone number when booking.`,
+      `--- END AVAILABILITY ---`,
+    );
+  } else {
+    parts.push(`If the caller wants to book an appointment, let them know someone will follow up to confirm a time.`);
+  }
+
   parts.push(
     `If the caller wants to leave a message, collect their name, phone number, and a brief message.`,
     `Be conversational and natural — sound like a real person, not a robot.`,
@@ -338,6 +358,153 @@ function buildSystemPrompt(config, siteLabel, domain) {
   );
 
   return parts.join("\n");
+}
+
+/**
+ * Fetch Google Calendar free/busy for the user and format for the AI.
+ * Returns a human-readable availability string, or null if not connected.
+ */
+async function getCalendarAvailability(sb, userId, config) {
+  try {
+    // Check if user has an active Google Calendar integration
+    const { data: integration } = await sb
+      .from("user_integrations")
+      .select("id, credentials_vault_id, expires_at, connection_config, status")
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .eq("enabled", true)
+      .is("deleted_at", null)
+      .maybeSingle(); // get first google_calendar integration
+
+    if (!integration?.credentials_vault_id) return null;
+
+    // Read credentials from Vault
+    const { data: secretData, error: secretErr } = await sb.rpc("get_integration_secret", {
+      p_id: integration.credentials_vault_id,
+    });
+    if (secretErr || !secretData) return null;
+
+    let tokens;
+    try { tokens = JSON.parse(secretData); } catch { return null; }
+
+    // Refresh token if expired (with 60s buffer)
+    let accessToken = tokens.access_token;
+    if (tokens.expires_at && Date.now() > tokens.expires_at - 60000) {
+      if (!tokens.refresh_token) return null;
+      try {
+        const refreshed = await refreshGoogleToken(tokens.refresh_token);
+        accessToken = refreshed.access_token;
+        const newTokens = { ...tokens, access_token: refreshed.access_token, expires_at: refreshed.expires_at };
+        // Update vault + DB (fire and forget)
+        sb.rpc("update_integration_secret", {
+          p_id: integration.credentials_vault_id,
+          p_secret: JSON.stringify(newTokens),
+          p_name: `integration-${userId}-google_calendar`,
+        }).catch(() => {});
+        sb.from("user_integrations").update({
+          expires_at: new Date(refreshed.expires_at).toISOString(),
+          last_refresh_at: new Date().toISOString(),
+          refresh_attempts: 0,
+        }).eq("id", integration.id).catch(() => {});
+      } catch (err) {
+        console.error("Token refresh failed:", err.message);
+        sb.from("user_integrations").update({
+          status: "needs_reauth",
+          last_error_code: "refresh_failed",
+          last_error_at: new Date().toISOString(),
+        }).eq("id", integration.id).catch(() => {});
+        return null;
+      }
+    }
+
+    const calendarId = integration.connection_config?.selected_calendar_id || "primary";
+
+    // Fetch free/busy for next 7 days
+    const timeMin = new Date().toISOString();
+    const timeMax = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const fbRes = await fetch("https://www.googleapis.com/calendar/v3/freeBusy", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        timeMin,
+        timeMax,
+        items: [{ id: calendarId }],
+      }),
+    });
+
+    if (!fbRes.ok) return null;
+    const fbData = await fbRes.json();
+    const busySlots = fbData.calendars?.[calendarId]?.busy ?? [];
+
+    // Update last_used_at
+    sb.from("user_integrations").update({ last_used_at: new Date().toISOString() })
+      .eq("id", integration.id).catch(() => {});
+
+    // Format availability
+    return formatAvailability(busySlots, config);
+  } catch (err) {
+    console.error("getCalendarAvailability error:", err.message);
+    return null;
+  }
+}
+
+async function refreshGoogleToken(refreshToken) {
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      refresh_token: refreshToken,
+      client_id: process.env.GOOGLE_CALENDAR_CLIENT_ID || "",
+      client_secret: process.env.GOOGLE_CALENDAR_CLIENT_SECRET || "",
+      grant_type: "refresh_token",
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error_description || data.error);
+  return { access_token: data.access_token, expires_at: Date.now() + data.expires_in * 1000 };
+}
+
+function formatAvailability(busySlots, config) {
+  const hoursStart = config.availability_start_hour || 9;
+  const hoursEnd = config.availability_end_hour || 17;
+  const now = new Date();
+  const days = {};
+
+  for (let d = 0; d < 7; d++) {
+    const date = new Date(now);
+    date.setDate(date.getDate() + d);
+    const dow = date.getDay();
+    if (dow === 0 || dow === 6) continue; // skip weekends
+
+    const label = date.toLocaleDateString("en-CA", { weekday: "long", month: "short", day: "numeric" });
+    const slots = [];
+
+    for (let h = hoursStart; h < hoursEnd; h++) {
+      for (const min of [0, 30]) {
+        const slotStart = new Date(date);
+        slotStart.setHours(h, min, 0, 0);
+        if (slotStart < now) continue;
+
+        const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000);
+        const busy = busySlots.some(b => {
+          const bs = new Date(b.start), be = new Date(b.end);
+          return slotStart < be && slotEnd > bs;
+        });
+        if (!busy) {
+          slots.push(slotStart.toLocaleTimeString("en-CA", { hour: "numeric", minute: "2-digit", hour12: true }));
+        }
+      }
+    }
+    if (slots.length > 0) days[label] = slots;
+  }
+
+  const lines = Object.entries(days).slice(0, 4).map(([day, s]) => `${day}: ${s.join(", ")}`);
+  if (lines.length === 0) return "No available appointment slots in the next week.";
+  return `Available appointment slots:\n${lines.join("\n")}`;
 }
 
 async function callClaude(systemPrompt, messages) {

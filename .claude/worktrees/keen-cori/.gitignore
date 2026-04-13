@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.env
+.env.local
+.env.production
+.supabase/
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
+supabase/.temp/
