@@ -25,6 +25,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <ImpersonationBanner
             targetName={impersonation.full_name}
             targetEmail={impersonation.email}
+            mode={impersonation.mode}
           />
         ) : null
       }

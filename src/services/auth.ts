@@ -10,8 +10,8 @@ export async function getCurrentUser() {
 
 /**
  * Returns the effective user ID for dashboard pages.
- * If an admin is impersonating a customer, returns the impersonated user's ID.
- * Otherwise returns the authenticated user's ID.
+ * Admins can impersonate any customer.
+ * Partners can manage (impersonate) their own clients.
  */
 export async function getEffectiveUserId(): Promise<string | null> {
   const user = await getCurrentUser();
@@ -21,15 +21,24 @@ export async function getEffectiveUserId(): Promise<string | null> {
   const impersonating = cookieStore.get('impersonating_user_id')?.value;
 
   if (impersonating) {
-    // Verify the real user is an admin
     const supabase = await createClient();
     const { data: profile } = await supabase
       .from('users')
       .select('role')
       .eq('id', user.id)
       .single();
-    if (profile?.role === 'admin') {
-      return impersonating;
+
+    // Admin can impersonate anyone
+    if (profile?.role === 'admin') return impersonating;
+
+    // Partner can only manage their own clients
+    if (profile?.role === 'partner') {
+      const { data: target } = await supabase
+        .from('users')
+        .select('partner_id')
+        .eq('id', impersonating)
+        .single();
+      if (target?.partner_id === user.id) return impersonating;
     }
   }
 
@@ -37,33 +46,47 @@ export async function getEffectiveUserId(): Promise<string | null> {
 }
 
 /**
- * Returns impersonation info if active, null otherwise.
+ * Returns impersonation/managing info if active, null otherwise.
+ * Includes `mode` ('admin' | 'partner') so the UI can show the correct banner.
  */
 export async function getImpersonationInfo() {
   const cookieStore = await cookies();
   const impersonatingId = cookieStore.get('impersonating_user_id')?.value;
   if (!impersonatingId) return null;
 
-  // Verify admin
   const user = await getCurrentUser();
   if (!user) return null;
 
   const supabase = await createClient();
-  const { data: adminProfile } = await supabase
+  const { data: callerProfile } = await supabase
     .from('users')
     .select('role')
     .eq('id', user.id)
     .single();
-  if (adminProfile?.role !== 'admin') return null;
 
-  // Get impersonated user info
-  const { data: target } = await supabase
-    .from('users')
-    .select('id, full_name, email')
-    .eq('id', impersonatingId)
-    .single();
+  const role = callerProfile?.role;
 
-  return target;
+  if (role === 'admin') {
+    const { data: target } = await supabase
+      .from('users')
+      .select('id, full_name, email')
+      .eq('id', impersonatingId)
+      .single();
+    return target ? { ...target, mode: 'admin' as const } : null;
+  }
+
+  if (role === 'partner') {
+    const { data: target } = await supabase
+      .from('users')
+      .select('id, full_name, email, partner_id')
+      .eq('id', impersonatingId)
+      .single();
+    if (target?.partner_id === user.id) {
+      return { id: target.id, full_name: target.full_name, email: target.email, mode: 'partner' as const };
+    }
+  }
+
+  return null;
 }
 
 export async function getUserProfile(userId: string) {
