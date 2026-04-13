@@ -1,0 +1,6 @@
+@tailwind utilities;
+
+/* Scope Tailwind utilities to the generator shell so they don't leak into marketing pages */
+.generator-shell *, .generator-shell *::before, .generator-shell *::after {
+  box-sizing: border-box;
+}

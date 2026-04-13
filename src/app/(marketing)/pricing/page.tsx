@@ -3,16 +3,16 @@ import PlansPage from '../plans/page';
 
 export const metadata: Metadata = {
   title: 'Pricing — Envosta Managed WordPress Hosting',
-  description: 'Managed WordPress hosting plans. Growth $297 USD/mo with 297 credits included. Enterprise wp.cloud hosting.',
+  description: 'Two simple plans: Minimum at $36 USD/mo for managed WordPress hosting, or Growth at $297 USD/mo with AI receptionist, Google Calendar booking, and 297 credits included.',
   alternates: { canonical: 'https://envosta.com/pricing' },
   openGraph: {
     title: 'Plans & Pricing — Envosta Managed WordPress Hosting',
-    description: 'Enterprise wp.cloud hosting from $297 USD/mo. Personal onboarding, free SSL, CDN, daily backups, and 297 credits included.',
+    description: 'Managed WordPress hosting from $36 USD/mo. Growth plan at $297 USD/mo with AI tools, onboarding, free SSL, CDN, and 297 credits included.',
     url: 'https://envosta.com/pricing',
   },
   twitter: {
     title: 'Envosta Pricing — Managed WordPress Hosting',
-    description: 'Enterprise hosting with personal onboarding. Growth and Performance plans with credits included.',
+    description: 'Managed WordPress hosting from $36 USD/mo. Growth at $297 USD/mo with AI receptionist, calendar booking, and 297 credits.',
   },
 };
 

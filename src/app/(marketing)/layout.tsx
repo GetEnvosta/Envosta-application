@@ -17,14 +17,14 @@ export const metadata: Metadata = {
     template: '%s | Envosta',
     default: 'Envosta — Managed WordPress Hosting | Built on wp.cloud',
   },
-  description: 'Enterprise-grade WordPress hosting powered by wp.cloud infrastructure. Personal onboarding, custom design, and hands-on support starting at $297 USD/mo.',
+  description: 'Enterprise-grade WordPress hosting powered by wp.cloud infrastructure. Personal onboarding, custom design, and hands-on support starting at $36 USD/mo.',
   keywords: ['WordPress hosting', 'managed hosting', 'wp.cloud', 'WordPress design', 'WooCommerce hosting', 'Canadian hosting', 'enterprise WordPress'],
   openGraph: {
     siteName: 'Envosta',
     type: 'website',
     locale: 'en_CA',
     title: 'Envosta — Managed WordPress Hosting',
-    description: 'Enterprise infrastructure, personal onboarding, and a team that actually knows your site. Starting at $297 USD/mo.',
+    description: 'Enterprise infrastructure, personal onboarding, and a team that actually knows your site. Starting at $36 USD/mo.',
     images: [{ url: '/assets/Logo/envosta-logo-mark-dark.svg', width: 512, height: 512, alt: 'Envosta' }],
   },
   twitter: {
@@ -52,10 +52,10 @@ const jsonLd = {
   sameAs: [],
   offers: {
     '@type': 'AggregateOffer',
-    priceCurrency: 'CAD',
-    lowPrice: '50',
-    highPrice: '350',
-    offerCount: '3',
+    priceCurrency: 'USD',
+    lowPrice: '36',
+    highPrice: '297',
+    offerCount: '2',
   },
 };
 

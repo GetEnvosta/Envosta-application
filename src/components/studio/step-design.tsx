@@ -7,6 +7,7 @@ import {
   PanelRightClose, PanelRightOpen, Plus, Trash2, LayoutTemplate,
   Upload, X,
 } from 'lucide-react';
+import { fetchWithRetry } from '@/lib/fetch-retry';
 
 const FONT_OPTIONS = [
   'Playfair Display', 'DM Serif Display', 'Fraunces', 'Libre Baskerville',
@@ -33,7 +34,7 @@ const SPECIAL_PAGES = ['Header', 'Footer'];
 
 export function StepDesign({
   projectId, styleConfig, pages, selectedPageId, businessInfo,
-  onStyleChange, onPagesChange, onSelectPage, onContinue,
+  onStyleChange, onPagesChange, onSelectPage, onContinue, onAuthRequired,
 }: {
   projectId: string;
   styleConfig: any;
@@ -44,6 +45,7 @@ export function StepDesign({
   onPagesChange: (pages: any[]) => void;
   onSelectPage: (id: string) => void;
   onContinue: () => void;
+  onAuthRequired?: () => void;
 }) {
   const [showPages, setShowPages] = useState(true);
   const [showStyles, setShowStyles] = useState(false);
@@ -98,7 +100,7 @@ export function StepDesign({
       : page.prompt;
 
     try {
-      const res = await fetch('/api/studio/generate', {
+      const res = await fetchWithRetry('/api/studio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -108,6 +110,7 @@ export function StepDesign({
           referenceHtml: referenceHtml || undefined,
         }),
       });
+      if (res.status === 401 && onAuthRequired) { onAuthRequired(); return; }
       const data = await res.json();
       if (!res.ok) { setStatus({ type: 'error', msg: data.error || 'Failed' }); return; }
 

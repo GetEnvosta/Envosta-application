@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
-import { isStaffRole } from '@/lib/roles';
 import { checkAiTokenBudget } from '@/lib/ai-budget';
 
 export const dynamic = 'force-dynamic';
@@ -23,15 +22,10 @@ RULES:
 12. Design should feel bespoke and premium, not like a template. Avoid generic layouts.`;
 
 export async function POST(req: Request) {
-  // Auth
+  // Auth — any signed-in user can use the generator
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (!isStaffRole(profile?.role)) {
-    return NextResponse.json({ error: 'Staff access required' }, { status: 403 });
-  }
+  if (!user) return NextResponse.json({ error: 'Please sign in to use the AI generator' }, { status: 401 });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'AI not configured' }, { status: 503 });

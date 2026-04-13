@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Sparkles, Loader2, Trash2, Plus, Check, MessageSquare } from 'lucide-react';
+import { fetchWithRetry } from '@/lib/fetch-retry';
 
 export function StepWireframe({
   projectId,
@@ -10,6 +11,7 @@ export function StepWireframe({
   businessInfo,
   onWireframeChange,
   onApprove,
+  onAuthRequired,
 }: {
   projectId: string;
   wireframe: any[];
@@ -17,6 +19,7 @@ export function StepWireframe({
   businessInfo: any;
   onWireframeChange: (wf: any[]) => void;
   onApprove: (wf: any[]) => void;
+  onAuthRequired?: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -33,11 +36,12 @@ export function StepWireframe({
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/studio/wireframe', {
+      const res = await fetchWithRetry('/api/studio/wireframe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ brief, businessInfo, modifications: mods }),
       });
+      if (res.status === 401 && onAuthRequired) { onAuthRequired(); return; }
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Failed'); return; }
       onWireframeChange(data.wireframe);

@@ -246,6 +246,7 @@ export default function StudioPage() {
 
           <div className="hero-btns rv">
             <a href="#studio-waitlist" className="bp vip lg" onClick={(e) => { e.preventDefault(); document.getElementById('studio-waitlist')?.scrollIntoView({ behavior: 'smooth' }); }}>Schedule a Studio Consultation</a>
+            <a href="/studio/generator" className="bp ghost lg">Try the Theme Generator</a>
           </div>
 
           <div className="vip-trust rv">

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Sparkles, Loader2, Check } from 'lucide-react';
+import { fetchWithRetry } from '@/lib/fetch-retry';
 
 export function StepBrief({
   projectId,
@@ -11,6 +12,7 @@ export function StepBrief({
   onBriefChange,
   onOptionsGenerated,
   onSelect,
+  onAuthRequired,
 }: {
   projectId: string;
   brief: string;
@@ -19,6 +21,7 @@ export function StepBrief({
   onBriefChange: (brief: string) => void;
   onOptionsGenerated: (options: any[]) => void;
   onSelect: (index: number) => void;
+  onAuthRequired?: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,11 +31,12 @@ export function StepBrief({
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/studio/brief', {
+      const res = await fetchWithRetry('/api/studio/brief', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ brief: brief.trim() }),
       });
+      if (res.status === 401 && onAuthRequired) { onAuthRequired(); return; }
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Generation failed'); return; }
       onOptionsGenerated(data.options);
