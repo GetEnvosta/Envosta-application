@@ -1,5 +1,6 @@
 import { getEffectiveUserId } from '@/services/auth';
 import { getUserInvoices } from '@/services/billing';
+import { getUsageMeter } from '@/services/usage';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
 import { FileText, Download, BarChart3, Brain, Clock } from 'lucide-react';
 import { PaymentMethodManager } from '@/components/billing/payment-method-manager';
@@ -11,57 +12,71 @@ import { SpendingCap } from '@/components/billing/spending-cap';
 
 export default async function BillingPage() {
   const userId = await getEffectiveUserId();
-  const invoices = await getUserInvoices(20, userId!);
+  const [invoices, usageMeter] = await Promise.all([
+    getUserInvoices(20, userId!),
+    getUsageMeter(userId!),
+  ]);
+
+  const usagePct = usageMeter.usage_percent ?? 0;
+  const showUsageDetail = usagePct >= 50; // only show detail once they're using meaningful credits
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-xl font-semibold text-gray-900 mb-1">Billing</h1>
-        <p className="text-sm text-gray-500">Track usage, view invoices, and manage payment methods.</p>
+        <p className="text-sm text-gray-500">View invoices and manage payment methods.</p>
       </div>
 
-      {/* Usage Meter */}
-      <UsageMeter />
+      {/* Usage Meter — only when they're actually using credits */}
+      {showUsageDetail && <UsageMeter />}
 
-      {/* Spending Cap */}
-      <section>
-        <div className="card p-5">
-          <SpendingCap />
-        </div>
-      </section>
+      {/* Spending Cap — only relevant when they have variable usage */}
+      {showUsageDetail && (
+        <section>
+          <div className="card p-5">
+            <SpendingCap />
+          </div>
+        </section>
+      )}
 
       {/* Usage Breakdown */}
-      <section>
-        <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-gray-400" />
-          Usage Breakdown
-        </h2>
-        <div className="card p-5">
-          <UsageBreakdown />
-        </div>
-      </section>
+      {showUsageDetail && (
+        <section>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-gray-400" />
+            Usage Breakdown
+          </h2>
+          <div className="card p-5">
+            <UsageBreakdown />
+          </div>
+        </section>
+      )}
 
       {/* AI Usage Dashboard */}
-      <section>
-        <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Brain className="w-4 h-4 text-purple-500" />
-          AI Usage
-        </h2>
-        <div className="card p-5">
-          <AiUsageDashboard />
-        </div>
-      </section>
+      {showUsageDetail && (
+        <section>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Brain className="w-4 h-4 text-purple-500" />
+            AI Usage
+          </h2>
+          <div className="card p-5">
+            <AiUsageDashboard />
+          </div>
+        </section>
+      )}
 
       {/* Usage Log */}
-      <section>
-        <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Clock className="w-4 h-4 text-gray-400" />
-          Usage Log
-        </h2>
-        <div className="card overflow-hidden">
-          <UsageLog />
-        </div>
-      </section>
+      {showUsageDetail && (
+        <section>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-gray-400" />
+            Usage Log
+          </h2>
+          <div className="card overflow-hidden">
+            <UsageLog />
+          </div>
+        </section>
+      )}
 
       {/* Payment Methods */}
       <section>

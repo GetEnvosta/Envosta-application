@@ -135,27 +135,20 @@ export default function PricingPage() {
               Start free — 14-day trial &rarr;
             </a>
           </div>
-          <div className="toggle-wrap rv">
-            <span className="toggle-label active" id="lbl-monthly">Monthly</span>
-            <div className="toggle" id="billing-toggle"></div>
-            <span className="toggle-label" id="lbl-annual">Annual</span>
-            <span className="save-badge">2 months free</span>
-          </div>
         </div>
       </section>
 
       {/* PRICING CARDS */}
       <section className="pricing-grid rv"><div className="c">
 
-        {/* WordPress */}
+        {/* Minimum */}
         <div className="p-card">
-          <div className="p-card-name">WordPress</div>
+          <div className="p-card-name">Minimum</div>
           <div className="p-card-price">
             <span className="currency">$</span>
-            <span className="amount price-val" data-monthly="97" data-annual="81">97</span>
-            <span className="period">CAD/mo</span>
+            <span className="amount">36</span>
+            <span className="period">USD/mo</span>
           </div>
-          <div className="annual-note" style={{ display: 'none' }}>Billed annually at $970 CAD/yr</div>
           <p className="p-card-desc">Enterprise-grade managed WordPress hosting. Fast, secure, and maintained — nothing more, nothing less.</p>
           <ul>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Managed WordPress on wp.cloud</li>
@@ -167,7 +160,7 @@ export default function PricingPage() {
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Uptime monitoring</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Email support</li>
           </ul>
-          <a href="/get-started?plan=wordpress" className="bp ghost">Get Started</a>
+          <a href="/get-started?plan=minimum" className="bp ghost">Get Started</a>
         </div>
 
         {/* Growth (Featured) */}
@@ -175,10 +168,9 @@ export default function PricingPage() {
           <div className="p-card-name">Growth</div>
           <div className="p-card-price">
             <span className="currency">$</span>
-            <span className="amount price-val" data-monthly="297" data-annual="248">297</span>
+            <span className="amount">297</span>
             <span className="period">USD/mo</span>
           </div>
-          <div className="annual-note" style={{ display: 'none' }}>Billed annually at $2,970 USD/yr</div>
           <p className="p-card-desc">WordPress hosting plus every AI business tool we offer. Phone receptionist, integrations, and a full onboarding team.</p>
           <ul>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>297 credits included monthly</li>
@@ -203,49 +195,6 @@ export default function PricingPage() {
         Need maximum resources or a dedicated team? <a href="/contact" style={{ color: 'var(--gold)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>Talk to us about Performance &amp; Studio</a>.
       </p>
       </section>
-
-      {/* STUDIO PLAN */}
-      <section className="studio rv"><div className="c">
-        <div className="sh">
-          <div className="sh-tag">Envosta Studio</div>
-          <h2>Need a team, not just a host?</h2>
-          <p className="sh-desc">For businesses that want dedicated WordPress experts handling design, development, and ongoing optimization alongside their hosting.</p>
-        </div>
-        <div className="studio-card">
-          <div className="studio-left">
-            <div className="studio-badge"><div className="studio-badge-dot"></div>Currently Full</div>
-            <h3>Envosta <span>Studio</span></h3>
-            <p>A dedicated WordPress team assigned to your business. Strategy calls, same-day fixes, proactive monitoring, and a direct line to senior engineers who actually know your site inside and out. No tickets. No queues. No runaround.</p>
-            <div className="studio-price"><strong>$3,250</strong><span>/month to start</span></div>
-            <p className="studio-price-note">Custom pricing based on scope. Billed monthly, cancel anytime.</p>
-            <div className="studio-cta">
-              <a href="#" className="bp">Join the Waitlist</a>
-              <span className="waitlist-note">Currently at capacity</span>
-            </div>
-          </div>
-          <div className="studio-right">
-            <div className="studio-features">
-              <div className="studio-feat">
-                <div className="studio-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg></div>
-                <div className="studio-feat-text"><h4>Dedicated Account Lead</h4><p>A named senior engineer who knows your stack, your goals, and your site history.</p></div>
-              </div>
-              <div className="studio-feat">
-                <div className="studio-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg></div>
-                <div className="studio-feat-text"><h4>Same-Day Response</h4><p>Critical issues resolved within hours, not days. Direct Slack or phone access.</p></div>
-              </div>
-              <div className="studio-feat">
-                <div className="studio-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" /></svg></div>
-                <div className="studio-feat-text"><h4>Proactive Monitoring</h4><p>We catch problems before you do. Uptime, performance, and security — watched 24/7.</p></div>
-              </div>
-              <div className="studio-feat">
-                <div className="studio-feat-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" /></svg></div>
-                <div className="studio-feat-text"><h4>Monthly Strategy Calls</h4><p>Recurring sessions to review performance, plan updates, and align on priorities.</p></div>
-              </div>
-            </div>
-            <div className="studio-limit">We intentionally keep capacity <strong>limited</strong> to maintain the quality our clients expect. Currently full.</div>
-          </div>
-        </div>
-      </div></section>
 
       {/* ALL PLANS INCLUDE */}
       <section className="all-plans rv"><div className="c">
@@ -322,12 +271,12 @@ export default function PricingPage() {
           <thead>
             <tr>
               <th>Feature</th>
-              <th>WordPress</th>
+              <th>Minimum</th>
               <th className="feat">Growth</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td>Price</td><td>$97 CAD/mo</td><td>$297 USD/mo</td></tr>
+            <tr><td>Price</td><td>$36 USD/mo</td><td>$297 USD/mo</td></tr>
             <tr><td>Credits included</td><td className="dash">{'\u2014'}</td><td>297/mo</td></tr>
             <tr><td>SSD storage</td><td>15 GB</td><td>30 GB</td></tr>
             <tr><td>Bandwidth</td><td>100 GB</td><td>200 GB</td></tr>
@@ -349,45 +298,6 @@ export default function PricingPage() {
         </table>
       </div></section>
 
-      {/* Studio Request Add-on */}
-      <section className="rv" style={{ padding: '80px 0' }}><div className="c">
-        <div style={{ maxWidth: 800, margin: '0 auto', background: 'linear-gradient(135deg, rgba(201,164,92,.06), rgba(37,99,235,.04))', border: '1px solid rgba(201,164,92,.15)', borderRadius: 24, padding: '48px 40px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, background: 'radial-gradient(circle, rgba(201,164,92,.1), transparent 70%)', pointerEvents: 'none' }} />
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 40 }}>
-            <div style={{ flex: 1, minWidth: 280, position: 'relative', zIndex: 1 }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(201,164,92,.1)', border: '1px solid rgba(201,164,92,.2)', borderRadius: 100, padding: '5px 14px', fontSize: '.68rem', fontWeight: 600, color: '#c9a45c', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 16 }}>
-                Add-on
-              </div>
-              <h3 style={{ fontSize: 'clamp(1.4rem, 2.5vw, 1.8rem)', fontWeight: 500, letterSpacing: '-.5px', lineHeight: 1.15, marginBottom: 12, color: '#fff' }}>
-                Studio Request
-              </h3>
-              <p style={{ fontSize: '.9rem', color: 'var(--t2)', lineHeight: 1.75, fontWeight: 300, marginBottom: 20, maxWidth: 440 }}>
-                Need a design change, a new page, or a custom feature on your site? Submit a Studio Request and our team will handle it for you — no technical knowledge required.
-              </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
-                {['Design Changes', 'New Pages', 'Plugin Setup', 'Custom Features', 'Content Updates'].map(tag => (
-                  <span key={tag} style={{ fontSize: '.72rem', padding: '4px 12px', borderRadius: 100, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.08)', color: 'var(--t2)' }}>{tag}</span>
-                ))}
-              </div>
-              <p style={{ fontSize: '.78rem', color: 'var(--t3)', fontWeight: 300 }}>
-                Available on all hosting plans. One request at a time, delivered within 3–5 business days.
-              </p>
-            </div>
-
-            <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-              <div style={{ fontSize: '2.4rem', fontWeight: 600, background: 'linear-gradient(135deg, #c9a45c, #e6c46e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 4 }}>
-                $250
-              </div>
-              <p style={{ fontSize: '.82rem', color: 'var(--t3)', fontWeight: 300, marginBottom: 20 }}>CAD per request</p>
-              <a href="/get-started" className="bp" style={{ background: 'linear-gradient(135deg, #c9a45c, #b8943f)', color: '#0a0e1a', fontWeight: 600 }}>
-                Learn More
-              </a>
-            </div>
-          </div>
-        </div>
-      </div></section>
-
       {/* FAQ */}
       <section className="faq rv"><div className="c">
         <div className="faq-header">
@@ -402,14 +312,6 @@ export default function PricingPage() {
               <svg className="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </div>
             <div className="faq-a"><p>Absolutely. You can upgrade or downgrade at any time. When upgrading, the price difference is prorated. When downgrading, the new rate applies at your next billing cycle.</p></div>
-          </div>
-
-          <div className="faq-item">
-            <div className="faq-q">
-              <h4>How does the annual billing work?</h4>
-              <svg className="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-            </div>
-            <div className="faq-a"><p>When you choose annual billing, you get 2 months completely free. You pay for 10 months upfront and get 12 months of service. You can switch between monthly and annual at any time.</p></div>
           </div>
 
           <div className="faq-item">

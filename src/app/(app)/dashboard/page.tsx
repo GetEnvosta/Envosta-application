@@ -143,10 +143,18 @@ export default async function DashboardPage() {
   const isOver = usagePct > 100;
   const isNear = usagePct >= 80;
 
+  // Only show usage stat when approaching or over limit — invisible otherwise
   const stats = [
     { label: 'Active sites', value: sitesCount, icon: Server, href: '/dashboard/sites', color: 'blue' },
     { label: 'Domains', value: domainsCount, icon: Globe, href: '/dashboard/domains', color: 'purple' },
-    { label: 'Usage', value: `${usageMeter.usage_this_cycle}/${usageMeter.included_credits}`, icon: Coins, href: '/dashboard/billing', color: isOver ? 'red' : isNear ? 'amber' : 'green', sub: isOver ? `$${usageMeter.projected_overage} overage` : isNear ? 'Approaching limit' : 'On track' },
+    ...(isNear || isOver ? [{
+      label: isOver ? 'Over limit' : 'Approaching limit',
+      value: `${Math.round(usageMeter.usage_this_cycle)}/${usageMeter.included_credits}`,
+      icon: Coins,
+      href: '/dashboard/billing',
+      color: isOver ? 'red' : 'amber',
+      sub: isOver ? `$${usageMeter.projected_overage} estimated overage` : 'Review your usage',
+    }] : []),
   ];
 
   const colorMap: Record<string, { bg: string; text: string; hover: string }> = {
