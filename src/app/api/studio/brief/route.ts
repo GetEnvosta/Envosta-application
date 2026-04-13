@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { checkAiTokenBudget } from '@/lib/ai-budget';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { BRIEF_SYSTEM_PROMPT } from '@/lib/studio-prompts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -46,14 +47,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2000,
-        system: `You are a creative director at Envosta, a premium WordPress hosting and design agency. Given a rough website description from a client, generate exactly 3 distinct website concepts. Each should take a different creative angle but all must be premium, professional, and conversion-focused.
-
-Return ONLY valid JSON — no markdown, no code fences, no explanation. The format must be:
-[
-  { "title": "Concept Name", "description": "3-4 sentences describing the creative direction, visual style, key features, and target audience approach." },
-  { "title": "Concept Name", "description": "..." },
-  { "title": "Concept Name", "description": "..." }
-]`,
+        system: BRIEF_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: brief.trim() }],
       }),
     });

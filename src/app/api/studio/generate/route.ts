@@ -1,25 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { checkAiTokenBudget } from '@/lib/ai-budget';
+import { GENERATE_SYSTEM_PROMPT } from '@/lib/studio-prompts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Claude can take a while for large pages
 
-const SYSTEM_PROMPT = `You are an expert web designer working for Envosta, a premium WordPress hosting and design agency. You create stunning, production-quality HTML pages that will be converted to WordPress FSE block themes.
-
-RULES:
-1. Output ONLY complete, valid HTML. No explanation, no markdown, no code fences.
-2. Include <html>, <head>, <body> tags. Load Google Fonts via <link> tag in <head>.
-3. Use ONLY the colors and fonts provided in the style reference. Never deviate.
-4. Include a site header with the site name and navigation links to all pages listed.
-5. Include a site footer consistent with the brand.
-6. Make the design PREMIUM — bold typography, intentional spacing, strong visual hierarchy.
-7. All content should be realistic placeholder content appropriate for the business.
-8. Semantic HTML. Fully responsive. CSS in a <style> tag in the <head>.
-9. No JavaScript frameworks. Pure HTML/CSS. Minimal JS only if needed for mobile nav toggle.
-10. Every section should be clearly structured with semantic elements (section, article, aside) so it can be cleanly converted to WordPress block patterns.
-11. Images should use placeholder services like https://placehold.co/ with appropriate dimensions.
-12. Design should feel bespoke and premium, not like a template. Avoid generic layouts.`;
 
 export async function POST(req: Request) {
   // Auth — any signed-in user can use the generator
@@ -85,7 +71,7 @@ ${referenceHtml}` : ''}`;
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 16000,
-        system: SYSTEM_PROMPT,
+        system: GENERATE_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }],
       }),
     });

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { checkAiTokenBudget } from '@/lib/ai-budget';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { WIREFRAME_SYSTEM_PROMPT } from '@/lib/studio-prompts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -61,55 +62,7 @@ Generate the sitemap now.`;
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 3000,
-        system: `You are a UX architect at Envosta, a premium WordPress hosting and design agency. Given a website brief and optional business details, suggest a complete sitemap optimized for conversion and user flow.
-
-Return ONLY valid JSON — no markdown, no code fences, no explanation. The format must be:
-[
-  {
-    "name": "Header",
-    "slug": "header",
-    "type": "template-part",
-    "description": "Site header with logo, navigation menu, and CTA button",
-    "sections": ["Logo", "Primary Navigation", "CTA Button", "Mobile Menu Toggle"]
-  },
-  {
-    "name": "Footer",
-    "slug": "footer",
-    "type": "template-part",
-    "description": "Site footer with company info, navigation links, social media, and copyright",
-    "sections": ["Company Info", "Quick Links", "Social Media Icons", "Copyright"]
-  },
-  {
-    "name": "Home",
-    "slug": "home",
-    "type": "page",
-    "description": "Main landing page with hero, services overview, testimonials, and CTA",
-    "sections": ["Hero", "Services Grid", "Social Proof", "CTA Banner"]
-  },
-  ...more pages
-]
-
-REQUIRED — Always include ALL of these:
-1. Header (type: "template-part") — ALWAYS first. Site header with logo, nav, CTA.
-2. Footer (type: "template-part") — ALWAYS second. Footer with links, social, copyright.
-3. Home page — ALWAYS third. The main landing page.
-4. Contact page — with form, map, phone, email, address.
-
-CONDITIONAL — Include these based on the brief:
-- If the brief mentions e-commerce, shop, store, products, or selling:
-  Include: Shop (product catalog), Cart, Checkout, My Account, single Product page template
-  Use WooCommerce-appropriate descriptions and sections.
-- If the brief mentions blog, articles, news, or content marketing:
-  Include: Blog (post archive), single Blog Post template
-  Describe sections like featured post, category filter, sidebar, author bio.
-
-Guidelines:
-- Suggest 6-12 items total (including Header and Footer)
-- Each page should have a clear purpose tied to conversion
-- Sections should be specific and descriptive
-- Slugs should be lowercase, hyphenated
-- Order: Header, Footer, Home, then by importance, Contact last
-- Set "type" to "template-part" for Header/Footer, "page" for everything else`,
+        system: WIREFRAME_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMsg }],
       }),
     });

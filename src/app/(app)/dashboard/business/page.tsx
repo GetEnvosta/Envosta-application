@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@/lib/supabase-browser';
 import { Loader2, Building2 } from 'lucide-react';
 import Toast from '@/components/ui/toast';
 
@@ -49,12 +48,17 @@ export default function BusinessPage() {
 
   useEffect(() => {
     (async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase.from('users').select('metadata').eq('id', user.id).single();
-      const saved = (data?.metadata as any)?.business;
-      if (saved) setForm(prev => ({ ...prev, ...saved }));
+      try {
+        const res = await fetch('/api/business');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.business && Object.keys(data.business).length > 0) {
+            setForm(prev => ({ ...prev, ...data.business }));
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load business info:', e);
+      }
       setLoading(false);
     })();
   }, []);
