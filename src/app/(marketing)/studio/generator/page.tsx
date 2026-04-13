@@ -231,12 +231,12 @@ export default function GeneratorPage() {
             <div className="signup-icon">
               <Sparkles style={{ width: 28, height: 28 }} />
             </div>
-            <h2>Create a free account</h2>
-            <p>Sign up to generate your AI-powered WordPress theme and download the child theme + XML import file.</p>
+            <h2>Create a free account to continue</h2>
+            <p>You&apos;ve built your concept and wireframe — sign up to generate the full page designs and download your theme files.</p>
             <div className="signup-features">
-              <div className="signup-feature"><div className="signup-feature-dot" /> AI-generated website concepts</div>
-              <div className="signup-feature"><div className="signup-feature-dot" /> Custom wireframe and page design</div>
-              <div className="signup-feature"><div className="signup-feature-dot" /> Download child theme + WXR import</div>
+              <div className="signup-feature"><div className="signup-feature-dot" /> AI-generated full page HTML designs</div>
+              <div className="signup-feature"><div className="signup-feature-dot" /> Download child theme + WXR import ZIP</div>
+              <div className="signup-feature"><div className="signup-feature-dot" /> Deploy directly to wp.cloud</div>
               <div className="signup-feature"><div className="signup-feature-dot" /> Free to get started</div>
             </div>
             <a href="/get-started" className="signup-btn">Sign Up Free</a>
@@ -280,7 +280,6 @@ export default function GeneratorPage() {
               setSelectedBrief(idx);
               setStep(2);
             }}
-            onAuthRequired={() => setShowSignupGate(true)}
           />
         )}
         {step === 2 && (
@@ -316,7 +315,6 @@ export default function GeneratorPage() {
               if (newPages.length > 0) setSelectedPageId(newPages[0].id);
               setStep(4);
             }}
-            onAuthRequired={() => setShowSignupGate(true)}
           />
         )}
         {step === 4 && (
