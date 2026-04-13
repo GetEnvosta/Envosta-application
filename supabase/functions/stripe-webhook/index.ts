@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
           // Map plan slug to included credits
           const planSlug = plan?.slug ?? "minimum";
           const creditsByPlan: Record<string, number> = {
+            wordpress: 0,    // hosting only — no AI credits
             minimum: 36,
             growth: 297,
             performance: 350,
