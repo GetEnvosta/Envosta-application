@@ -100,7 +100,7 @@ export function BuyDomainFlow() {
             {domain}
           </h1>
           <p style={{ fontSize: '.95rem', color: 'rgba(255,255,255,.4)', fontWeight: 300 }}>
-            {price !== null ? `$${price} CAD/year` : 'Loading price...'} &middot; Free WHOIS privacy &middot; Easy DNS management
+            {price !== null ? `$${price} USD/year` : 'Loading price...'} &middot; Free WHOIS privacy &middot; Easy DNS management
           </p>
         </div>
 
@@ -183,7 +183,7 @@ export function BuyDomainFlow() {
                   fontSize: '.82rem', fontWeight: 600, padding: '4px 12px', borderRadius: 100,
                   background: 'rgba(255,255,255,.06)', color: '#fff',
                 }}>
-                  ${price ?? '...'} CAD/yr
+                  ${price ?? '...'} USD/yr
                 </span>
               </div>
             </div>
@@ -303,7 +303,7 @@ function DomainPaymentForm({ domain, price, onSuccess }: { domain: string; price
         background: '#fff', color: '#03060e', opacity: !stripe || !ready || loading ? 0.5 : 1,
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
       }}>
-        {loading ? <><Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Processing...</> : <>Register {domain} — ${price ?? '...'} CAD</>}
+        {loading ? <><Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Processing...</> : <>Register {domain} — ${price ?? '...'} USD</>}
       </button>
 
       <p style={{ fontSize: '.68rem', color: 'rgba(255,255,255,.25)', marginTop: 16, textAlign: 'center', lineHeight: 1.6 }}>

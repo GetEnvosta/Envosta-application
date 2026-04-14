@@ -92,7 +92,7 @@ export function CreateInvoiceForm({ customers }: { customers: { id: string; full
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="label">Amount (CAD)</label>
+            <label className="label">Amount (USD)</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
               <input

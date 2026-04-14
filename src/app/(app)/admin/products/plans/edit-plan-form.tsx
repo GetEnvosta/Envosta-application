@@ -124,8 +124,8 @@ export function EditPlanForm({ plan }: { plan: any }) {
           {/* Stripe — Billing */}
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-2">Stripe — Billing</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-            <div><label className="label">Monthly price (cents CAD)</label><input type="number" className="input" value={priceCad} onChange={e => setPriceCad(Number(e.target.value))} /></div>
-            <div><label className="label">Yearly price (cents CAD)</label><input type="number" className="input" value={priceYearlyCad} onChange={e => setPriceYearlyCad(Number(e.target.value))} /></div>
+            <div><label className="label">Monthly price (cents USD)</label><input type="number" className="input" value={priceCad} onChange={e => setPriceCad(Number(e.target.value))} /></div>
+            <div><label className="label">Yearly price (cents USD)</label><input type="number" className="input" value={priceYearlyCad} onChange={e => setPriceYearlyCad(Number(e.target.value))} /></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div><label className="label">Monthly Price ID</label><input type="text" className="input font-mono text-xs" value={stripePriceId} onChange={e => setStripePriceId(e.target.value)} placeholder="price_..." /></div>

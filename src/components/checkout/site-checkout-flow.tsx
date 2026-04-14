@@ -496,7 +496,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                       ${billingPeriod === 'annual' ? ((plan.price_yearly_cad ?? 0) / 100 / 12).toFixed(0) : (plan.price_cad / 100).toFixed(0)}
                     </span>
                     <span style={{ fontSize: '.8rem', color: t.textMuted, fontWeight: 300 }}>
-                      CAD/{billingPeriod === 'annual' ? 'mo' : 'mo'}
+                      USD/{billingPeriod === 'annual' ? 'mo' : 'mo'}
                     </span>
                   </div>
                   {isTrial && <p style={{ fontSize: '.72rem', color: '#22c55e', fontWeight: 500, marginBottom: 10 }}>Then ${(plan.price_cad / 100).toFixed(0)}/mo after trial</p>}
@@ -664,7 +664,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                     <span style={{ fontWeight: 600, color: t.text, fontSize: '.88rem' }}>{domainResult.domain}</span>
                     <span style={{ color: domainResult.available ? '#22c55e' : 'var(--t3)', fontSize: '.8rem' }}>
                       {domainResult.available
-                        ? `is available${domainPriceCents ? ` · $${(domainPriceCents / 100).toFixed(0)} CAD/yr` : ''}`
+                        ? `is available${domainPriceCents ? ` · $${(domainPriceCents / 100).toFixed(0)} USD/yr` : ''}`
                         : 'is taken'}
                     </span>
                   </div>
@@ -771,10 +771,10 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 clientSecret={checkoutClientSecret}
                 type={checkoutType}
                 planName={`${selectedPlan.name} Plan${billingPeriod === 'annual' ? ' (Annual)' : ''}`}
-                planPrice={isTrial ? '$0 today' : billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_cad ?? 0) / 100).toFixed(0)} CAD/yr` : `$${(selectedPlan.price_cad / 100).toFixed(0)} CAD/mo`}
-                fullPrice={billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_cad ?? 0) / 100).toFixed(0)} CAD/yr` : `$${(selectedPlan.price_cad / 100).toFixed(0)} CAD/mo`}
+                planPrice={isTrial ? '$0 today' : billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_cad ?? 0) / 100).toFixed(0)} USD/yr` : `$${(selectedPlan.price_cad / 100).toFixed(0)} USD/mo`}
+                fullPrice={billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_cad ?? 0) / 100).toFixed(0)} USD/yr` : `$${(selectedPlan.price_cad / 100).toFixed(0)} USD/mo`}
                 domainName={selectedDomain && domainMode === 'new' ? selectedDomain : undefined}
-                domainPrice={selectedDomain && domainMode === 'new' && domainPriceCents ? `$${(domainPriceCents / 100).toFixed(0)} CAD/yr` : undefined}
+                domainPrice={selectedDomain && domainMode === 'new' && domainPriceCents ? `$${(domainPriceCents / 100).toFixed(0)} USD/yr` : undefined}
                 isTrial={isTrial ?? false}
                 dark={dark}
                 onSuccess={async () => {

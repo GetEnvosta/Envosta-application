@@ -46,7 +46,7 @@ async function upsertPrice(
   }
 
   const params: Stripe.PriceCreateParams = {
-    product: productId, unit_amount: amount, currency: 'cad', metadata,
+    product: productId, unit_amount: amount, currency: 'usd', metadata,
   };
   if (interval) params.recurring = { interval, interval_count: intervalCount };
 

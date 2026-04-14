@@ -168,7 +168,7 @@ export function CreateCommissionModal({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Amount (CAD) *</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Amount (USD) *</label>
             <input
               type="number"
               required

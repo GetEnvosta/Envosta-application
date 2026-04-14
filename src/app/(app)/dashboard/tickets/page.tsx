@@ -72,7 +72,7 @@ export default async function TicketsPage({
               <div className="flex items-center gap-2 mb-2">
                 <Paintbrush className="w-5 h-5 text-purple-600" />
                 <h2 className="text-base font-semibold text-gray-900">Envosta Studio</h2>
-                <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full font-medium">from $250 CAD</span>
+                <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full font-medium">from $250 USD</span>
               </div>
               <p className="text-sm text-gray-600 max-w-lg">
                 Need design changes, new pages, plugin setup, content updates, or new features?

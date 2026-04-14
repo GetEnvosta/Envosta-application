@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
                 hosted_invoice_url: inv.hosted_invoice_url ?? null,
                 metadata: {
                   synced_by: "health_check",
-                  currency: inv.currency ?? "cad",
+                  currency: inv.currency ?? "usd",
                   amount_due: inv.amount_due,
                   amount_paid: inv.amount_paid,
                 },

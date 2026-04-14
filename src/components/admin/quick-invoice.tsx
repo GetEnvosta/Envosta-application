@@ -69,7 +69,7 @@ export function QuickInvoice({ stripeCustomerId, customerName }: { stripeCustome
       <h4 className="text-sm font-semibold text-gray-900 mb-3">Send Custom Invoice to {customerName}</h4>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div>
-          <label className="label">Amount (CAD)</label>
+          <label className="label">Amount (USD)</label>
           <input type="number" step="0.01" className="input" placeholder="250.00" value={amount} onChange={e => setAmount(e.target.value)} />
         </div>
         <div className="sm:col-span-2">

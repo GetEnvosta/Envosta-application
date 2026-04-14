@@ -66,7 +66,16 @@
       "WebFetch(domain:developer.tryfinch.com)",
       "WebFetch(domain:aws.amazon.com)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://127.0.0.1:3000/studio/generator\")",
-      "Bash(grep -r \"TWILIO\\\\|twilio\\\\|receptionist\\\\|voice\\\\|websocket\" /c/Users/kolty/OneDrive/Desktop/Envosta-application/.env*)"
+      "Bash(grep -r \"TWILIO\\\\|twilio\\\\|receptionist\\\\|voice\\\\|websocket\" /c/Users/kolty/OneDrive/Desktop/Envosta-application/.env*)",
+      "Bash(findstr twilio:*)",
+      "Bash(find /c/Users/kolty/OneDrive/Desktop/Envosta-application -type f \\\\\\( -name \"*.ts\" -o -name \"*.js\" -o -name \"*.tsx\" -o -name \"*.jsx\" \\\\\\) ! -path \"*/node_modules/*\" -exec grep -l \"TWILIO_VOICE_WEBHOOK_URL\\\\|TWILIO_SMS_WEBHOOK_URL\\\\|cloud-run\\\\|ConversationRelay\\\\|websocket.*relay\" {} \\\\;)",
+      "Bash(ls -la /c/Users/kolty/OneDrive/Desktop/Envosta-application/.env*)",
+      "Bash(find /c/Users/kolty/OneDrive/Desktop/Envosta-application/supabase/migrations -name \"*.sql\" -exec grep -l \"platform_settings\" {} \\\\;)",
+      "Bash(grep -l \"platform_settings\\\\|settings\" /c/Users/kolty/OneDrive/Desktop/Envosta-application/supabase/migrations/*.sql)",
+      "Bash(grep -r \"price_[A-Za-z0-9]\\\\{17,\\\\}\" /c/Users/kolty/OneDrive/Desktop/Envosta-application/supabase/migrations/)",
+      "Bash(grep -E \"price_[a-z0-9]{17,}\")",
+      "Bash(find . -name \"*.sql\" -type f ! -path \"./.next/*\" ! -path \"./node_modules/*\" -exec grep -l \"stripe_price_id.*=\" {} \\\\;)",
+      "Bash(grep -E \"price_yearly_cad|price_2yr_cad|price_3yr_cad\" /c/Users/kolty/OneDrive/Desktop/Envosta-application/supabase/migrations/*.sql)"
     ]
   }
 }

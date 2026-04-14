@@ -189,7 +189,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
               <div className="grid grid-cols-[140px_1fr_1fr] text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-gray-200">
                 <div className="px-4 py-2.5">Cycle</div>
                 <div className="px-4 py-2.5">Stripe Price ID</div>
-                <div className="px-4 py-2.5">Price (CAD)</div>
+                <div className="px-4 py-2.5">Price (USD)</div>
               </div>
               <div className="grid grid-cols-[140px_1fr_1fr] items-center">
                 <div className="px-4 py-3 text-sm font-medium text-gray-700">One-Time</div>
@@ -205,7 +205,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
               <div className="grid grid-cols-[140px_1fr_1fr] text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-gray-200">
                 <div className="px-4 py-2.5">Billing Cycle</div>
                 <div className="px-4 py-2.5">Stripe Price ID</div>
-                <div className="px-4 py-2.5">Price (cents CAD)</div>
+                <div className="px-4 py-2.5">Price (cents USD)</div>
               </div>
               <div className="divide-y divide-gray-100">
                 {/* Monthly — only for monthly billing */}
@@ -271,8 +271,8 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
             <h2 className="text-sm font-semibold text-gray-900 mb-4">OpenSRS — Domain Configuration</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div><label className="label">TLD (e.g. com, ca, io)</label><input className="input font-mono" value={plan.metadata?.tld ?? ''} onChange={e => update('metadata', { ...plan.metadata, tld: e.target.value })} placeholder="com" /></div>
-              <div><label className="label">Registration Price (cents CAD)</label><input type="number" className="input" value={plan.metadata?.registration_price_cad ?? plan.price_cad ?? 0} onChange={e => update('metadata', { ...plan.metadata, registration_price_cad: parseInt(e.target.value) || 0 })} /></div>
-              <div><label className="label">Transfer Price (cents CAD)</label><input type="number" className="input" value={plan.metadata?.transfer_price_cad ?? 0} onChange={e => update('metadata', { ...plan.metadata, transfer_price_cad: parseInt(e.target.value) || 0 })} /></div>
+              <div><label className="label">Registration Price (cents USD)</label><input type="number" className="input" value={plan.metadata?.registration_price_cad ?? plan.price_cad ?? 0} onChange={e => update('metadata', { ...plan.metadata, registration_price_cad: parseInt(e.target.value) || 0 })} /></div>
+              <div><label className="label">Transfer Price (cents USD)</label><input type="number" className="input" value={plan.metadata?.transfer_price_cad ?? 0} onChange={e => update('metadata', { ...plan.metadata, transfer_price_cad: parseInt(e.target.value) || 0 })} /></div>
             </div>
           </div>
         )}

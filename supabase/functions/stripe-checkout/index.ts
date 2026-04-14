@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
       const lineItems: any[] = studioAddon?.stripe_price_id
         ? [{ price: studioAddon.stripe_price_id, quantity: 1 }]
-        : [{ price_data: { currency: "cad", unit_amount: studioPrice, product_data: { name: studioName } }, quantity: 1 }];
+        : [{ price_data: { currency: "usd", unit_amount: studioPrice, product_data: { name: studioName } }, quantity: 1 }];
 
       const session = await stripe.checkout.sessions.create({
         customer: customer!.stripe_customer_id,
@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
       const invoiceItem = await stripe.invoiceItems.create({
         customer: targetCustomerId,
         amount: amount,
-        currency: "cad",
+        currency: "usd",
         description: description,
       });
 
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
       await stripe.invoices.sendInvoice(invoice.id);
 
       console.log("Custom invoice created:", invoice.id, "amount:", amount, "to:", targetCustomerId);
-      await log({ userId: user.id, action: "stripe.custom_invoice.created", message: `${description} - $${(amount / 100).toFixed(2)} CAD to ${targetCustomerId}` });
+      await log({ userId: user.id, action: "stripe.custom_invoice.created", message: `${description} - $${(amount / 100).toFixed(2)} USD to ${targetCustomerId}` });
 
       return json({
         invoiceId: invoice.id,
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
       } else {
         line_items.push({
           price_data: {
-            currency: "cad",
+            currency: "usd",
             unit_amount: (tldProduct?.metadata as any)?.registration_price_cad ?? tldProduct?.price_cad ?? 1500,
             product_data: { name: `Domain Registration: ${domainName} (1 year)` },
           },

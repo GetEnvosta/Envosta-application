@@ -43,7 +43,7 @@ export async function GET() {
         name: coupon.name ?? coupon.id,
         percent_off: coupon.percent_off,
         amount_off: coupon.amount_off,
-        currency: coupon.currency ?? 'cad',
+        currency: coupon.currency ?? 'usd',
         duration: coupon.duration,
         duration_in_months: coupon.duration_in_months,
         times_redeemed: coupon.times_redeemed,
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
       couponParams.percent_off = percent_off;
     } else {
       couponParams.amount_off = amount_off;
-      couponParams.currency = 'cad';
+      couponParams.currency = 'usd';
     }
 
     const coupon = await stripe.coupons.create(couponParams);

@@ -473,7 +473,7 @@ Deno.serve(async (req) => {
           description: inv.description || `Invoice ${inv.number ?? ""}`,
           hosted_invoice_url: inv.hosted_invoice_url ?? null,
           metadata: {
-            currency: inv.currency ?? "cad",
+            currency: inv.currency ?? "usd",
             amount_due: inv.amount_due,
             amount_paid: inv.amount_paid,
             invoice_pdf: inv.invoice_pdf,

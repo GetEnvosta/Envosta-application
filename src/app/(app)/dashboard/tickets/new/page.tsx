@@ -135,7 +135,7 @@ export default function NewTicketPage() {
                     Envosta Studio
                   </p>
                   <p className="text-sm text-gray-600 leading-relaxed">
-                    Design requests start at $250 CAD. We&apos;ll review and send a quote.
+                    Design requests start at $250 USD. We&apos;ll review and send a quote.
                   </p>
                 </div>
               </div>

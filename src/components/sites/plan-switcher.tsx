@@ -51,7 +51,7 @@ export function PlanSwitcher({
       return;
     }
     const confirmMsg = isCustom
-      ? `Switch to Enterprise at $${customPrice}/mo CAD? This will update billing.`
+      ? `Switch to Enterprise at $${customPrice}/mo USD? This will update billing.`
       : `Switch to the ${plan.name} plan? Your billing will be prorated.`;
     if (!confirm(confirmMsg)) return;
 
@@ -144,7 +144,7 @@ export function PlanSwitcher({
             onChange={e => setCustomPrice(e.target.value)}
             className="input text-sm py-1.5 w-24"
           />
-          <span className="text-xs text-gray-500">/mo CAD</span>
+          <span className="text-xs text-gray-500">/mo USD</span>
           <button
             onClick={() => selectedPlanId && handleSwitch(selectedPlanId)}
             disabled={switching || !customPrice}
