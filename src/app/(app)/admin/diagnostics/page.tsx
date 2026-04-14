@@ -10,6 +10,7 @@ import { ExternalSyncCheck } from '@/components/admin/external-sync-check';
 import { getAdminLogs } from '@/services/admin';
 import { SystemHealthChecks } from '@/app/(app)/admin/logs/health-checks';
 import AdminEmailsPage from '@/app/(app)/admin/emails/page';
+import { AdminPhone } from '@/components/admin/admin-phone';
 import { SystemTabs } from './system-tabs';
 import { formatDateTime } from '@/lib/utils';
 
@@ -266,6 +267,8 @@ export default async function DiagnosticsPage() {
           health: <SystemHealthChecks />,
 
           emails: <AdminEmailsPage />,
+
+          phone: <AdminPhone />,
         }}
       </SystemTabs>
     </div>
