@@ -1,17 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Brain, Phone, Gauge } from 'lucide-react';
+import { Brain, Gauge } from 'lucide-react';
 
 interface SiteUsageData {
   hosting: number;
   ai_tokens: number;
   ai_calls: number;
   ai_total_tokens: number;
-  receptionist_credits: number;
-  receptionist_calls: number;
-  receptionist_minutes: number;
-  phone_number: number;
   total: number;
 }
 
@@ -31,9 +27,8 @@ export function SiteUsage({ siteId }: { siteId: string }) {
   if (!data) return null;
 
   const hasAi = data.ai_calls > 0;
-  const hasCalls = data.receptionist_calls > 0;
 
-  if (!hasAi && !hasCalls && data.total <= 0) {
+  if (!hasAi && data.total <= 0) {
     return (
       <div className="text-center py-4">
         <Gauge className="w-6 h-6 text-gray-300 mx-auto mb-1" />
@@ -58,25 +53,11 @@ export function SiteUsage({ siteId }: { siteId: string }) {
         </div>
       )}
 
-      {/* Receptionist Usage */}
-      {hasCalls && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Phone className="w-3.5 h-3.5 text-blue-500" />
-            <div>
-              <p className="text-xs font-medium text-gray-700">Receptionist Calls</p>
-              <p className="text-[10px] text-gray-400">{data.receptionist_calls} call{data.receptionist_calls !== 1 ? 's' : ''} · {data.receptionist_minutes} min</p>
-            </div>
-          </div>
-          <span className="text-xs font-medium text-blue-600">{data.receptionist_credits.toFixed(2)} cr</span>
-        </div>
-      )}
-
       {/* Total variable */}
-      {(hasAi || hasCalls) && (
+      {hasAi && (
         <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
           <span className="text-xs text-gray-500">Variable usage this cycle</span>
-          <span className="text-xs font-semibold text-gray-900">{(data.ai_tokens + data.receptionist_credits).toFixed(2)} cr</span>
+          <span className="text-xs font-semibold text-gray-900">{data.ai_tokens.toFixed(2)} cr</span>
         </div>
       )}
     </div>

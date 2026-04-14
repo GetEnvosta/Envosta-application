@@ -56,7 +56,7 @@ export async function GET(req: Request) {
       // Get all active sites for this user
       const { data: sites } = await sb
         .from('sites')
-        .select('id, label, config, bursting_enabled, twilio_phone_number')
+        .select('id, label, config, bursting_enabled')
         .eq('user_id', userId)
         .in('status', ['active', 'provisioning']);
 
@@ -85,20 +85,6 @@ export async function GET(req: Request) {
           });
         }
 
-        // Phone number daily portion
-        if (site.twilio_phone_number) {
-          const phoneMonthly = rates['twilio_number/per_month'] ?? 2;
-          const phoneDailyCost = Math.round((phoneMonthly / daysInMonth) * 100) / 100;
-          if (phoneDailyCost > 0) {
-            await sb.rpc('fn_record_usage', {
-              p_user_id: userId,
-              p_amount: phoneDailyCost,
-              p_service_type: 'twilio_number',
-              p_description: `Daily phone: ${site.twilio_phone_number}`,
-              p_reference_id: site.id,
-            });
-          }
-        }
       }
 
       processed++;

@@ -30,7 +30,7 @@ export async function GET(req: Request) {
 
   const { data } = await supabase
     .from('sites')
-    .select('id, label, status, twilio_phone_number, user_id, users(full_name, email)')
+    .select('id, label, status, user_id, users(full_name, email)')
     .ilike('label', `%${q}%`)
     .eq('status', 'active')
     .order('label')
@@ -41,7 +41,6 @@ export async function GET(req: Request) {
       id: s.id,
       label: s.label,
       status: s.status,
-      twilio_phone_number: s.twilio_phone_number,
       user_id: s.user_id,
       user_name: s.users?.full_name ?? '',
       user_email: s.users?.email ?? '',

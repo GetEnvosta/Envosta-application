@@ -4,7 +4,7 @@ import { getUserSitesWithSubscriptions } from '@/services/sites';
 import { getEffectiveUserId } from '@/services/auth';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
-import { ExternalLink, Globe, Loader2, Plus, Server, Rocket, ArrowRight, HardDrive, Zap, Phone } from 'lucide-react';
+import { ExternalLink, Globe, Loader2, Plus, Server, Rocket, ArrowRight, HardDrive, Zap } from 'lucide-react';
 
 export default async function SitesPage() {
   const userId = await getEffectiveUserId();
@@ -48,8 +48,7 @@ export default async function SitesPage() {
             const phpWorkers = config.php_workers ?? 2;
             const ssdGb = config.storage_gb ?? 25;
             const bursting = (site as any).bursting_enabled ?? false;
-            const hasPhone = !!(site as any).twilio_phone_number;
-            const monthlyCost = (phpWorkers * 8) + (ssdGb * 0.8) + (bursting ? 10 : 0) + (hasPhone ? 2 : 0);
+            const monthlyCost = (phpWorkers * 8) + (ssdGb * 0.8) + (bursting ? 10 : 0);
 
             const statusDot =
               status === 'active' ? 'bg-emerald-500'
@@ -114,11 +113,6 @@ export default async function SitesPage() {
                       {bursting && (
                         <span className="flex items-center gap-1 text-amber-500">
                           <Zap className="w-3 h-3" /> Bursting
-                        </span>
-                      )}
-                      {hasPhone && (
-                        <span className="flex items-center gap-1 text-blue-500">
-                          <Phone className="w-3 h-3" /> Receptionist
                         </span>
                       )}
                       <span className="ml-auto font-medium text-gray-500">{monthlyCost} cr/mo</span>

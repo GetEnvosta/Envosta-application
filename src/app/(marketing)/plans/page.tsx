@@ -3,7 +3,7 @@ import PricingClient from './pricing-client';
 
 export const metadata: Metadata = {
   title: 'Hosting Plans — Envosta Managed WordPress Hosting',
-  description: 'Two simple plans: Minimum at $36 USD/mo for managed WordPress hosting, or Growth at $297 USD/mo with AI receptionist, Google Calendar booking, and 297 credits included.',
+  description: 'Two simple plans: Minimum at $36 USD/mo for managed WordPress hosting, or Growth at $297 USD/mo with AI tools, full onboarding, and 297 credits included.',
   alternates: { canonical: 'https://envosta.com/plans' },
   openGraph: {
     title: 'Plans & Pricing — Envosta Managed WordPress Hosting',
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     title: 'Envosta Pricing — Managed WordPress Hosting',
-    description: 'Managed WordPress hosting from $36 USD/mo. Growth at $297 USD/mo with AI receptionist, calendar booking, and 297 credits.',
+    description: 'Managed WordPress hosting from $36 USD/mo. Growth at $297 USD/mo with AI tools, full onboarding, and 297 credits.',
   },
 };
 
@@ -171,16 +171,15 @@ export default function PricingPage() {
             <span className="amount">297</span>
             <span className="period">USD/mo</span>
           </div>
-          <p className="p-card-desc">WordPress hosting plus every AI business tool we offer. Phone receptionist, integrations, and a full onboarding team.</p>
+          <p className="p-card-desc">WordPress hosting plus AI-powered tools, a full onboarding team, and everything you need to grow.</p>
           <ul>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>297 credits included monthly</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Everything in WordPress</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>30 GB SSD + 200 GB bandwidth</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Staging environment</li>
-            <li className="feat-label">AI Business Tools</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>AI receptionist (answers your calls 24/7)</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Google Calendar integration — books appointments live</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Business profile &amp; integrations hub</li>
+            <li className="feat-label">AI &amp; Tools</li>
+            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>AI theme generator (Studio)</li>
+            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Business profile dashboard</li>
             <li className="feat-label">Onboarding</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>1-on-1 setup consultation</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>SEO audit &amp; configuration</li>
@@ -285,9 +284,8 @@ export default function PricingPage() {
             <tr><td>Automatic WP updates</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
             <tr><td>Uptime monitoring</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
             <tr><td>Staging environment</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>AI phone receptionist</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Google Calendar booking</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Business integrations hub</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>AI theme generator (Studio)</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>Business profile dashboard</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
             <tr><td>1-on-1 setup consultation</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
             <tr><td>SEO audit &amp; configuration</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
             <tr><td>WooCommerce setup</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>

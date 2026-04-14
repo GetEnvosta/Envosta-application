@@ -15,8 +15,6 @@ interface PricingRow {
 const SERVICE_LABELS: Record<string, string> = {
   wordpress: 'wp.cloud',
   ai_tokens: 'Claude (Anthropic)',
-  twilio_receptionist: 'Twilio',
-  twilio_number: 'Twilio',
   resend: 'Resend',
 };
 
@@ -25,9 +23,6 @@ const METRIC_LABELS: Record<string, string> = {
   ssd_gb: 'SSD Storage (per GB/mo)',
   bursting: 'Bursting (per site/mo)',
   per_1k_tokens: 'AI Tokens (per 1,000)',
-  per_minute: 'Receptionist Call (per min)',
-  per_month: 'Phone Number (per number/mo)',
-  per_sms: 'SMS (per message)',
   per_email: 'Email (per send)',
 };
 

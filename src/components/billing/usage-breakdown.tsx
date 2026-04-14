@@ -6,7 +6,6 @@ import { BarChart3 } from 'lucide-react';
 const SERVICE_LABELS: Record<string, string> = {
   wordpress: 'WordPress Hosting',
   ai_tokens: 'AI Tokens',
-  twilio: 'Twilio (SMS)',
   resend: 'Resend (Email)',
   manual: 'Manual Adjustment',
 };
@@ -14,7 +13,6 @@ const SERVICE_LABELS: Record<string, string> = {
 const SERVICE_COLORS: Record<string, string> = {
   wordpress: 'bg-blue-500',
   ai_tokens: 'bg-purple-500',
-  twilio: 'bg-rose-500',
   resend: 'bg-teal-500',
   manual: 'bg-gray-500',
 };

@@ -50,7 +50,7 @@ export function SpendingCap() {
         <h3 className="text-sm font-semibold text-gray-900">Spending Cap</h3>
       </div>
       <p className="text-xs text-gray-500">
-        Set a maximum monthly bill. AI and receptionist usage will pause when the cap is hit.
+        Set a maximum monthly bill. Variable usage will pause when the cap is hit.
         Infrastructure is checked when you change site settings.
       </p>
 

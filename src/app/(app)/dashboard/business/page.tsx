@@ -98,7 +98,7 @@ export default function BusinessPage() {
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-gray-900">Business Information</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Your business details — used by the AI receptionist and across your Envosta services.
+          Your business details — used across your Envosta services.
         </p>
       </div>
 
@@ -183,11 +183,11 @@ export default function BusinessPage() {
           </div>
         </div>
 
-        {/* AI Receptionist hints */}
+        {/* Operations */}
         <div className="card p-6">
-          <h2 className="text-sm font-semibold text-gray-900 mb-1">AI Receptionist Details</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-1">Operations</h2>
           <p className="text-xs text-gray-400 mb-5">
-            Used to train your AI receptionist. You can override these per-site in Site Settings.
+            Your operating hours and services.
           </p>
           <div className="space-y-4">
             <div>

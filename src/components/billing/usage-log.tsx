@@ -6,8 +6,6 @@ import { Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 const SERVICE_LABELS: Record<string, string> = {
   wordpress: 'Hosting',
   ai_tokens: 'AI',
-  twilio_receptionist: 'Calls',
-  twilio_number: 'Phone',
   manual: 'Adjustment',
 };
 

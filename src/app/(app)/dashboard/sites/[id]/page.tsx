@@ -14,36 +14,24 @@ import {
   Shield, Zap, Key, Calendar, User, Coins, Settings, Trash2,
 } from 'lucide-react';
 import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-switcher';
-import { ConnectedNumberSwitcher } from '@/components/sites/connected-number-switcher';
 import { SiteAccess } from '@/components/sites/site-access';
 import { SiteIp } from '@/components/sites/site-ip';
 import { SiteGuardrails } from '@/components/sites/site-guardrails';
-import { ReceptionistConfig } from '@/components/sites/receptionist-config';
 import { SiteUsage } from '@/components/sites/site-usage';
-import { Phone } from 'lucide-react';
-import { createClient } from '@/lib/supabase-server';
 
 export default async function SiteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const userId = await getEffectiveUserId();
   if (!userId) notFound();
 
-  const supabase = await createClient();
-
-  const [site, domains, usageMeter, { data: phoneNumbers }] = await Promise.all([
+  const [site, domains, usageMeter] = await Promise.all([
     getSiteById(id),
     getUserDomainsForSite(userId),
     getUsageMeter(userId),
-    supabase
-      .from('phone_numbers')
-      .select('id, phone_number, site_id')
-      .eq('user_id', userId)
-      .order('created_at'),
   ]);
   if (!site) notFound();
 
   const connectedDomain = (domains ?? []).find((d: any) => d.site_id === id) ?? null;
-  const connectedNumber = (phoneNumbers ?? []).find((n: any) => n.site_id === id) ?? null;
   const status: string = site.status ?? 'provisioning';
   const meta = (site as any).metadata ?? {};
   const config = (site as any).config ?? {};
@@ -60,10 +48,8 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const phpWorkers = config.php_workers ?? 2;
   const ssdGb = config.storage_gb ?? 25;
   const bursting = (site as any).bursting_enabled ?? false;
-  const hasTwilio = !!(site as any).twilio_phone_number;
   const hostingCost = (phpWorkers * 8) + (ssdGb * 0.8) + (bursting ? 10 : 0);
-  const twilioCost = hasTwilio ? 2 : 0;
-  const totalMonthlyCost = hostingCost + twilioCost;
+  const totalMonthlyCost = hostingCost;
 
   return (
     <div>
@@ -138,7 +124,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
                 <span>{phpWorkers} workers × 8 + {ssdGb}GB × 0.80{bursting ? ' + bursting' : ''}</span>
                 <span className="font-medium text-gray-700">{hostingCost} cr</span>
               </div>
-              {hasTwilio && <div className="flex justify-between"><span>Phone number</span><span className="font-medium text-gray-700">2 cr</span></div>}
             </div>
             <div className="mt-2 pt-2 border-t border-gray-200 flex justify-between text-xs">
               <span className="text-gray-500">Cycle usage</span>
@@ -148,7 +133,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
             </div>
           </div>
 
-          {/* Per-site variable usage (AI + Receptionist) */}
+          {/* Per-site variable usage */}
           <div className="rounded-xl bg-gray-50 px-4 py-3">
             <p className="text-xs text-gray-500 mb-2">Variable usage this cycle</p>
             <SiteUsage siteId={id} />
@@ -172,15 +157,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Connected Domain</p>
             </div>
             <ConnectedDomainSwitcher siteId={id} currentDomainId={connectedDomain?.id ?? null} domains={domains ?? []} />
-          </div>
-
-          {/* Phone Number */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Phone className="w-3.5 h-3.5 text-gray-400" />
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Connected Phone Number</p>
-            </div>
-            <ConnectedNumberSwitcher siteId={id} currentNumberId={connectedNumber?.id ?? null} numbers={phoneNumbers ?? []} />
           </div>
 
           {/* Performance */}
@@ -244,13 +220,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
       {/* ═══════════════════════════════════════════════════════ */}
       <div className="card p-6 mb-6">
         <SiteGuardrails siteId={id} />
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════ */}
-      {/* AI RECEPTIONIST — Phone, config, call history          */}
-      {/* ═══════════════════════════════════════════════════════ */}
-      <div className="card p-6 mb-6">
-        <ReceptionistConfig siteId={id} siteLabel={site.label} />
       </div>
 
       {/* ═══════════════════════════════════════════════════════ */}

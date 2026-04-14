@@ -64,7 +64,9 @@
       "WebFetch(domain:docs.airbyte.com)",
       "WebFetch(domain:help.merge.dev)",
       "WebFetch(domain:developer.tryfinch.com)",
-      "WebFetch(domain:aws.amazon.com)"
+      "WebFetch(domain:aws.amazon.com)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://127.0.0.1:3000/studio/generator\")",
+      "Bash(grep -r \"TWILIO\\\\|twilio\\\\|receptionist\\\\|voice\\\\|websocket\" /c/Users/kolty/OneDrive/Desktop/Envosta-application/.env*)"
     ]
   }
 }

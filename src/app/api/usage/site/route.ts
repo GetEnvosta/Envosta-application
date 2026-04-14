@@ -24,7 +24,7 @@ export async function GET(req: Request) {
   const cycleStart = user?.cycle_start ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
   // Get all usage and AI logs for this site this cycle
-  const [{ data: usageLogs }, { data: aiLogs }, { data: callLogs }] = await Promise.all([
+  const [{ data: usageLogs }, { data: aiLogs }] = await Promise.all([
     supabase
       .from('logs')
       .select('metadata')
@@ -37,21 +37,13 @@ export async function GET(req: Request) {
       .eq('action', 'ai.usage')
       .eq('site_id', siteId)
       .gte('created_at', cycleStart),
-    supabase
-      .from('logs')
-      .select('metadata')
-      .eq('action', 'receptionist.call')
-      .eq('site_id', siteId)
-      .gte('created_at', cycleStart),
   ]);
 
   // Aggregate usage by type
   let hosting = 0;
-  let phoneNumber = 0;
   for (const log of usageLogs ?? []) {
     const m = (log.metadata as any) ?? {};
     if (m.service_type === 'wordpress') hosting += Number(m.amount ?? 0);
-    if (m.service_type === 'twilio_number') phoneNumber += Number(m.amount ?? 0);
   }
 
   // AI usage
@@ -65,26 +57,11 @@ export async function GET(req: Request) {
     aiCalls++;
   }
 
-  // Receptionist calls
-  let receptionistCredits = 0;
-  let receptionistCalls = 0;
-  let receptionistMinutes = 0;
-  for (const log of callLogs ?? []) {
-    const m = (log.metadata as any) ?? {};
-    receptionistCredits += Number(m.credits_charged ?? 0);
-    receptionistMinutes += Number(m.duration_minutes ?? 0);
-    receptionistCalls++;
-  }
-
   return NextResponse.json({
     hosting: Math.round(hosting * 100) / 100,
     ai_tokens: Math.round(aiTokens * 100) / 100,
     ai_calls: aiCalls,
     ai_total_tokens: aiTotalTokens,
-    receptionist_credits: Math.round(receptionistCredits * 100) / 100,
-    receptionist_calls: receptionistCalls,
-    receptionist_minutes: receptionistMinutes,
-    phone_number: Math.round(phoneNumber * 100) / 100,
-    total: Math.round((hosting + aiTokens + receptionistCredits + phoneNumber) * 100) / 100,
+    total: Math.round((hosting + aiTokens) * 100) / 100,
   });
 }

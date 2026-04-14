@@ -149,21 +149,6 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
                 <span className="text-gray-500">Bursting</span>
                 <span className="text-gray-900 font-medium">{service.bursting_enabled ? 'On (10 cr/mo)' : 'Off'}</span>
               </div>
-              {service.twilio_phone_number && (
-                <>
-                  <div className="border-t border-gray-100 pt-2 mt-2" />
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">AI Receptionist</span>
-                    <span className={`font-medium ${service.receptionist_enabled ? 'text-emerald-600' : 'text-gray-400'}`}>
-                      {service.receptionist_enabled ? 'Active' : 'Disabled'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Phone Number</span>
-                    <span className="text-gray-900 font-mono text-xs">{service.twilio_phone_number} (2 cr/mo)</span>
-                  </div>
-                </>
-              )}
             </div>
           </div>
         </div>
