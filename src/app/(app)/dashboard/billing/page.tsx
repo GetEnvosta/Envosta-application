@@ -18,7 +18,7 @@ export default async function BillingPage() {
   ]);
 
   const usagePct = usageMeter.usage_percent ?? 0;
-  const showUsageDetail = usagePct >= 50; // only show detail once they're using meaningful credits
+  const showUsageDetail = usagePct >= 80; // only show when approaching plan limits
 
   return (
     <div className="space-y-8">
@@ -108,7 +108,7 @@ export default async function BillingPage() {
                     <tr key={inv.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{formatDate(inv.created_at)}</td>
                       <td className="px-5 py-3.5 text-sm text-gray-900">{inv.description || 'Invoice'}</td>
-                      <td className="px-5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{formatCents(inv.amount_cad ?? 0, 'cad')}</td>
+                      <td className="px-5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{formatCents(inv.amount_cad ?? 0, 'usd')}</td>
                       <td className="px-5 py-3.5"><span className={statusColor(inv.status)}>{inv.status}</span></td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">

@@ -17,7 +17,7 @@ import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-swi
 import { SiteAccess } from '@/components/sites/site-access';
 import { SiteIp } from '@/components/sites/site-ip';
 import { SiteGuardrails } from '@/components/sites/site-guardrails';
-import { SiteUsage } from '@/components/sites/site-usage';
+
 
 export default async function SiteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -45,11 +45,6 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const regions: Record<string, string> = { dca: 'US East', bur: 'US West', dfw: 'US Central', ams: 'EU West' };
   const statusDot: Record<string, string> = { active: 'bg-emerald-500', provisioning: 'bg-amber-500 animate-pulse', suspended: 'bg-red-500' };
 
-  const phpWorkers = config.php_workers ?? 2;
-  const ssdGb = config.storage_gb ?? 25;
-  const bursting = (site as any).bursting_enabled ?? false;
-  const hostingCost = (phpWorkers * 8) + (ssdGb * 0.8) + (bursting ? 10 : 0);
-  const totalMonthlyCost = hostingCost;
 
   return (
     <div>
@@ -113,30 +108,20 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         <div className="p-6 space-y-5">
-          {/* Monthly cost */}
+          {/* Plan status */}
           <div className="rounded-xl bg-gray-50 px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-gray-500 flex items-center gap-1.5"><Coins className="w-3 h-3" /> Monthly cost</span>
-              <span className="text-lg font-bold text-gray-900">{totalMonthlyCost} cr/mo</span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500 flex items-center gap-1.5"><Coins className="w-3 h-3" /> Hosting</span>
+              <span className="text-xs font-medium text-emerald-600">Included in plan</span>
             </div>
-            <div className="space-y-1 text-xs text-gray-500">
-              <div className="flex justify-between">
-                <span>{phpWorkers} workers × 8 + {ssdGb}GB × 0.80{bursting ? ' + bursting' : ''}</span>
-                <span className="font-medium text-gray-700">{hostingCost} cr</span>
+            {usageMeter.usage_percent >= 80 && (
+              <div className="mt-2 pt-2 border-t border-gray-200 flex justify-between text-xs">
+                <span className="text-gray-500">Plan usage</span>
+                <Link href="/dashboard/billing" className={`font-medium ${usageMeter.usage_percent > 100 ? 'text-red-600' : 'text-amber-600'}`}>
+                  {Math.round(usageMeter.usage_percent)}% — View billing →
+                </Link>
               </div>
-            </div>
-            <div className="mt-2 pt-2 border-t border-gray-200 flex justify-between text-xs">
-              <span className="text-gray-500">Cycle usage</span>
-              <span className={`font-medium ${usageMeter.usage_percent > 100 ? 'text-red-600' : usageMeter.usage_percent >= 80 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                {usageMeter.usage_this_cycle} / {usageMeter.included_credits} included
-              </span>
-            </div>
-          </div>
-
-          {/* Per-site variable usage */}
-          <div className="rounded-xl bg-gray-50 px-4 py-3">
-            <p className="text-xs text-gray-500 mb-2">Variable usage this cycle</p>
-            <SiteUsage siteId={id} />
+            )}
           </div>
 
           {/* Storage */}

@@ -4,6 +4,7 @@ import { getCustomerById, getCustomerRelatedData } from '@/services/admin';
 import { formatDate, formatDateTime, formatCents, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { QuickInvoice } from '@/components/admin/quick-invoice';
+import { ChargeCard } from '@/components/admin/charge-card';
 import { ProvisionSiteButton } from '@/components/admin/provision-site-button';
 import {
   ArrowLeft, Building2, Clock, CreditCard, ExternalLink, Globe,
@@ -84,9 +85,10 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         </div>
       </div>
 
-      {/* ── Quick Invoice ── */}
+      {/* ── Billing Actions ── */}
       {user.stripe_customer_id && (
-        <div className="mb-6">
+        <div className="mb-6 flex items-start gap-3 flex-wrap">
+          <ChargeCard customerId={id} customerName={user.full_name || user.email} />
           <QuickInvoice stripeCustomerId={user.stripe_customer_id} customerName={user.full_name || user.email} />
         </div>
       )}
