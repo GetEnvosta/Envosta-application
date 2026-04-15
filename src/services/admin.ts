@@ -90,7 +90,9 @@ export async function getUserDashboardCounts(userId: string) {
     { count: sitesCount },
     { count: domainsCount },
   ] = await Promise.all([
-    supabase.from('sites').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+    supabase.from('sites').select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .not('status', 'in', '("cancelled","deleted")'),
     supabase.from('domains').select('id', { count: 'exact', head: true }).eq('user_id', userId),
   ]);
 
@@ -109,6 +111,7 @@ export async function getRecentUserServices(userId: string, limit: number = 5) {
     .from('sites')
     .select('*')
     .eq('user_id', userId)
+    .not('status', 'in', '("cancelled","deleted")')
     .order('created_at', { ascending: false })
     .limit(limit);
   return data ?? [];
