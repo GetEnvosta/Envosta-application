@@ -14,7 +14,7 @@ import AdminEmailsPage from '@/app/(app)/admin/emails/page';
 import { AdminPhone } from '@/components/admin/admin-phone';
 import { CreditPricingTable } from '@/app/(app)/admin/credits/pricing-table';
 import { CouponManager } from '@/components/admin/coupon-manager';
-import { DomainTldPricing } from '@/app/(app)/admin/billing/domain-tld-pricing';
+import { StripeProducts } from '@/components/admin/stripe-products';
 import { SystemTabs } from './system-tabs';
 import { formatDateTime } from '@/lib/utils';
 
@@ -93,13 +93,23 @@ export default async function DiagnosticsPage() {
   // Fetch logs for the logs tab
   const logs = await getAdminLogs({}, 50);
 
-  // Fetch pricing data
+  // Fetch pricing & product data
   const pricing = await getServicePricing();
   const { data: domainTlds } = await supabase
     .from('products')
     .select('id, name, slug, price_cad, is_active, stripe_price_id')
     .eq('type', 'domain_tld')
     .order('slug');
+  const { data: plans } = await supabase
+    .from('products')
+    .select('id, type, name, slug, billing, price_cad, price_yearly_cad, is_active, stripe_product_id, stripe_price_id, monthly_credit_cost, metadata')
+    .eq('type', 'hosting_plan')
+    .order('sort_order');
+  const { data: oneTimeProducts } = await supabase
+    .from('products')
+    .select('id, type, name, slug, billing, price_cad, price_yearly_cad, is_active, stripe_product_id, stripe_price_id, monthly_credit_cost, metadata')
+    .eq('type', 'one_time_service')
+    .order('name');
 
   const levelBadge: Record<string, string> = { info: 'badge-blue', warn: 'badge-yellow', error: 'badge-red', debug: 'badge-gray' };
 
@@ -127,8 +137,10 @@ export default async function DiagnosticsPage() {
 
       <SystemTabs>
         {{
-          diagnostics: (
+          health: (
             <div>
+      <SystemHealthChecks />
+
       <ExternalSyncCheck />
 
       {/* Hosting subscriptions without a site */}
@@ -276,51 +288,24 @@ export default async function DiagnosticsPage() {
             </div>
           ),
 
-          health: <SystemHealthChecks />,
-
           emails: <AdminEmailsPage />,
 
           phone: <AdminPhone />,
 
-          pricing: (
-            <div className="space-y-8">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-1">Usage Rates</h3>
-                <p className="text-xs text-gray-500 mb-4">Click any rate to edit. Changes apply system-wide immediately. Overage billed at $1/credit via Stripe at cycle end.</p>
-                <CreditPricingTable initialPricing={pricing} />
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-1">Plans</h3>
-                <p className="text-xs text-gray-500 mb-4">Stripe subscription products. Price and billing managed in Stripe.</p>
-                <div className="card overflow-hidden">
-                  <table className="w-full table-fixed">
-                    <thead><tr className="border-b border-gray-100">
-                      <th className="w-[25%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Plan</th>
-                      <th className="w-[40%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Included</th>
-                      <th className="w-[20%] text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Price</th>
-                      <th className="w-[15%] text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Synced</th>
-                    </tr></thead>
-                    <tbody>
-                      <tr className="border-b border-gray-50 hover:bg-gray-50/50">
-                        <td className="px-4 py-2.5 text-sm font-medium text-gray-900">Minimum</td>
-                        <td className="px-4 py-2.5 text-xs text-gray-600">36 credits/mo — base site fully covered</td>
-                        <td className="px-4 py-2.5 text-sm font-medium text-gray-900 text-right">$36/mo</td>
-                        <td className="px-4 py-2.5 text-center">
-                          <a href="https://dashboard.stripe.com/products" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700">Stripe</a>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-1">Domain TLD Pricing</h3>
-                <p className="text-xs text-gray-500 mb-4">Click any price to edit. Each TLD is a Stripe yearly subscription product for auto-renewal.</p>
-                <DomainTldPricing initialTlds={domainTlds ?? []} />
-              </div>
+          usage: (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-1">Usage Rates</h3>
+              <p className="text-xs text-gray-500 mb-4">Click any rate to edit. Changes apply system-wide immediately. Overage billed at $1/credit via Stripe at cycle end.</p>
+              <CreditPricingTable initialPricing={pricing} />
             </div>
+          ),
+
+          stripe: (
+            <StripeProducts
+              initialPlans={(plans ?? []) as any}
+              initialOneTime={(oneTimeProducts ?? []) as any}
+              initialTlds={(domainTlds ?? []) as any}
+            />
           ),
 
           promotions: <CouponManager />,

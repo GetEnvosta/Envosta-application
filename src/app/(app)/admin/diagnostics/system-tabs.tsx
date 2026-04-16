@@ -1,22 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { Activity, AlertTriangle, ScrollText, Mail, Phone, Settings, Percent } from 'lucide-react';
+import { Activity, ScrollText, Mail, Phone, Gauge, CreditCard, Percent } from 'lucide-react';
 
 const TABS = [
-  { id: 'diagnostics', label: 'Diagnostics', icon: AlertTriangle },
+  { id: 'health', label: 'Health', icon: Activity },
   { id: 'logs', label: 'Logs', icon: ScrollText },
-  { id: 'health', label: 'Health Checks', icon: Activity },
   { id: 'emails', label: 'Emails', icon: Mail },
   { id: 'phone', label: 'Phone & SMS', icon: Phone },
-  { id: 'pricing', label: 'Pricing', icon: Settings },
+  { id: 'usage', label: 'Usage Rates', icon: Gauge },
+  { id: 'stripe', label: 'Stripe', icon: CreditCard },
   { id: 'promotions', label: 'Promotions', icon: Percent },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
 
 export function SystemTabs({ children }: { children: Record<string, React.ReactNode> }) {
-  const [active, setActive] = useState<TabId>('diagnostics');
+  const [active, setActive] = useState<TabId>('health');
 
   return (
     <div>
