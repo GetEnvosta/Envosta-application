@@ -80,12 +80,11 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   const [onboardingChoice, setOnboardingChoice] = useState<'self' | 'guided' | null>(null);
 
   // Steps:
-  // Trial: Account only (auto temp domain, straight to checkout)
-  // Domain pre-filled (from domains page): Account → Plan (skip domain step)
-  // Normal paid: Account → Domain
-  // Dashboard: Plan → Domain
-  const hasDomainPreFilled = !!initialDomain && !initialPlan;
-  const publicSteps = isTrial ? ['Account'] : hasDomainPreFilled ? ['Account', 'Plan'] : ['Account', 'Domain'];
+  // Public signup: Account only (if plan pre-selected) or Account → Plan
+  // Every public signup auto-provisions a temp domain — no domain step
+  // Dashboard: Plan → Domain (dashboard users can still pick domains)
+  const needsPlanStep = !isTrial && !initialPlan;
+  const publicSteps = needsPlanStep ? ['Account', 'Plan'] : ['Account'];
   const dashboardSteps = ['Plan', 'Domain'];
   const steps = mode === 'public' ? publicSteps : dashboardSteps;
   const [step, _setStep] = useState(1);
@@ -387,18 +386,15 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 <button
                   onClick={() => {
                     if (!(name && email && password.length >= 8 && password === confirmPassword && termsAccepted)) return;
-                    if (isTrial) {
-                      // Trial: skip domain step, auto-select temp domain, go to checkout
-                      setDomainMode('temp');
-                      setSelectedDomain('');
+                    // Always auto-provision with temp domain
+                    setDomainMode('temp');
+                    setSelectedDomain('');
+                    if (isTrial || selectedPlan) {
+                      // Trial or plan pre-selected: go straight to checkout
                       handleCheckout();
-                    } else if (hasDomainPreFilled) {
-                      // Domain already chosen (from domains page): go to plan selection
-                      setDomainMode('new');
-                      setSelectedDomain(initialDomain!);
-                      setStep(planStepNum);
                     } else {
-                      setStep(domainStepNum);
+                      // No plan selected: go to plan picker
+                      setStep(planStepNum);
                     }
                   }}
                   disabled={!name || !email || password.length < 8 || password !== confirmPassword || !termsAccepted || checkoutLoading}
@@ -413,10 +409,10 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                     <><Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Setting up...</>
                   ) : isTrial ? (
                     <>Start Free Trial <ArrowRight style={{ width: 16, height: 16 }} /></>
-                  ) : hasDomainPreFilled ? (
-                    <>Choose a Plan <ArrowRight style={{ width: 16, height: 16 }} /></>
+                  ) : selectedPlan ? (
+                    <>Continue to Checkout <ArrowRight style={{ width: 16, height: 16 }} /></>
                   ) : (
-                    <>{selectedPlan && selectedDomain ? 'Continue to Checkout' : selectedPlan ? 'Set Up Your Domain' : 'Choose a Plan'} <ArrowRight style={{ width: 16, height: 16 }} /></>
+                    <>Choose a Plan <ArrowRight style={{ width: 16, height: 16 }} /></>
                   )}
                 </button>
                 {checkoutError && <p style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 12, textAlign: 'center' }}>{checkoutError}</p>}
@@ -522,7 +518,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
 
           <div style={{ textAlign: 'center', marginTop: 28 }}>
             <button
-              onClick={hasDomainPreFilled ? handleCheckout : goToDomain}
+              onClick={() => { if (mode === 'public') { setDomainMode('temp'); setSelectedDomain(''); } handleCheckout(); }}
               disabled={!selectedPlan || checkoutLoading}
               style={{
                 padding: '14px 32px', background: t.btnBg, color: t.btnColor, borderRadius: 100, border: 'none',
@@ -533,10 +529,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
             >
               {checkoutLoading ? (
                 <><Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Setting up...</>
-              ) : hasDomainPreFilled ? (
-                <>Continue to Payment <ArrowRight style={{ width: 16, height: 16 }} /></>
               ) : (
-                <>Continue <ArrowRight style={{ width: 16, height: 16 }} /></>
+                <>Continue to Payment <ArrowRight style={{ width: 16, height: 16 }} /></>
               )}
             </button>
             {checkoutError && <p style={{ color: '#ef4444', fontSize: '.82rem', marginTop: 12 }}>{checkoutError}</p>}

@@ -92,6 +92,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
                   <a href={`${service.wp_cloud_url}/wp-admin`} target="_blank" rel="noopener noreferrer" className="btn-admin text-sm py-2 px-4">
                     WP Admin
                   </a>
+                  <AdminWpUser siteId={service.id} />
                   <a href={service.wp_cloud_url} target="_blank" rel="noopener noreferrer" className="btn-admin-secondary text-sm py-2 px-3">
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
@@ -199,11 +200,6 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             subscriptionId={service.subscription_id}
             status={service.status}
           />
-          {service.wp_cloud_site_id && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <AdminWpUser siteId={service.id} />
-            </div>
-          )}
         </div>
       </div>
 

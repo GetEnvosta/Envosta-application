@@ -48,7 +48,7 @@ export async function POST(req: Request) {
       goals,
       size,
       domain,
-      plan, // 'minimum' | 'growth' | 'performance' | ''
+      plan, // 'minimum' | 'growth' | ''
       onboarding, // 'self' | 'guided'
       billing, // 'monthly' | 'annual'
       termsAccepted,
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     if (!password || typeof password !== 'string' || password.length < 8 || password.length > 128) {
       return NextResponse.json({ error: 'Password must be 8–128 characters' }, { status: 400 });
     }
-    if (plan && typeof plan === 'string' && !['minimum', 'growth', 'performance', ''].includes(plan)) {
+    if (plan && typeof plan === 'string' && !['minimum', 'growth', ''].includes(plan)) {
       return NextResponse.json({ error: 'Invalid plan selected' }, { status: 400 });
     }
     if (domain && typeof domain === 'string' && domain.length > 253) {

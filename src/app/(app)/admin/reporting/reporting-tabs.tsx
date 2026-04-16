@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { DollarSign, Gauge, Cpu } from 'lucide-react';
+import { DollarSign, Gauge, Cpu, ShoppingCart } from 'lucide-react';
 
 const TABS = [
   { id: 'financial', label: 'Financial', icon: DollarSign },
   { id: 'usage', label: 'Platform Usage', icon: Gauge },
   { id: 'api', label: 'API Costs', icon: Cpu },
+  { id: 'abandoned', label: 'Abandoned Carts', icon: ShoppingCart },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];

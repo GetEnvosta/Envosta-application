@@ -349,7 +349,7 @@ export function GutenbergAnimation() {
                         <rect x="12" y="1" width="15.56" height="15.56" rx="3" transform="rotate(45 12 1)" stroke="#0071e3" strokeWidth="2" />
                         <rect x="12" y="7.5" width="6.36" height="6.36" rx="1" transform="rotate(45 12 7.5)" fill="#0071e3" />
                       </svg>
-                      Envosta Studio
+                      Envosta
                     </div>
                     <div className="s-links">
                       <span>Home</span>
@@ -359,7 +359,7 @@ export function GutenbergAnimation() {
                     </div>
                   </nav>
                   <div className="s-hero" id="hs">
-                    <div className="s-pill">Digital Studio</div>
+                    <div className="s-pill">Digital Agency</div>
                     <h2>Building Products People Remember.</h2>
                     <p>
                       The only platform helping ambitious brands define, design, and ship world class

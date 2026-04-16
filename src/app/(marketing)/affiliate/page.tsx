@@ -397,7 +397,7 @@ export default function AffiliatePage() {
                 </div>
                 <div className="dash-activity">
                   <div className="dash-row"><div className="status-dot active"></div><span>Growth plan — J. Rivera</span><span className="amount">+$60</span></div>
-                  <div className="dash-row"><div className="status-dot active"></div><span>Performance plan — M. Chen</span><span className="amount">+$120</span></div>
+                  <div className="dash-row"><div className="status-dot active"></div><span>Growth plan — M. Chen</span><span className="amount">+$60</span></div>
                   <div className="dash-row"><div className="status-dot pending"></div><span>Minimum plan — K. Brooks</span><span className="amount pen">Pending</span></div>
                   <div className="dash-row"><div className="status-dot active"></div><span>Growth plan — T. Okafor</span><span className="amount">+$60</span></div>
                 </div>

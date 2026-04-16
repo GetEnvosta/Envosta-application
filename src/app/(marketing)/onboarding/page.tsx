@@ -269,7 +269,7 @@ export default function OnboardingPage() {
                 </div>
                 <p>You pick a plan and we schedule a short kickoff call. We&apos;ll talk through your goals, your current site (if you have one), and exactly what you need from your hosting.</p>
                 <ul>
-                  <li><CheckIcon />Choose your plan (Minimum, Growth, or Performance)</li>
+                  <li><CheckIcon />Choose your plan (Minimum or Growth)</li>
                   <li><CheckIcon />15-minute kickoff call to understand your goals</li>
                   <li><CheckIcon />Share logins for any existing site or domain registrar</li>
                 </ul>
@@ -302,8 +302,7 @@ export default function OnboardingPage() {
                   <li><CheckIcon />WordPress installed with best-practice configuration</li>
                   <li><CheckIcon />Full site migration (if applicable) — free with every plan</li>
                   <li><CheckIcon />Staging environment ready for testing</li>
-                  <li><CheckIcon />WooCommerce installed and configured <span className="plan-tag growth">Growth+</span></li>
-                  <li><CheckIcon />Custom theme designed and installed <span className="plan-tag perf">Performance</span></li>
+                  <li><CheckIcon />WooCommerce installed and configured <span className="plan-tag growth">Growth</span></li>
                 </ul>
               </div>
               <div className="tl-tail" />
@@ -412,8 +411,7 @@ export default function OnboardingPage() {
                 <ul>
                   <li><CheckIcon />24/7 uptime monitoring active</li>
                   <li><CheckIcon />Ongoing managed updates (core, plugins, themes)</li>
-                  <li><CheckIcon />Email support (all plans) with priority response <span className="plan-tag perf">Performance</span></li>
-                  <li><CheckIcon />Dedicated account manager <span className="plan-tag perf">Performance</span></li>
+                  <li><CheckIcon />Email support on all plans, priority response <span className="plan-tag growth">Growth</span></li>
                   <li><CheckIcon />Monthly performance and security reports</li>
                 </ul>
               </div>

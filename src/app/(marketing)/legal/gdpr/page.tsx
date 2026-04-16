@@ -141,7 +141,7 @@ export default function GdprPage() {
             <ul>
               <li><strong>Standard Contractual Clauses (SCCs):</strong> We use the European Commission&apos;s approved SCCs for transfers to countries without an adequacy decision.</li>
               <li><strong>EU-U.S. Data Privacy Framework:</strong> Where applicable, we rely on the EU-U.S. Data Privacy Framework for transfers to certified U.S. organizations.</li>
-              <li><strong>Data residency options:</strong> Customers on Performance plans and above can choose to keep all data within EU-based data centers by selecting the Amsterdam (EU West) region during setup.</li>
+              <li><strong>Data residency options:</strong> All customers can choose to keep their data within EU-based data centers by selecting the Amsterdam (EU West) region during setup.</li>
             </ul>
             <p>You can request information about the specific safeguards applied to transfers of your data by contacting <a href="mailto:privacy@envosta.com">privacy@envosta.com</a>.</p>
             <hr className="legal-divider" />

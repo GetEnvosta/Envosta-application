@@ -25,7 +25,6 @@ export function GetStartedFlow() {
     });
   }, []);
   const planParam = searchParams.get('plan')?.toLowerCase() ?? undefined;
-  const domain = searchParams.get('domain') ?? undefined;
   const billing = (searchParams.get('billing') === 'annual' ? 'annual' : 'monthly') as 'monthly' | 'annual';
   const promo = searchParams.get('promo') ?? undefined;
   const ref = searchParams.get('ref') ?? undefined;
@@ -45,7 +44,7 @@ export function GetStartedFlow() {
     }
   }, [ref]);
 
-  // plan=choose means "show plan picker" (from domains page with domain pre-filled)
+  // plan=choose means "show plan picker" (no pre-selection)
   const needsPlanChoice = planParam === 'choose';
   // Trial only when no plan param at all (generic "Get Started" clicks)
   const isTrial = !planParam;
@@ -75,22 +74,13 @@ export function GetStartedFlow() {
                 ))}
               </div>
             </>
-          ) : needsPlanChoice && domain ? (
-            <>
-              <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 600, letterSpacing: '-1px', lineHeight: 1.1, color: '#fff', marginBottom: 12 }}>
-                Great choice!
-              </h1>
-              <p style={{ fontSize: '.95rem', color: 'rgba(255,255,255,.45)', fontWeight: 300, maxWidth: 480, margin: '0 auto' }}>
-                <span style={{ color: '#22c55e', fontWeight: 500 }}>{domain}</span> is reserved for you. Pick a hosting plan to get started.
-              </p>
-            </>
           ) : (
             <>
               <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 600, letterSpacing: '-1px', lineHeight: 1.1, color: '#fff', marginBottom: 12 }}>
                 Get started{planParam ? ` with ${planParam.charAt(0).toUpperCase() + planParam.slice(1)}` : ''}
               </h1>
               <p style={{ fontSize: '.95rem', color: 'rgba(255,255,255,.45)', fontWeight: 300, maxWidth: 420, margin: '0 auto' }}>
-                Create your account and set up your website.
+                Create your account and we&apos;ll set up your WordPress site instantly.
               </p>
             </>
           )}
@@ -98,7 +88,6 @@ export function GetStartedFlow() {
         <SiteCheckoutFlow
           mode="public"
           initialPlan={effectivePlan}
-          initialDomain={domain}
           initialBilling={billing}
           isTrial={isTrial}
           promoCode={promo}

@@ -45,11 +45,12 @@ const TIMELINES = [
 const PLANS = [
   {
     id: 'minimum',
-    name: 'Starter',
-    price: '$50',
-    annual: '$42',
-    annualTotal: '$500/yr',
-    features: ['10 GB SSD', '50 GB bandwidth', 'Daily backups', 'Staging env', 'Free migration'],
+    name: 'Minimum',
+    price: '$36',
+    annual: '$30',
+    annualTotal: '$360/yr',
+    currency: 'USD',
+    features: ['36 credits included', 'Up to 2 sites', '25 GB SSD', 'Daily backups', 'Staging env', 'Free migration'],
   },
   {
     id: 'growth',
@@ -59,15 +60,7 @@ const PLANS = [
     annualTotal: '$2,970/yr',
     featured: true,
     currency: 'USD',
-    features: ['297 credits included', '30 GB SSD', '200 GB bandwidth', 'AI tools', 'SEO audit', 'WooCommerce setup'],
-  },
-  {
-    id: 'performance',
-    name: 'Performance',
-    price: '$350',
-    annual: '$292',
-    annualTotal: '$3,500/yr',
-    features: ['100 GB SSD', 'Unlimited bandwidth', 'Priority support', 'Custom theme', 'Dedicated team'],
+    features: ['297 credits included', 'Up to 10 sites', '30 GB SSD', 'AI tools', 'SEO audit', 'WooCommerce setup'],
   },
 ];
 

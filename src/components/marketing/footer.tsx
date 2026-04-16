@@ -25,8 +25,6 @@ const footerColumns = [
       { label: 'WooCommerce Hosting', href: '/pricing' },
       { label: 'Enterprise Hosting', href: '/features' },
       { label: 'Plans & Pricing', href: '/pricing' },
-      { label: 'Studio', href: '/studio' },
-      { label: 'Theme Generator', href: '/studio/generator' },
     ],
   },
   {

@@ -178,7 +178,7 @@ export default function PricingPage() {
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>30 GB SSD + 200 GB bandwidth</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Staging environment</li>
             <li className="feat-label">AI &amp; Tools</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>AI theme generator (Studio)</li>
+            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>AI theme generator</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Business profile dashboard</li>
             <li className="feat-label">Onboarding</li>
             <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>1-on-1 setup consultation</li>
@@ -191,7 +191,7 @@ export default function PricingPage() {
 
       </div>
       <p style={{ textAlign: 'center', marginTop: 28, fontSize: '.82rem', color: 'var(--t3)', fontWeight: 300 }}>
-        Need maximum resources or a dedicated team? <a href="/contact" style={{ color: 'var(--gold)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>Talk to us about Performance &amp; Studio</a>.
+        Need a dedicated team or custom build? <a href="/support" style={{ color: 'var(--gold)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>Get in touch</a>.
       </p>
       </section>
 
@@ -284,7 +284,7 @@ export default function PricingPage() {
             <tr><td>Automatic WP updates</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
             <tr><td>Uptime monitoring</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
             <tr><td>Staging environment</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>AI theme generator (Studio)</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr><td>AI theme generator</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
             <tr><td>Business profile dashboard</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
             <tr><td>1-on-1 setup consultation</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
             <tr><td>SEO audit &amp; configuration</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
@@ -341,7 +341,7 @@ export default function PricingPage() {
               <h4>What kind of support can I expect?</h4>
               <svg className="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </div>
-            <div className="faq-a"><p>Minimum and Growth plans include email support with a typical response time under 4 hours. The Performance plan includes priority support with faster response times and a dedicated account manager.</p></div>
+            <div className="faq-a"><p>Both plans include email support with a typical response time under 4 hours. Growth plan customers get priority response with faster turnaround.</p></div>
           </div>
 
           <div className="faq-item">

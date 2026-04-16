@@ -3,9 +3,8 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase-server';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { AlertTriangle, Server, Globe, CreditCard, CheckCircle, ShoppingCart, Activity, ScrollText } from 'lucide-react';
+import { AlertTriangle, Server, Globe, CreditCard, CheckCircle, Activity, ScrollText } from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
-import { getAbandonedCheckouts } from '@/services/subscriptions';
 import { ExternalSyncCheck } from '@/components/admin/external-sync-check';
 import { getAdminLogs } from '@/services/admin';
 import { getServicePricing } from '@/services/pricing';
@@ -85,9 +84,6 @@ export default async function DiagnosticsPage() {
     .order('created_at', { ascending: false })
     .limit(20);
 
-  // 7. Abandoned checkouts (incomplete subscriptions)
-  const abandonedCheckouts = await getAbandonedCheckouts(20);
-
   const totalIssues = hostingSubsNoSite.length + domainSubsNoDomain.length + (stuckSites?.length ?? 0) + (failedSites?.length ?? 0) + (problemDomains?.length ?? 0);
 
   // Fetch logs for the logs tab
@@ -132,7 +128,6 @@ export default async function DiagnosticsPage() {
         <StatCard label="Orphaned Subs" value={hostingSubsNoSite.length} icon={CreditCard} color={hostingSubsNoSite.length > 0 ? 'amber' : 'gray'} />
         <StatCard label="Stuck Sites" value={(stuckSites?.length ?? 0) + (failedSites?.length ?? 0)} icon={Server} color={(stuckSites?.length ?? 0) + (failedSites?.length ?? 0) > 0 ? 'amber' : 'gray'} />
         <StatCard label="Problem Domains" value={problemDomains?.length ?? 0} icon={Globe} color={(problemDomains?.length ?? 0) > 0 ? 'amber' : 'gray'} />
-        <StatCard label="Abandoned Carts" value={abandonedCheckouts.length} icon={ShoppingCart} color={abandonedCheckouts.length > 0 ? 'amber' : 'gray'} />
       </div>
 
       <SystemTabs>
@@ -245,23 +240,6 @@ export default async function DiagnosticsPage() {
         ))}
       </DiagCard>
 
-      {/* Abandoned checkouts */}
-      <DiagCard
-        icon={<ShoppingCart className="w-4 h-4" />}
-        title="Abandoned Checkouts"
-        count={abandonedCheckouts.length}
-        description="Customers who started checkout but didn't complete payment. These auto-cancel after the configured Stripe timeout."
-        severity="low"
-      >
-        {abandonedCheckouts.map((s: any) => (
-          <DiagRow key={s.id}
-            primary={(s.users as any)?.email ?? 'Unknown'}
-            secondary={`${s.products?.name ?? 'Unknown product'} — created ${formatDate(s.created_at)}`}
-            date={s.created_at}
-            link={(s.users as any)?.id ? `/admin/customers/${(s.users as any).id}` : undefined}
-          />
-        ))}
-      </DiagCard>
             </div>
           ),
 

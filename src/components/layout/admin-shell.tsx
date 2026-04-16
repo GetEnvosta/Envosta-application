@@ -120,7 +120,7 @@ export function AdminShell({
           </div>
         </header>
 
-        <main className={pathname.startsWith('/admin/studio') ? 'p-0 h-[calc(100vh-56px)] lg:h-screen overflow-hidden' : 'p-5 lg:p-8 max-w-[1400px]'}>
+        <main className="p-5 lg:p-8 max-w-[1400px]">
           {children}
         </main>
       </div>

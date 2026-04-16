@@ -105,8 +105,7 @@ export default function TermsPage() {
               <p>All plans include access to Envosta&apos;s technical support team. The scope and response times of support vary by plan:</p>
               <ul>
                 <li><strong>Minimum plan:</strong> Email support during business hours</li>
-                <li><strong>Growth plan:</strong> Email support with faster response times</li>
-                <li><strong>Performance plan:</strong> Priority support with a dedicated account manager</li>
+                <li><strong>Growth plan:</strong> Priority email support with faster response times</li>
               </ul>
               <p>Support covers issues related to the hosting environment, server configuration, WordPress core, and Envosta-managed services. Support does not extend to custom code, third-party plugin conflicts, or website design and development unless you have an active design or maintenance add-on.</p>
               <p>Envosta performs regular platform maintenance, including WordPress core updates, PHP version management, and security patching. These updates are applied automatically and are included in all plans.</p>

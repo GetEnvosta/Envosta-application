@@ -1,19 +1,21 @@
 export const revalidate = 60;
 
 import { createClient } from '@/lib/supabase-server';
-import { getAllActiveSubscriptions, toMonthly } from '@/services/subscriptions';
+import { getAllActiveSubscriptions, toMonthly, getAbandonedCheckouts } from '@/services/subscriptions';
 import { getAdminUsageStats } from '@/services/usage';
 import { formatCents } from '@/lib/utils';
-import { DollarSign, Users, Gauge, TrendingUp, Server, Phone, Brain, Mail, Globe, Cpu } from 'lucide-react';
+import Link from 'next/link';
+import { DollarSign, Users, Gauge, TrendingUp, Server, Phone, Brain, Mail, Globe, Cpu, ShoppingCart, ExternalLink } from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
 import { ReportingTabs } from './reporting-tabs';
 
 export default async function ReportingPage() {
   const supabase = await createClient();
 
-  const [activeSubscriptions, usageStats] = await Promise.all([
+  const [activeSubscriptions, usageStats, abandonedCheckouts] = await Promise.all([
     getAllActiveSubscriptions(),
     getAdminUsageStats(),
+    getAbandonedCheckouts(50),
   ]);
 
   const mrr = activeSubscriptions.reduce((sum: number, sub: any) => sum + toMonthly(sub), 0);
@@ -303,6 +305,51 @@ export default async function ReportingPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          ),
+          abandoned: (
+            <div className="space-y-4">
+              <div className="card p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Abandoned Checkouts</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">Customers who started checkout but didn&apos;t complete payment.</p>
+                  </div>
+                  <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">{abandonedCheckouts.length} total</span>
+                </div>
+                {abandonedCheckouts.length === 0 ? (
+                  <p className="text-sm text-gray-400 py-8 text-center">No abandoned checkouts found.</p>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {abandonedCheckouts.map((s: any) => {
+                      const email = (s.users as any)?.email ?? 'Unknown';
+                      const name = (s.users as any)?.full_name;
+                      const userId = (s.users as any)?.id;
+                      const product = s.products?.name ?? 'Unknown product';
+                      const date = new Date(s.created_at);
+                      const ago = Math.round((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+                      return (
+                        <div key={s.id} className="flex items-center justify-between py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center">
+                              <ShoppingCart className="w-3.5 h-3.5 text-amber-500" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{name || email}</p>
+                              <p className="text-xs text-gray-500">{product} · {ago === 0 ? 'today' : `${ago}d ago`}</p>
+                            </div>
+                          </div>
+                          {userId && (
+                            <Link href={`/admin/customers/${userId}`} className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                              View <ExternalLink className="w-3 h-3" />
+                            </Link>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           ),
