@@ -75,7 +75,9 @@
       "Bash(grep -r \"price_[A-Za-z0-9]\\\\{17,\\\\}\" /c/Users/kolty/OneDrive/Desktop/Envosta-application/supabase/migrations/)",
       "Bash(grep -E \"price_[a-z0-9]{17,}\")",
       "Bash(find . -name \"*.sql\" -type f ! -path \"./.next/*\" ! -path \"./node_modules/*\" -exec grep -l \"stripe_price_id.*=\" {} \\\\;)",
-      "Bash(grep -E \"price_yearly_cad|price_2yr_cad|price_3yr_cad\" /c/Users/kolty/OneDrive/Desktop/Envosta-application/supabase/migrations/*.sql)"
+      "Bash(grep -E \"price_yearly_cad|price_2yr_cad|price_3yr_cad\" /c/Users/kolty/OneDrive/Desktop/Envosta-application/supabase/migrations/*.sql)",
+      "Bash(brew install:*)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp"
     ]
   }
 }
