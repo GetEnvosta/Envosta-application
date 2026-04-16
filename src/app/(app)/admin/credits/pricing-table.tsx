@@ -14,16 +14,12 @@ interface PricingRow {
 
 const SERVICE_LABELS: Record<string, string> = {
   wordpress: 'wp.cloud',
-  ai_tokens: 'Claude (Anthropic)',
-  resend: 'Resend',
 };
 
 const METRIC_LABELS: Record<string, string> = {
   php_worker: 'PHP Worker (per worker/mo)',
   ssd_gb: 'SSD Storage (per GB/mo)',
   bursting: 'Bursting (per site/mo)',
-  per_1k_tokens: 'AI Tokens (per 1,000)',
-  per_email: 'Email (per send)',
 };
 
 export function CreditPricingTable({ initialPricing }: { initialPricing: PricingRow[] }) {
@@ -49,9 +45,10 @@ export function CreditPricingTable({ initialPricing }: { initialPricing: Pricing
     setEditingId(null);
   }
 
-  // Group by platform label
+  // Only show wp.cloud services, group by platform label
   const grouped: Record<string, PricingRow[]> = {};
   for (const row of pricing) {
+    if (row.service_type !== 'wordpress') continue;
     const label = SERVICE_LABELS[row.service_type] ?? row.service_type;
     if (!grouped[label]) grouped[label] = [];
     grouped[label].push(row);

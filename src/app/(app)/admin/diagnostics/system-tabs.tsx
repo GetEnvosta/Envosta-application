@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Activity, AlertTriangle, ScrollText, Mail, Phone } from 'lucide-react';
+import { Activity, AlertTriangle, ScrollText, Mail, Phone, Settings, Percent } from 'lucide-react';
 
 const TABS = [
   { id: 'diagnostics', label: 'Diagnostics', icon: AlertTriangle },
@@ -9,6 +9,8 @@ const TABS = [
   { id: 'health', label: 'Health Checks', icon: Activity },
   { id: 'emails', label: 'Emails', icon: Mail },
   { id: 'phone', label: 'Phone & SMS', icon: Phone },
+  { id: 'pricing', label: 'Pricing', icon: Settings },
+  { id: 'promotions', label: 'Promotions', icon: Percent },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];

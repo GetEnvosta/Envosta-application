@@ -1,20 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { Receipt, Banknote, Settings, Users, Percent } from 'lucide-react';
+import { Receipt, Banknote, Users } from 'lucide-react';
 
 const TABS = [
-  { id: 'pricing', label: 'Pricing', icon: Settings },
   { id: 'subscriptions', label: 'Subscriptions', icon: Users },
   { id: 'commissions', label: 'Commissions', icon: Banknote },
-  { id: 'promotions', label: 'Promotions', icon: Percent },
   { id: 'invoices', label: 'Invoices', icon: Receipt },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
 
 export function BillingTabs({ children }: { children: Record<string, React.ReactNode> }) {
-  const [active, setActive] = useState<TabId>('pricing');
+  const [active, setActive] = useState<TabId>('subscriptions');
 
   return (
     <div>

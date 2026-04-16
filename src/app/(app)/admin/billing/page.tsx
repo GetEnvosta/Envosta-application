@@ -2,19 +2,14 @@ export const revalidate = 5;
 import { getAllActiveSubscriptions, getAllSubscriptionsAdmin, toMonthly } from '@/services/subscriptions';
 import { getAdminBillingStats, getAdminRecentInvoices } from '@/services/billing';
 import { getAdminUsageStats } from '@/services/usage';
-import { getServicePricing } from '@/services/pricing';
-import { createClient } from '@/lib/supabase-server';
 import { getAllCommissions, getCommissionStats } from '@/services/commissions';
 import { formatCents, formatDate } from '@/lib/utils';
 import { DollarSign, Receipt, AlertCircle, Users, ExternalLink, Gauge, TrendingUp, Banknote } from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
 import { InvoiceFilters } from '@/components/admin/invoice-filters';
 import { SubscriptionFilters } from '@/components/admin/subscription-filters';
-import { CreditPricingTable } from '@/app/(app)/admin/credits/pricing-table';
 import { CommissionRowActions } from '@/components/admin/commission-actions';
-import { CouponManager } from '@/components/admin/coupon-manager';
 import { BillingTabs } from './billing-tabs';
-import { DomainTldPricing } from './domain-tld-pricing';
 
 export default async function AdminBillingPage() {
   const [
@@ -23,7 +18,6 @@ export default async function AdminBillingPage() {
     { paidInvoicesCount, outstandingInvoicesCount },
     recentInvoices,
     usageStats,
-    pricing,
     commissionStats,
     commissions,
   ] = await Promise.all([
@@ -32,18 +26,9 @@ export default async function AdminBillingPage() {
     getAdminBillingStats(),
     getAdminRecentInvoices(100),
     getAdminUsageStats(),
-    getServicePricing(),
     getCommissionStats(),
     getAllCommissions({}, 30),
   ]);
-
-  // Fetch domain TLD pricing
-  const supabase = await createClient();
-  const { data: domainTlds } = await supabase
-    .from('products')
-    .select('id, name, slug, price_cad, is_active, stripe_price_id')
-    .eq('type', 'domain_tld')
-    .order('slug');
 
   const mrr = activeSubscriptions.reduce((sum: number, sub: any) => sum + toMonthly(sub), 0);
   const activeCount = allSubscriptions.filter((s: any) => s.status === 'active').length;
@@ -63,7 +48,7 @@ export default async function AdminBillingPage() {
       <div className="page-header">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Billing</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Revenue, usage, pricing, commissions, and invoices.</p>
+          <p className="text-sm text-gray-500 mt-0.5">Revenue, subscriptions, commissions, and invoices.</p>
         </div>
         <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer"
           className="btn-admin text-sm py-2 px-3.5 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0">
@@ -93,50 +78,6 @@ export default async function AdminBillingPage() {
       {/* Tabbed content */}
       <BillingTabs>
         {{
-          pricing: (
-            <div className="space-y-8">
-              {/* Usage Rates — internal, not linked to Stripe */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-1">Usage Rates</h3>
-                <p className="text-xs text-gray-500 mb-4">Click any rate to edit. Changes apply system-wide immediately. Overage billed at $1/credit via Stripe at cycle end.</p>
-                <CreditPricingTable initialPricing={pricing} />
-              </div>
-
-              {/* Plans — linked to Stripe subscription products */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-1">Plans</h3>
-                <p className="text-xs text-gray-500 mb-4">Stripe subscription products. Price and billing managed in Stripe.</p>
-                <div className="card overflow-hidden">
-                  <table className="w-full table-fixed">
-                    <thead><tr className="border-b border-gray-100">
-                      <th className="w-[25%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Plan</th>
-                      <th className="w-[40%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Included</th>
-                      <th className="w-[20%] text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Price</th>
-                      <th className="w-[15%] text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Synced</th>
-                    </tr></thead>
-                    <tbody>
-                      <tr className="border-b border-gray-50 hover:bg-gray-50/50">
-                        <td className="px-4 py-2.5 text-sm font-medium text-gray-900">Minimum</td>
-                        <td className="px-4 py-2.5 text-xs text-gray-600">36 credits/mo — base site fully covered</td>
-                        <td className="px-4 py-2.5 text-sm font-medium text-gray-900 text-right">$36/mo</td>
-                        <td className="px-4 py-2.5 text-center">
-                          <a href="https://dashboard.stripe.com/products" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700">Stripe ✓</a>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Domain TLDs — linked to Stripe yearly subscription products */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-1">Domain TLD Pricing</h3>
-                <p className="text-xs text-gray-500 mb-4">Click any price to edit. Each TLD is a Stripe yearly subscription product for auto-renewal.</p>
-                <DomainTldPricing initialTlds={domainTlds ?? []} />
-              </div>
-            </div>
-          ),
-
           subscriptions: <SubscriptionFilters subscriptions={allSubscriptions as any} />,
 
           commissions: (
@@ -184,8 +125,6 @@ export default async function AdminBillingPage() {
               )}
             </div>
           ),
-
-          promotions: <CouponManager />,
 
           invoices: <InvoiceFilters invoices={taggedInvoices} />,
         }}
