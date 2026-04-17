@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { RefreshCw, Plus, ExternalLink, Check, AlertCircle, Trash2 } from 'lucide-react';
+import { RefreshCw, Plus, ExternalLink, Check, AlertCircle, Trash2, Pencil, X, Save } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -10,7 +10,9 @@ interface Product {
   slug: string;
   billing: string;
   price_cad: number;
+  price_usd: number;
   price_yearly_cad: number | null;
+  price_yearly_usd: number | null;
   is_active: boolean;
   stripe_product_id: string | null;
   stripe_price_id: string | null;
@@ -32,6 +34,7 @@ interface DomainTld {
   name: string;
   slug: string;
   price_cad: number;
+  price_usd: number;
   is_active: boolean;
   stripe_price_id: string | null;
 }
@@ -55,14 +58,12 @@ export function StripeProducts({
   const [loadingStripe, setLoadingStripe] = useState(true);
   const [result, setResult] = useState('');
 
-  // TLD inline editing
-  const [editingTldId, setEditingTldId] = useState<string | null>(null);
-  const [editTldPrice, setEditTldPrice] = useState('');
-  const [savingTldId, setSavingTldId] = useState<string | null>(null);
+  // Inline editing state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editFields, setEditFields] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    fetchStripeOnly();
-  }, []);
+  useEffect(() => { fetchStripeOnly(); }, []);
 
   async function fetchStripeOnly() {
     setLoadingStripe(true);
@@ -86,13 +87,14 @@ export function StripeProducts({
       });
       if (res.ok) {
         const data = await res.json();
-        const update = (p: Product) => p.id === id ? {
+        const update = (p: any) => p.id === id ? {
           ...p,
-          stripe_product_id: data.stripe_product_id,
-          stripe_price_id: data.stripe_price_id,
+          stripe_product_id: data.stripe_product_id ?? p.stripe_product_id,
+          stripe_price_id: data.stripe_price_id ?? p.stripe_price_id,
         } : p;
         setPlans(prev => prev.map(update));
         setOneTime(prev => prev.map(update));
+        setTlds(prev => prev.map(update));
       }
     } catch { /* ignore */ }
     setSyncingId(null);
@@ -127,11 +129,8 @@ export function StripeProducts({
         body: JSON.stringify({ type, name, slug: `${type.replace('_', '-')}-${Date.now()}`, billing, price_cad: price }),
       });
       const data = await res.json();
-      if (data.id) {
-        window.location.reload();
-      } else {
-        setResult(data.error ?? 'Failed to create');
-      }
+      if (data.id) window.location.reload();
+      else setResult(data.error ?? 'Failed to create');
     } catch { setResult('Failed to create'); }
     setCreating(false);
   }
@@ -148,53 +147,57 @@ export function StripeProducts({
     } catch { /* ignore */ }
   }
 
-  async function saveTldPrice(id: string) {
-    setSavingTldId(id);
-    try {
-      const cents = Math.round(parseFloat(editTldPrice) * 100);
-      const res = await fetch('/api/admin/update-tld-price', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, price_cad: cents }),
-      });
-      if (res.ok) {
-        setTlds(prev => prev.map(t => t.id === id ? { ...t, price_cad: cents } : t));
+  function startEdit(product: any, fields: string[]) {
+    setEditingId(product.id);
+    const vals: Record<string, string> = {};
+    for (const f of fields) {
+      if (f === 'price_usd' || f === 'price_cad' || f === 'price_yearly_usd' || f === 'price_yearly_cad') {
+        vals[f] = ((product[f] ?? 0) / 100).toFixed(2);
+      } else {
+        vals[f] = String(product[f] ?? '');
       }
-    } catch { /* ignore */ }
-    setSavingTldId(null);
-    setEditingTldId(null);
+    }
+    setEditFields(vals);
   }
 
-  async function syncTld(id: string) {
-    setSyncingId(id);
+  async function saveEdit(id: string) {
+    setSaving(true);
+    const updates: Record<string, any> = {};
+    for (const [key, val] of Object.entries(editFields)) {
+      if (key.includes('price')) {
+        updates[key] = Math.round(parseFloat(val || '0') * 100);
+      } else if (key === 'monthly_credit_cost') {
+        updates[key] = parseFloat(val || '0');
+      } else {
+        updates[key] = val;
+      }
+    }
     try {
-      const res = await fetch('/api/admin/update-tld-price', {
-        method: 'POST',
+      const res = await fetch('/api/admin/create-product', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, sync: true }),
+        body: JSON.stringify({ id, ...updates }),
       });
       if (res.ok) {
-        const data = await res.json();
-        setTlds(prev => prev.map(t => t.id === id ? { ...t, stripe_price_id: data.stripe_price_id ?? t.stripe_price_id } : t));
+        // Update local state
+        const updateFn = (p: any) => p.id === id ? { ...p, ...updates } : p;
+        setPlans(prev => prev.map(updateFn));
+        setOneTime(prev => prev.map(updateFn));
+        setTlds(prev => prev.map(updateFn));
+        setEditingId(null);
       }
     } catch { /* ignore */ }
-    setSyncingId(null);
+    setSaving(false);
   }
 
-  const formatPrice = (cents: number, billing: string) => {
-    const dollars = (cents / 100).toFixed(2);
-    if (billing === 'monthly') return `$${dollars}/mo`;
-    if (billing === 'yearly') return `$${dollars}/yr`;
-    return `$${dollars}`;
-  };
+  const fmtPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+  const billingLabel = (b: string) => b === 'monthly' ? 'Monthly' : b === 'yearly' ? 'Yearly' : b === 'one_time' ? 'One-time' : b;
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs text-gray-500">Manage Stripe-linked products. Sync status shows whether each product has been pushed to Stripe.</p>
-        </div>
+        <p className="text-xs text-gray-500">Manage products and pricing. Click the edit icon to change values. Sync pushes to Stripe.</p>
         <div className="flex items-center gap-2">
           {result && <span className="text-xs text-gray-500">{result}</span>}
           <a href="https://dashboard.stripe.com/products" target="_blank" rel="noopener noreferrer"
@@ -209,120 +212,262 @@ export function StripeProducts({
         </div>
       </div>
 
-      {/* Plans */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Plans</h3>
-            <p className="text-xs text-gray-500">Hosting subscription products.</p>
-          </div>
-          <button onClick={() => quickCreate('hosting_plan', 'New Plan', 'monthly', 0)} disabled={creating}
-            className="btn-admin text-xs py-1.5 px-3 inline-flex items-center gap-1.5">
-            <Plus className="w-3.5 h-3.5" /> Add Plan
-          </button>
-        </div>
-        <ProductTable
-          products={plans}
-          columns={[
-            { key: 'name', label: 'Plan', render: (p) => p.name },
-            { key: 'credits', label: 'Credits', render: (p) => p.monthly_credit_cost ? `${p.monthly_credit_cost}/mo` : '—' },
-            { key: 'price', label: 'Price', render: (p) => formatPrice(p.price_cad, p.billing), align: 'right' },
-          ]}
-          syncingId={syncingId}
-          onSync={syncProduct}
-          onDelete={deleteProduct}
-        />
-      </div>
-
-      {/* Domain TLDs */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Domain TLDs</h3>
-            <p className="text-xs text-gray-500">Yearly domain registration products. Click price to edit.</p>
-          </div>
-          <button onClick={() => quickCreate('domain_tld', 'New TLD', 'yearly', 0)} disabled={creating}
-            className="btn-admin text-xs py-1.5 px-3 inline-flex items-center gap-1.5">
-            <Plus className="w-3.5 h-3.5" /> Add TLD
-          </button>
-        </div>
-        <div className="card overflow-hidden">
-          <table className="w-full table-fixed">
-            <thead><tr className="border-b border-gray-100">
-              <th className="w-[30%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">TLD</th>
-              <th className="w-[25%] text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Billing</th>
-              <th className="w-[20%] text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Price</th>
-              <th className="w-[15%] text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Synced</th>
-              <th className="w-[10%] text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5"></th>
-            </tr></thead>
-            <tbody>
-              {tlds.map(tld => (
-                <tr key={tld.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                  <td className="px-4 py-2.5 text-sm font-medium text-gray-900">.{tld.slug}</td>
-                  <td className="px-4 py-2.5 text-xs text-gray-500">Annual</td>
-                  <td className="px-4 py-2.5 text-right">
-                    {editingTldId === tld.id ? (
+      {/* ═══ ONE-TIME PRODUCTS ═══ */}
+      <Section
+        title="One-Time Products"
+        subtitle="Single-charge products (studio builds, migrations, etc)."
+        onAdd={() => quickCreate('one_time_service', 'New Service', 'one_time', 0)}
+        addLabel="Add Product"
+        creating={creating}
+      >
+        <table className="w-full">
+          <thead><tr className="border-b border-gray-100">
+            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Product</th>
+            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">USD Price</th>
+            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">CAD Price</th>
+            <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Synced</th>
+            <th className="w-20 text-right px-4 py-2.5"></th>
+          </tr></thead>
+          <tbody>
+            {oneTime.map(p => (
+              <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                {editingId === p.id ? (
+                  <>
+                    <td className="px-4 py-2">
+                      <input value={editFields.name ?? ''} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))}
+                        className="input text-sm py-1 px-2 w-full" />
+                    </td>
+                    <td className="px-4 py-2">
                       <div className="flex items-center justify-end gap-1">
                         <span className="text-xs text-gray-400">$</span>
-                        <input type="number" value={editTldPrice} onChange={e => setEditTldPrice(e.target.value)}
-                          step="0.01" min="0" autoFocus
-                          className="w-20 px-2 py-1 text-sm text-right border border-gray-200 rounded focus:border-brand-400 outline-none" />
-                        <button onClick={() => saveTldPrice(tld.id)} disabled={savingTldId === tld.id}
-                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded text-xs">
-                          {savingTldId === tld.id ? '...' : 'Save'}
-                        </button>
-                        <button onClick={() => setEditingTldId(null)} className="p-1 text-gray-400 hover:bg-gray-100 rounded text-xs">Cancel</button>
+                        <input value={editFields.price_usd ?? ''} onChange={e => setEditFields(f => ({ ...f, price_usd: e.target.value }))}
+                          type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
                       </div>
-                    ) : (
-                      <button onClick={() => { setEditingTldId(tld.id); setEditTldPrice((tld.price_cad / 100).toFixed(2)); }}
-                        className="text-sm font-medium text-gray-900 hover:text-brand-600 transition-colors">
-                        ${(tld.price_cad / 100).toFixed(2)}/yr
-                      </button>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5 text-center">
-                    <SyncBadge synced={!!tld.stripe_price_id} syncing={syncingId === tld.id} onSync={() => syncTld(tld.id)} />
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <button onClick={() => deleteProduct(tld.id, tld.name)} className="text-xs text-red-400 hover:text-red-600">
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {tlds.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-400">No domain TLDs configured.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center justify-end gap-1">
+                        <span className="text-xs text-gray-400">$</span>
+                        <input value={editFields.price_cad ?? ''} onChange={e => setEditFields(f => ({ ...f, price_cad: e.target.value }))}
+                          type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button onClick={() => saveEdit(p.id)} disabled={saving} className="text-emerald-600 hover:bg-emerald-50 rounded p-1">
+                          <Save className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => setEditingId(null)} className="text-gray-400 hover:bg-gray-100 rounded p-1">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                    <td />
+                  </>
+                ) : (
+                  <>
+                    <td className="px-4 py-2.5 text-sm font-medium text-gray-900">{p.name}</td>
+                    <td className="px-4 py-2.5 text-sm text-right font-medium text-gray-900">{fmtPrice(p.price_usd ?? 0)}</td>
+                    <td className="px-4 py-2.5 text-sm text-right text-gray-500">{fmtPrice(p.price_cad)}</td>
+                    <td className="px-4 py-2.5 text-center">
+                      <SyncBadge synced={!!p.stripe_product_id} syncing={syncingId === p.id} onSync={() => syncProduct(p.id)} />
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => startEdit(p, ['name', 'price_usd', 'price_cad'])} className="text-gray-400 hover:text-admin-600 p-1">
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                        <button onClick={() => deleteProduct(p.id, p.name)} className="text-red-400 hover:text-red-600 p-1">
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+            {oneTime.length === 0 && (
+              <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-400">No one-time products.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </Section>
 
-      {/* One-Time Products */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">One-Time Products</h3>
-            <p className="text-xs text-gray-500">Single-charge products (studio builds, migrations, etc).</p>
-          </div>
-          <button onClick={() => quickCreate('one_time_service', 'New Service', 'one_time', 0)} disabled={creating}
-            className="btn-admin text-xs py-1.5 px-3 inline-flex items-center gap-1.5">
-            <Plus className="w-3.5 h-3.5" /> Add Product
-          </button>
-        </div>
-        <ProductTable
-          products={oneTime}
-          columns={[
-            { key: 'name', label: 'Product', render: (p) => p.name },
-            { key: 'price', label: 'Price', render: (p) => formatPrice(p.price_cad, p.billing), align: 'right' },
-          ]}
-          syncingId={syncingId}
-          onSync={syncProduct}
-          onDelete={deleteProduct}
-        />
-      </div>
+      {/* ═══ PRICING PLANS ═══ */}
+      <Section
+        title="Pricing Plans"
+        subtitle="Recurring hosting subscription plans."
+        onAdd={() => quickCreate('hosting_plan', 'New Plan', 'monthly', 0)}
+        addLabel="Add Plan"
+        creating={creating}
+      >
+        <table className="w-full">
+          <thead><tr className="border-b border-gray-100">
+            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Plan</th>
+            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Billing</th>
+            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">USD Price</th>
+            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">CAD Price</th>
+            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Credits</th>
+            <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Synced</th>
+            <th className="w-20 text-right px-4 py-2.5"></th>
+          </tr></thead>
+          <tbody>
+            {plans.map(p => (
+              <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                {editingId === p.id ? (
+                  <>
+                    <td className="px-4 py-2">
+                      <input value={editFields.name ?? ''} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))}
+                        className="input text-sm py-1 px-2 w-full" />
+                    </td>
+                    <td className="px-4 py-2">
+                      <select value={editFields.billing ?? 'monthly'} onChange={e => setEditFields(f => ({ ...f, billing: e.target.value }))}
+                        className="input text-sm py-1 px-2">
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                      </select>
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center justify-end gap-1">
+                        <span className="text-xs text-gray-400">$</span>
+                        <input value={editFields.price_usd ?? ''} onChange={e => setEditFields(f => ({ ...f, price_usd: e.target.value }))}
+                          type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
+                      </div>
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center justify-end gap-1">
+                        <span className="text-xs text-gray-400">$</span>
+                        <input value={editFields.price_cad ?? ''} onChange={e => setEditFields(f => ({ ...f, price_cad: e.target.value }))}
+                          type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
+                      </div>
+                    </td>
+                    <td className="px-4 py-2">
+                      <input value={editFields.monthly_credit_cost ?? ''} onChange={e => setEditFields(f => ({ ...f, monthly_credit_cost: e.target.value }))}
+                        type="number" step="1" min="0" className="w-20 input text-sm py-1 px-2 text-right" />
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button onClick={() => saveEdit(p.id)} disabled={saving} className="text-emerald-600 hover:bg-emerald-50 rounded p-1">
+                          <Save className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => setEditingId(null)} className="text-gray-400 hover:bg-gray-100 rounded p-1">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                    <td />
+                  </>
+                ) : (
+                  <>
+                    <td className="px-4 py-2.5 text-sm font-medium text-gray-900">{p.name}</td>
+                    <td className="px-4 py-2.5 text-xs text-gray-500">{billingLabel(p.billing)}</td>
+                    <td className="px-4 py-2.5 text-sm text-right font-medium text-gray-900">{fmtPrice(p.price_usd ?? 0)}/{p.billing === 'yearly' ? 'yr' : 'mo'}</td>
+                    <td className="px-4 py-2.5 text-sm text-right text-gray-500">{fmtPrice(p.price_cad)}/{p.billing === 'yearly' ? 'yr' : 'mo'}</td>
+                    <td className="px-4 py-2.5 text-sm text-right text-gray-500">{p.monthly_credit_cost ? `${p.monthly_credit_cost}/mo` : '—'}</td>
+                    <td className="px-4 py-2.5 text-center">
+                      <SyncBadge synced={!!p.stripe_product_id} syncing={syncingId === p.id} onSync={() => syncProduct(p.id)} />
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => startEdit(p, ['name', 'billing', 'price_usd', 'price_cad', 'monthly_credit_cost'])} className="text-gray-400 hover:text-admin-600 p-1">
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                        <button onClick={() => deleteProduct(p.id, p.name)} className="text-red-400 hover:text-red-600 p-1">
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+            {plans.length === 0 && (
+              <tr><td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-400">No plans.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </Section>
 
-      {/* Stripe-Only Products */}
+      {/* ═══ DOMAIN TLDs ═══ */}
+      <Section
+        title="Domain TLDs"
+        subtitle="Annual domain registration pricing."
+        onAdd={() => quickCreate('domain_tld', 'New TLD', 'yearly', 0)}
+        addLabel="Add TLD"
+        creating={creating}
+      >
+        <table className="w-full">
+          <thead><tr className="border-b border-gray-100">
+            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">TLD</th>
+            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Billing</th>
+            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">USD Price</th>
+            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">CAD Price</th>
+            <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Synced</th>
+            <th className="w-20 text-right px-4 py-2.5"></th>
+          </tr></thead>
+          <tbody>
+            {tlds.map(tld => (
+              <tr key={tld.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                {editingId === tld.id ? (
+                  <>
+                    <td className="px-4 py-2 text-sm font-medium text-gray-900">.{tld.slug}</td>
+                    <td className="px-4 py-2 text-xs text-gray-500">Annual</td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center justify-end gap-1">
+                        <span className="text-xs text-gray-400">$</span>
+                        <input value={editFields.price_usd ?? ''} onChange={e => setEditFields(f => ({ ...f, price_usd: e.target.value }))}
+                          type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
+                      </div>
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center justify-end gap-1">
+                        <span className="text-xs text-gray-400">$</span>
+                        <input value={editFields.price_cad ?? ''} onChange={e => setEditFields(f => ({ ...f, price_cad: e.target.value }))}
+                          type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button onClick={() => saveEdit(tld.id)} disabled={saving} className="text-emerald-600 hover:bg-emerald-50 rounded p-1">
+                          <Save className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => setEditingId(null)} className="text-gray-400 hover:bg-gray-100 rounded p-1">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                    <td />
+                  </>
+                ) : (
+                  <>
+                    <td className="px-4 py-2.5 text-sm font-medium text-gray-900">.{tld.slug}</td>
+                    <td className="px-4 py-2.5 text-xs text-gray-500">Annual</td>
+                    <td className="px-4 py-2.5 text-sm text-right font-medium text-gray-900">{fmtPrice(tld.price_usd ?? 0)}/yr</td>
+                    <td className="px-4 py-2.5 text-sm text-right text-gray-500">{fmtPrice(tld.price_cad)}/yr</td>
+                    <td className="px-4 py-2.5 text-center">
+                      <SyncBadge synced={!!tld.stripe_price_id} syncing={syncingId === tld.id} onSync={() => syncProduct(tld.id)} />
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => startEdit(tld, ['price_usd', 'price_cad'])} className="text-gray-400 hover:text-admin-600 p-1">
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                        <button onClick={() => deleteProduct(tld.id, tld.name)} className="text-red-400 hover:text-red-600 p-1">
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+            {tlds.length === 0 && (
+              <tr><td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-400">No domain TLDs configured.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </Section>
+
+      {/* ═══ NOT IN PLATFORM ═══ */}
       <div>
         <h3 className="text-sm font-semibold text-gray-900 mb-1">Not in Platform</h3>
         <p className="text-xs text-gray-500 mb-3">Active products in Stripe that aren't linked to any product in the database.</p>
@@ -346,7 +491,7 @@ export function StripeProducts({
                     <td className="px-4 py-2.5 text-sm font-medium text-gray-900">{p.name}</td>
                     <td className="px-4 py-2.5">
                       <a href={`https://dashboard.stripe.com/products/${p.stripe_id}`} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-brand-600 hover:text-brand-700 font-mono">{p.stripe_id.slice(0, 20)}...</a>
+                        className="text-xs text-admin-600 hover:text-admin-700 font-mono">{p.stripe_id.slice(0, 20)}...</a>
                     </td>
                     <td className="px-4 py-2.5 text-xs text-gray-500">
                       {Object.entries(p.metadata ?? {}).slice(0, 3).map(([k, v]) => `${k}: ${v}`).join(', ') || '—'}
@@ -362,7 +507,27 @@ export function StripeProducts({
   );
 }
 
-// ─── Shared sub-components ──────────────────────────────
+// ─── Sub-components ──────────────────────────────
+
+function Section({ title, subtitle, onAdd, addLabel, creating, children }: {
+  title: string; subtitle: string; onAdd: () => void; addLabel: string; creating: boolean; children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+          <p className="text-xs text-gray-500">{subtitle}</p>
+        </div>
+        <button onClick={onAdd} disabled={creating}
+          className="btn-admin text-xs py-1.5 px-3 inline-flex items-center gap-1.5">
+          <Plus className="w-3.5 h-3.5" /> {addLabel}
+        </button>
+      </div>
+      <div className="card overflow-hidden">{children}</div>
+    </div>
+  );
+}
 
 function SyncBadge({ synced, syncing, onSync }: { synced: boolean; syncing: boolean; onSync: () => void }) {
   if (syncing) return <RefreshCw className="w-3.5 h-3.5 animate-spin text-gray-400 mx-auto" />;
@@ -373,55 +538,5 @@ function SyncBadge({ synced, syncing, onSync }: { synced: boolean; syncing: bool
     <button onClick={onSync} className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700">
       <AlertCircle className="w-3 h-3" /> Sync
     </button>
-  );
-}
-
-function ProductTable({
-  products,
-  columns,
-  syncingId,
-  onSync,
-  onDelete,
-}: {
-  products: Product[];
-  columns: { key: string; label: string; render: (p: Product) => string; align?: string }[];
-  syncingId: string | null;
-  onSync: (id: string) => void;
-  onDelete: (id: string, name: string) => void;
-}) {
-  return (
-    <div className="card overflow-hidden">
-      <table className="w-full">
-        <thead><tr className="border-b border-gray-100">
-          {columns.map(col => (
-            <th key={col.key} className={`text-${col.align ?? 'left'} text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5`}>{col.label}</th>
-          ))}
-          <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Synced</th>
-          <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5"></th>
-        </tr></thead>
-        <tbody>
-          {products.map(p => (
-            <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-              {columns.map(col => (
-                <td key={col.key} className={`px-4 py-2.5 text-sm ${col.align === 'right' ? 'text-right font-medium' : ''} text-gray-900`}>
-                  {col.render(p)}
-                </td>
-              ))}
-              <td className="px-4 py-2.5 text-center">
-                <SyncBadge synced={!!p.stripe_product_id} syncing={syncingId === p.id} onSync={() => onSync(p.id)} />
-              </td>
-              <td className="px-4 py-2.5 text-right">
-                <button onClick={() => onDelete(p.id, p.name)} className="text-xs text-red-400 hover:text-red-600">
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </td>
-            </tr>
-          ))}
-          {products.length === 0 && (
-            <tr><td colSpan={columns.length + 2} className="px-4 py-6 text-center text-sm text-gray-400">No products.</td></tr>
-          )}
-        </tbody>
-      </table>
-    </div>
   );
 }
