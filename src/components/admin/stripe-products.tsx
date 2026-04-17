@@ -108,6 +108,12 @@ export function StripeProducts({
         const data = await res.json();
         setStripeOnly(data.stripeOnly ?? []);
         setVerification(data.verification ?? {});
+        // If stale Stripe IDs were auto-cleared from DB, reload to reflect changes
+        if (data.staleCleared > 0) {
+          setResult(`Cleared ${data.staleCleared} stale Stripe link${data.staleCleared > 1 ? 's' : ''} — reloading...`);
+          setTimeout(() => window.location.reload(), 1500);
+          return;
+        }
       }
     } catch { /* ignore */ }
     setLoadingStripe(false);
