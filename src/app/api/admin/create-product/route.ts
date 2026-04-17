@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import Stripe from 'stripe';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 
@@ -92,7 +93,30 @@ export async function DELETE(req: Request) {
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: 'Product ID required' }, { status: 400 });
 
+  // Fetch the product first to get stripe IDs
+  const { data: product } = await supabase.from('products').select('stripe_product_id, stripe_price_id').eq('id', id).single();
+
+  // Deactivate in Stripe if linked
+  if (product?.stripe_product_id && process.env.STRIPE_SECRET_KEY) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
+      await stripe.products.update(product.stripe_product_id, { active: false });
+      if (product.stripe_price_id) {
+        await stripe.prices.update(product.stripe_price_id, { active: false });
+      }
+    } catch { /* non-fatal — product may already be deleted in Stripe */ }
+  }
+
+  // Try to delete from DB
   const { error } = await supabase.from('products').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    // If FK constraint prevents delete, deactivate instead
+    if (error.code === '23503') {
+      const { error: updateError } = await supabase.from('products').update({ is_active: false }).eq('id', id);
+      if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+      return NextResponse.json({ success: true, deactivated: true, message: 'Product is referenced by subscriptions — deactivated instead of deleted.' });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
   return NextResponse.json({ success: true });
 }

@@ -155,15 +155,29 @@ export function StripeProducts({
   }
 
   async function deleteProduct(id: string, name: string) {
-    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    if (!confirm(`Delete "${name}"? This will also deactivate it in Stripe if linked.`)) return;
     try {
       const res = await fetch('/api/admin/create-product', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
-      if (res.ok) window.location.reload();
-    } catch { /* ignore */ }
+      if (res.ok) {
+        const data = await res.json();
+        if (data.deactivated) {
+          setResult(data.message ?? 'Product deactivated (has active subscriptions)');
+          // Remove from lists
+          setPlans(prev => prev.filter(p => p.id !== id));
+          setOneTime(prev => prev.filter(p => p.id !== id));
+          setTlds(prev => prev.filter(p => p.id !== id));
+        } else {
+          window.location.reload();
+        }
+      } else {
+        const data = await res.json();
+        setResult(data.error ?? 'Delete failed');
+      }
+    } catch { setResult('Delete failed'); }
   }
 
   function startEdit(product: any, fields: string[]) {
