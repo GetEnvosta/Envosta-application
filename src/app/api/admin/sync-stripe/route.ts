@@ -272,15 +272,28 @@ async function importStripeProducts(stripe: Stripe, supabase: any): Promise<stri
     stripeProducts.push(product);
   }
 
-  const { data: dbProducts } = await supabase
+  // Fetch ALL DB products (with and without stripe IDs)
+  const { data: allDbProducts } = await supabase
     .from('products')
-    .select('stripe_product_id')
-    .not('stripe_product_id', 'is', null);
+    .select('id, stripe_product_id');
 
-  const dbStripeIds = new Set((dbProducts ?? []).map((p: any) => p.stripe_product_id));
-  const unlinked = stripeProducts.filter(p => !dbStripeIds.has(p.id));
+  const dbStripeIds = new Set((allDbProducts ?? []).filter((p: any) => p.stripe_product_id).map((p: any) => p.stripe_product_id));
+  const allDbIds = new Set((allDbProducts ?? []).map((p: any) => p.id));
+
+  // A Stripe product is "linked" if:
+  // 1. Its ID is stored as stripe_product_id on any DB product, OR
+  // 2. Its metadata.envosta_product_id matches an existing DB product ID
+  const unlinked = stripeProducts.filter(sp => {
+    if (dbStripeIds.has(sp.id)) return false;
+    if (sp.metadata?.envosta_product_id && allDbIds.has(sp.metadata.envosta_product_id)) {
+      // Auto-link: this Stripe product belongs to a DB product, just save the ID
+      supabase.from('products').update({ stripe_product_id: sp.id }).eq('id', sp.metadata.envosta_product_id);
+      return false;
+    }
+    return true;
+  });
+
   const imported: string[] = [];
-
   for (const sp of unlinked) {
     try {
       await importSingleStripeProduct(stripe, supabase, sp.id);

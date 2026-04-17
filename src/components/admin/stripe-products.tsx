@@ -175,9 +175,10 @@ export function StripeProducts({
       });
       if (res.ok) {
         const data = await res.json();
-        setResult(`Synced ${data.results?.length ?? 0} products`);
+        const results = data.results ?? [];
+        setResult(results.join(' | '));
         await fetchStripeData();
-        setTimeout(() => { setResult(''); window.location.reload(); }, 2000);
+        setTimeout(() => { setResult(''); window.location.reload(); }, 4000);
       } else {
         setResult('Sync failed');
       }
