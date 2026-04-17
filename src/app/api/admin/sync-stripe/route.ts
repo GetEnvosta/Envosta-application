@@ -18,17 +18,36 @@ function getSupabase() {
   );
 }
 
-/** Create or update a Stripe product. */
+/** Create or update a Stripe product. Searches for existing product by metadata before creating. */
 async function upsertProduct(
   stripe: Stripe, productId: string | null, name: string,
   description: string, metadata: Record<string, string>, active = true,
 ): Promise<string> {
-  if (!productId) {
-    const product = await stripe.products.create({ name, description, metadata });
-    return product.id;
+  if (productId) {
+    try {
+      await stripe.products.update(productId, { name, description, active, metadata });
+      return productId;
+    } catch {
+      // Product doesn't exist in Stripe anymore — fall through to search/create
+    }
   }
-  await stripe.products.update(productId, { name, description, active, metadata });
-  return productId;
+
+  // Search for existing Stripe product by our envosta_product_id metadata
+  if (metadata.envosta_product_id) {
+    try {
+      const existing = await stripe.products.search({
+        query: `metadata["envosta_product_id"]:"${metadata.envosta_product_id}"`,
+      });
+      if (existing.data.length > 0) {
+        const found = existing.data[0];
+        await stripe.products.update(found.id, { name, description, active, metadata });
+        return found.id;
+      }
+    } catch { /* search not available or failed, fall through */ }
+  }
+
+  const product = await stripe.products.create({ name, description, metadata, active });
+  return product.id;
 }
 
 /** Create or update a Stripe price. Stripe prices are immutable so we create new + deactivate old. */
@@ -214,13 +233,24 @@ async function syncProduct(stripe: Stripe, supabase: any, product: any) {
   }
 
   // Save Stripe IDs back to DB
-  await supabase.from('products').update({
+  const { error: dbError } = await supabase.from('products').update({
     stripe_product_id: productId,
     stripe_price_id: priceId,
     stripe_price_id_yearly: yearlyPriceId,
     stripe_price_id_2yr: price2yrId,
     stripe_price_id_3yr: price3yrId,
   }).eq('id', product.id);
+
+  if (dbError) console.error('Failed to save Stripe IDs to DB:', dbError);
+
+  // Fetch actual Stripe price amounts for verification
+  let stripePriceAmount: number | null = null;
+  if (priceId) {
+    try {
+      const sp = await stripe.prices.retrieve(priceId);
+      stripePriceAmount = sp.unit_amount;
+    } catch { /* non-fatal */ }
+  }
 
   return {
     success: true,
@@ -229,6 +259,8 @@ async function syncProduct(stripe: Stripe, supabase: any, product: any) {
     stripe_price_id_yearly: yearlyPriceId,
     stripe_price_id_2yr: price2yrId,
     stripe_price_id_3yr: price3yrId,
+    stripe_price_amount: stripePriceAmount,
+    db_saved: !dbError,
   };
 }
 

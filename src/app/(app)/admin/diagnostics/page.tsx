@@ -85,7 +85,7 @@ export default async function DiagnosticsPage() {
   const pricing = await getServicePricing();
   const { data: domainTlds } = await supabase
     .from('products')
-    .select('id, name, slug, price_cad, price_usd, is_active, stripe_price_id')
+    .select('id, type, name, slug, billing, price_cad, price_usd, price_yearly_cad, price_yearly_usd, is_active, stripe_product_id, stripe_price_id, monthly_credit_cost, metadata')
     .eq('type', 'domain_tld')
     .order('slug');
   const { data: plans } = await supabase

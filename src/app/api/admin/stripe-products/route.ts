@@ -32,16 +32,26 @@ export async function GET() {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
 
   try {
-    // Fetch all active Stripe products
+    // Fetch all Stripe products (active + inactive)
     const stripeProducts: Stripe.Product[] = [];
     for await (const product of stripe.products.list({ active: true, limit: 100 })) {
       stripeProducts.push(product);
     }
 
-    // Fetch all DB products with stripe_product_id
+    // Fetch all Stripe prices
+    const stripePrices: Stripe.Price[] = [];
+    for await (const price of stripe.prices.list({ active: true, limit: 100 })) {
+      stripePrices.push(price);
+    }
+
+    // Build price lookup by ID
+    const priceById = new Map<string, Stripe.Price>();
+    for (const p of stripePrices) priceById.set(p.id, p);
+
+    // Fetch all DB products
     const { data: dbProducts } = await supabase
       .from('products')
-      .select('id, stripe_product_id')
+      .select('id, stripe_product_id, stripe_price_id, price_usd, price_cad')
       .not('stripe_product_id', 'is', null);
 
     const dbStripeIds = new Set((dbProducts ?? []).map((p: any) => p.stripe_product_id));
@@ -58,7 +68,30 @@ export async function GET() {
         created: p.created,
       }));
 
-    return NextResponse.json({ stripeOnly });
+    // Build verification map: productId → { stripe price amount, matches DB }
+    const verification: Record<string, {
+      stripeProductExists: boolean;
+      stripePriceId: string | null;
+      stripePriceAmount: number | null;
+      dbPriceUsd: number;
+      priceMatches: boolean;
+    }> = {};
+
+    for (const dbp of dbProducts ?? []) {
+      const stripeProduct = stripeProducts.find(sp => sp.id === dbp.stripe_product_id);
+      const stripePrice = dbp.stripe_price_id ? priceById.get(dbp.stripe_price_id) : null;
+      const dbPrice = dbp.price_usd || dbp.price_cad || 0;
+
+      verification[dbp.id] = {
+        stripeProductExists: !!stripeProduct,
+        stripePriceId: stripePrice?.id ?? null,
+        stripePriceAmount: stripePrice?.unit_amount ?? null,
+        dbPriceUsd: dbPrice,
+        priceMatches: stripePrice ? stripePrice.unit_amount === dbPrice : false,
+      };
+    }
+
+    return NextResponse.json({ stripeOnly, verification });
   } catch (e: any) {
     console.error('Stripe products fetch error:', e);
     return NextResponse.json({ error: e.message ?? 'Failed to fetch' }, { status: 500 });
