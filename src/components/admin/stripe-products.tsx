@@ -439,6 +439,23 @@ export function StripeProducts({
         </table>
       </Section>
 
+      {/* ═══ PLAN ADDONS ═══ */}
+      {addons.length > 0 && (
+        <Section title="Plan Addons" subtitle="Per-site addon features (bursting, WAF, etc)."
+          onAdd={() => quickCreate('plan_addon', 'New Addon', 'monthly', 0)} addLabel="Add Addon" creating={creating}>
+          <table className="w-full table-fixed">
+            <TableHead />
+            <tbody>
+              {addons.map(p => (
+                <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer" onClick={() => openEdit(p)}>
+                  <ProductRow p={p} />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Section>
+      )}
+
       {/* ═══ DOMAIN TLDs ═══ */}
       <Section title="Domain TLDs" subtitle="Annual domain registration pricing."
         onAdd={() => quickCreate('domain_tld', 'New TLD', 'yearly', 0)} addLabel="Add TLD" creating={creating}>
@@ -456,23 +473,6 @@ export function StripeProducts({
           </tbody>
         </table>
       </Section>
-
-      {/* ═══ PLAN ADDONS ═══ */}
-      {addons.length > 0 && (
-        <Section title="Plan Addons" subtitle="Per-site addon features (bursting, WAF, etc)."
-          onAdd={() => quickCreate('plan_addon', 'New Addon', 'monthly', 0)} addLabel="Add Addon" creating={creating}>
-          <table className="w-full table-fixed">
-            <TableHead />
-            <tbody>
-              {addons.map(p => (
-                <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer" onClick={() => openEdit(p)}>
-                  <ProductRow p={p} />
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Section>
-      )}
 
       {/* ═══ OTHER PRODUCTS ═══ */}
       {other.length > 0 && (
