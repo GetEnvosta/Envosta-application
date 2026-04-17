@@ -58,24 +58,21 @@ function TableHead({ onAdd, addLabel, creating }: { onAdd?: () => void; addLabel
   return (
     <thead>
       <tr className="border-b border-gray-100">
-        <th className={`${TH} ${COL.name}`}>
-          <div className="flex items-center justify-between">
-            <span>Product</span>
-            {onAdd && (
-              <button onClick={onAdd} disabled={creating}
-                className="inline-flex items-center gap-1 text-[10px] font-medium text-admin-600 hover:text-admin-700 uppercase tracking-wider">
-                <Plus className="w-3 h-3" /> {addLabel ?? 'Add'}
-              </button>
-            )}
-          </div>
-        </th>
+        <th className={`${TH} ${COL.name}`}>Product</th>
         <th className={`${TH} ${COL.billing}`}>Billing</th>
         <th className={`${TH} ${COL.usd}`}>USD Price</th>
         <th className={`${TH} ${COL.cad}`}>CAD Price</th>
         <th className={`${TH} ${COL.credits}`}>Credits</th>
         <th className={`${TH} ${COL.db}`}>DB</th>
         <th className={`${TH} ${COL.stripe}`}>Stripe</th>
-        <th className={`${TH} ${COL.actions}`}></th>
+        <th className={`${TH} ${COL.actions}`}>
+          {onAdd && (
+            <button onClick={onAdd} disabled={creating}
+              className="btn-admin text-[10px] py-1 px-2 inline-flex items-center gap-1">
+              <Plus className="w-3 h-3" /> {addLabel ?? 'Add'}
+            </button>
+          )}
+        </th>
       </tr>
     </thead>
   );
