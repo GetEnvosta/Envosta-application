@@ -44,10 +44,11 @@ export default async function DiagnosticsPage() {
   const domainSubsNoDomain: any[] = [];
   for (const ds of domainSubsAll) {
     const stripeSub = ds.stripe_subscription_id;
+    if (!stripeSub) { domainSubsNoDomain.push(ds); continue; }
     const { data: linkedDom } = await supabase
       .from('domains')
       .select('id')
-      .or(`metadata->renewal_stripe_subscription_id.eq.${stripeSub}`)
+      .or(`renewal_stripe_subscription_id.eq.${stripeSub},metadata->>renewal_stripe_subscription_id.eq.${stripeSub}`)
       .maybeSingle();
     if (!linkedDom) domainSubsNoDomain.push(ds);
   }

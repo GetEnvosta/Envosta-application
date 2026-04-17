@@ -180,7 +180,11 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           <div className="divide-y divide-gray-100">
             {/* Domains with their linked subscription */}
             {domains.map((d: any) => {
-              const linkedSub = domainSubs.find((sub: any) => (sub.metadata as any)?.domain_name === d.domain_name);
+              const linkedSub = domainSubs.find((sub: any) =>
+                (sub.metadata as any)?.domain_name === d.domain_name ||
+                sub.stripe_subscription_id === d.renewal_stripe_subscription_id ||
+                sub.stripe_subscription_id === (d.metadata as any)?.renewal_stripe_subscription_id
+              );
               const linkedSite = services.find((s: any) => s.id === d.site_id);
               return (
                 <div key={d.id} className="px-5 py-4">
@@ -218,7 +222,11 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             {/* Orphaned domain subscriptions (no domain linked) */}
             {domainSubs.filter((sub: any) => {
               const dn = (sub.metadata as any)?.domain_name;
-              return !dn || !domains.find((d: any) => d.domain_name === dn);
+              return !domains.find((d: any) =>
+                d.domain_name === dn ||
+                sub.stripe_subscription_id === d.renewal_stripe_subscription_id ||
+                sub.stripe_subscription_id === (d.metadata as any)?.renewal_stripe_subscription_id
+              );
             }).map((sub: any) => {
               const dn = (sub.metadata as any)?.domain_name;
               return (

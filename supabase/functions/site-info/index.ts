@@ -829,9 +829,9 @@ Deno.serve(async (req) => {
         const cliArgs = (value as string).split(/\s+/).filter(Boolean);
 
         // Send args as PHP-style array (args[]=val) which is standard form-urlencoded array format
+        // Use site_ids[] to target a specific site (wp.cloud task API uses array format)
         const formBody = new URLSearchParams();
-        formBody.append("site_id", String(svc.wp_cloud_site_id));
-        formBody.append("site_count_limit", "1");
+        formBody.append("site_ids[]", String(svc.wp_cloud_site_id));
         cliArgs.forEach((arg: string) => {
           formBody.append("args[]", arg);
         });
@@ -856,6 +856,13 @@ Deno.serve(async (req) => {
         console.log("WP-CLI response:", wpRes.status, rawText);
         let result;
         try { result = JSON.parse(rawText); } catch { result = { raw: rawText }; }
+
+        // Check if the task was created but the WP-CLI command itself failed
+        const taskFailed = result?.error || (result?.message && !result?.task_id && !result?.atomic_task_id);
+        if (taskFailed) {
+          await log({ userId: user!.id, serviceId: siteId, level: "error", action: "wpcli.run", message: value as string, res: result });
+          return error(result.error ?? result.message ?? "WP-CLI command failed", 502);
+        }
 
         await log({ userId: user!.id, serviceId: siteId, action: "wpcli.run", message: value as string, res: result });
         return json(result);
