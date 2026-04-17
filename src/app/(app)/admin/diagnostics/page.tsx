@@ -5,7 +5,7 @@ import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { AlertTriangle, Server, Globe, CreditCard, CheckCircle, Activity, ScrollText } from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
-import { ExternalSyncCheck } from '@/components/admin/external-sync-check';
+// External sync now integrated into SystemHealthChecks recheck button
 import { getAdminLogs } from '@/services/admin';
 import { getServicePricing } from '@/services/pricing';
 import { SystemHealthChecks } from '@/app/(app)/admin/logs/health-checks';
@@ -127,8 +127,6 @@ export default async function DiagnosticsPage() {
           health: (
             <div>
       <SystemHealthChecks />
-
-      <ExternalSyncCheck />
 
       {/* Hosting subscriptions without a site */}
       <DiagCard

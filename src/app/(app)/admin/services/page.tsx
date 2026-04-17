@@ -7,6 +7,7 @@ import { ProvisionButton } from '@/components/admin/provision-button';
 import { ImpersonateButton } from '@/components/admin/impersonate-button';
 import { StatCard } from '@/components/admin/stat-card';
 import { AdminCreateSite } from '@/components/admin/admin-create-site';
+import { SyncInfo } from '@/components/admin/sync-info';
 
 const STATUSES = ['active', 'suspended', 'cancelled', 'deleted', 'pending', 'provisioning', 'failed'] as const;
 
@@ -39,6 +40,11 @@ export default async function SitesAdminPage({
             <ExternalLink className="w-4 h-4" /> wp.cloud
           </a>
         </div>
+      </div>
+
+      {/* Sync info */}
+      <div className="mb-4">
+        <SyncInfo type="sites" dbCount={totalSites} />
       </div>
 
       {/* Stats */}

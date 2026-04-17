@@ -5,6 +5,7 @@ import { Globe, Search, ExternalLink, Server, CreditCard, CheckCircle, Clock, Al
 import Link from 'next/link';
 import { StatCard } from '@/components/admin/stat-card';
 import { AdminCreateDomain } from '@/components/admin/admin-create-domain';
+import { SyncInfo } from '@/components/admin/sync-info';
 
 const STATUSES = ['available', 'registered', 'transferring', 'expired', 'pending_dns', 'failed'] as const;
 
@@ -51,6 +52,11 @@ export default async function DomainsPage({
             OpenSRS
           </a>
         </div>
+      </div>
+
+      {/* Sync info */}
+      <div className="mb-4">
+        <SyncInfo type="domains" dbCount={totalDomains} />
       </div>
 
       {/* Stats */}
