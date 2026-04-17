@@ -37,6 +37,37 @@ interface Verification {
   priceMatches: boolean;
 }
 
+// Shared column widths for all tables
+const COL = {
+  name: 'w-[28%] text-left',
+  billing: 'w-[10%] text-left',
+  usd: 'w-[13%] text-right',
+  cad: 'w-[13%] text-right',
+  credits: 'w-[9%] text-right',
+  db: 'w-[9%] text-center',
+  stripe: 'w-[9%] text-center',
+  actions: 'w-[9%] text-right',
+} as const;
+
+const TH = 'text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5';
+
+function TableHead() {
+  return (
+    <thead>
+      <tr className="border-b border-gray-100">
+        <th className={`${TH} ${COL.name}`}>Product</th>
+        <th className={`${TH} ${COL.billing}`}>Billing</th>
+        <th className={`${TH} ${COL.usd}`}>USD Price</th>
+        <th className={`${TH} ${COL.cad}`}>CAD Price</th>
+        <th className={`${TH} ${COL.credits}`}>Credits</th>
+        <th className={`${TH} ${COL.db}`}>DB</th>
+        <th className={`${TH} ${COL.stripe}`}>Stripe</th>
+        <th className={`${TH} ${COL.actions}`}></th>
+      </tr>
+    </thead>
+  );
+}
+
 export function StripeProducts({
   initialPlans,
   initialOneTime,
@@ -57,7 +88,6 @@ export function StripeProducts({
   const [loadingStripe, setLoadingStripe] = useState(true);
   const [result, setResult] = useState('');
 
-  // Inline editing state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -96,8 +126,6 @@ export function StripeProducts({
         setPlans(prev => prev.map(update));
         setOneTime(prev => prev.map(update));
         setTlds(prev => prev.map(update));
-
-        // Update verification for this product
         if (data.stripe_price_amount !== undefined) {
           const dbPrice = [...plans, ...oneTime, ...tlds].find(p => p.id === id);
           const effectivePrice = (dbPrice?.price_usd || dbPrice?.price_cad) ?? 0;
@@ -129,7 +157,6 @@ export function StripeProducts({
       if (res.ok) {
         const data = await res.json();
         setResult(`Synced ${data.results?.length ?? 0} products`);
-        // Refresh verification data and reload
         await fetchStripeData();
         setTimeout(() => { setResult(''); window.location.reload(); }, 2000);
       } else {
@@ -166,7 +193,6 @@ export function StripeProducts({
         const data = await res.json();
         if (data.deactivated) {
           setResult(data.message ?? 'Product deactivated (has active subscriptions)');
-          // Remove from lists
           setPlans(prev => prev.filter(p => p.id !== id));
           setOneTime(prev => prev.filter(p => p.id !== id));
           setTlds(prev => prev.filter(p => p.id !== id));
@@ -212,13 +238,11 @@ export function StripeProducts({
         body: JSON.stringify({ id, ...updates }),
       });
       if (res.ok) {
-        // Update local state
         const updateFn = (p: any) => p.id === id ? { ...p, ...updates } : p;
         setPlans(prev => prev.map(updateFn));
         setOneTime(prev => prev.map(updateFn));
         setTlds(prev => prev.map(updateFn));
         setEditingId(null);
-        // Auto-sync to Stripe after saving
         await syncProduct(id);
       }
     } catch { /* ignore */ }
@@ -247,13 +271,127 @@ export function StripeProducts({
 
   const fmtPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
   const billingLabel = (b: string) => b === 'monthly' ? 'Monthly' : b === 'yearly' ? 'Yearly' : b === 'one_time' ? 'One-time' : b;
+  const billingSuffix = (b: string) => b === 'monthly' ? '/mo' : b === 'yearly' ? '/yr' : '';
 
-  // Get price color: green if matched, amber if not matched, gray if no stripe data
   function priceColor(productId: string): string {
     const v = verification[productId];
-    if (!v || !v.stripeProductExists) return 'text-gray-900'; // no verification data yet
-    if (v.stripePriceAmount === null) return 'text-amber-600'; // no price in Stripe
+    if (!v || !v.stripeProductExists) return 'text-gray-900';
+    if (v.stripePriceAmount === null) return 'text-amber-600';
     return v.priceMatches ? 'text-emerald-600' : 'text-amber-600';
+  }
+
+  // Unified product row (view mode)
+  function ProductRow({ p, displayName }: { p: Product; displayName?: string }) {
+    return (
+      <>
+        <td className="px-4 py-2.5 text-sm font-medium text-gray-900">{displayName ?? p.name}</td>
+        <td className="px-4 py-2.5 text-xs text-gray-500">{billingLabel(p.billing)}</td>
+        <td className={`px-4 py-2.5 text-sm text-right font-medium ${priceColor(p.id)}`}>
+          {fmtPrice(p.price_usd ?? 0)}{billingSuffix(p.billing)}
+          <StripePriceHint v={verification[p.id]} />
+        </td>
+        <td className="px-4 py-2.5 text-sm text-right text-gray-500">
+          {fmtPrice(p.price_cad)}{billingSuffix(p.billing)}
+        </td>
+        <td className="px-4 py-2.5 text-sm text-right text-gray-500">
+          {p.monthly_credit_cost ? `${p.monthly_credit_cost}/mo` : '—'}
+        </td>
+        <td className="px-4 py-2.5 text-center">
+          <DbSyncBadge hasStripeId={!!p.stripe_product_id} />
+        </td>
+        <td className="px-4 py-2.5 text-center">
+          <StripeLinkBadge
+            stripeProductId={p.stripe_product_id}
+            verification={verification[p.id]}
+            syncing={syncingId === p.id}
+            onSync={() => syncProduct(p.id)}
+            loading={loadingStripe}
+          />
+        </td>
+      </>
+    );
+  }
+
+  // Unified edit row
+  function ProductEditRow({ p, fields, displayName }: { p: Product; fields: string[]; displayName?: string }) {
+    const showName = fields.includes('name');
+    const showBilling = fields.includes('billing');
+    const showCredits = fields.includes('monthly_credit_cost');
+    return (
+      <>
+        <td className="px-4 py-2">
+          {showName ? (
+            <input value={editFields.name ?? ''} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))}
+              className="input text-sm py-1 px-2 w-full" />
+          ) : (
+            <span className="text-sm font-medium text-gray-900">{displayName ?? p.name}</span>
+          )}
+        </td>
+        <td className="px-4 py-2">
+          {showBilling ? (
+            <select value={editFields.billing ?? 'monthly'} onChange={e => setEditFields(f => ({ ...f, billing: e.target.value }))}
+              className="input text-sm py-1 px-2 w-full">
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+              <option value="one_time">One-time</option>
+            </select>
+          ) : (
+            <span className="text-xs text-gray-500">{billingLabel(p.billing)}</span>
+          )}
+        </td>
+        <td className="px-4 py-2">
+          <div className="flex items-center justify-end gap-1">
+            <span className="text-xs text-gray-400">$</span>
+            <input value={editFields.price_usd ?? ''} onChange={e => setEditFields(f => ({ ...f, price_usd: e.target.value }))}
+              type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
+          </div>
+        </td>
+        <td className="px-4 py-2">
+          <div className="flex items-center justify-end gap-1">
+            <span className="text-xs text-gray-400">$</span>
+            <input value={editFields.price_cad ?? ''} onChange={e => setEditFields(f => ({ ...f, price_cad: e.target.value }))}
+              type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
+          </div>
+        </td>
+        <td className="px-4 py-2">
+          {showCredits ? (
+            <input value={editFields.monthly_credit_cost ?? ''} onChange={e => setEditFields(f => ({ ...f, monthly_credit_cost: e.target.value }))}
+              type="number" step="1" min="0" className="w-16 input text-sm py-1 px-2 text-right" />
+          ) : (
+            <span className="text-sm text-gray-400 block text-right">—</span>
+          )}
+        </td>
+        <td colSpan={2} className="px-4 py-2 text-center">
+          <div className="flex items-center justify-center gap-1">
+            <button onClick={() => saveEdit(p.id)} disabled={saving}
+              className="text-emerald-600 hover:bg-emerald-50 rounded p-1">
+              <Save className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => setEditingId(null)}
+              className="text-gray-400 hover:bg-gray-100 rounded p-1">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </td>
+        <td />
+      </>
+    );
+  }
+
+  // Action buttons
+  function ActionButtons({ p, editFieldsList }: { p: Product; editFieldsList: string[] }) {
+    return (
+      <td className="px-4 py-2.5 text-right">
+        <div className="flex items-center justify-end gap-1">
+          <button onClick={() => startEdit(p, editFieldsList)} className="text-gray-400 hover:text-admin-600 p-1">
+            <Pencil className="w-3 h-3" />
+          </button>
+          <button onClick={() => deleteProduct(p.id, p.name)} className="text-red-400 hover:text-red-600 p-1">
+            <Trash2 className="w-3 h-3" />
+          </button>
+        </div>
+      </td>
+    );
   }
 
   return (
@@ -275,151 +413,45 @@ export function StripeProducts({
         </div>
       </div>
 
-      {/* Loading indicator for verification */}
       {loadingStripe && (
         <div className="flex items-center gap-2 text-xs text-gray-400">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          Verifying Stripe links...
+          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Verifying Stripe links...
         </div>
       )}
 
       {/* ═══ ONE-TIME PRODUCTS ═══ */}
-      <Section
-        title="One-Time Products"
-        subtitle="Single-charge products (studio builds, migrations, etc)."
-        onAdd={() => quickCreate('one_time_service', 'New Service', 'one_time', 0)}
-        addLabel="Add Product"
-        creating={creating}
-      >
-        <table className="w-full">
-          <thead><tr className="border-b border-gray-100">
-            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Product</th>
-            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">USD Price</th>
-            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">CAD Price</th>
-            <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">DB Synced</th>
-            <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Stripe</th>
-            <th className="w-20 text-right px-4 py-2.5"></th>
-          </tr></thead>
+      <Section title="One-Time Products" subtitle="Single-charge products (studio builds, migrations, etc)."
+        onAdd={() => quickCreate('one_time_service', 'New Service', 'one_time', 0)} addLabel="Add Product" creating={creating}>
+        <table className="w-full table-fixed">
+          <TableHead />
           <tbody>
             {oneTime.map(p => (
               <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                {editingId === p.id ? (
-                  <EditRow
-                    fields={['name', 'price_usd', 'price_cad']}
-                    editFields={editFields}
-                    setEditFields={setEditFields}
-                    onSave={() => saveEdit(p.id)}
-                    onCancel={() => setEditingId(null)}
-                    saving={saving}
-                    colSpan={6}
-                  />
-                ) : (
-                  <>
-                    <td className="px-4 py-2.5 text-sm font-medium text-gray-900">{p.name}</td>
-                    <td className={`px-4 py-2.5 text-sm text-right font-medium ${priceColor(p.id)}`}>
-                      {fmtPrice(p.price_usd ?? 0)}
-                      <StripePriceHint v={verification[p.id]} />
-                    </td>
-                    <td className="px-4 py-2.5 text-sm text-right text-gray-500">{fmtPrice(p.price_cad)}</td>
-                    <td className="px-4 py-2.5 text-center">
-                      <DbSyncBadge hasStripeId={!!p.stripe_product_id} />
-                    </td>
-                    <td className="px-4 py-2.5 text-center">
-                      <StripeLinkBadge
-                        productId={p.id}
-                        stripeProductId={p.stripe_product_id}
-                        verification={verification[p.id]}
-                        syncing={syncingId === p.id}
-                        onSync={() => syncProduct(p.id)}
-                        loading={loadingStripe}
-                      />
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => startEdit(p, ['name', 'price_usd', 'price_cad'])} className="text-gray-400 hover:text-admin-600 p-1">
-                          <Pencil className="w-3 h-3" />
-                        </button>
-                        <button onClick={() => deleteProduct(p.id, p.name)} className="text-red-400 hover:text-red-600 p-1">
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </td>
-                  </>
-                )}
+                {editingId === p.id
+                  ? <ProductEditRow p={p} fields={['name', 'price_usd', 'price_cad']} />
+                  : <><ProductRow p={p} /><ActionButtons p={p} editFieldsList={['name', 'price_usd', 'price_cad']} /></>
+                }
               </tr>
             ))}
             {oneTime.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-400">No one-time products.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-6 text-center text-sm text-gray-400">No one-time products.</td></tr>
             )}
           </tbody>
         </table>
       </Section>
 
       {/* ═══ PRICING PLANS ═══ */}
-      <Section
-        title="Pricing Plans"
-        subtitle="Recurring hosting subscription plans."
-        onAdd={() => quickCreate('hosting_plan', 'New Plan', 'monthly', 0)}
-        addLabel="Add Plan"
-        creating={creating}
-      >
-        <table className="w-full">
-          <thead><tr className="border-b border-gray-100">
-            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Plan</th>
-            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Billing</th>
-            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">USD Price</th>
-            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">CAD Price</th>
-            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Credits</th>
-            <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">DB Synced</th>
-            <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Stripe</th>
-            <th className="w-20 text-right px-4 py-2.5"></th>
-          </tr></thead>
+      <Section title="Pricing Plans" subtitle="Recurring hosting subscription plans."
+        onAdd={() => quickCreate('hosting_plan', 'New Plan', 'monthly', 0)} addLabel="Add Plan" creating={creating}>
+        <table className="w-full table-fixed">
+          <TableHead />
           <tbody>
             {plans.map(p => (
               <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                {editingId === p.id ? (
-                  <EditRowPlan
-                    editFields={editFields}
-                    setEditFields={setEditFields}
-                    onSave={() => saveEdit(p.id)}
-                    onCancel={() => setEditingId(null)}
-                    saving={saving}
-                  />
-                ) : (
-                  <>
-                    <td className="px-4 py-2.5 text-sm font-medium text-gray-900">{p.name}</td>
-                    <td className="px-4 py-2.5 text-xs text-gray-500">{billingLabel(p.billing)}</td>
-                    <td className={`px-4 py-2.5 text-sm text-right font-medium ${priceColor(p.id)}`}>
-                      {fmtPrice(p.price_usd ?? 0)}/{p.billing === 'yearly' ? 'yr' : 'mo'}
-                      <StripePriceHint v={verification[p.id]} />
-                    </td>
-                    <td className="px-4 py-2.5 text-sm text-right text-gray-500">{fmtPrice(p.price_cad)}/{p.billing === 'yearly' ? 'yr' : 'mo'}</td>
-                    <td className="px-4 py-2.5 text-sm text-right text-gray-500">{p.monthly_credit_cost ? `${p.monthly_credit_cost}/mo` : '—'}</td>
-                    <td className="px-4 py-2.5 text-center">
-                      <DbSyncBadge hasStripeId={!!p.stripe_product_id} />
-                    </td>
-                    <td className="px-4 py-2.5 text-center">
-                      <StripeLinkBadge
-                        productId={p.id}
-                        stripeProductId={p.stripe_product_id}
-                        verification={verification[p.id]}
-                        syncing={syncingId === p.id}
-                        onSync={() => syncProduct(p.id)}
-                        loading={loadingStripe}
-                      />
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => startEdit(p, ['name', 'billing', 'price_usd', 'price_cad', 'monthly_credit_cost'])} className="text-gray-400 hover:text-admin-600 p-1">
-                          <Pencil className="w-3 h-3" />
-                        </button>
-                        <button onClick={() => deleteProduct(p.id, p.name)} className="text-red-400 hover:text-red-600 p-1">
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </td>
-                  </>
-                )}
+                {editingId === p.id
+                  ? <ProductEditRow p={p} fields={['name', 'billing', 'price_usd', 'price_cad', 'monthly_credit_cost']} />
+                  : <><ProductRow p={p} /><ActionButtons p={p} editFieldsList={['name', 'billing', 'price_usd', 'price_cad', 'monthly_credit_cost']} /></>
+                }
               </tr>
             ))}
             {plans.length === 0 && (
@@ -430,94 +462,21 @@ export function StripeProducts({
       </Section>
 
       {/* ═══ DOMAIN TLDs ═══ */}
-      <Section
-        title="Domain TLDs"
-        subtitle="Annual domain registration pricing."
-        onAdd={() => quickCreate('domain_tld', 'New TLD', 'yearly', 0)}
-        addLabel="Add TLD"
-        creating={creating}
-      >
-        <table className="w-full">
-          <thead><tr className="border-b border-gray-100">
-            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">TLD</th>
-            <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Billing</th>
-            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">USD Price</th>
-            <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">CAD Price</th>
-            <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">DB Synced</th>
-            <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Stripe</th>
-            <th className="w-20 text-right px-4 py-2.5"></th>
-          </tr></thead>
+      <Section title="Domain TLDs" subtitle="Annual domain registration pricing."
+        onAdd={() => quickCreate('domain_tld', 'New TLD', 'yearly', 0)} addLabel="Add TLD" creating={creating}>
+        <table className="w-full table-fixed">
+          <TableHead />
           <tbody>
             {tlds.map(tld => (
               <tr key={tld.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                {editingId === tld.id ? (
-                  <>
-                    <td className="px-4 py-2 text-sm font-medium text-gray-900">.{tld.slug}</td>
-                    <td className="px-4 py-2 text-xs text-gray-500">Annual</td>
-                    <td className="px-4 py-2">
-                      <div className="flex items-center justify-end gap-1">
-                        <span className="text-xs text-gray-400">$</span>
-                        <input value={editFields.price_usd ?? ''} onChange={e => setEditFields(f => ({ ...f, price_usd: e.target.value }))}
-                          type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
-                      </div>
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="flex items-center justify-end gap-1">
-                        <span className="text-xs text-gray-400">$</span>
-                        <input value={editFields.price_cad ?? ''} onChange={e => setEditFields(f => ({ ...f, price_cad: e.target.value }))}
-                          type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
-                      </div>
-                    </td>
-                    <td colSpan={2} className="px-4 py-2 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => saveEdit(tld.id)} disabled={saving} className="text-emerald-600 hover:bg-emerald-50 rounded p-1">
-                          <Save className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => setEditingId(null)} className="text-gray-400 hover:bg-gray-100 rounded p-1">
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                    <td />
-                  </>
-                ) : (
-                  <>
-                    <td className="px-4 py-2.5 text-sm font-medium text-gray-900">.{tld.slug}</td>
-                    <td className="px-4 py-2.5 text-xs text-gray-500">Annual</td>
-                    <td className={`px-4 py-2.5 text-sm text-right font-medium ${priceColor(tld.id)}`}>
-                      {fmtPrice(tld.price_usd ?? 0)}/yr
-                      <StripePriceHint v={verification[tld.id]} />
-                    </td>
-                    <td className="px-4 py-2.5 text-sm text-right text-gray-500">{fmtPrice(tld.price_cad)}/yr</td>
-                    <td className="px-4 py-2.5 text-center">
-                      <DbSyncBadge hasStripeId={!!tld.stripe_product_id} />
-                    </td>
-                    <td className="px-4 py-2.5 text-center">
-                      <StripeLinkBadge
-                        productId={tld.id}
-                        stripeProductId={tld.stripe_product_id}
-                        verification={verification[tld.id]}
-                        syncing={syncingId === tld.id}
-                        onSync={() => syncProduct(tld.id)}
-                        loading={loadingStripe}
-                      />
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => startEdit(tld, ['price_usd', 'price_cad'])} className="text-gray-400 hover:text-admin-600 p-1">
-                          <Pencil className="w-3 h-3" />
-                        </button>
-                        <button onClick={() => deleteProduct(tld.id, tld.name)} className="text-red-400 hover:text-red-600 p-1">
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </td>
-                  </>
-                )}
+                {editingId === tld.id
+                  ? <ProductEditRow p={tld} fields={['price_usd', 'price_cad']} displayName={`.${tld.slug}`} />
+                  : <><ProductRow p={tld} displayName={`.${tld.slug}`} /><ActionButtons p={tld} editFieldsList={['price_usd', 'price_cad']} /></>
+                }
               </tr>
             ))}
             {tlds.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-400">No domain TLDs configured.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-6 text-center text-sm text-gray-400">No domain TLDs configured.</td></tr>
             )}
           </tbody>
         </table>
@@ -525,8 +484,12 @@ export function StripeProducts({
 
       {/* ═══ NOT IN PLATFORM ═══ */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-900 mb-1">Not in Platform</h3>
-        <p className="text-xs text-gray-500 mb-3">Active products in Stripe that aren't linked to any product in the database.</p>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">Not in Platform</h3>
+            <p className="text-xs text-gray-500">Active products in Stripe that aren't linked to any product in the database.</p>
+          </div>
+        </div>
         {loadingStripe ? (
           <div className="card p-6 text-center text-sm text-gray-400">
             <RefreshCw className="w-4 h-4 animate-spin inline mr-2" />Loading Stripe products...
@@ -535,23 +498,37 @@ export function StripeProducts({
           <div className="card p-6 text-center text-sm text-gray-400">All Stripe products are linked.</div>
         ) : (
           <div className="card overflow-hidden">
-            <table className="w-full">
-              <thead><tr className="border-b border-gray-100">
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Name</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Stripe ID</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Metadata</th>
-                <th className="w-24 text-right px-4 py-2.5"></th>
-              </tr></thead>
+            <table className="w-full table-fixed">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className={`${TH} ${COL.name}`}>Product</th>
+                  <th className={`${TH} ${COL.billing}`}>Billing</th>
+                  <th className={`${TH} ${COL.usd}`}>USD Price</th>
+                  <th className={`${TH} ${COL.cad}`}>CAD Price</th>
+                  <th className={`${TH} ${COL.credits}`}>Credits</th>
+                  <th className={`${TH} ${COL.db}`}>DB</th>
+                  <th className={`${TH} ${COL.stripe}`}>Stripe</th>
+                  <th className={`${TH} ${COL.actions}`}></th>
+                </tr>
+              </thead>
               <tbody>
                 {stripeOnly.map(p => (
                   <tr key={p.stripe_id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                    <td className="px-4 py-2.5 text-sm font-medium text-gray-900">{p.name}</td>
-                    <td className="px-4 py-2.5">
-                      <a href={`https://dashboard.stripe.com/products/${p.stripe_id}`} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-admin-600 hover:text-admin-700 font-mono">{p.stripe_id.slice(0, 20)}...</a>
+                    <td className="px-4 py-2.5 text-sm font-medium text-gray-900 truncate" title={p.name}>{p.name}</td>
+                    <td className="px-4 py-2.5 text-xs text-gray-400">—</td>
+                    <td className="px-4 py-2.5 text-sm text-right text-gray-400">—</td>
+                    <td className="px-4 py-2.5 text-sm text-right text-gray-400">—</td>
+                    <td className="px-4 py-2.5 text-sm text-right text-gray-400">—</td>
+                    <td className="px-4 py-2.5 text-center">
+                      <span className="inline-flex items-center gap-1 text-xs text-gray-400" title="Not in database">
+                        <Database className="w-3 h-3" /> <X className="w-3 h-3" />
+                      </span>
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-gray-500">
-                      {Object.entries(p.metadata ?? {}).slice(0, 3).map(([k, v]) => `${k}: ${v}`).join(', ') || '—'}
+                    <td className="px-4 py-2.5 text-center">
+                      <a href={`https://dashboard.stripe.com/products/${p.stripe_id}`} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-emerald-600" title={p.stripe_id}>
+                        <CreditCard className="w-3 h-3" /> <Check className="w-3 h-3" />
+                      </a>
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <button onClick={() => importFromStripe(p.stripe_id)} disabled={importingId === p.stripe_id}
@@ -593,7 +570,6 @@ function Section({ title, subtitle, onAdd, addLabel, creating, children }: {
   );
 }
 
-/** Shows whether the product has a stripe_product_id in the DB */
 function DbSyncBadge({ hasStripeId }: { hasStripeId: boolean }) {
   if (hasStripeId) {
     return (
@@ -609,9 +585,7 @@ function DbSyncBadge({ hasStripeId }: { hasStripeId: boolean }) {
   );
 }
 
-/** Shows whether the product actually exists in Stripe and prices match */
-function StripeLinkBadge({ productId, stripeProductId, verification, syncing, onSync, loading }: {
-  productId: string;
+function StripeLinkBadge({ stripeProductId, verification, syncing, onSync, loading }: {
   stripeProductId: string | null;
   verification?: Verification;
   syncing: boolean;
@@ -619,10 +593,7 @@ function StripeLinkBadge({ productId, stripeProductId, verification, syncing, on
   loading: boolean;
 }) {
   if (syncing) return <RefreshCw className="w-3.5 h-3.5 animate-spin text-gray-400 mx-auto" />;
-
-  if (loading) {
-    return <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-300 mx-auto" />;
-  }
+  if (loading) return <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-300 mx-auto" />;
 
   if (!stripeProductId) {
     return (
@@ -631,7 +602,6 @@ function StripeLinkBadge({ productId, stripeProductId, verification, syncing, on
       </button>
     );
   }
-
   if (!verification) {
     return (
       <button onClick={onSync} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-admin-600" title="Click to verify">
@@ -639,7 +609,6 @@ function StripeLinkBadge({ productId, stripeProductId, verification, syncing, on
       </button>
     );
   }
-
   if (!verification.stripeProductExists) {
     return (
       <button onClick={onSync} className="inline-flex items-center gap-1 text-xs text-red-500 hover:text-red-600" title="Product not found in Stripe">
@@ -647,7 +616,6 @@ function StripeLinkBadge({ productId, stripeProductId, verification, syncing, on
       </button>
     );
   }
-
   if (verification.priceMatches) {
     return (
       <span className="inline-flex items-center gap-1 text-xs text-emerald-600" title="Linked and prices match">
@@ -655,125 +623,19 @@ function StripeLinkBadge({ productId, stripeProductId, verification, syncing, on
       </span>
     );
   }
-
   return (
     <button onClick={onSync} className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700"
-      title={`Price mismatch: Stripe has $${((verification.stripePriceAmount ?? 0) / 100).toFixed(2)}, DB has $${((verification.dbPriceUsd) / 100).toFixed(2)}`}>
+      title={`Price mismatch: Stripe $${((verification.stripePriceAmount ?? 0) / 100).toFixed(2)}, DB $${(verification.dbPriceUsd / 100).toFixed(2)}`}>
       <CreditCard className="w-3 h-3" /> <AlertCircle className="w-3 h-3" /> Sync
     </button>
   );
 }
 
-/** Small hint under the price showing the Stripe price if different */
 function StripePriceHint({ v }: { v?: Verification }) {
   if (!v || v.priceMatches || v.stripePriceAmount === null) return null;
   return (
     <div className="text-[10px] text-amber-500 font-normal">
       Stripe: ${(v.stripePriceAmount / 100).toFixed(2)}
     </div>
-  );
-}
-
-/** Edit row for one-time products */
-function EditRow({ fields, editFields, setEditFields, onSave, onCancel, saving, colSpan }: {
-  fields: string[];
-  editFields: Record<string, string>;
-  setEditFields: (fn: (f: Record<string, string>) => Record<string, string>) => void;
-  onSave: () => void;
-  onCancel: () => void;
-  saving: boolean;
-  colSpan: number;
-}) {
-  return (
-    <>
-      {fields.includes('name') && (
-        <td className="px-4 py-2">
-          <input value={editFields.name ?? ''} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))}
-            className="input text-sm py-1 px-2 w-full" />
-        </td>
-      )}
-      {fields.includes('price_usd') && (
-        <td className="px-4 py-2">
-          <div className="flex items-center justify-end gap-1">
-            <span className="text-xs text-gray-400">$</span>
-            <input value={editFields.price_usd ?? ''} onChange={e => setEditFields(f => ({ ...f, price_usd: e.target.value }))}
-              type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
-          </div>
-        </td>
-      )}
-      {fields.includes('price_cad') && (
-        <td className="px-4 py-2">
-          <div className="flex items-center justify-end gap-1">
-            <span className="text-xs text-gray-400">$</span>
-            <input value={editFields.price_cad ?? ''} onChange={e => setEditFields(f => ({ ...f, price_cad: e.target.value }))}
-              type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
-          </div>
-        </td>
-      )}
-      <td colSpan={colSpan - fields.length} className="px-4 py-2 text-center">
-        <div className="flex items-center justify-center gap-1">
-          <button onClick={onSave} disabled={saving} className="text-emerald-600 hover:bg-emerald-50 rounded p-1">
-            <Save className="w-3.5 h-3.5" />
-          </button>
-          <button onClick={onCancel} className="text-gray-400 hover:bg-gray-100 rounded p-1">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </td>
-    </>
-  );
-}
-
-/** Edit row for plans (includes billing + credits) */
-function EditRowPlan({ editFields, setEditFields, onSave, onCancel, saving }: {
-  editFields: Record<string, string>;
-  setEditFields: (fn: (f: Record<string, string>) => Record<string, string>) => void;
-  onSave: () => void;
-  onCancel: () => void;
-  saving: boolean;
-}) {
-  return (
-    <>
-      <td className="px-4 py-2">
-        <input value={editFields.name ?? ''} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))}
-          className="input text-sm py-1 px-2 w-full" />
-      </td>
-      <td className="px-4 py-2">
-        <select value={editFields.billing ?? 'monthly'} onChange={e => setEditFields(f => ({ ...f, billing: e.target.value }))}
-          className="input text-sm py-1 px-2">
-          <option value="monthly">Monthly</option>
-          <option value="yearly">Yearly</option>
-        </select>
-      </td>
-      <td className="px-4 py-2">
-        <div className="flex items-center justify-end gap-1">
-          <span className="text-xs text-gray-400">$</span>
-          <input value={editFields.price_usd ?? ''} onChange={e => setEditFields(f => ({ ...f, price_usd: e.target.value }))}
-            type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
-        </div>
-      </td>
-      <td className="px-4 py-2">
-        <div className="flex items-center justify-end gap-1">
-          <span className="text-xs text-gray-400">$</span>
-          <input value={editFields.price_cad ?? ''} onChange={e => setEditFields(f => ({ ...f, price_cad: e.target.value }))}
-            type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
-        </div>
-      </td>
-      <td className="px-4 py-2">
-        <input value={editFields.monthly_credit_cost ?? ''} onChange={e => setEditFields(f => ({ ...f, monthly_credit_cost: e.target.value }))}
-          type="number" step="1" min="0" className="w-20 input text-sm py-1 px-2 text-right" />
-      </td>
-      <td colSpan={2} className="px-4 py-2 text-center">
-        <div className="flex items-center justify-center gap-1">
-          <button onClick={onSave} disabled={saving} className="text-emerald-600 hover:bg-emerald-50 rounded p-1">
-            <Save className="w-3.5 h-3.5" />
-          </button>
-          <button onClick={onCancel} className="text-gray-400 hover:bg-gray-100 rounded p-1">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </td>
-      <td />
-    </>
   );
 }
