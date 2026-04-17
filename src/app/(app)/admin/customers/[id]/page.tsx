@@ -5,7 +5,7 @@ import { formatDate, formatDateTime, formatCents, statusColor } from '@/lib/util
 import Link from 'next/link';
 import { QuickInvoice } from '@/components/admin/quick-invoice';
 import { ChargeCard } from '@/components/admin/charge-card';
-import { ProvisionSiteButton } from '@/components/admin/provision-site-button';
+// Plans/subscriptions removed — sites are credit-metered now
 import {
   ArrowLeft, Building2, Clock, CreditCard, ExternalLink, Globe,
   Mail, Phone, Server, Shield, User, FileText, Download, Layers,
@@ -93,19 +93,45 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         </div>
       )}
 
-      {/* ── Sites & Hosting ── */}
+      {/* ── Hosting Plan ── */}
+      {hostingSubs.length > 0 && (
+        <div className="card overflow-hidden mb-6">
+          <div className="section-card-header">
+            <Layers className="w-4 h-4 text-gray-400" />
+            <h2 className="section-card-title">Hosting Plan</h2>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {hostingSubs.map((sub: any) => (
+              <div key={sub.id} className="px-5 py-4">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-medium text-gray-900">{sub.products?.name ?? 'Hosting Plan'}</p>
+                  <span className={statusColor(sub.status)}>{sub.status}</span>
+                </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {sub.billing_period && <span className="text-xs text-gray-400">{sub.billing_period}</span>}
+                  <span className="text-xs text-gray-500">{services.length} site{services.length !== 1 ? 's' : ''}</span>
+                  {sub.stripe_subscription_id && (
+                    <a href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
+                      className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{sub.stripe_subscription_id.slice(-8)}</a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Sites ── */}
       <div className="card overflow-hidden mb-6">
         <div className="section-card-header">
           <Server className="w-4 h-4 text-gray-400" />
           <h2 className="section-card-title">Sites ({services.length})</h2>
         </div>
-        {services.length === 0 && hostingSubs.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-400">No sites or hosting subscriptions.</div>
+        {services.length === 0 ? (
+          <div className="p-8 text-center text-sm text-gray-400">No sites.</div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {/* Sites with their linked subscription */}
             {services.map((s: any) => {
-              const linkedSub = hostingSubs.find((sub: any) => sub.id === s.subscription_id);
               const siteDomain = domains.find((d: any) => d.site_id === s.id);
               return (
                 <div key={s.id} className="px-5 py-4">
@@ -114,56 +140,21 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                     <span className={statusColor(s.status)}>{s.status}</span>
                   </div>
                   <div className="flex items-center gap-3 flex-wrap">
-                    <span className="text-xs text-gray-500">{s.products?.name ?? '\u2014'}</span>
                     {siteDomain && (
                       <span className="text-xs text-gray-400 inline-flex items-center gap-1">
                         <Globe className="w-3 h-3" /> {siteDomain.domain_name}
                       </span>
                     )}
-                    {linkedSub ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">
-                        <Link2 className="w-3 h-3" />
-                        Sub {linkedSub.status}
-                        {linkedSub.billing_period && <span className="text-emerald-500">· {linkedSub.billing_period}</span>}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
-                        <AlertTriangle className="w-3 h-3" /> No subscription
-                      </span>
+                    {s.wp_cloud_url && (
+                      <a href={s.wp_cloud_url} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:text-admin-600">
+                        {s.wp_cloud_url.replace('https://', '')}
+                      </a>
                     )}
-                    {linkedSub?.stripe_subscription_id && (
-                      <a href={`https://dashboard.stripe.com/subscriptions/${linkedSub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
-                        className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{linkedSub.stripe_subscription_id.slice(-8)}</a>
-                    )}
+                    {s.server_region && <span className="text-xs text-gray-400">{s.server_region}</span>}
                   </div>
                 </div>
               );
             })}
-
-            {/* Orphaned hosting subscriptions (no site linked) */}
-            {hostingSubs.filter((sub: any) => !services.find((s: any) => s.subscription_id === sub.id)).map((sub: any) => (
-              <div key={sub.id} className="px-5 py-4 bg-amber-50/30">
-                <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-sm font-medium text-gray-900">{sub.products?.name ?? 'Unknown plan'}</p>
-                  <span className={statusColor(sub.status)}>{sub.status}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    {sub.billing_period && <span className="text-xs text-gray-400">{sub.billing_period}</span>}
-                    <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
-                      <AlertTriangle className="w-3 h-3" /> No site linked
-                    </span>
-                    {sub.stripe_subscription_id && (
-                      <a href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
-                        className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{sub.stripe_subscription_id.slice(-8)}</a>
-                    )}
-                  </div>
-                  {(sub.status === 'active' || sub.status === 'trialing') && (
-                    <ProvisionSiteButton subscriptionId={sub.id} userId={user.id} planId={sub.product_id} planName={sub.products?.name ?? 'Unknown'} />
-                  )}
-                </div>
-              </div>
-            ))}
           </div>
         )}
       </div>
