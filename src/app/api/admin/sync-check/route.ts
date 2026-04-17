@@ -27,7 +27,7 @@ export async function POST() {
 
   try {
     // 1. Fetch wp.cloud sites via site-info edge function (list-all-sites)
-    let wpCloudSites: string[] = [];
+    let wpCloudRaw: any[] = [];
     let wpCloudError = '';
     try {
       const wpRes = await fetch(
@@ -44,7 +44,7 @@ export async function POST() {
       );
       const wpData = await wpRes.json();
       if (Array.isArray(wpData)) {
-        wpCloudSites = wpData.map((s: any) => String(s.blog_id ?? s.id ?? s));
+        wpCloudRaw = wpData;
       } else if (wpData?.error) {
         wpCloudError = wpData.error;
       }
@@ -52,20 +52,53 @@ export async function POST() {
       wpCloudError = e.message;
     }
 
+    // Build a set of ALL possible identifiers from each wp.cloud site
+    // wp.cloud may return blog_id, id, atomic_site_id, wpcom_blog_id, domain_name, etc.
+    const wpCloudAllIds = new Set<string>();
+    const wpCloudDomains = new Set<string>();
+    for (const s of wpCloudRaw) {
+      if (typeof s === 'object' && s !== null) {
+        for (const key of ['blog_id', 'id', 'atomic_site_id', 'wpcom_blog_id']) {
+          if (s[key]) wpCloudAllIds.add(String(s[key]));
+        }
+        if (s.domain_name) wpCloudDomains.add(s.domain_name.toLowerCase());
+      } else {
+        wpCloudAllIds.add(String(s));
+      }
+    }
+
     // Get all DB sites with wp.cloud IDs
     const { data: dbSites } = await sb.from('sites')
       .select('id, wp_cloud_site_id, wp_cloud_url, label, status, user_id')
       .not('wp_cloud_site_id', 'is', null);
 
-    const dbSiteIds = new Set((dbSites ?? []).map((s: any) => String(s.wp_cloud_site_id)));
+    // Match DB sites against wp.cloud by ID or domain
+    const matchedDbIds = new Set<string>();
+    const matchedWpIds = new Set<string>();
+    for (const dbSite of dbSites ?? []) {
+      const siteId = String(dbSite.wp_cloud_site_id);
+      const domain = dbSite.wp_cloud_url?.replace('https://', '').replace('http://', '').toLowerCase();
+      if (wpCloudAllIds.has(siteId) || (domain && wpCloudDomains.has(domain))) {
+        matchedDbIds.add(dbSite.id);
+        matchedWpIds.add(siteId);
+        if (domain) matchedWpIds.add(domain);
+      }
+    }
 
-    // Compare: in wp.cloud but not in DB
-    const inApiNotDb = wpCloudSites.filter(id => !dbSiteIds.has(id));
+    // In wp.cloud but not matched to any DB site
+    const inApiNotDb: string[] = [];
+    for (const s of wpCloudRaw) {
+      if (typeof s === 'object' && s !== null) {
+        const ids = ['blog_id', 'id', 'atomic_site_id', 'wpcom_blog_id'].map(k => s[k] ? String(s[k]) : null).filter(Boolean);
+        const dom = s.domain_name?.toLowerCase();
+        const isMatched = ids.some(id => matchedWpIds.has(id!)) || (dom && matchedWpIds.has(dom));
+        if (!isMatched) inApiNotDb.push(s.domain_name || ids[0] || 'unknown');
+      }
+    }
 
-    // Compare: in DB but not in wp.cloud (only if we got wp.cloud data)
-    const wpCloudSet = new Set(wpCloudSites);
-    const inDbNotApi = wpCloudSites.length > 0
-      ? (dbSites ?? []).filter((s: any) => s.status === 'active' && !wpCloudSet.has(String(s.wp_cloud_site_id)))
+    // In DB but not matched to any wp.cloud site (only if we got wp.cloud data)
+    const inDbNotApi = wpCloudRaw.length > 0
+      ? (dbSites ?? []).filter((s: any) => s.status === 'active' && !matchedDbIds.has(s.id))
       : [];
 
     // Check for sites in DB with no user or deleted user
@@ -89,12 +122,12 @@ export async function POST() {
     const validDomainUserIds = new Set((domainUsers ?? []).map((u: any) => u.id));
     const domainsOrphanedUser = (dbDomains ?? []).filter((d: any) => d.user_id && !validDomainUserIds.has(d.user_id));
 
-    const matched = (dbSites ?? []).length - inDbNotApi.length - sitesOrphanedUser.length - sitesNoUser.length;
+    const matched = matchedDbIds.size;
 
     return NextResponse.json({
       checkedAt: new Date().toISOString(),
       wpcloud: {
-        apiCount: wpCloudSites.length,
+        apiCount: wpCloudRaw.length,
         dbCount: (dbSites ?? []).length,
         matched: Math.max(0, matched),
         inApiNotDb,
