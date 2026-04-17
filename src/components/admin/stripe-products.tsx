@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { RefreshCw, Plus, ExternalLink, Check, AlertCircle, Trash2, Pencil, X, Save, Database, CreditCard, Loader2 } from 'lucide-react';
+import { RefreshCw, Plus, ExternalLink, Check, AlertCircle, Trash2, Pencil, X, Save, Database, CreditCard, Loader2, Unlink } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -16,6 +16,9 @@ interface Product {
   is_active: boolean;
   stripe_product_id: string | null;
   stripe_price_id: string | null;
+  stripe_price_id_yearly?: string | null;
+  stripe_price_id_2yr?: string | null;
+  stripe_price_id_3yr?: string | null;
   monthly_credit_cost: number | null;
   metadata: any;
 }
@@ -37,7 +40,7 @@ interface Verification {
   priceMatches: boolean;
 }
 
-// Shared column widths for all tables
+// Shared column widths
 const COL = {
   name: 'w-[28%] text-left',
   billing: 'w-[10%] text-left',
@@ -87,11 +90,13 @@ export function StripeProducts({
   const [creating, setCreating] = useState(false);
   const [loadingStripe, setLoadingStripe] = useState(true);
   const [result, setResult] = useState('');
+  const [importingId, setImportingId] = useState<string | null>(null);
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  // Modal state
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [editFields, setEditFields] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [importingId, setImportingId] = useState<string | null>(null);
+  const [desyncing, setDesyncing] = useState(false);
 
   useEffect(() => { fetchStripeData(); }, []);
 
@@ -182,7 +187,7 @@ export function StripeProducts({
   }
 
   async function deleteProduct(id: string, name: string) {
-    if (!confirm(`Delete "${name}"? This will also deactivate it in Stripe if linked.`)) return;
+    if (!confirm(`Delete "${name}" from database?`)) return;
     try {
       const res = await fetch('/api/admin/create-product', {
         method: 'DELETE',
@@ -191,14 +196,13 @@ export function StripeProducts({
       });
       if (res.ok) {
         const data = await res.json();
+        setEditProduct(null);
         if (data.deactivated) {
           setResult(data.message ?? 'Product deactivated (has active subscriptions)');
-          setPlans(prev => prev.filter(p => p.id !== id));
-          setOneTime(prev => prev.filter(p => p.id !== id));
-          setTlds(prev => prev.filter(p => p.id !== id));
-        } else {
-          window.location.reload();
         }
+        setPlans(prev => prev.filter(p => p.id !== id));
+        setOneTime(prev => prev.filter(p => p.id !== id));
+        setTlds(prev => prev.filter(p => p.id !== id));
       } else {
         const data = await res.json();
         setResult(data.error ?? 'Delete failed');
@@ -206,47 +210,84 @@ export function StripeProducts({
     } catch { setResult('Delete failed'); }
   }
 
-  function startEdit(product: any, fields: string[]) {
-    setEditingId(product.id);
-    const vals: Record<string, string> = {};
-    for (const f of fields) {
-      if (f === 'price_usd' || f === 'price_cad' || f === 'price_yearly_usd' || f === 'price_yearly_cad') {
-        vals[f] = ((product[f] ?? 0) / 100).toFixed(2);
-      } else {
-        vals[f] = String(product[f] ?? '');
-      }
-    }
-    setEditFields(vals);
+  function openEdit(product: Product) {
+    setEditProduct(product);
+    setEditFields({
+      name: product.name,
+      billing: product.billing,
+      price_usd: ((product.price_usd ?? 0) / 100).toFixed(2),
+      price_cad: ((product.price_cad ?? 0) / 100).toFixed(2),
+      monthly_credit_cost: String(product.monthly_credit_cost ?? ''),
+    });
   }
 
-  async function saveEdit(id: string) {
+  async function saveEdit() {
+    if (!editProduct) return;
     setSaving(true);
-    const updates: Record<string, any> = {};
-    for (const [key, val] of Object.entries(editFields)) {
-      if (key.includes('price')) {
-        updates[key] = Math.round(parseFloat(val || '0') * 100);
-      } else if (key === 'monthly_credit_cost') {
-        updates[key] = parseFloat(val || '0');
-      } else {
-        updates[key] = val;
-      }
-    }
+    const updates: Record<string, any> = {
+      name: editFields.name,
+      billing: editFields.billing,
+      price_usd: Math.round(parseFloat(editFields.price_usd || '0') * 100),
+      price_cad: Math.round(parseFloat(editFields.price_cad || '0') * 100),
+      monthly_credit_cost: parseFloat(editFields.monthly_credit_cost || '0') || null,
+    };
     try {
       const res = await fetch('/api/admin/create-product', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, ...updates }),
+        body: JSON.stringify({ id: editProduct.id, ...updates }),
       });
       if (res.ok) {
-        const updateFn = (p: any) => p.id === id ? { ...p, ...updates } : p;
+        const updateFn = (p: any) => p.id === editProduct.id ? { ...p, ...updates } : p;
         setPlans(prev => prev.map(updateFn));
         setOneTime(prev => prev.map(updateFn));
         setTlds(prev => prev.map(updateFn));
-        setEditingId(null);
-        await syncProduct(id);
+        setEditProduct(prev => prev ? { ...prev, ...updates } : null);
+        // Auto-sync to Stripe
+        await syncProduct(editProduct.id);
       }
     } catch { /* ignore */ }
     setSaving(false);
+  }
+
+  async function desyncProduct() {
+    if (!editProduct) return;
+    if (!confirm('Unlink this product from Stripe? The Stripe product will remain but will no longer be associated with this DB product.')) return;
+    setDesyncing(true);
+    try {
+      const res = await fetch('/api/admin/create-product', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editProduct.id,
+          stripe_product_id: null,
+          stripe_price_id: null,
+          stripe_price_id_yearly: null,
+          stripe_price_id_2yr: null,
+          stripe_price_id_3yr: null,
+        }),
+      });
+      if (res.ok) {
+        const updateFn = (p: any) => p.id === editProduct.id ? {
+          ...p, stripe_product_id: null, stripe_price_id: null,
+          stripe_price_id_yearly: null, stripe_price_id_2yr: null, stripe_price_id_3yr: null,
+        } : p;
+        setPlans(prev => prev.map(updateFn));
+        setOneTime(prev => prev.map(updateFn));
+        setTlds(prev => prev.map(updateFn));
+        setEditProduct(prev => prev ? {
+          ...prev, stripe_product_id: null, stripe_price_id: null,
+          stripe_price_id_yearly: null, stripe_price_id_2yr: null, stripe_price_id_3yr: null,
+        } : null);
+        setVerification(prev => {
+          const next = { ...prev };
+          delete next[editProduct.id];
+          return next;
+        });
+        await fetchStripeData();
+      }
+    } catch { /* ignore */ }
+    setDesyncing(false);
   }
 
   async function importFromStripe(stripeProductId: string) {
@@ -280,11 +321,10 @@ export function StripeProducts({
     return v.priceMatches ? 'text-emerald-600' : 'text-amber-600';
   }
 
-  // Unified product row (view mode)
   function ProductRow({ p, displayName }: { p: Product; displayName?: string }) {
     return (
       <>
-        <td className="px-4 py-2.5 text-sm font-medium text-gray-900">{displayName ?? p.name}</td>
+        <td className="px-4 py-2.5 text-sm font-medium text-gray-900 truncate">{displayName ?? p.name}</td>
         <td className="px-4 py-2.5 text-xs text-gray-500">{billingLabel(p.billing)}</td>
         <td className={`px-4 py-2.5 text-sm text-right font-medium ${priceColor(p.id)}`}>
           {fmtPrice(p.price_usd ?? 0)}{billingSuffix(p.billing)}
@@ -308,89 +348,12 @@ export function StripeProducts({
             loading={loadingStripe}
           />
         </td>
-      </>
-    );
-  }
-
-  // Unified edit row
-  function ProductEditRow({ p, fields, displayName }: { p: Product; fields: string[]; displayName?: string }) {
-    const showName = fields.includes('name');
-    const showBilling = fields.includes('billing');
-    const showCredits = fields.includes('monthly_credit_cost');
-    return (
-      <>
-        <td className="px-4 py-2">
-          {showName ? (
-            <input value={editFields.name ?? ''} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))}
-              className="input text-sm py-1 px-2 w-full" />
-          ) : (
-            <span className="text-sm font-medium text-gray-900">{displayName ?? p.name}</span>
-          )}
-        </td>
-        <td className="px-4 py-2">
-          {showBilling ? (
-            <select value={editFields.billing ?? 'monthly'} onChange={e => setEditFields(f => ({ ...f, billing: e.target.value }))}
-              className="input text-sm py-1 px-2 w-full">
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-              <option value="one_time">One-time</option>
-            </select>
-          ) : (
-            <span className="text-xs text-gray-500">{billingLabel(p.billing)}</span>
-          )}
-        </td>
-        <td className="px-4 py-2">
-          <div className="flex items-center justify-end gap-1">
-            <span className="text-xs text-gray-400">$</span>
-            <input value={editFields.price_usd ?? ''} onChange={e => setEditFields(f => ({ ...f, price_usd: e.target.value }))}
-              type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
-          </div>
-        </td>
-        <td className="px-4 py-2">
-          <div className="flex items-center justify-end gap-1">
-            <span className="text-xs text-gray-400">$</span>
-            <input value={editFields.price_cad ?? ''} onChange={e => setEditFields(f => ({ ...f, price_cad: e.target.value }))}
-              type="number" step="0.01" min="0" className="w-24 input text-sm py-1 px-2 text-right" />
-          </div>
-        </td>
-        <td className="px-4 py-2">
-          {showCredits ? (
-            <input value={editFields.monthly_credit_cost ?? ''} onChange={e => setEditFields(f => ({ ...f, monthly_credit_cost: e.target.value }))}
-              type="number" step="1" min="0" className="w-16 input text-sm py-1 px-2 text-right" />
-          ) : (
-            <span className="text-sm text-gray-400 block text-right">—</span>
-          )}
-        </td>
-        <td colSpan={2} className="px-4 py-2 text-center">
-          <div className="flex items-center justify-center gap-1">
-            <button onClick={() => saveEdit(p.id)} disabled={saving}
-              className="text-emerald-600 hover:bg-emerald-50 rounded p-1">
-              <Save className="w-3.5 h-3.5" />
-            </button>
-            <button onClick={() => setEditingId(null)}
-              className="text-gray-400 hover:bg-gray-100 rounded p-1">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </td>
-        <td />
-      </>
-    );
-  }
-
-  // Action buttons
-  function ActionButtons({ p, editFieldsList }: { p: Product; editFieldsList: string[] }) {
-    return (
-      <td className="px-4 py-2.5 text-right">
-        <div className="flex items-center justify-end gap-1">
-          <button onClick={() => startEdit(p, editFieldsList)} className="text-gray-400 hover:text-admin-600 p-1">
-            <Pencil className="w-3 h-3" />
+        <td className="px-4 py-2.5 text-right">
+          <button onClick={() => openEdit(p)} className="text-gray-400 hover:text-admin-600 p-1" title="Edit product">
+            <Pencil className="w-3.5 h-3.5" />
           </button>
-          <button onClick={() => deleteProduct(p.id, p.name)} className="text-red-400 hover:text-red-600 p-1">
-            <Trash2 className="w-3 h-3" />
-          </button>
-        </div>
-      </td>
+        </td>
+      </>
     );
   }
 
@@ -426,11 +389,8 @@ export function StripeProducts({
           <TableHead />
           <tbody>
             {oneTime.map(p => (
-              <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                {editingId === p.id
-                  ? <ProductEditRow p={p} fields={['name', 'price_usd', 'price_cad']} />
-                  : <><ProductRow p={p} /><ActionButtons p={p} editFieldsList={['name', 'price_usd', 'price_cad']} /></>
-                }
+              <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer" onClick={() => openEdit(p)}>
+                <ProductRow p={p} />
               </tr>
             ))}
             {oneTime.length === 0 && (
@@ -447,11 +407,8 @@ export function StripeProducts({
           <TableHead />
           <tbody>
             {plans.map(p => (
-              <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                {editingId === p.id
-                  ? <ProductEditRow p={p} fields={['name', 'billing', 'price_usd', 'price_cad', 'monthly_credit_cost']} />
-                  : <><ProductRow p={p} /><ActionButtons p={p} editFieldsList={['name', 'billing', 'price_usd', 'price_cad', 'monthly_credit_cost']} /></>
-                }
+              <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer" onClick={() => openEdit(p)}>
+                <ProductRow p={p} />
               </tr>
             ))}
             {plans.length === 0 && (
@@ -468,11 +425,8 @@ export function StripeProducts({
           <TableHead />
           <tbody>
             {tlds.map(tld => (
-              <tr key={tld.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                {editingId === tld.id
-                  ? <ProductEditRow p={tld} fields={['price_usd', 'price_cad']} displayName={`.${tld.slug}`} />
-                  : <><ProductRow p={tld} displayName={`.${tld.slug}`} /><ActionButtons p={tld} editFieldsList={['price_usd', 'price_cad']} /></>
-                }
+              <tr key={tld.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer" onClick={() => openEdit(tld)}>
+                <ProductRow p={tld} displayName={`.${tld.slug}`} />
               </tr>
             ))}
             {tlds.length === 0 && (
@@ -520,9 +474,7 @@ export function StripeProducts({
                     <td className="px-4 py-2.5 text-sm text-right text-gray-400">—</td>
                     <td className="px-4 py-2.5 text-sm text-right text-gray-400">—</td>
                     <td className="px-4 py-2.5 text-center">
-                      <span className="inline-flex items-center gap-1 text-xs text-gray-400" title="Not in database">
-                        <Database className="w-3 h-3" /> <X className="w-3 h-3" />
-                      </span>
+                      <span className="inline-flex items-center gap-1 text-xs text-gray-400"><Database className="w-3 h-3" /> <X className="w-3 h-3" /></span>
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       <a href={`https://dashboard.stripe.com/products/${p.stripe_id}`} target="_blank" rel="noopener noreferrer"
@@ -544,6 +496,121 @@ export function StripeProducts({
           </div>
         )}
       </div>
+
+      {/* ═══ EDIT MODAL ═══ */}
+      {editProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditProduct(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="text-base font-semibold text-gray-900">Edit Product</h3>
+              <button onClick={() => setEditProduct(null)} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div className="px-6 py-5 space-y-4">
+              {/* Name */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Product Name</label>
+                <input value={editFields.name ?? ''} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))}
+                  className="input w-full" />
+              </div>
+
+              {/* Billing + Credits row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Billing Frequency</label>
+                  <select value={editFields.billing ?? 'one_time'} onChange={e => setEditFields(f => ({ ...f, billing: e.target.value }))}
+                    className="input w-full">
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                    <option value="one_time">One-time</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Credits / Month</label>
+                  <input value={editFields.monthly_credit_cost ?? ''} onChange={e => setEditFields(f => ({ ...f, monthly_credit_cost: e.target.value }))}
+                    type="number" step="1" min="0" placeholder="—" className="input w-full" />
+                </div>
+              </div>
+
+              {/* Prices row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">USD Price</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                    <input value={editFields.price_usd ?? ''} onChange={e => setEditFields(f => ({ ...f, price_usd: e.target.value }))}
+                      type="number" step="0.01" min="0" className="input w-full pl-7" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">CAD Price</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                    <input value={editFields.price_cad ?? ''} onChange={e => setEditFields(f => ({ ...f, price_cad: e.target.value }))}
+                      type="number" step="0.01" min="0" className="input w-full pl-7" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Stripe IDs section */}
+              <div className="pt-3 border-t border-gray-100">
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Stripe Link</h4>
+                <div className="space-y-2">
+                  <StripeIdRow label="Product ID" value={editProduct.stripe_product_id} type="products" />
+                  <StripeIdRow label="Price ID" value={editProduct.stripe_price_id} type="prices" />
+                  {editProduct.stripe_price_id_yearly && (
+                    <StripeIdRow label="Yearly Price ID" value={editProduct.stripe_price_id_yearly} type="prices" />
+                  )}
+                  {editProduct.stripe_price_id_2yr && (
+                    <StripeIdRow label="2-Year Price ID" value={editProduct.stripe_price_id_2yr} type="prices" />
+                  )}
+                  {editProduct.stripe_price_id_3yr && (
+                    <StripeIdRow label="3-Year Price ID" value={editProduct.stripe_price_id_3yr} type="prices" />
+                  )}
+                  {!editProduct.stripe_product_id && !editProduct.stripe_price_id && (
+                    <p className="text-xs text-gray-400 italic">Not linked to Stripe</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal footer */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+              <div className="flex items-center gap-2">
+                {/* Delete: only if NOT linked to Stripe */}
+                {!editProduct.stripe_product_id && (
+                  <button onClick={() => deleteProduct(editProduct.id, editProduct.name)}
+                    className="inline-flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </button>
+                )}
+                {/* Desync: only if linked to Stripe */}
+                {editProduct.stripe_product_id && (
+                  <button onClick={desyncProduct} disabled={desyncing}
+                    className="inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50 px-3 py-1.5 rounded-lg transition-colors">
+                    {desyncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unlink className="w-3.5 h-3.5" />}
+                    Desync from Stripe
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setEditProduct(null)} className="btn-admin-secondary text-xs py-1.5 px-4">
+                  Cancel
+                </button>
+                <button onClick={saveEdit} disabled={saving}
+                  className="btn-admin text-xs py-1.5 px-4 inline-flex items-center gap-1.5">
+                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  Save & Sync
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -571,16 +638,10 @@ function Section({ title, subtitle, onAdd, addLabel, creating, children }: {
 }
 
 function DbSyncBadge({ hasStripeId }: { hasStripeId: boolean }) {
-  if (hasStripeId) {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs text-emerald-600" title="Product ID stored in database">
-        <Database className="w-3 h-3" /> <Check className="w-3 h-3" />
-      </span>
-    );
-  }
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-amber-500" title="No Stripe product ID in database">
-      <Database className="w-3 h-3" /> <X className="w-3 h-3" />
+    <span className={`inline-flex items-center gap-1 text-xs ${hasStripeId ? 'text-emerald-600' : 'text-amber-500'}`}
+      title={hasStripeId ? 'Product ID stored in database' : 'No Stripe product ID in database'}>
+      <Database className="w-3 h-3" /> {hasStripeId ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
     </span>
   );
 }
@@ -597,22 +658,25 @@ function StripeLinkBadge({ stripeProductId, verification, syncing, onSync, loadi
 
   if (!stripeProductId) {
     return (
-      <button onClick={onSync} className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700" title="Not linked to Stripe">
-        <CreditCard className="w-3 h-3" /> <AlertCircle className="w-3 h-3" /> Link
+      <button onClick={e => { e.stopPropagation(); onSync(); }}
+        className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700" title="Not linked to Stripe">
+        <CreditCard className="w-3 h-3" /> <AlertCircle className="w-3 h-3" />
       </button>
     );
   }
   if (!verification) {
     return (
-      <button onClick={onSync} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-admin-600" title="Click to verify">
-        <CreditCard className="w-3 h-3" /> Verify
+      <button onClick={e => { e.stopPropagation(); onSync(); }}
+        className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-admin-600" title="Click to verify">
+        <CreditCard className="w-3 h-3" /> ?
       </button>
     );
   }
   if (!verification.stripeProductExists) {
     return (
-      <button onClick={onSync} className="inline-flex items-center gap-1 text-xs text-red-500 hover:text-red-600" title="Product not found in Stripe">
-        <CreditCard className="w-3 h-3" /> <X className="w-3 h-3" /> Missing
+      <button onClick={e => { e.stopPropagation(); onSync(); }}
+        className="inline-flex items-center gap-1 text-xs text-red-500 hover:text-red-600" title="Product not found in Stripe">
+        <CreditCard className="w-3 h-3" /> <X className="w-3 h-3" />
       </button>
     );
   }
@@ -624,9 +688,10 @@ function StripeLinkBadge({ stripeProductId, verification, syncing, onSync, loadi
     );
   }
   return (
-    <button onClick={onSync} className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700"
-      title={`Price mismatch: Stripe $${((verification.stripePriceAmount ?? 0) / 100).toFixed(2)}, DB $${(verification.dbPriceUsd / 100).toFixed(2)}`}>
-      <CreditCard className="w-3 h-3" /> <AlertCircle className="w-3 h-3" /> Sync
+    <button onClick={e => { e.stopPropagation(); onSync(); }}
+      className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700"
+      title={`Stripe $${((verification.stripePriceAmount ?? 0) / 100).toFixed(2)} vs DB $${(verification.dbPriceUsd / 100).toFixed(2)}`}>
+      <CreditCard className="w-3 h-3" /> <AlertCircle className="w-3 h-3" />
     </button>
   );
 }
@@ -636,6 +701,20 @@ function StripePriceHint({ v }: { v?: Verification }) {
   return (
     <div className="text-[10px] text-amber-500 font-normal">
       Stripe: ${(v.stripePriceAmount / 100).toFixed(2)}
+    </div>
+  );
+}
+
+function StripeIdRow({ label, value, type }: { label: string; value: string | null | undefined; type: 'products' | 'prices' }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-xs text-gray-500">{label}</span>
+      <a href={`https://dashboard.stripe.com/${type}/${value}`} target="_blank" rel="noopener noreferrer"
+        className="text-xs font-mono text-admin-600 hover:text-admin-700 inline-flex items-center gap-1">
+        {value.length > 28 ? `${value.slice(0, 28)}...` : value}
+        <ExternalLink className="w-3 h-3" />
+      </a>
     </div>
   );
 }
