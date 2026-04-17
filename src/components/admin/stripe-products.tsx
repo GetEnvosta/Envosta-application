@@ -75,14 +75,20 @@ export function StripeProducts({
   initialPlans,
   initialOneTime,
   initialTlds,
+  initialAddons = [],
+  initialOther = [],
 }: {
   initialPlans: Product[];
   initialOneTime: Product[];
   initialTlds: Product[];
+  initialAddons?: Product[];
+  initialOther?: Product[];
 }) {
   const [plans, setPlans] = useState(initialPlans);
   const [oneTime, setOneTime] = useState(initialOneTime);
   const [tlds, setTlds] = useState(initialTlds);
+  const [addons, setAddons] = useState(initialAddons);
+  const [other, setOther] = useState(initialOther);
   const [stripeOnly, setStripeOnly] = useState<StripeOnlyProduct[]>([]);
   const [verification, setVerification] = useState<Record<string, Verification>>({});
   const [syncingId, setSyncingId] = useState<string | null>(null);
@@ -137,8 +143,10 @@ export function StripeProducts({
         setPlans(prev => prev.map(update));
         setOneTime(prev => prev.map(update));
         setTlds(prev => prev.map(update));
+        setAddons(prev => prev.map(update));
+        setOther(prev => prev.map(update));
         if (data.stripe_price_amount !== undefined) {
-          const dbPrice = [...plans, ...oneTime, ...tlds].find(p => p.id === id);
+          const dbPrice = [...plans, ...oneTime, ...tlds, ...addons, ...other].find(p => p.id === id);
           const effectivePrice = (dbPrice?.price_usd || dbPrice?.price_cad) ?? 0;
           setVerification(prev => ({
             ...prev,
@@ -209,6 +217,8 @@ export function StripeProducts({
         setPlans(prev => prev.filter(p => p.id !== id));
         setOneTime(prev => prev.filter(p => p.id !== id));
         setTlds(prev => prev.filter(p => p.id !== id));
+        setAddons(prev => prev.filter(p => p.id !== id));
+        setOther(prev => prev.filter(p => p.id !== id));
       } else {
         const data = await res.json();
         setResult(data.error ?? 'Delete failed');
@@ -248,6 +258,8 @@ export function StripeProducts({
         setPlans(prev => prev.map(updateFn));
         setOneTime(prev => prev.map(updateFn));
         setTlds(prev => prev.map(updateFn));
+        setAddons(prev => prev.map(updateFn));
+        setOther(prev => prev.map(updateFn));
         setEditProduct(prev => prev ? { ...prev, ...updates } : null);
         // Auto-sync to Stripe
         await syncProduct(editProduct.id);
@@ -281,6 +293,8 @@ export function StripeProducts({
         setPlans(prev => prev.map(updateFn));
         setOneTime(prev => prev.map(updateFn));
         setTlds(prev => prev.map(updateFn));
+        setAddons(prev => prev.map(updateFn));
+        setOther(prev => prev.map(updateFn));
         setEditProduct(prev => prev ? {
           ...prev, stripe_product_id: null, stripe_price_id: null,
           stripe_price_id_yearly: null, stripe_price_id_2yr: null, stripe_price_id_3yr: null,
@@ -441,6 +455,40 @@ export function StripeProducts({
           </tbody>
         </table>
       </Section>
+
+      {/* ═══ PLAN ADDONS ═══ */}
+      {addons.length > 0 && (
+        <Section title="Plan Addons" subtitle="Per-site addon features (bursting, WAF, etc)."
+          onAdd={() => quickCreate('plan_addon', 'New Addon', 'monthly', 0)} addLabel="Add Addon" creating={creating}>
+          <table className="w-full table-fixed">
+            <TableHead />
+            <tbody>
+              {addons.map(p => (
+                <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer" onClick={() => openEdit(p)}>
+                  <ProductRow p={p} />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Section>
+      )}
+
+      {/* ═══ OTHER PRODUCTS ═══ */}
+      {other.length > 0 && (
+        <Section title="Other Products" subtitle="Products with unrecognized types."
+          onAdd={() => quickCreate('one_time_service', 'New Product', 'one_time', 0)} addLabel="Add Product" creating={creating}>
+          <table className="w-full table-fixed">
+            <TableHead />
+            <tbody>
+              {other.map(p => (
+                <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer" onClick={() => openEdit(p)}>
+                  <ProductRow p={p} />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Section>
+      )}
 
       {/* ═══ NOT IN PLATFORM ═══ */}
       <div>

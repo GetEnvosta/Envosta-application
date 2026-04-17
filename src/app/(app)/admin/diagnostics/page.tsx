@@ -83,21 +83,18 @@ export default async function DiagnosticsPage() {
 
   // Fetch pricing & product data
   const pricing = await getServicePricing();
-  const { data: domainTlds } = await supabase
+  const productCols = 'id, type, name, slug, billing, price_cad, price_usd, price_yearly_cad, price_yearly_usd, is_active, stripe_product_id, stripe_price_id, stripe_price_id_yearly, stripe_price_id_2yr, stripe_price_id_3yr, monthly_credit_cost, metadata';
+  const { data: allProducts } = await supabase
     .from('products')
-    .select('id, type, name, slug, billing, price_cad, price_usd, price_yearly_cad, price_yearly_usd, is_active, stripe_product_id, stripe_price_id, stripe_price_id_yearly, stripe_price_id_2yr, stripe_price_id_3yr, monthly_credit_cost, metadata')
-    .eq('type', 'domain_tld')
-    .order('slug');
-  const { data: plans } = await supabase
-    .from('products')
-    .select('id, type, name, slug, billing, price_cad, price_usd, price_yearly_cad, price_yearly_usd, is_active, stripe_product_id, stripe_price_id, stripe_price_id_yearly, stripe_price_id_2yr, stripe_price_id_3yr, monthly_credit_cost, metadata')
-    .eq('type', 'hosting_plan')
-    .order('sort_order');
-  const { data: oneTimeProducts } = await supabase
-    .from('products')
-    .select('id, type, name, slug, billing, price_cad, price_usd, price_yearly_cad, price_yearly_usd, is_active, stripe_product_id, stripe_price_id, stripe_price_id_yearly, stripe_price_id_2yr, stripe_price_id_3yr, monthly_credit_cost, metadata')
-    .eq('type', 'one_time_service')
+    .select(productCols)
+    .order('type')
+    .order('sort_order', { ascending: true, nullsFirst: false })
     .order('name');
+  const plans = (allProducts ?? []).filter((p: any) => p.type === 'hosting_plan');
+  const oneTimeProducts = (allProducts ?? []).filter((p: any) => p.type === 'one_time_service');
+  const domainTlds = (allProducts ?? []).filter((p: any) => p.type === 'domain_tld');
+  const addons = (allProducts ?? []).filter((p: any) => p.type === 'plan_addon');
+  const otherProducts = (allProducts ?? []).filter((p: any) => !['hosting_plan', 'one_time_service', 'domain_tld', 'plan_addon'].includes(p.type));
 
   const levelBadge: Record<string, string> = { info: 'badge-blue', warn: 'badge-yellow', error: 'badge-red', debug: 'badge-gray' };
 
@@ -254,9 +251,11 @@ export default async function DiagnosticsPage() {
 
           stripe: (
             <StripeProducts
-              initialPlans={(plans ?? []) as any}
-              initialOneTime={(oneTimeProducts ?? []) as any}
-              initialTlds={(domainTlds ?? []) as any}
+              initialPlans={plans as any}
+              initialOneTime={oneTimeProducts as any}
+              initialTlds={domainTlds as any}
+              initialAddons={addons as any}
+              initialOther={otherProducts as any}
             />
           ),
 
