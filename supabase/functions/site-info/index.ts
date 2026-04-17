@@ -61,9 +61,18 @@ Deno.serve(async (req) => {
     switch (action) {
       // Get available datacenters
       case "datacenters": {
-        const result = await wpcloudGet(`/api/v1.0/get-available-datacenters/${WPCLOUD_CLIENT}`);
+        let raw = null;
+        let proxyOk = false;
+        try {
+          const result = await wpcloudGet(`/api/v1.0/get-available-datacenters/${WPCLOUD_CLIENT}`);
+          raw = result.data;
+          proxyOk = result.ok;
+        } catch (e) {
+          console.error("wp.cloud proxy unreachable for datacenters:", e);
+        }
         return json({
-          raw: result.data,
+          raw,
+          proxyOk,
           datacenters: [
             { code: "dca", label: "US East (Virginia)", available: true },
             { code: "bur", label: "US West (California)", available: true },

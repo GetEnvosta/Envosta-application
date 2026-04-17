@@ -17,7 +17,7 @@ export function SystemHealthChecks() {
     { name: 'Stripe', status: 'checking' },
     { name: 'wp.cloud Proxy', status: 'checking' },
     { name: 'Edge Functions', status: 'checking' },
-    { name: 'Vercel (App)', status: 'checking' },
+    { name: 'OpenSRS', status: 'checking' },
   ]);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
@@ -58,40 +58,32 @@ export function SystemHealthChecks() {
       updateCheck('Stripe', { status: 'down', detail: e.message, latency: Date.now() - t2 });
     }
 
-    // wp.cloud proxy + Edge Functions — check via site-info datacenters action (uses auth session)
+    // wp.cloud Proxy — test via our own API route (avoids CORS issues with direct edge function calls)
     const t3 = Date.now();
     try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          },
-          body: JSON.stringify({ action: 'datacenters' }),
-        });
-        const data = await res.json();
-        const lat = Date.now() - t3;
-        if (res.ok) {
+      const res = await fetch('/api/site-actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'datacenters', siteId: 'health-check' }),
+      });
+      const data = await res.json();
+      const lat = Date.now() - t3;
+      if (res.ok && data.datacenters) {
+        // Edge function responded — always healthy if we got datacenters back
+        updateCheck('Edge Functions', { status: 'healthy', latency: lat });
+        // wp.cloud proxy status depends on whether the proxy call succeeded
+        if (data.proxyOk) {
           updateCheck('wp.cloud Proxy', { status: 'healthy', latency: lat, detail: `${data.datacenters?.length ?? 0} DCs` });
-          updateCheck('Edge Functions', { status: 'healthy', latency: lat });
         } else {
-          updateCheck('wp.cloud Proxy', { status: 'degraded', detail: data.error ?? `HTTP ${res.status}`, latency: lat });
-          updateCheck('Edge Functions', { status: 'degraded', detail: `HTTP ${res.status}`, latency: lat });
+          updateCheck('wp.cloud Proxy', { status: 'down', detail: 'Proxy unreachable', latency: lat });
         }
+      } else if (res.status < 500) {
+        // Edge function responded with a non-server error (auth issue, etc)
+        updateCheck('Edge Functions', { status: 'healthy', latency: lat });
+        updateCheck('wp.cloud Proxy', { status: 'degraded', detail: data.error ?? `HTTP ${res.status}`, latency: lat });
       } else {
-        // Try without auth — just ping the function to see if edge functions are up
-        const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
-          body: JSON.stringify({ action: 'check', domainName: 'test.com' }),
-        });
-        const lat = Date.now() - t3;
-        updateCheck('Edge Functions', { status: res.ok || res.status < 500 ? 'healthy' : 'down', latency: lat });
-        updateCheck('wp.cloud Proxy', { status: 'degraded', detail: 'No session — proxy not tested', latency: lat });
+        updateCheck('wp.cloud Proxy', { status: 'down', detail: data.error ?? `HTTP ${res.status}`, latency: lat });
+        updateCheck('Edge Functions', { status: 'down', detail: `HTTP ${res.status}`, latency: lat });
       }
     } catch (e: any) {
       const lat = Date.now() - t3;
@@ -99,16 +91,23 @@ export function SystemHealthChecks() {
       updateCheck('Edge Functions', { status: 'down', detail: e.message, latency: lat });
     }
 
-    // Vercel — just check if we can reach our own API
+    // OpenSRS — domain availability check via our API route (proxies to register-domain edge function)
     const t5 = Date.now();
     try {
-      const res = await fetch('/api/domain-check?health=1');
-      updateCheck('Vercel (App)', res.status !== 500
-        ? { status: 'healthy', latency: Date.now() - t5 }
-        : { status: 'down', detail: `HTTP ${res.status}`, latency: Date.now() - t5 }
-      );
+      const res = await fetch('/api/domain-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: 'envosta.com' }),
+      });
+      const data = await res.json();
+      const lat = Date.now() - t5;
+      if (res.ok && data.domain) {
+        updateCheck('OpenSRS', { status: 'healthy', latency: lat, detail: 'Domain lookup OK' });
+      } else {
+        updateCheck('OpenSRS', { status: 'degraded', detail: data.error ?? `HTTP ${res.status}`, latency: lat });
+      }
     } catch (e: any) {
-      updateCheck('Vercel (App)', { status: 'down', detail: e.message, latency: Date.now() - t5 });
+      updateCheck('OpenSRS', { status: 'down', detail: e.message, latency: Date.now() - t5 });
     }
 
     setLastChecked(new Date());
