@@ -75,15 +75,6 @@ export default async function DiagnosticsPage() {
     .order('created_at', { ascending: false })
     .limit(20);
 
-  // 6. Domains registered but not connected to any site
-  const { data: unlinkedDomains } = await supabase
-    .from('domains')
-    .select('id, domain_name, status, created_at, users(email)')
-    .eq('status', 'registered')
-    .is('site_id', null)
-    .order('created_at', { ascending: false })
-    .limit(20);
-
   const totalIssues = hostingSubsNoSite.length + domainSubsNoDomain.length + (stuckSites?.length ?? 0) + (failedSites?.length ?? 0) + (problemDomains?.length ?? 0);
 
   // Fetch logs for the logs tab
@@ -223,22 +214,6 @@ export default async function DiagnosticsPage() {
         ))}
       </DiagCard>
 
-      {/* Unlinked domains */}
-      <DiagCard
-        icon={<Globe className="w-4 h-4" />}
-        title="Registered Domains — Not Connected to Any Site"
-        count={unlinkedDomains?.length ?? 0}
-        description="These domains are registered but not linked to a hosted site."
-        severity="low"
-      >
-        {(unlinkedDomains ?? []).map((d: any) => (
-          <DiagRow key={d.id}
-            primary={d.domain_name}
-            secondary={(d.users as any)?.email ?? 'Unknown'}
-            date={d.created_at}
-          />
-        ))}
-      </DiagCard>
 
             </div>
           ),

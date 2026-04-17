@@ -1,6 +1,6 @@
 import { supabaseAdmin, getStripe, wpcloudGet, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, domainExpiryWarningEmail } from "../_shared/email.ts";
-import { setDnsZone, buildWpCloudDnsRecords } from "../_shared/opensrs.ts";
+import { setDnsZone, buildWpCloudDnsRecords, checkTransferStatus } from "../_shared/opensrs.ts";
 
 /**
  * Daily health check — run via cron or manual trigger.
@@ -130,7 +130,39 @@ Deno.serve(async (req) => {
 
     results.push(`Checked ${expiringDomains?.length ?? 0} domains expiring within 30 days`);
 
-    // ═══ 3. CHECK STUCK SERVICES ═══
+    // ═══ 3. CHECK DOMAIN TRANSFERS ═══
+    const { data: transferringDomains } = await sb.from("domains")
+      .select("id, domain_name, user_id, metadata, created_at")
+      .eq("status", "transferring");
+
+    for (const domain of transferringDomains ?? []) {
+      try {
+        const result = await checkTransferStatus(domain.domain_name);
+        if (result.transferComplete) {
+          // Transfer is done — update to registered
+          const expiry = result.responseText; // expiredate from OpenSRS
+          await sb.from("domains").update({
+            status: "registered",
+            expiry_date: expiry && expiry.match(/^\d{4}-/) ? expiry : null,
+            metadata: { ...(domain.metadata as any), transfer_completed_at: new Date().toISOString() },
+          }).eq("id", domain.id);
+          results.push(`TRANSFER COMPLETE: ${domain.domain_name} → registered`);
+          await log({ userId: domain.user_id, action: "domain.transfer.complete", message: domain.domain_name });
+        } else {
+          const daysPending = Math.round((Date.now() - new Date(domain.created_at).getTime()) / 86400000);
+          results.push(`TRANSFER PENDING: ${domain.domain_name} (${daysPending} days)`);
+          if (daysPending > 14) {
+            issues.push(`TRANSFER STALE: ${domain.domain_name} has been transferring for ${daysPending} days`);
+          }
+        }
+      } catch (e) {
+        issues.push(`Transfer check error for ${domain.domain_name}: ${e}`);
+      }
+    }
+
+    results.push(`Checked ${transferringDomains?.length ?? 0} pending transfers`);
+
+    // ═══ 4. CHECK STUCK SERVICES ═══
     const { data: stuckServices } = await sb.from("sites")
       .select("id, label, status, created_at")
       .eq("status", "provisioning")
@@ -143,7 +175,7 @@ Deno.serve(async (req) => {
 
     results.push(`Checked ${stuckServices?.length ?? 0} stuck services`);
 
-    // ═══ 4. STRIPE RECONCILIATION — catch missed webhooks ═══
+    // ═══ 5. STRIPE RECONCILIATION — catch missed webhooks ═══
     try {
       const stripe = getStripe();
       let invoicesSynced = 0;

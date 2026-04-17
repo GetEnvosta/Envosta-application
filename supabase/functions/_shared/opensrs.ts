@@ -489,6 +489,52 @@ export async function getDomainAuthCode(domain: string): Promise<{
   };
 }
 
+/**
+ * Check if a domain belongs to our reseller account (transfer complete).
+ * Uses GET domain with type=status. If is_success=1, the domain is in our account.
+ * Ref: https://domains.opensrs.guide/docs/get-domain
+ */
+export async function checkTransferStatus(domain: string): Promise<{
+  isSuccess: boolean;
+  transferComplete: boolean;
+  responseText: string;
+}> {
+  const xml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
+<OPS_envelope>
+  <header><version>0.9</version></header>
+  <body>
+    <data_block>
+      <dt_assoc>
+        <item key="protocol">XCP</item>
+        <item key="action">get</item>
+        <item key="object">domain</item>
+        <item key="domain">${xmlEscape(domain)}</item>
+        <item key="attributes">
+          <dt_assoc>
+            <item key="type">all_info</item>
+          </dt_assoc>
+        </item>
+      </dt_assoc>
+    </data_block>
+  </body>
+</OPS_envelope>`;
+  try {
+    const responseXml = await opensrsRequest(xml);
+    const parsed = parseResponse(responseXml);
+    // If we can successfully query all_info, the domain is in our account (transfer complete)
+    // Extract expiry date if available
+    const expiryMatch = responseXml.match(/<item key="expiredate">(.*?)<\/item>/);
+    return {
+      isSuccess: parsed.isSuccess,
+      transferComplete: parsed.isSuccess,
+      responseText: expiryMatch ? expiryMatch[1].trim() : parsed.responseText,
+    };
+  } catch (e) {
+    return { isSuccess: false, transferComplete: false, responseText: String(e) };
+  }
+}
+
 function xmlEscape(s: string): string {
   return s
     .replace(/&/g, "&amp;")
