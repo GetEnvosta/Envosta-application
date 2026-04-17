@@ -62,6 +62,7 @@ export function StripeProducts({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [importingId, setImportingId] = useState<string | null>(null);
 
   useEffect(() => { fetchStripeOnly(); }, []);
 
@@ -188,6 +189,26 @@ export function StripeProducts({
       }
     } catch { /* ignore */ }
     setSaving(false);
+  }
+
+  async function importFromStripe(stripeProductId: string) {
+    setImportingId(stripeProductId);
+    try {
+      const res = await fetch('/api/admin/sync-stripe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'import', stripeProductId }),
+      });
+      if (res.ok) {
+        setStripeOnly(prev => prev.filter(p => p.stripe_id !== stripeProductId));
+        setResult('Imported — reloading...');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        const data = await res.json();
+        setResult(data.error ?? 'Import failed');
+      }
+    } catch { setResult('Import failed'); }
+    setImportingId(null);
   }
 
   const fmtPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -484,6 +505,7 @@ export function StripeProducts({
                 <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Name</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Stripe ID</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5">Metadata</th>
+                <th className="w-24 text-right px-4 py-2.5"></th>
               </tr></thead>
               <tbody>
                 {stripeOnly.map(p => (
@@ -495,6 +517,13 @@ export function StripeProducts({
                     </td>
                     <td className="px-4 py-2.5 text-xs text-gray-500">
                       {Object.entries(p.metadata ?? {}).slice(0, 3).map(([k, v]) => `${k}: ${v}`).join(', ') || '—'}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <button onClick={() => importFromStripe(p.stripe_id)} disabled={importingId === p.stripe_id}
+                        className="btn-admin text-xs py-1 px-2.5 inline-flex items-center gap-1">
+                        {importingId === p.stripe_id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                        Import
+                      </button>
                     </td>
                   </tr>
                 ))}

@@ -31,7 +31,7 @@ async function upsertProduct(
   return productId;
 }
 
-/** Create or update a Stripe price. */
+/** Create or update a Stripe price. Stripe prices are immutable so we create new + deactivate old. */
 async function upsertPrice(
   stripe: Stripe, priceId: string | null, productId: string,
   amount: number, interval: 'month' | 'year' | null, metadata: Record<string, string> = {},
@@ -40,9 +40,16 @@ async function upsertPrice(
   if (amount <= 0) return priceId;
 
   if (priceId) {
-    const existing = await stripe.prices.retrieve(priceId);
-    if (existing.unit_amount === amount && existing.recurring?.interval_count === intervalCount) return priceId;
-    await stripe.prices.update(priceId, { active: false });
+    try {
+      const existing = await stripe.prices.retrieve(priceId);
+      // If price matches, keep it
+      if (existing.unit_amount === amount &&
+          (interval ? existing.recurring?.interval === interval && existing.recurring?.interval_count === intervalCount : !existing.recurring)) {
+        return priceId;
+      }
+      // Price changed — deactivate old
+      await stripe.prices.update(priceId, { active: false });
+    } catch { /* price doesn't exist in Stripe, create new */ }
   }
 
   const params: Stripe.PriceCreateParams = {
@@ -82,46 +89,46 @@ export async function POST(req: Request) {
   const supabase = getSupabase();
 
   try {
-    const { type, id } = await req.json();
+    const { type, id, stripeProductId } = await req.json();
 
-    // ═══════════════════════════════════════════════════════
-    // SYNC SINGLE PRODUCT (any type)
-    // ═══════════════════════════════════════════════════════
+    // ═══ SYNC SINGLE PRODUCT (DB → Stripe) ═══
     if (type === 'product' && id) {
       const { data: product } = await supabase.from('products').select('*').eq('id', id).single();
       if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
-
       return NextResponse.json(await syncProduct(stripe, supabase, product));
     }
 
-    // ═══════════════════════════════════════════════════════
-    // SYNC ALL — bulk sync everything missing Stripe IDs
-    // ═══════════════════════════════════════════════════════
+    // ═══ SYNC ALL — push every active product to Stripe ═══
     if (type === 'sync_all') {
       const { data: products } = await supabase.from('products').select('*').eq('is_active', true);
       const results: string[] = [];
 
       for (const product of products ?? []) {
-        const needsSync = !product.stripe_product_id || !product.stripe_price_id
-          || (product.billing === 'monthly' && product.price_yearly_cad && !product.stripe_price_id_yearly)
-          || (product.price_2yr_cad > 0 && !product.stripe_price_id_2yr)
-          || (product.price_3yr_cad > 0 && !product.stripe_price_id_3yr);
-
-        if (needsSync) {
-          try {
-            await syncProduct(stripe, supabase, product);
-            results.push(`${product.name} ✓`);
-          } catch (e) {
-            console.error(`Sync error for ${product.name}:`, e);
-            results.push(`${product.name} ✗`);
-          }
+        try {
+          await syncProduct(stripe, supabase, product);
+          results.push(`${product.name} ✓`);
+        } catch (e: any) {
+          console.error(`Sync error for ${product.name}:`, e);
+          results.push(`${product.name} ✗ ${e.message ?? ''}`);
         }
+      }
+
+      // Also import Stripe products not in our DB
+      const imported = await importStripeProducts(stripe, supabase);
+      for (const name of imported) {
+        results.push(`Imported: ${name} ✓`);
       }
 
       return NextResponse.json({ success: true, results });
     }
 
-    // Legacy type aliases for backwards compatibility with admin pages
+    // ═══ IMPORT — pull a single Stripe product into our DB ═══
+    if (type === 'import' && stripeProductId) {
+      const result = await importSingleStripeProduct(stripe, supabase, stripeProductId);
+      return NextResponse.json(result);
+    }
+
+    // Legacy type aliases
     if (['plan', 'domain_tld', 'addon', 'one_time_service'].includes(type) && id) {
       const { data: product } = await supabase.from('products').select('*').eq('id', id).single();
       if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
@@ -135,7 +142,7 @@ export async function POST(req: Request) {
   }
 }
 
-// ─── Unified sync function ───────────────────────────────
+// ─── Sync DB product → Stripe ───────────────────────────
 
 async function syncProduct(stripe: Stripe, supabase: any, product: any) {
   const meta = product.metadata ?? {};
@@ -147,7 +154,6 @@ async function syncProduct(stripe: Stripe, supabase: any, product: any) {
     envosta_slug: product.slug,
   };
 
-  // Add type-specific metadata for Stripe
   if (product.type === 'hosting_plan') {
     stripeMeta.storage_gb = String(meta.storage_gb ?? '');
     stripeMeta.php_workers_default = String(meta.php_workers_default ?? '');
@@ -156,12 +162,11 @@ async function syncProduct(stripe: Stripe, supabase: any, product: any) {
     stripeMeta.onboarding_type = meta.onboarding_type ?? '';
     stripeMeta.support_type = meta.support_type ?? '';
   } else if (product.type === 'domain_tld') {
-    stripeMeta.tld = meta.tld ?? '';
+    stripeMeta.tld = meta.tld ?? product.slug ?? '';
   } else if (product.type === 'plan_addon') {
     stripeMeta.wpcloud_key = meta.wpcloud_key ?? '';
   }
 
-  // Product name for Stripe
   const stripeName = product.type === 'hosting_plan'
     ? `${product.name} Plan`
     : product.type === 'domain_tld'
@@ -174,42 +179,38 @@ async function syncProduct(stripe: Stripe, supabase: any, product: any) {
     product.description || stripeName, stripeMeta, product.is_active,
   );
 
-  // Create or update prices based on billing type
+  // Use price_usd for Stripe (USD), fall back to price_cad if no USD price set
+  const priceUsd = product.price_usd || product.price_cad;
+  const yearlyPriceUsd = product.price_yearly_usd || product.price_yearly_cad;
+
+  // Create or update prices
   let priceId = product.stripe_price_id;
   let yearlyPriceId = product.stripe_price_id_yearly;
   let price2yrId = product.stripe_price_id_2yr;
   let price3yrId = product.stripe_price_id_3yr;
-
   const pMeta = { envosta_product_id: product.id };
 
   if (product.billing === 'monthly') {
-    // Monthly price
-    priceId = await upsertPrice(stripe, priceId, productId, product.price_cad, 'month', pMeta);
-    // 1-year price
-    if (product.price_yearly_cad > 0) {
-      yearlyPriceId = await upsertPrice(stripe, yearlyPriceId, productId, product.price_yearly_cad, 'year', { ...pMeta, tier: '1yr' });
+    priceId = await upsertPrice(stripe, priceId, productId, priceUsd, 'month', pMeta);
+    if (yearlyPriceUsd > 0) {
+      yearlyPriceId = await upsertPrice(stripe, yearlyPriceId, productId, yearlyPriceUsd, 'year', { ...pMeta, tier: '1yr' });
     }
-    // 2-year price (billed every 2 years)
     if (product.price_2yr_cad > 0) {
       price2yrId = await upsertPrice(stripe, price2yrId, productId, product.price_2yr_cad, 'year', { ...pMeta, tier: '2yr' }, 2);
     }
-    // 3-year price (billed every 3 years)
     if (product.price_3yr_cad > 0) {
       price3yrId = await upsertPrice(stripe, price3yrId, productId, product.price_3yr_cad, 'year', { ...pMeta, tier: '3yr' }, 3);
     }
   } else if (product.billing === 'yearly') {
-    // 1-year price
-    priceId = await upsertPrice(stripe, priceId, productId, product.price_cad, 'year', pMeta);
-    // 2-year price (billed every 2 years)
+    priceId = await upsertPrice(stripe, priceId, productId, priceUsd, 'year', pMeta);
     if (product.price_2yr_cad > 0) {
       price2yrId = await upsertPrice(stripe, price2yrId, productId, product.price_2yr_cad, 'year', { ...pMeta, tier: '2yr' }, 2);
     }
-    // 3-year price (billed every 3 years)
     if (product.price_3yr_cad > 0) {
       price3yrId = await upsertPrice(stripe, price3yrId, productId, product.price_3yr_cad, 'year', { ...pMeta, tier: '3yr' }, 3);
     }
   } else if (product.billing === 'one_time') {
-    priceId = await upsertPrice(stripe, priceId, productId, product.price_cad, null, pMeta);
+    priceId = await upsertPrice(stripe, priceId, productId, priceUsd, null, pMeta);
   }
 
   // Save Stripe IDs back to DB
@@ -229,4 +230,81 @@ async function syncProduct(stripe: Stripe, supabase: any, product: any) {
     stripe_price_id_2yr: price2yrId,
     stripe_price_id_3yr: price3yrId,
   };
+}
+
+// ─── Import all unlinked Stripe products → DB ───────────
+
+async function importStripeProducts(stripe: Stripe, supabase: any): Promise<string[]> {
+  const stripeProducts: Stripe.Product[] = [];
+  for await (const product of stripe.products.list({ active: true, limit: 100 })) {
+    stripeProducts.push(product);
+  }
+
+  const { data: dbProducts } = await supabase
+    .from('products')
+    .select('stripe_product_id')
+    .not('stripe_product_id', 'is', null);
+
+  const dbStripeIds = new Set((dbProducts ?? []).map((p: any) => p.stripe_product_id));
+  const unlinked = stripeProducts.filter(p => !dbStripeIds.has(p.id));
+  const imported: string[] = [];
+
+  for (const sp of unlinked) {
+    try {
+      await importSingleStripeProduct(stripe, supabase, sp.id);
+      imported.push(sp.name);
+    } catch (e) {
+      console.error(`Import error for ${sp.name}:`, e);
+    }
+  }
+
+  return imported;
+}
+
+async function importSingleStripeProduct(stripe: Stripe, supabase: any, stripeProductId: string) {
+  const sp = await stripe.products.retrieve(stripeProductId);
+
+  // Check if already linked
+  const { data: existing } = await supabase
+    .from('products')
+    .select('id')
+    .eq('stripe_product_id', stripeProductId)
+    .maybeSingle();
+
+  if (existing) return { success: true, id: existing.id, message: 'Already linked' };
+
+  // Fetch the default/active price
+  const prices = await stripe.prices.list({ product: stripeProductId, active: true, limit: 5 });
+  const defaultPrice = prices.data[0];
+
+  // Determine product type from metadata or name
+  const meta = sp.metadata ?? {};
+  let type = meta.envosta_type || 'one_time_service';
+  if (sp.name.toLowerCase().includes('plan') || sp.name.toLowerCase().includes('hosting')) type = 'hosting_plan';
+  else if (sp.name.toLowerCase().includes('domain') || sp.name.toLowerCase().includes('tld')) type = 'domain_tld';
+
+  // Determine billing from Stripe price
+  let billing = 'one_time';
+  if (defaultPrice?.recurring) {
+    billing = defaultPrice.recurring.interval === 'month' ? 'monthly' : 'yearly';
+  }
+
+  const slug = meta.envosta_slug || sp.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '');
+
+  const { data: inserted, error } = await supabase.from('products').insert({
+    type,
+    name: sp.name,
+    slug,
+    billing,
+    price_usd: defaultPrice?.unit_amount ?? 0,
+    price_cad: 0,
+    is_active: sp.active,
+    stripe_product_id: sp.id,
+    stripe_price_id: defaultPrice?.id ?? null,
+    metadata: { imported_from_stripe: true, stripe_description: sp.description },
+    features: [],
+  }).select('id').single();
+
+  if (error) throw new Error(error.message);
+  return { success: true, id: inserted.id, name: sp.name };
 }
