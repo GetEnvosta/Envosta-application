@@ -54,11 +54,21 @@ const COL = {
 
 const TH = 'text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5';
 
-function TableHead() {
+function TableHead({ onAdd, addLabel, creating }: { onAdd?: () => void; addLabel?: string; creating?: boolean }) {
   return (
     <thead>
       <tr className="border-b border-gray-100">
-        <th className={`${TH} ${COL.name}`}>Product</th>
+        <th className={`${TH} ${COL.name}`}>
+          <div className="flex items-center justify-between">
+            <span>Product</span>
+            {onAdd && (
+              <button onClick={onAdd} disabled={creating}
+                className="inline-flex items-center gap-1 text-[10px] font-medium text-admin-600 hover:text-admin-700 uppercase tracking-wider">
+                <Plus className="w-3 h-3" /> {addLabel ?? 'Add'}
+              </button>
+            )}
+          </div>
+        </th>
         <th className={`${TH} ${COL.billing}`}>Billing</th>
         <th className={`${TH} ${COL.usd}`}>USD Price</th>
         <th className={`${TH} ${COL.cad}`}>CAD Price</th>
@@ -404,10 +414,9 @@ export function StripeProducts({
       )}
 
       {/* ═══ ONE-TIME PRODUCTS ═══ */}
-      <Section title="One-Time Products" subtitle="Single-charge products (studio builds, migrations, etc)."
-        onAdd={() => quickCreate('one_time_service', 'New Service', 'one_time', 0)} addLabel="Add Product" creating={creating}>
+      <Section title="One-Time Products" subtitle="Single-charge products (studio builds, migrations, etc).">
         <table className="w-full table-fixed">
-          <TableHead />
+          <TableHead onAdd={() => quickCreate('one_time_service', 'New Service', 'one_time', 0)} addLabel="Add Product" creating={creating} />
           <tbody>
             {oneTime.map(p => (
               <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer" onClick={() => openEdit(p)}>
@@ -422,10 +431,9 @@ export function StripeProducts({
       </Section>
 
       {/* ═══ PRICING PLANS ═══ */}
-      <Section title="Pricing Plans" subtitle="Recurring hosting subscription plans."
-        onAdd={() => quickCreate('hosting_plan', 'New Plan', 'monthly', 0)} addLabel="Add Plan" creating={creating}>
+      <Section title="Pricing Plans" subtitle="Recurring hosting subscription plans.">
         <table className="w-full table-fixed">
-          <TableHead />
+          <TableHead onAdd={() => quickCreate('hosting_plan', 'New Plan', 'monthly', 0)} addLabel="Add Plan" creating={creating} />
           <tbody>
             {plans.map(p => (
               <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer" onClick={() => openEdit(p)}>
@@ -441,10 +449,9 @@ export function StripeProducts({
 
       {/* ═══ PLAN ADDONS ═══ */}
       {addons.length > 0 && (
-        <Section title="Plan Addons" subtitle="Per-site addon features (bursting, WAF, etc)."
-          onAdd={() => quickCreate('plan_addon', 'New Addon', 'monthly', 0)} addLabel="Add Addon" creating={creating}>
+        <Section title="Plan Addons" subtitle="Per-site addon features (bursting, WAF, etc).">
           <table className="w-full table-fixed">
-            <TableHead />
+            <TableHead onAdd={() => quickCreate('plan_addon', 'New Addon', 'monthly', 0)} addLabel="Add Addon" creating={creating} />
             <tbody>
               {addons.map(p => (
                 <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer" onClick={() => openEdit(p)}>
@@ -457,10 +464,9 @@ export function StripeProducts({
       )}
 
       {/* ═══ DOMAIN TLDs ═══ */}
-      <Section title="Domain TLDs" subtitle="Annual domain registration pricing."
-        onAdd={() => quickCreate('domain_tld', 'New TLD', 'yearly', 0)} addLabel="Add TLD" creating={creating}>
+      <Section title="Domain TLDs" subtitle="Annual domain registration pricing.">
         <table className="w-full table-fixed">
-          <TableHead />
+          <TableHead onAdd={() => quickCreate('domain_tld', 'New TLD', 'yearly', 0)} addLabel="Add TLD" creating={creating} />
           <tbody>
             {tlds.map(tld => (
               <tr key={tld.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer" onClick={() => openEdit(tld)}>
@@ -476,10 +482,9 @@ export function StripeProducts({
 
       {/* ═══ OTHER PRODUCTS ═══ */}
       {other.length > 0 && (
-        <Section title="Other Products" subtitle="Products with unrecognized types."
-          onAdd={() => quickCreate('one_time_service', 'New Product', 'one_time', 0)} addLabel="Add Product" creating={creating}>
+        <Section title="Other Products" subtitle="Products with unrecognized types.">
           <table className="w-full table-fixed">
-            <TableHead />
+            <TableHead onAdd={() => quickCreate('one_time_service', 'New Product', 'one_time', 0)} addLabel="Add Product" creating={creating} />
             <tbody>
               {other.map(p => (
                 <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer" onClick={() => openEdit(p)}>
@@ -672,20 +677,14 @@ export function StripeProducts({
 
 // ─── Sub-components ──────────────────────────────
 
-function Section({ title, subtitle, onAdd, addLabel, creating, children }: {
-  title: string; subtitle: string; onAdd: () => void; addLabel: string; creating: boolean; children: React.ReactNode;
+function Section({ title, subtitle, children }: {
+  title: string; subtitle: string; children: React.ReactNode;
 }) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-          <p className="text-xs text-gray-500">{subtitle}</p>
-        </div>
-        <button onClick={onAdd} disabled={creating}
-          className="btn-admin text-xs py-1.5 px-3 inline-flex items-center gap-1.5">
-          <Plus className="w-3.5 h-3.5" /> {addLabel}
-        </button>
+      <div className="mb-3">
+        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+        <p className="text-xs text-gray-500">{subtitle}</p>
       </div>
       <div className="card overflow-hidden">{children}</div>
     </div>
