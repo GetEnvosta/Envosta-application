@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { AttachDomainSubscription } from '@/components/admin/attach-domain-subscription';
+import { ImpersonateButton } from '@/components/admin/impersonate-button';
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -63,6 +64,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             <p className="text-sm text-gray-500">{user.email}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {user.role !== 'admin' && (
+              <ImpersonateButton userId={id} label={user.full_name || user.email} />
+            )}
             {user.stripe_customer_id && (
               <>
                 <ChargeCard customerId={id} customerName={user.full_name || user.email} />

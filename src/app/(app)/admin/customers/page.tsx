@@ -3,8 +3,7 @@ import { getAllCustomers } from '@/services/admin';
 import { getPartnerApplications } from '@/services/partners';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
-import { Search, Users, Server, Globe, Gauge, UserCheck, UserX, Handshake, ShieldCheck } from 'lucide-react';
-import { ImpersonateButton } from '@/components/admin/impersonate-button';
+import { Search, Users, Server, Globe, UserCheck, Handshake, Eye } from 'lucide-react';
 import { getCurrentUser, getUserProfile } from '@/services/auth';
 import { CustomersHeader } from './customers-header';
 import { UsersTabs } from './users-tabs';
@@ -32,9 +31,27 @@ export default async function UsersPage({
 
   const activeCustomers = customers.filter((u: any) => u.sub_status === 'active' || u.sub_status === 'trialing').length;
   const withSites = customers.filter((u: any) => u.site_count > 0).length;
-  const overUsage = customers.filter((u: any) => Number(u.usage_this_cycle) > (u.included_credits ?? 36)).length;
 
-  function UserTable({ users, showUsage = false }: { users: any[]; showUsage?: boolean }) {
+  /**
+   * Derive display status for a user row:
+   * - If they have an active/trialing subscription → show that status
+   * - If subscription is past_due / paused / on_hold → show that
+   * - If no sites, no domains, and no subscription → "inactive"
+   * - Unclaimed accounts → "unclaimed"
+   */
+  function deriveStatus(u: any): { label: string; className: string } {
+    if (u.sub_status === 'active') return { label: 'active', className: 'bg-emerald-50 text-emerald-700' };
+    if (u.sub_status === 'trialing') return { label: 'trialing', className: 'bg-blue-50 text-blue-700' };
+    if (u.sub_status === 'past_due') return { label: 'past due', className: 'bg-red-50 text-red-700' };
+    if (u.sub_status === 'paused') return { label: 'paused', className: 'bg-amber-50 text-amber-700' };
+    if (u.sub_status === 'incomplete') return { label: 'incomplete', className: 'bg-orange-50 text-orange-700' };
+    if (u.sub_status === 'canceled' || u.sub_status === 'cancelled') return { label: 'cancelled', className: 'bg-red-50 text-red-600' };
+    if (u.claimed === false) return { label: 'unclaimed', className: 'bg-amber-50 text-amber-700' };
+    if (u.site_count === 0 && u.domain_count === 0) return { label: 'inactive', className: 'bg-gray-100 text-gray-500' };
+    return { label: 'inactive', className: 'bg-gray-100 text-gray-500' };
+  }
+
+  function UserTable({ users }: { users: any[] }) {
     return (
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
@@ -43,65 +60,58 @@ export default async function UsersPage({
               <tr className="border-b border-gray-100 text-left">
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Name</th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Email</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Company</th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">Sites</th>
-                {showUsage && <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">Usage</th>}
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide text-center">Domains</th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Role</th>
                 <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Joined</th>
-                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
+                <th className="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {users.length === 0 ? (
-                <tr><td colSpan={showUsage ? 9 : 8} className="px-5 py-12 text-center">
+                <tr><td colSpan={8} className="px-5 py-12 text-center">
                   <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                   <p className="text-sm text-gray-400">{q ? 'No users match your search.' : 'No users in this category.'}</p>
                 </td></tr>
-              ) : users.map((u: any) => (
-                <tr key={u.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <Link href={`/admin/customers/${u.id}`} className="text-sm font-medium text-admin-600 hover:text-admin-700">
-                      {u.full_name || 'Unnamed'}
-                    </Link>
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-600 text-xs">{u.email}</td>
-                  <td className="px-5 py-3.5 text-gray-600 text-xs">{u.company_name || '—'}</td>
-                  <td className="px-5 py-3.5 text-center">
-                    {u.site_count > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-700"><Server className="w-3 h-3 text-gray-400" />{u.site_count}</span>
-                    ) : <span className="text-xs text-gray-300">0</span>}
-                  </td>
-                  {showUsage && (
-                    <td className="px-5 py-3.5 text-center">
-                      {u.usage_this_cycle > 0 ? (
-                        <span className={`inline-flex items-center gap-1 text-xs font-medium ${
-                          Number(u.usage_this_cycle) > (u.included_credits ?? 36) ? 'text-red-600' :
-                          Number(u.usage_this_cycle) > (u.included_credits ?? 36) * 0.8 ? 'text-amber-600' : 'text-gray-600'
-                        }`}><Gauge className="w-3 h-3" />{Math.round(Number(u.usage_this_cycle))}/{u.included_credits ?? 36}</span>
-                      ) : <span className="text-xs text-gray-300">0/{u.included_credits ?? 36}</span>}
+              ) : users.map((u: any) => {
+                const status = deriveStatus(u);
+                return (
+                  <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <Link href={`/admin/customers/${u.id}`} className="text-sm font-medium text-admin-600 hover:text-admin-700">
+                        {u.full_name || 'Unnamed'}
+                      </Link>
                     </td>
-                  )}
-                  <td className="px-5 py-3.5">
-                    {u.sub_status ? (
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                        u.sub_status === 'active' ? 'bg-emerald-50 text-emerald-700' :
-                        u.sub_status === 'trialing' ? 'bg-blue-50 text-blue-700' :
-                        u.sub_status === 'past_due' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-600'
-                      }`}>{u.sub_status}</span>
-                    ) : u.claimed === false ? (
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-amber-50 text-amber-700">unclaimed</span>
-                    ) : <span className="text-xs text-gray-300">—</span>}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_BADGE_CLASSES[u.role] || 'bg-gray-100 text-gray-600'}`}>{u.role}</span>
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-400 text-xs">{formatDate(u.created_at)}</td>
-                  <td className="px-5 py-3.5">
-                    {u.role !== 'admin' && <ImpersonateButton userId={u.id} label={u.full_name || u.email} />}
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-5 py-3.5 text-gray-600 text-xs">{u.email}</td>
+                    <td className="px-5 py-3.5 text-center">
+                      {u.site_count > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-700"><Server className="w-3 h-3 text-gray-400" />{u.site_count}</span>
+                      ) : <span className="text-xs text-gray-300">0</span>}
+                    </td>
+                    <td className="px-5 py-3.5 text-center">
+                      {u.domain_count > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-700"><Globe className="w-3 h-3 text-gray-400" />{u.domain_count}</span>
+                      ) : <span className="text-xs text-gray-300">0</span>}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${status.className}`}>
+                        {status.label}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_BADGE_CLASSES[u.role] || 'bg-gray-100 text-gray-600'}`}>{u.role}</span>
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-400 text-xs">{formatDate(u.created_at)}</td>
+                    <td className="px-5 py-3.5">
+                      <Link href={`/admin/customers/${u.id}`}
+                        className="inline-flex items-center gap-1 text-xs text-admin-600 hover:text-admin-700 font-medium">
+                        <Eye className="w-3.5 h-3.5" /> View
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -117,12 +127,11 @@ export default async function UsersPage({
       <CustomersHeader isAdmin={isAdmin} />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Total Users" value={allUsers.length} icon={Users} color="blue" />
         <StatCard label="Active Customers" value={activeCustomers} icon={UserCheck} color="green" />
         <StatCard label="Partners" value={partners.length} icon={Handshake} color="purple" />
         <StatCard label="With Sites" value={withSites} icon={Server} color="cyan" />
-        <StatCard label="Over Usage" value={overUsage} icon={Gauge} color={overUsage > 0 ? 'red' : 'gray'} />
       </div>
 
       {/* Search */}
@@ -135,7 +144,7 @@ export default async function UsersPage({
 
       <UsersTabs>
         {{
-          customers: <UserTable users={customers} showUsage />,
+          customers: <UserTable users={customers} />,
 
           partners: (
             <div className="space-y-6">
