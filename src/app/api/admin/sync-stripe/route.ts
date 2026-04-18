@@ -54,15 +54,15 @@ async function upsertProduct(
 async function upsertPrice(
   stripe: Stripe, priceId: string | null, productId: string,
   amount: number, interval: 'month' | 'year' | null, metadata: Record<string, string> = {},
-  intervalCount = 1,
+  intervalCount = 1, currency: 'usd' | 'cad' = 'usd',
 ): Promise<string | null> {
   if (amount <= 0) return priceId;
 
   if (priceId) {
     try {
       const existing = await stripe.prices.retrieve(priceId);
-      // If price matches, keep it
-      if (existing.unit_amount === amount &&
+      // If price matches (amount, interval, AND currency), keep it
+      if (existing.unit_amount === amount && existing.currency === currency &&
           (interval ? existing.recurring?.interval === interval && existing.recurring?.interval_count === intervalCount : !existing.recurring)) {
         return priceId;
       }
@@ -72,7 +72,7 @@ async function upsertPrice(
   }
 
   const params: Stripe.PriceCreateParams = {
-    product: productId, unit_amount: amount, currency: 'usd', metadata,
+    product: productId, unit_amount: amount, currency, metadata,
   };
   if (interval) params.recurring = { interval, interval_count: intervalCount };
 
@@ -198,38 +198,43 @@ async function syncProduct(stripe: Stripe, supabase: any, product: any) {
     product.description || stripeName, stripeMeta, product.is_active,
   );
 
-  // Use price_usd for Stripe (USD), fall back to price_cad if no USD price set
-  const priceUsd = product.price_usd || product.price_cad;
-  const yearlyPriceUsd = product.price_yearly_usd || product.price_yearly_cad;
+  // USD and CAD prices — both synced to Stripe as separate price objects
+  const priceUsd = product.price_usd || 0;
+  const priceCad = product.price_cad || 0;
+  const yearlyPriceUsd = product.price_yearly_usd || 0;
+  const yearlyPriceCad = product.price_yearly_cad || 0;
 
-  // Create or update prices
+  // Create or update prices (USD)
   let priceId = product.stripe_price_id;
   let yearlyPriceId = product.stripe_price_id_yearly;
   let price2yrId = product.stripe_price_id_2yr;
   let price3yrId = product.stripe_price_id_3yr;
+  // CAD price IDs
+  let priceIdCad = product.stripe_price_id_cad;
+  let yearlyPriceIdCad = product.stripe_price_id_yearly_cad;
   const pMeta = { envosta_product_id: product.id };
 
   if (product.billing === 'monthly') {
-    priceId = await upsertPrice(stripe, priceId, productId, priceUsd, 'month', pMeta);
-    if (yearlyPriceUsd > 0) {
-      yearlyPriceId = await upsertPrice(stripe, yearlyPriceId, productId, yearlyPriceUsd, 'year', { ...pMeta, tier: '1yr' });
-    }
-    if (product.price_2yr_cad > 0) {
-      price2yrId = await upsertPrice(stripe, price2yrId, productId, product.price_2yr_cad, 'year', { ...pMeta, tier: '2yr' }, 2);
-    }
-    if (product.price_3yr_cad > 0) {
-      price3yrId = await upsertPrice(stripe, price3yrId, productId, product.price_3yr_cad, 'year', { ...pMeta, tier: '3yr' }, 3);
-    }
+    // USD prices
+    if (priceUsd > 0) priceId = await upsertPrice(stripe, priceId, productId, priceUsd, 'month', pMeta, 1, 'usd');
+    if (yearlyPriceUsd > 0) yearlyPriceId = await upsertPrice(stripe, yearlyPriceId, productId, yearlyPriceUsd, 'year', { ...pMeta, tier: '1yr' }, 1, 'usd');
+    // CAD prices
+    if (priceCad > 0) priceIdCad = await upsertPrice(stripe, priceIdCad, productId, priceCad, 'month', { ...pMeta, currency: 'cad' }, 1, 'cad');
+    if (yearlyPriceCad > 0) yearlyPriceIdCad = await upsertPrice(stripe, yearlyPriceIdCad, productId, yearlyPriceCad, 'year', { ...pMeta, tier: '1yr', currency: 'cad' }, 1, 'cad');
+    // Multi-year (CAD only for now)
+    if (product.price_2yr_cad > 0) price2yrId = await upsertPrice(stripe, price2yrId, productId, product.price_2yr_cad, 'year', { ...pMeta, tier: '2yr' }, 2, 'cad');
+    if (product.price_3yr_cad > 0) price3yrId = await upsertPrice(stripe, price3yrId, productId, product.price_3yr_cad, 'year', { ...pMeta, tier: '3yr' }, 3, 'cad');
   } else if (product.billing === 'yearly') {
-    priceId = await upsertPrice(stripe, priceId, productId, priceUsd, 'year', pMeta);
-    if (product.price_2yr_cad > 0) {
-      price2yrId = await upsertPrice(stripe, price2yrId, productId, product.price_2yr_cad, 'year', { ...pMeta, tier: '2yr' }, 2);
-    }
-    if (product.price_3yr_cad > 0) {
-      price3yrId = await upsertPrice(stripe, price3yrId, productId, product.price_3yr_cad, 'year', { ...pMeta, tier: '3yr' }, 3);
-    }
+    // USD price
+    if (priceUsd > 0) priceId = await upsertPrice(stripe, priceId, productId, priceUsd, 'year', pMeta, 1, 'usd');
+    // CAD price
+    if (priceCad > 0) priceIdCad = await upsertPrice(stripe, priceIdCad, productId, priceCad, 'year', { ...pMeta, currency: 'cad' }, 1, 'cad');
+    // Multi-year (CAD only for now)
+    if (product.price_2yr_cad > 0) price2yrId = await upsertPrice(stripe, price2yrId, productId, product.price_2yr_cad, 'year', { ...pMeta, tier: '2yr' }, 2, 'cad');
+    if (product.price_3yr_cad > 0) price3yrId = await upsertPrice(stripe, price3yrId, productId, product.price_3yr_cad, 'year', { ...pMeta, tier: '3yr' }, 3, 'cad');
   } else if (product.billing === 'one_time') {
-    priceId = await upsertPrice(stripe, priceId, productId, priceUsd, null, pMeta);
+    if (priceUsd > 0) priceId = await upsertPrice(stripe, priceId, productId, priceUsd, null, pMeta, 1, 'usd');
+    if (priceCad > 0) priceIdCad = await upsertPrice(stripe, priceIdCad, productId, priceCad, null, { ...pMeta, currency: 'cad' }, 1, 'cad');
   }
 
   // Save Stripe IDs back to DB
@@ -239,6 +244,8 @@ async function syncProduct(stripe: Stripe, supabase: any, product: any) {
     stripe_price_id_yearly: yearlyPriceId,
     stripe_price_id_2yr: price2yrId,
     stripe_price_id_3yr: price3yrId,
+    stripe_price_id_cad: priceIdCad,
+    stripe_price_id_yearly_cad: yearlyPriceIdCad,
   }).eq('id', product.id);
 
   if (dbError) console.error('Failed to save Stripe IDs to DB:', dbError);
@@ -259,6 +266,8 @@ async function syncProduct(stripe: Stripe, supabase: any, product: any) {
     stripe_price_id_yearly: yearlyPriceId,
     stripe_price_id_2yr: price2yrId,
     stripe_price_id_3yr: price3yrId,
+    stripe_price_id_cad: priceIdCad,
+    stripe_price_id_yearly_cad: yearlyPriceIdCad,
     stripe_price_amount: stripePriceAmount,
     db_saved: !dbError,
   };

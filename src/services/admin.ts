@@ -158,7 +158,7 @@ export async function getCustomerRelatedData(userId: string) {
   ] = await Promise.all([
     supabase
       .from('sites')
-      .select('*, products(name)')
+      .select('*, products(name, slug, price_cad, metadata)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false }),
     supabase

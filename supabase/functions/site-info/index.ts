@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
 
         const sb = supabaseAdmin();
         const { data: svc } = await sb.from("sites")
-          .select("id, wp_cloud_site_id, wp_cloud_url, user_id, subscription_id")
+          .select("id, wp_cloud_site_id, wp_cloud_url, user_id, subscription_id, stripe_subscription_item_id, product_id, label, config, metadata")
           .eq("id", siteId).single();
 
         if (!svc) return error("Site not found", 404);
@@ -151,8 +151,10 @@ Deno.serve(async (req) => {
         })());
         if (!isAdmin && svc.user_id !== user!.id) return error("Forbidden", 403);
 
-        // 1. Cancel the linked Stripe subscription (stops billing)
-        if (svc.subscription_id) {
+        let subscriptionPaused = false;
+
+        // 1. Remove this site's line item from Stripe (not the whole subscription)
+        if (svc.stripe_subscription_item_id && svc.subscription_id) {
           const { data: sub } = await sb.from("subscriptions")
             .select("stripe_subscription_id, status")
             .eq("id", svc.subscription_id).single();
@@ -160,58 +162,60 @@ Deno.serve(async (req) => {
           if (sub?.stripe_subscription_id && sub.status !== "cancelled") {
             try {
               const stripe = (await import("../_shared/deps.ts")).getStripe();
-              await stripe.subscriptions.cancel(sub.stripe_subscription_id);
-              console.log("Stripe subscription cancelled:", sub.stripe_subscription_id);
-            } catch (stripeErr) {
-              console.error("Failed to cancel Stripe subscription:", stripeErr);
-            }
 
-            await sb.from("subscriptions").update({
-              status: "cancelled",
-              metadata: { cancelled_at: new Date().toISOString() },
-            }).eq("id", svc.subscription_id);
+              // Check how many items are on the subscription
+              const stripeSub = await stripe.subscriptions.retrieve(sub.stripe_subscription_id);
+              const itemCount = stripeSub.items.data.length;
+
+              // Remove this line item
+              await stripe.subscriptionItems.del(svc.stripe_subscription_item_id, {
+                proration_behavior: "create_prorations",
+              });
+
+              if (itemCount <= 1) {
+                // Last site — pause the subscription instead of cancelling
+                // Subscription stays alive at $0, resumes when user adds a new site
+                await stripe.subscriptions.update(sub.stripe_subscription_id, {
+                  pause_collection: { behavior: "void" },
+                });
+                subscriptionPaused = true;
+                console.log("Last site — subscription paused:", sub.stripe_subscription_id);
+
+                await sb.from("subscriptions").update({
+                  status: "paused",
+                  metadata: {
+                    ...((await sb.from("subscriptions").select("metadata").eq("id", svc.subscription_id).single()).data?.metadata as any ?? {}),
+                    paused_at: new Date().toISOString(),
+                    paused_reason: "last_site_deleted",
+                  },
+                }).eq("id", svc.subscription_id);
+              } else {
+                console.log("Line item removed:", svc.stripe_subscription_item_id, "Subscription still active with", itemCount - 1, "items");
+              }
+            } catch (stripeErr) {
+              console.error("Failed to remove Stripe line item:", stripeErr);
+            }
           }
         }
 
         // 2. Soft-delete: mark as cancelled (hides from customer dashboard)
         // wp.cloud site stays alive for 30-day recovery window
+        const recoveryDeadline = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         await sb.from("sites").update({
           status: "cancelled",
+          stripe_subscription_item_id: null,
           metadata: {
-            ...(svc as any).metadata,
+            ...(svc.metadata as any ?? {}),
             soft_deleted_at: new Date().toISOString(),
-            soft_deleted_by: user.id,
-            recovery_deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            soft_deleted_by: user?.id ?? "service",
+            recovery_deadline: recoveryDeadline,
+            previous_product_id: svc.product_id,
+            previous_config: svc.config,
+            subscription_paused: subscriptionPaused,
           },
         }).eq("id", siteId);
 
-        // 3. Cancel domain renewal subscriptions for domains linked to this site
-        // Cancel domain renewal subscriptions using stored Stripe sub IDs
-        const { data: linkedDomains } = await sb.from("domains")
-          .select("domain_name, metadata")
-          .eq("site_id", siteId);
-
-        if (linkedDomains?.length) {
-          try {
-            const stripe = (await import("../_shared/deps.ts")).getStripe();
-            for (const dom of linkedDomains) {
-              const renewalSubId = (dom.metadata as any)?.renewal_stripe_subscription_id;
-              if (renewalSubId) {
-                try {
-                  await stripe.subscriptions.cancel(renewalSubId);
-                  console.log("Cancelled domain renewal:", renewalSubId, dom.domain_name);
-                } catch (e: any) {
-                  // Already cancelled or not found — that's fine
-                  console.log("Renewal cancel skipped:", renewalSubId, e.message);
-                }
-              }
-            }
-          } catch (e) {
-            console.error("Domain renewal cancellation error (non-fatal):", e);
-          }
-        }
-
-        // 4. Unlink domains (but don't delete them)
+        // 3. Unlink domains (but don't delete them — user keeps their domains)
         await sb.from("domains")
           .update({ site_id: null })
           .eq("site_id", siteId);
@@ -219,11 +223,11 @@ Deno.serve(async (req) => {
         await log({
           userId: svc.user_id, serviceId: svc.id,
           action: "hosting.soft_delete",
-          message: `Site soft-deleted. wp.cloud site preserved until recovery deadline. ${svc.wp_cloud_url ?? ""}`,
+          message: `Site "${svc.label}" deleted. Line item removed. wp.cloud preserved 30 days. ${subscriptionPaused ? "Subscription paused (no sites)." : "Subscription still active."}`,
         });
 
-        console.log("Site soft-deleted:", siteId, "Recovery window: 30 days");
-        return json({ deleted: true, recoverable: true, recoveryDays: 30 });
+        console.log("Site soft-deleted:", siteId, "Sub paused:", subscriptionPaused, "Recovery until:", recoveryDeadline);
+        return json({ deleted: true, recoverable: true, recoveryDays: 30, subscriptionPaused });
       }
 
       // Admin-only: permanently destroy site on wp.cloud (no recovery)

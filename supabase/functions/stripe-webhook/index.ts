@@ -39,29 +39,33 @@ Deno.serve(async (req) => {
       const { data: cust } = await sb.from("users").select("id, full_name, email").eq("stripe_customer_id", custStripeId).single();
       if (!cust) { console.log("No customer for", custStripeId); return json({ received: true }); }
 
-      // Match price to plan — check all price ID columns including 2yr/3yr
-      const priceId = sub.items?.data?.[0]?.price?.id ?? "";
-      let plan: any = null;
-      if (priceId) {
-        const { data: p } = await sb.from("products").select("id,slug,metadata")
-          .or(`stripe_price_id.eq.${priceId},stripe_price_id_yearly.eq.${priceId},stripe_price_id_2yr.eq.${priceId},stripe_price_id_3yr.eq.${priceId}`)
+      // ── Multi-item subscription: match ALL items to plans ──
+      const items = sub.items?.data ?? [];
+      const firstItem = items[0];
+      const firstPriceId = firstItem?.price?.id ?? "";
+
+      // Match the first item's price to a plan (for backward compat and subscription-level product_id)
+      let primaryPlan: any = null;
+      if (firstPriceId) {
+        const { data: p } = await sb.from("products").select("id,slug,type,metadata")
+          .or(`stripe_price_id.eq.${firstPriceId},stripe_price_id_yearly.eq.${firstPriceId},stripe_price_id_2yr.eq.${firstPriceId},stripe_price_id_3yr.eq.${firstPriceId},stripe_price_id_cad.eq.${firstPriceId}`)
           .maybeSingle();
-        plan = p;
+        primaryPlan = p;
       }
 
-      // Determine billing period from Stripe interval
-      const interval = sub.items?.data?.[0]?.price?.recurring?.interval;
-      const intervalCount = sub.items?.data?.[0]?.price?.recurring?.interval_count ?? 1;
+      // Determine billing period from first item
+      const interval = firstItem?.price?.recurring?.interval;
+      const intervalCount = firstItem?.price?.recurring?.interval_count ?? 1;
       let billingPeriod = "monthly";
       if (interval === "year") billingPeriod = intervalCount >= 3 ? "3yr" : intervalCount >= 2 ? "2yr" : "yearly";
 
-      // Upsert subscription — merge metadata with existing
+      // Upsert subscription
       const { data: existingSub } = await sb.from("subscriptions").select("metadata").eq("stripe_subscription_id", sub.id).maybeSingle();
       const existingMeta = (existingSub?.metadata as any) ?? {};
 
       const { data: dbSub } = await sb.from("subscriptions").upsert({
         user_id: cust.id,
-        product_id: plan?.id ?? null,
+        product_id: primaryPlan?.id ?? null,
         stripe_subscription_id: sub.id,
         status: sub.status,
         billing_period: billingPeriod,
@@ -70,55 +74,62 @@ Deno.serve(async (req) => {
           ?? (sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null),
         metadata: {
           ...existingMeta,
-          stripe_price_id: priceId,
+          stripe_price_id: firstPriceId,
           cancel_at_period_end: sub.cancel_at_period_end ?? false,
-          quantity: sub.items?.data?.[0]?.quantity ?? 1,
+          item_count: items.length,
         },
       }, { onConflict: "stripe_subscription_id" }).select("id").single();
 
-      console.log("Subscription upserted:", dbSub?.id, "status:", sub.status);
+      console.log("Subscription upserted:", dbSub?.id, "status:", sub.status, "items:", items.length);
 
-      // ── Initialize metered billing for new subscriptions ──
-      const isNewActiveSub = sub.status === "active" || (sub.status === "trialing" && !!sub.default_payment_method);
-      if (event.type === "customer.subscription.created" && isNewActiveSub && plan?.type === "hosting_plan") {
-        try {
-          const periodStart = sub.current_period_start
-            ? new Date(sub.current_period_start * 1000).toISOString()
-            : new Date().toISOString();
+      // ── Sync line items to sites ──
+      // For each Stripe item, check if a site exists with that item ID.
+      // If an item was upgraded (price changed), update the site's product_id.
+      for (const item of items) {
+        const itemPriceId = item.price?.id ?? "";
+        const siteId = item.metadata?.envosta_site_id;
 
-          // Map plan slug to included credits
-          const planSlug = plan?.slug ?? "minimum";
-          const creditsByPlan: Record<string, number> = {
-            wordpress: 0,    // hosting only — no AI credits
-            minimum: 36,
-            growth: 297,
-            performance: 350,
-          };
-          const credits = creditsByPlan[planSlug] ?? 36;
+        if (!itemPriceId) continue;
 
-          await sb.from("users").update({
-            usage_this_cycle: 0,
-            included_credits: credits,
-            cycle_start: periodStart,
-          }).eq("id", cust.id);
+        // Match this item's price to a plan
+        let itemPlan: any = null;
+        if (itemPriceId) {
+          const { data: p } = await sb.from("products").select("id,slug,type")
+            .or(`stripe_price_id.eq.${itemPriceId},stripe_price_id_yearly.eq.${itemPriceId},stripe_price_id_cad.eq.${itemPriceId}`)
+            .maybeSingle();
+          itemPlan = p;
+        }
 
-          console.log("Metered billing initialized for new subscriber:", cust.id, "plan:", planSlug, "credits:", credits);
-        } catch (err) {
-          console.error("Metered billing init error (non-fatal):", err);
+        // Find existing site by stripe_subscription_item_id
+        const { data: existingSite } = await sb.from("sites")
+          .select("id, product_id")
+          .eq("stripe_subscription_item_id", item.id)
+          .maybeSingle();
+
+        if (existingSite) {
+          // Site exists — update product_id if price changed (upgrade/downgrade)
+          if (itemPlan && existingSite.product_id !== itemPlan.id) {
+            await sb.from("sites").update({ product_id: itemPlan.id }).eq("id", existingSite.id);
+            console.log("Site plan updated:", existingSite.id, "→", itemPlan.slug);
+          }
+        } else if (siteId) {
+          // Item has a site_id in metadata but site doesn't have the item ID — link them
+          await sb.from("sites").update({
+            stripe_subscription_item_id: item.id,
+            product_id: itemPlan?.id ?? null,
+          }).eq("id", siteId);
+          console.log("Site linked to item:", siteId, "→", item.id);
         }
       }
 
-      // Auto-create site for active subscriptions with a hosting plan
+      // ── Auto-create site for FIRST signup (subscription.created with hosting plan) ──
       const isDomainRenewal = sub.metadata?.type === "domain_renewal";
       const isDomainPurchase = sub.metadata?.is_domain_purchase === "true";
-      const isDomainTld = plan?.type === "domain_tld";
-      // Only provision when payment is confirmed:
-      // - "active" = paid subscription
-      // - "trialing" with a default_payment_method = card collected (SetupIntent succeeded)
+      const isDomainTld = primaryPlan?.type === "domain_tld";
       const hasPaymentMethod = !!sub.default_payment_method;
       const shouldProvision = (sub.status === "active" || (sub.status === "trialing" && hasPaymentMethod));
 
-      // Set the subscription's payment method as the customer's default (for future charges)
+      // Set the subscription's payment method as the customer's default
       if (hasPaymentMethod && custStripeId) {
         try {
           const pmId = typeof sub.default_payment_method === "string" ? sub.default_payment_method : sub.default_payment_method?.id;
@@ -126,52 +137,62 @@ Deno.serve(async (req) => {
             await stripe.customers.update(custStripeId, {
               invoice_settings: { default_payment_method: pmId },
             });
-            console.log("Set customer default payment method:", pmId);
           }
         } catch (pmErr) {
           console.error("Failed to set default PM (non-fatal):", pmErr);
         }
       }
 
-      if (shouldProvision && dbSub && plan?.id && !isDomainRenewal && !isDomainPurchase && !isDomainTld) {
-        const { data: existing } = await sb.from("sites").select("id").eq("subscription_id", dbSub.id).maybeSingle();
-        if (!existing) {
+      if (event.type === "customer.subscription.created" && shouldProvision && dbSub && primaryPlan?.type === "hosting_plan" && !isDomainRenewal && !isDomainPurchase && !isDomainTld) {
+        // Check if ANY site already exists for this subscription
+        const { data: existingSites } = await sb.from("sites")
+          .select("id")
+          .eq("subscription_id", dbSub.id)
+          .limit(1);
+
+        if (!existingSites?.length) {
           const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.id).maybeSingle();
           const name = profile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
-
           const domainFromMeta = sub.metadata?.domain_name ?? null;
-          const planMeta = plan?.metadata as any ?? {};
+          const planMeta = primaryPlan?.metadata as any ?? {};
 
-          // Insert site with base config defaults (2 workers, 25GB, 512MB, no bursting)
+          // Create the site linked to the first line item
           const { data: svc, error: svcErr } = await sb.from("sites").insert({
             user_id: cust.id,
             subscription_id: dbSub.id,
-            product_id: plan?.id ?? null,
+            product_id: primaryPlan?.id ?? null,
+            stripe_subscription_item_id: firstItem?.id ?? null,
             label: `${name}-site`,
             status: "provisioning",
             server_region: "dca",
             domain_name: domainFromMeta,
             config: {
-              php_workers: 2,
-              storage_gb: 25,
-              php_memory_mb: 512,
+              php_workers: planMeta.php_workers_default ?? 2,
+              storage_gb: planMeta.storage_gb ?? 25,
+              php_memory_mb: planMeta.php_memory_mb ?? 512,
             },
-            bursting_enabled: false,
-            max_php_workers: 2,
-            max_ssd_gb: 25,
             metadata: {
               auto_provisioned: true,
-              plan_slug: plan?.slug ?? "minimum",
+              plan_slug: primaryPlan?.slug ?? "minimum",
               onboarding_type: planMeta.onboarding_type ?? "standard",
             },
           }).select("id").single();
           console.log("Site created:", svc?.id, "err:", svcErr?.message);
 
+          // Update the Stripe item with our site ID for future reconciliation
+          if (svc && firstItem?.id) {
+            try {
+              await stripe.subscriptionItems.update(firstItem.id, {
+                metadata: { envosta_site_id: svc.id },
+              });
+            } catch { /* non-fatal */ }
+          }
+
           // Send welcome email
           if (svc && !svcErr) {
             const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.id).maybeSingle();
             if (userProfile?.email) {
-              const planName = plan?.slug ? plan.slug.charAt(0).toUpperCase() + plan.slug.slice(1) : "Hosting";
+              const planName = primaryPlan?.slug ? primaryPlan.slug.charAt(0).toUpperCase() + primaryPlan.slug.slice(1) : "Hosting";
               const email = welcomeEmail(userProfile.full_name ?? "there", planName, "https://my.envosta.com/dashboard");
               await sendEmail({ to: userProfile.email, ...email });
             }
@@ -208,7 +229,7 @@ Deno.serve(async (req) => {
                     .eq("domain_name", domainFromMeta)
                     .eq("user_id", cust.id);
 
-                  // Create yearly domain renewal subscription
+                  // Create yearly domain renewal subscription (separate from hosting)
                   try {
                     const tld = domainFromMeta.split(".").pop()?.toLowerCase() ?? "";
                     const { data: tldProduct } = await sb.from("products")
@@ -217,7 +238,6 @@ Deno.serve(async (req) => {
                       .eq("slug", `tld-${tld}`).maybeSingle();
 
                     if (tldProduct?.stripe_price_id) {
-                      // Domain is a separate paid product — charges immediately
                       const renewalSub = await stripe.subscriptions.create({
                         customer: custStripeId,
                         items: [{ price: tldProduct.stripe_price_id }],
@@ -240,7 +260,6 @@ Deno.serve(async (req) => {
                     console.error("Domain renewal subscription failed (non-fatal):", renewErr);
                   }
                 } else {
-                  // Registration failed — create pending record
                   await sb.from("domains").insert({
                     user_id: cust.id,
                     domain_name: domainFromMeta,
@@ -283,7 +302,7 @@ Deno.serve(async (req) => {
                   label: `${name}-site`,
                   region: "dca",
                   phpVersion: "8.4",
-                  planId: plan?.id ?? null,
+                  planId: primaryPlan?.id ?? null,
                   userId: cust.id,
                   ...(domainFromMeta && { domainName: domainFromMeta }),
                 }),
@@ -296,11 +315,11 @@ Deno.serve(async (req) => {
             }
           }
         } else {
-          console.log("Site already exists:", existing.id);
+          console.log("Site(s) already exist for subscription:", dbSub.id);
         }
       }
 
-      // Handle standalone domain purchases (no site creation, just register the domain)
+      // Handle standalone domain purchases (no site creation)
       if ((isDomainPurchase || isDomainTld) && dbSub && (sub.status === "active" || sub.status === "trialing")) {
         const domainFromMeta = sub.metadata?.domain_name ?? null;
         if (domainFromMeta) {
@@ -326,7 +345,6 @@ Deno.serve(async (req) => {
               const regData = await regRes.json();
               console.log("Domain purchase registration result:", regRes.status, JSON.stringify(regData));
 
-              // Store the subscription ID on the domain for renewal tracking
               if (regRes.ok) {
                 await sb.from("domains").update({
                   metadata: { renewal_stripe_subscription_id: sub.id },
@@ -343,8 +361,6 @@ Deno.serve(async (req) => {
                 metadata: { registration_error: String(regErr), renewal_stripe_subscription_id: sub.id },
               });
             }
-          } else {
-            console.log("Domain already exists for user:", domainFromMeta);
           }
         }
       }
@@ -380,14 +396,9 @@ Deno.serve(async (req) => {
           console.log("Studio ticket created:", ticket?.id);
         }
       }
-
-      // Credit purchases removed — metered billing charges overage at cycle end
     }
 
-    // ── Overage invoice payment tracking ──
     else if (event.type === "payment_intent.succeeded") {
-      // Overage payments are handled automatically by Stripe via the invoice system
-      // Grace period is cleared on successful subscription renewal (above)
       console.log("Payment intent succeeded:", event.data.object.id);
     }
 
@@ -402,33 +413,31 @@ Deno.serve(async (req) => {
       }).eq("stripe_subscription_id", sub.id).select("id").maybeSingle();
       console.log("Subscription cancelled:", sub.id);
 
-      // 2. Cancel the linked site (soft-delete: mark cancelled, keep wp.cloud alive 30 days)
+      // 2. Cancel ALL linked sites (multi-item: each site is a line item)
       if (dbSub) {
-        const { data: site } = await sb.from("sites")
+        const { data: sites } = await sb.from("sites")
           .select("id, label, status")
           .eq("subscription_id", dbSub.id)
-          .in("status", ["active", "provisioning"])
-          .maybeSingle();
+          .in("status", ["active", "provisioning"]);
 
-        if (site) {
+        for (const site of sites ?? []) {
           await sb.from("sites").update({
             status: "cancelled",
             metadata: { cancelled_at: new Date().toISOString(), cancelled_via: "stripe_portal", recovery_until: new Date(Date.now() + 30 * 86400000).toISOString() },
           }).eq("id", site.id);
 
-          // Unlink domains (don't delete them, just remove site_id)
+          // Unlink domains
           await sb.from("domains").update({ site_id: null }).eq("site_id", site.id);
 
-          console.log("Site cancelled via Stripe portal:", site.label);
+          console.log("Site cancelled:", site.label);
           await log({ serviceId: site.id, action: "site.cancelled_via_stripe", message: `${site.label} cancelled from Stripe billing portal` });
         }
       }
 
-      // 3. If this was a domain renewal subscription, disable auto-renew at OpenSRS too
+      // 3. If domain renewal subscription, disable auto-renew at OpenSRS
       const domainMeta = sub.metadata;
       if (domainMeta?.type === "domain_renewal" && domainMeta?.domain_name) {
         await sb.from("domains").update({ auto_renew: false }).eq("domain_name", domainMeta.domain_name);
-        // Tell OpenSRS to let the domain expire
         try {
           const domainName = domainMeta.domain_name;
           const xml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
@@ -454,7 +463,6 @@ Deno.serve(async (req) => {
         } catch (e) {
           console.error("OpenSRS auto-renew disable failed (non-fatal):", e);
         }
-        console.log("Domain renewal cancelled via Stripe:", domainMeta.domain_name);
       }
     }
 
@@ -463,7 +471,7 @@ Deno.serve(async (req) => {
       const custStripeId = typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
       const { data: cust } = await sb.from("users").select("id, full_name, email").eq("stripe_customer_id", custStripeId).maybeSingle();
       if (cust) {
-        // Upsert invoice — match actual table columns
+        // Upsert invoice
         const invStatus = inv.status === "paid" ? "paid" : inv.status === "open" ? "open" : inv.status === "void" ? "void" : inv.status === "uncollectible" ? "uncollectible" : "draft";
         await sb.from("invoices").upsert({
           user_id: cust.id,
@@ -492,7 +500,7 @@ Deno.serve(async (req) => {
           if (!alreadySent) {
             const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.id).maybeSingle();
             if (userProfile?.email) {
-              const amount = `$${(inv.amount_paid / 100).toFixed(2)} CAD`;
+              const amount = `$${(inv.amount_paid / 100).toFixed(2)} USD`;
               const desc = inv.description ?? `Invoice ${inv.number ?? ""}`;
               const email = invoicePaidEmail(userProfile.full_name ?? "there", amount, desc, inv.hosted_invoice_url ?? null);
               await sendEmail({ to: userProfile.email, ...email });
@@ -538,85 +546,14 @@ Deno.serve(async (req) => {
           }
         }
 
-        // ── Metered billing: overage charge + cycle reset on renewal ──
+        // On invoice.paid — clear payment status and reset grace period
         if (event.type === "invoice.paid" && inv.subscription) {
-          const subStripeIdCredit = typeof inv.subscription === "string" ? inv.subscription : inv.subscription.id;
-          try {
-            const stripeSub = await stripe.subscriptions.retrieve(subStripeIdCredit);
-            if (stripeSub.metadata?.type !== "domain_renewal") {
-              const priceId = stripeSub.items?.data?.[0]?.price?.id ?? "";
-              const { data: planProduct } = await sb.from("products")
-                .select("type, slug")
-                .or(`stripe_price_id.eq.${priceId},stripe_price_id_yearly.eq.${priceId}`)
-                .maybeSingle();
-
-              if (planProduct?.type === "hosting_plan") {
-                // Check usage and charge overage
-                const { data: userData } = await sb.from("users")
-                  .select("usage_this_cycle, included_credits, stripe_customer_id")
-                  .eq("id", cust.id).single();
-
-                const usage = Number(userData?.usage_this_cycle ?? 0);
-                const included = userData?.included_credits ?? 36;
-
-                if (usage > included && userData?.stripe_customer_id) {
-                  const overage = Math.ceil(usage - included);
-                  try {
-                    // Create overage invoice item + invoice
-                    await stripe.invoiceItems.create({
-                      customer: userData.stripe_customer_id,
-                      amount: overage * 100, // cents USD
-                      currency: "usd",
-                      description: `Usage overage: ${overage} credits at $1/credit (used ${Math.round(usage)} of ${included} included)`,
-                    });
-
-                    const overageInvoice = await stripe.invoices.create({
-                      customer: userData.stripe_customer_id,
-                      auto_advance: true,
-                      collection_method: "charge_automatically",
-                      metadata: { type: "overage", user_id: cust.id, usage: String(Math.round(usage)), included: String(included) },
-                    });
-
-                    await stripe.invoices.finalizeInvoice(overageInvoice.id);
-                    console.log("Overage invoice created:", overageInvoice.id, "amount:", overage, "for user:", cust.id);
-
-                    await sb.from("logs").insert({
-                      user_id: cust.id,
-                      action: "billing.overage_charged",
-                      details: `Overage: ${overage} credits ($${overage} USD). Used ${Math.round(usage)} of ${included} included.`,
-                      level: "info",
-                      metadata: { overage, usage: Math.round(usage), included, invoice_id: overageInvoice.id },
-                    });
-                  } catch (overageErr) {
-                    console.error("Overage invoice creation failed:", overageErr);
-                    // Start grace period if overage billing fails
-                    await sb.from("users").update({
-                      payment_status: "grace",
-                      payment_failed_at: new Date().toISOString(),
-                    }).eq("id", cust.id);
-                  }
-                }
-
-                // Reset usage meter for new cycle
-                const periodStart = stripeSub.current_period_start
-                  ? new Date(stripeSub.current_period_start * 1000).toISOString()
-                  : new Date().toISOString();
-
-                await sb.from("users").update({
-                  usage_this_cycle: 0,
-                  cycle_start: periodStart,
-                  payment_status: "current",
-                  payment_failed_at: null,
-                  suspended_at: null,
-                  pre_suspension_state: null,
-                }).eq("id", cust.id);
-
-                console.log("Usage meter reset for user:", cust.id);
-              }
-            }
-          } catch (credErr) {
-            console.error("Metered billing cycle error (non-fatal):", credErr);
-          }
+          await sb.from("users").update({
+            payment_status: "current",
+            payment_failed_at: null,
+            suspended_at: null,
+            pre_suspension_state: null,
+          }).eq("id", cust.id);
         }
 
         // Fallback: create site if invoice.paid and no site exists yet
@@ -624,22 +561,36 @@ Deno.serve(async (req) => {
           const subStripeId = typeof inv.subscription === "string" ? inv.subscription : inv.subscription.id;
           const { data: dbSub } = await sb.from("subscriptions").select("id,product_id").eq("stripe_subscription_id", subStripeId).maybeSingle();
           if (dbSub) {
-            const { data: existing } = await sb.from("sites").select("id").eq("subscription_id", dbSub.id).maybeSingle();
-            if (!existing) {
-              const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.id).maybeSingle();
-              const name = profile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
-              const planSlug = dbSub.product_id ? (await sb.from("products").select("slug").eq("id", dbSub.product_id).maybeSingle())?.data?.slug : "minimum";
-              await sb.from("sites").insert({
-                user_id: cust.id, subscription_id: dbSub.id, product_id: dbSub.product_id,
-                label: `${name}-site`, status: "provisioning",
-                server_region: "dca",
-                config: { php_workers: 2, storage_gb: 25, php_memory_mb: 512 },
-                bursting_enabled: false,
-                max_php_workers: 2,
-                max_ssd_gb: 25,
-                metadata: { auto_provisioned: true, plan_slug: planSlug ?? "minimum", via: "invoice.paid" },
-              });
-              console.log("Site created via invoice.paid fallback");
+            const { data: existingSites } = await sb.from("sites").select("id").eq("subscription_id", dbSub.id).limit(1);
+            if (!existingSites?.length && dbSub.product_id) {
+              const { data: planCheck } = await sb.from("products").select("type,slug,metadata").eq("id", dbSub.product_id).maybeSingle();
+              if (planCheck?.type === "hosting_plan") {
+                const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.id).maybeSingle();
+                const name = profile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
+                const planMeta = planCheck.metadata as any ?? {};
+
+                // Get the Stripe subscription to find the first item
+                try {
+                  const stripeSub = await stripe.subscriptions.retrieve(subStripeId);
+                  const firstItemId = stripeSub.items?.data?.[0]?.id ?? null;
+
+                  await sb.from("sites").insert({
+                    user_id: cust.id, subscription_id: dbSub.id, product_id: dbSub.product_id,
+                    stripe_subscription_item_id: firstItemId,
+                    label: `${name}-site`, status: "provisioning",
+                    server_region: "dca",
+                    config: {
+                      php_workers: planMeta.php_workers_default ?? 2,
+                      storage_gb: planMeta.storage_gb ?? 25,
+                      php_memory_mb: planMeta.php_memory_mb ?? 512,
+                    },
+                    metadata: { auto_provisioned: true, plan_slug: planCheck.slug ?? "minimum", via: "invoice.paid" },
+                  });
+                  console.log("Site created via invoice.paid fallback");
+                } catch (e) {
+                  console.error("Fallback site creation error:", e);
+                }
+              }
             }
           }
         }

@@ -4,12 +4,16 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { findHostingSubscription, addSiteLineItem, resolvePlanPrice } from '@/lib/stripe-subscription';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * POST — Create a Stripe subscription with incomplete status for embedded checkout.
  * Returns client_secret for PaymentElement confirmation.
+ *
+ * If the user already has an active hosting subscription, adds a new site
+ * line item to that subscription instead of creating a new one.
  *
  * For new signups: creates user first, then subscription.
  * For dashboard: uses existing auth.
@@ -86,6 +90,31 @@ export async function POST(req: Request) {
     customerId = sc.id;
   }
 
+  // Check if user already has an active hosting subscription
+  const existingSub = await findHostingSubscription(sb, userId);
+
+  if (existingSub?.stripe_subscription_id) {
+    // User already has a subscription — add a line item instead of creating a new one
+    try {
+      const item = await stripe.subscriptionItems.create({
+        subscription: existingSub.stripe_subscription_id,
+        price: priceId,
+        quantity: 1,
+        proration_behavior: 'create_prorations',
+        metadata: { supabase_user_id: userId },
+      });
+
+      return NextResponse.json({
+        type: 'existing',
+        subscriptionId: existingSub.stripe_subscription_id,
+        itemId: item.id,
+        message: 'Added to existing subscription',
+      });
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message ?? 'Failed to add to existing subscription' }, { status: 400 });
+    }
+  }
+
   // Build subscription params
   const subParams: Stripe.SubscriptionCreateParams = {
     customer: customerId,
@@ -97,6 +126,7 @@ export async function POST(req: Request) {
       supabase_user_id: userId,
       domain_name: domainName ?? '',
       billing_period: billing ?? 'monthly',
+      subscription_type: 'hosting',
     },
   };
 

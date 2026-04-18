@@ -19,6 +19,8 @@ interface Product {
   stripe_price_id_yearly?: string | null;
   stripe_price_id_2yr?: string | null;
   stripe_price_id_3yr?: string | null;
+  stripe_price_id_cad?: string | null;
+  stripe_price_id_yearly_cad?: string | null;
   monthly_credit_cost: number | null;
   metadata: any;
 }
@@ -44,12 +46,11 @@ interface Verification {
 const COL = {
   name: 'w-[28%] text-left',
   billing: 'w-[10%] text-left',
-  usd: 'w-[13%] text-right',
-  cad: 'w-[13%] text-right',
-  credits: 'w-[9%] text-right',
-  db: 'w-[9%] text-center',
-  stripe: 'w-[9%] text-center',
-  actions: 'w-[9%] text-right',
+  usd: 'w-[14%] text-right',
+  cad: 'w-[14%] text-right',
+  db: 'w-[11%] text-center',
+  stripe: 'w-[11%] text-center',
+  actions: 'w-[12%] text-right',
 } as const;
 
 const TH = 'text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-2.5';
@@ -62,7 +63,6 @@ function TableHead({ onAdd, addLabel, creating }: { onAdd?: () => void; addLabel
         <th className={`${TH} ${COL.billing}`}>Billing</th>
         <th className={`${TH} ${COL.usd}`}>USD Price</th>
         <th className={`${TH} ${COL.cad}`}>CAD Price</th>
-        <th className={`${TH} ${COL.credits}`}>Credits</th>
         <th className={`${TH} ${COL.db}`}>DB</th>
         <th className={`${TH} ${COL.stripe}`}>Stripe</th>
         <th className={`${TH} ${COL.actions}`}>
@@ -241,7 +241,6 @@ export function StripeProducts({
       billing: product.billing,
       price_usd: ((product.price_usd ?? 0) / 100).toFixed(2),
       price_cad: ((product.price_cad ?? 0) / 100).toFixed(2),
-      monthly_credit_cost: String(product.monthly_credit_cost ?? ''),
     });
   }
 
@@ -253,7 +252,6 @@ export function StripeProducts({
       billing: editFields.billing,
       price_usd: Math.round(parseFloat(editFields.price_usd || '0') * 100),
       price_cad: Math.round(parseFloat(editFields.price_cad || '0') * 100),
-      monthly_credit_cost: parseFloat(editFields.monthly_credit_cost || '0') || null,
     };
     try {
       const res = await fetch('/api/admin/create-product', {
@@ -291,12 +289,15 @@ export function StripeProducts({
           stripe_price_id_yearly: null,
           stripe_price_id_2yr: null,
           stripe_price_id_3yr: null,
+          stripe_price_id_cad: null,
+          stripe_price_id_yearly_cad: null,
         }),
       });
       if (res.ok) {
         const updateFn = (p: any) => p.id === editProduct.id ? {
           ...p, stripe_product_id: null, stripe_price_id: null,
           stripe_price_id_yearly: null, stripe_price_id_2yr: null, stripe_price_id_3yr: null,
+          stripe_price_id_cad: null, stripe_price_id_yearly_cad: null,
         } : p;
         setPlans(prev => prev.map(updateFn));
         setOneTime(prev => prev.map(updateFn));
@@ -306,6 +307,7 @@ export function StripeProducts({
         setEditProduct(prev => prev ? {
           ...prev, stripe_product_id: null, stripe_price_id: null,
           stripe_price_id_yearly: null, stripe_price_id_2yr: null, stripe_price_id_3yr: null,
+          stripe_price_id_cad: null, stripe_price_id_yearly_cad: null,
         } : null);
         setVerification(prev => {
           const next = { ...prev };
@@ -360,9 +362,6 @@ export function StripeProducts({
         </td>
         <td className="px-4 py-2.5 text-sm text-right text-gray-500">
           {fmtPrice(p.price_cad)}{billingSuffix(p.billing)}
-        </td>
-        <td className="px-4 py-2.5 text-sm text-right text-gray-500">
-          {p.monthly_credit_cost ? `${p.monthly_credit_cost}/mo` : '—'}
         </td>
         <td className="px-4 py-2.5 text-center">
           <DbSyncBadge hasStripeId={!!p.stripe_product_id} />
@@ -516,7 +515,6 @@ export function StripeProducts({
                   <th className={`${TH} ${COL.billing}`}>Billing</th>
                   <th className={`${TH} ${COL.usd}`}>USD Price</th>
                   <th className={`${TH} ${COL.cad}`}>CAD Price</th>
-                  <th className={`${TH} ${COL.credits}`}>Credits</th>
                   <th className={`${TH} ${COL.db}`}>DB</th>
                   <th className={`${TH} ${COL.stripe}`}>Stripe</th>
                   <th className={`${TH} ${COL.actions}`}></th>
@@ -527,7 +525,6 @@ export function StripeProducts({
                   <tr key={p.stripe_id} className="border-b border-gray-50 hover:bg-gray-50/50">
                     <td className="px-4 py-2.5 text-sm font-medium text-gray-900 truncate" title={p.name}>{p.name}</td>
                     <td className="px-4 py-2.5 text-xs text-gray-400">—</td>
-                    <td className="px-4 py-2.5 text-sm text-right text-gray-400">—</td>
                     <td className="px-4 py-2.5 text-sm text-right text-gray-400">—</td>
                     <td className="px-4 py-2.5 text-sm text-right text-gray-400">—</td>
                     <td className="px-4 py-2.5 text-center">
@@ -586,11 +583,6 @@ export function StripeProducts({
                     <option value="one_time">One-time</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Credits / Month</label>
-                  <input value={editFields.monthly_credit_cost ?? ''} onChange={e => setEditFields(f => ({ ...f, monthly_credit_cost: e.target.value }))}
-                    type="number" step="1" min="0" placeholder="—" className="input w-full" />
-                </div>
               </div>
 
               {/* Prices row */}
@@ -618,9 +610,13 @@ export function StripeProducts({
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Stripe Link</h4>
                 <div className="space-y-2">
                   <StripeIdRow label="Product ID" value={editProduct.stripe_product_id} type="products" />
-                  <StripeIdRow label="Price ID" value={editProduct.stripe_price_id} type="prices" />
+                  <StripeIdRow label="USD Price ID" value={editProduct.stripe_price_id} type="prices" />
                   {editProduct.stripe_price_id_yearly && (
-                    <StripeIdRow label="Yearly Price ID" value={editProduct.stripe_price_id_yearly} type="prices" />
+                    <StripeIdRow label="USD Yearly Price ID" value={editProduct.stripe_price_id_yearly} type="prices" />
+                  )}
+                  <StripeIdRow label="CAD Price ID" value={editProduct.stripe_price_id_cad} type="prices" />
+                  {editProduct.stripe_price_id_yearly_cad && (
+                    <StripeIdRow label="CAD Yearly Price ID" value={editProduct.stripe_price_id_yearly_cad} type="prices" />
                   )}
                   {editProduct.stripe_price_id_2yr && (
                     <StripeIdRow label="2-Year Price ID" value={editProduct.stripe_price_id_2yr} type="prices" />

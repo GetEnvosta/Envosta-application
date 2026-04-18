@@ -221,6 +221,7 @@ export async function POST(req: Request) {
       subscription_data: {
         metadata: {
           supabase_user_id: userId,
+          subscription_type: 'hosting',
           ...(domain && { domain_name: domain }),
           ...(trial && { is_trial: 'true' }),
         },

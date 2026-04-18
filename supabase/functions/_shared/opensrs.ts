@@ -535,6 +535,85 @@ export async function checkTransferStatus(domain: string): Promise<{
   }
 }
 
+// ─── Domain listing ──────────────────────────────────────
+
+/**
+ * List all domains in the reseller account using GET_DOMAINS_BY_EXPIREDATE.
+ * OpenSRS has no simple "list all" endpoint — this queries by expiry date range.
+ * We query from 2000-01-01 to 2040-12-31 to capture everything.
+ * Paginates automatically (200 per page).
+ */
+export async function listAllDomains(): Promise<{ domains: string[]; error?: string }> {
+  const allDomains: string[] = [];
+  let page = 0;
+  const limit = 200;
+
+  while (true) {
+    const xml = `<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE OPS_envelope SYSTEM "ops.dtd">
+<OPS_envelope>
+  <header><version>0.9</version></header>
+  <body>
+    <data_block>
+      <dt_assoc>
+        <item key="protocol">XCP</item>
+        <item key="object">DOMAIN</item>
+        <item key="action">GET_DOMAINS_BY_EXPIREDATE</item>
+        <item key="attributes">
+          <dt_assoc>
+            <item key="exp_from">2000-01-01</item>
+            <item key="exp_to">2040-12-31</item>
+            <item key="page">${page}</item>
+            <item key="limit">${limit}</item>
+          </dt_assoc>
+        </item>
+      </dt_assoc>
+    </data_block>
+  </body>
+</OPS_envelope>`;
+
+    try {
+      const responseXml = await opensrsRequest(xml);
+      const parsed = parseResponse(responseXml);
+      if (!parsed.isSuccess) {
+        return { domains: allDomains, error: parsed.responseText };
+      }
+
+      // Parse domain names from the response
+      // OpenSRS returns domains in <item key="name">domain.com</item> or <item key="0">domain.com</item>
+      const domainMatches = responseXml.matchAll(/<item key="name">(.*?)<\/item>/g);
+      const pageResults: string[] = [];
+      for (const m of domainMatches) {
+        const d = m[1].trim();
+        if (d && d.includes(".")) pageResults.push(d.toLowerCase());
+      }
+
+      // If no "name" keys found, try numeric array keys (OpenSRS sometimes uses dt_array)
+      if (pageResults.length === 0) {
+        const arrayMatches = responseXml.matchAll(/<item key="\d+">(.*?)<\/item>/g);
+        for (const m of arrayMatches) {
+          const d = m[1].trim();
+          if (d && d.includes(".") && !d.includes("<")) pageResults.push(d.toLowerCase());
+        }
+      }
+
+      allDomains.push(...pageResults);
+
+      // Check total count from response
+      const totalMatch = responseXml.match(/<item key="total">(.*?)<\/item>/);
+      const total = totalMatch ? parseInt(totalMatch[1], 10) : 0;
+
+      // If we got fewer than limit or reached total, we're done
+      if (pageResults.length < limit || allDomains.length >= total) break;
+      page++;
+    } catch (e) {
+      return { domains: allDomains, error: String(e) };
+    }
+  }
+
+  return { domains: allDomains };
+}
+
 function xmlEscape(s: string): string {
   return s
     .replace(/&/g, "&amp;")

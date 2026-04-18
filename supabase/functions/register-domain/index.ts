@@ -1,6 +1,6 @@
 import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, getStripe, cors, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, domainRegisteredEmail } from "../_shared/email.ts";
-import { opensrsRequest, parseResponse, setDnsZone, buildWpCloudDnsRecords, setDomainLock, getDomainLockStatus, getDomainAuthCode, createNameserver, registryAddNs, type DnsRecord } from "../_shared/opensrs.ts";
+import { opensrsRequest, parseResponse, setDnsZone, buildWpCloudDnsRecords, setDomainLock, getDomainLockStatus, getDomainAuthCode, createNameserver, registryAddNs, listAllDomains, type DnsRecord } from "../_shared/opensrs.ts";
 
 // ─── XML builders ──────────────────────────────────────────
 
@@ -180,6 +180,19 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const { action, domainName, serviceId, years, nameservers, userId: bodyUserId, siteIp, authInfo } = body;
+
+    // ═══ LIST ALL DOMAINS — service role only, no domainName needed ═══
+    if (action === "list-all-domains") {
+      const authHeader = req.headers.get("Authorization") ?? "";
+      const bearerToken = authHeader.replace("Bearer ", "");
+      if (bearerToken !== SUPABASE_SERVICE_ROLE_KEY) return error("Service role required", 403);
+
+      const result = await listAllDomains();
+      const ms = Date.now() - t0;
+      console.log(`Listed ${result.domains.length} domains from OpenSRS in ${ms}ms`);
+      return json({ domains: result.domains, count: result.domains.length, error: result.error, ms });
+    }
+
     if (!domainName) return error("domainName is required");
 
     // ═══ CHECK — public, no auth ═══════════════════════════

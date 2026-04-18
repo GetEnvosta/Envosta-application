@@ -18,6 +18,7 @@ export function SyncInfo({ type, dbCount }: SyncInfoProps) {
     issues: number;
     inApiNotDb?: string[];
     inDbNotApi?: string[];
+    error?: string;
   } | null>(null);
 
   async function runSync() {
@@ -36,13 +37,20 @@ export function SyncInfo({ type, dbCount }: SyncInfoProps) {
             issues: wp.inApiNotDb.length + wp.inDbNotApi.length + wp.sitesNoUser.length,
             inApiNotDb: wp.inApiNotDb,
             inDbNotApi: wp.inDbNotApi,
+            error: wp.error,
           });
         } else {
           const dom = data.domains;
+          const issues = (dom.inOpenSrsNotDb?.length ?? 0) + (dom.inDbNotOpenSrs?.length ?? 0) + dom.noUser.length + dom.orphanedUser.length;
           setResult({
             checkedAt: data.checkedAt,
+            apiCount: dom.opensrsCount,
             dbCount: dom.total,
-            issues: dom.noUser.length + dom.orphanedUser.length,
+            matched: dom.matched,
+            issues,
+            inApiNotDb: dom.inOpenSrsNotDb,
+            inDbNotApi: dom.inDbNotOpenSrs,
+            error: dom.error,
           });
         }
       }
@@ -50,24 +58,28 @@ export function SyncInfo({ type, dbCount }: SyncInfoProps) {
     setLoading(false);
   }
 
+  const providerLabel = type === 'sites' ? 'wp.cloud' : 'OpenSRS';
+
   return (
     <div className="text-xs text-gray-400">
       <div className="flex items-center gap-3">
         {result && (
           <>
-            {result.issues === 0 ? (
+            {result.error ? (
+              <span className="inline-flex items-center gap-1 text-amber-600">
+                <AlertTriangle className="w-3 h-3" />
+                {providerLabel} error: {result.error}
+              </span>
+            ) : result.issues === 0 ? (
               <span className="inline-flex items-center gap-1 text-emerald-600">
                 <CheckCircle className="w-3 h-3" />
-                {type === 'sites'
-                  ? `${result.apiCount} in API · ${result.dbCount} in DB · ${result.matched} matched`
-                  : `${result.dbCount} domains · all linked`
-                }
+                {result.apiCount} in {providerLabel} · {result.dbCount} in DB · {result.matched} matched
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-amber-600">
                 <AlertTriangle className="w-3 h-3" />
                 {result.issues} sync issue{result.issues !== 1 ? 's' : ''}
-                {type === 'sites' && ` · ${result.apiCount} in API · ${result.dbCount} in DB · ${result.matched} matched`}
+                {` · ${result.apiCount} in ${providerLabel} · ${result.dbCount} in DB · ${result.matched} matched`}
               </span>
             )}
             <span className="text-gray-300">·</span>
@@ -83,10 +95,10 @@ export function SyncInfo({ type, dbCount }: SyncInfoProps) {
       {result && result.issues > 0 && (result.inApiNotDb?.length || result.inDbNotApi?.length) ? (
         <div className="mt-2 pl-4 space-y-1 text-[11px]">
           {result.inApiNotDb?.map((s, i) => (
-            <div key={`api-${i}`} className="text-amber-600">In wp.cloud but not in DB: {s}</div>
+            <div key={`api-${i}`} className="text-amber-600">In {providerLabel} but not in DB: {s}</div>
           ))}
           {result.inDbNotApi?.map((s, i) => (
-            <div key={`db-${i}`} className="text-amber-600">In DB but not in wp.cloud: {s}</div>
+            <div key={`db-${i}`} className="text-amber-600">In DB but not in {providerLabel}: {s}</div>
           ))}
         </div>
       ) : null}

@@ -110,7 +110,7 @@ export async function POST() {
     const validUserIds = new Set((existingUsers ?? []).map((u: any) => u.id));
     const sitesOrphanedUser = (dbSites ?? []).filter((s: any) => s.user_id && !validUserIds.has(s.user_id));
 
-    // 2. Check domains
+    // 2. Check domains — compare DB vs OpenSRS
     const { data: dbDomains } = await sb.from('domains')
       .select('id, domain_name, user_id, status');
 
@@ -121,6 +121,50 @@ export async function POST() {
       : { data: [] };
     const validDomainUserIds = new Set((domainUsers ?? []).map((u: any) => u.id));
     const domainsOrphanedUser = (dbDomains ?? []).filter((d: any) => d.user_id && !validDomainUserIds.has(d.user_id));
+
+    // Fetch all domains from OpenSRS via edge function
+    let opensrsDomains: string[] = [];
+    let opensrsError = '';
+    try {
+      const osRes = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          },
+          body: JSON.stringify({ action: 'list-all-domains' }),
+        }
+      );
+      const osData = await osRes.json();
+      if (Array.isArray(osData?.domains)) {
+        opensrsDomains = osData.domains;
+      } else if (osData?.error) {
+        opensrsError = osData.error;
+      }
+    } catch (e: any) {
+      opensrsError = e.message;
+    }
+
+    // Compare DB domains vs OpenSRS domains
+    const dbDomainNames = new Set((dbDomains ?? []).map((d: any) => d.domain_name?.toLowerCase()).filter(Boolean));
+    const opensrsDomainSet = new Set(opensrsDomains.map(d => d.toLowerCase()));
+
+    // Matched: in both DB and OpenSRS
+    const domainMatched = new Set<string>();
+    for (const d of dbDomainNames) {
+      if (opensrsDomainSet.has(d)) domainMatched.add(d);
+    }
+
+    // In OpenSRS but not in DB
+    const inOpenSrsNotDb = opensrsDomains.filter(d => !dbDomainNames.has(d.toLowerCase()));
+    // In DB but not in OpenSRS (only check active/registered domains, skip pending/failed)
+    const activeDomains = (dbDomains ?? []).filter((d: any) => ['active', 'registered'].includes(d.status));
+    const inDbNotOpenSrs = opensrsDomains.length > 0
+      ? activeDomains.filter((d: any) => !opensrsDomainSet.has(d.domain_name?.toLowerCase()))
+      : [];
 
     const matched = matchedDbIds.size;
 
@@ -140,8 +184,13 @@ export async function POST() {
       },
       domains: {
         total: (dbDomains ?? []).length,
+        opensrsCount: opensrsDomains.length,
+        matched: domainMatched.size,
+        inOpenSrsNotDb: inOpenSrsNotDb,
+        inDbNotOpenSrs: inDbNotOpenSrs.map((d: any) => d.domain_name),
         noUser: domainsNoUser.map((d: any) => d.domain_name),
         orphanedUser: domainsOrphanedUser.map((d: any) => `${d.domain_name} — user deleted`),
+        error: opensrsError || undefined,
       },
     });
   } catch (e: any) {

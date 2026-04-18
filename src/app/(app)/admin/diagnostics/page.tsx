@@ -7,11 +7,9 @@ import { AlertTriangle, Server, Globe, CreditCard, CheckCircle, Activity, Scroll
 import { StatCard } from '@/components/admin/stat-card';
 // External sync now integrated into SystemHealthChecks recheck button
 import { getAdminLogs } from '@/services/admin';
-import { getServicePricing } from '@/services/pricing';
 import { SystemHealthChecks } from '@/app/(app)/admin/logs/health-checks';
 import AdminEmailsPage from '@/app/(app)/admin/emails/page';
 import { AdminPhone } from '@/components/admin/admin-phone';
-import { CreditPricingTable } from '@/app/(app)/admin/credits/pricing-table';
 import { CouponManager } from '@/components/admin/coupon-manager';
 import { StripeProducts } from '@/components/admin/stripe-products';
 import { SystemTabs } from './system-tabs';
@@ -81,9 +79,8 @@ export default async function DiagnosticsPage() {
   // Fetch logs for the logs tab
   const logs = await getAdminLogs({}, 50);
 
-  // Fetch pricing & product data
-  const pricing = await getServicePricing();
-  const productCols = 'id, type, name, slug, billing, price_cad, price_usd, price_yearly_cad, price_yearly_usd, is_active, stripe_product_id, stripe_price_id, stripe_price_id_yearly, stripe_price_id_2yr, stripe_price_id_3yr, monthly_credit_cost, metadata';
+  // Fetch product data
+  const productCols = 'id, type, name, slug, billing, price_cad, price_usd, price_yearly_cad, price_yearly_usd, is_active, stripe_product_id, stripe_price_id, stripe_price_id_yearly, stripe_price_id_2yr, stripe_price_id_3yr, stripe_price_id_cad, stripe_price_id_yearly_cad, monthly_credit_cost, metadata';
   const { data: allProducts } = await supabase
     .from('products')
     .select(productCols)
@@ -240,14 +237,6 @@ export default async function DiagnosticsPage() {
           emails: <AdminEmailsPage />,
 
           phone: <AdminPhone />,
-
-          usage: (
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">Usage Rates</h3>
-              <p className="text-xs text-gray-500 mb-4">Click any rate to edit. Changes apply system-wide immediately. Overage billed at $1/credit via Stripe at cycle end.</p>
-              <CreditPricingTable initialPricing={pricing} />
-            </div>
-          ),
 
           stripe: (
             <StripeProducts

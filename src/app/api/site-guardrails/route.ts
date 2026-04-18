@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
   const { data: site } = await supabase
     .from('sites')
-    .select('id, max_php_workers, max_ssd_gb, bursting_enabled, monthly_ai_token_limit, config')
+    .select('id, product_id, max_php_workers, max_ssd_gb, bursting_enabled, monthly_ai_token_limit, config')
     .eq('id', siteId)
     .eq('user_id', userId)
     .maybeSingle();
@@ -26,6 +26,7 @@ export async function GET(req: Request) {
   const config = (site.config as any) ?? {};
 
   return NextResponse.json({
+    product_id: site.product_id,
     php_workers: config.php_workers ?? 2,
     ssd_gb: config.storage_gb ?? 25,
     bursting_enabled: site.bursting_enabled ?? false,

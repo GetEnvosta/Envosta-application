@@ -49,7 +49,7 @@ export async function GET() {
     // Fetch ALL DB products
     const { data: allDbProducts } = await supabase
       .from('products')
-      .select('id, stripe_product_id, stripe_price_id, price_usd, price_cad');
+      .select('id, stripe_product_id, stripe_price_id, stripe_price_id_cad, price_usd, price_cad');
 
     // ── Auto-cleanup: clear stale Stripe IDs from DB ──
     // If a DB product has a stripe_product_id that no longer exists in Stripe, clear it
@@ -59,9 +59,11 @@ export async function GET() {
         await supabase.from('products').update({
           stripe_product_id: null,
           stripe_price_id: null,
+          stripe_price_id_cad: null,
         }).eq('id', dbp.id);
         dbp.stripe_product_id = null;
         dbp.stripe_price_id = null;
+        dbp.stripe_price_id_cad = null;
         staleCleared++;
       }
     }
@@ -103,27 +105,42 @@ export async function GET() {
         created: p.created,
       }));
 
-    // Build verification map
+    // Build verification map — checks both USD and CAD prices
     const verification: Record<string, {
       stripeProductExists: boolean;
       stripePriceId: string | null;
       stripePriceAmount: number | null;
+      stripePriceIdCad: string | null;
+      stripePriceAmountCad: number | null;
       dbPriceUsd: number;
+      dbPriceCad: number;
+      usdMatches: boolean;
+      cadMatches: boolean;
       priceMatches: boolean;
     }> = {};
 
     for (const dbp of allDbProducts ?? []) {
       if (!dbp.stripe_product_id) continue;
       const stripeProduct = stripeProducts.find(sp => sp.id === dbp.stripe_product_id);
-      const stripePrice = dbp.stripe_price_id ? priceById.get(dbp.stripe_price_id) : null;
-      const dbPrice = dbp.price_usd || dbp.price_cad || 0;
+      const stripePriceUsd = dbp.stripe_price_id ? priceById.get(dbp.stripe_price_id) : null;
+      const stripePriceCad = dbp.stripe_price_id_cad ? priceById.get(dbp.stripe_price_id_cad) : null;
+      const dbPriceUsd = dbp.price_usd || 0;
+      const dbPriceCad = dbp.price_cad || 0;
+
+      const usdMatches = stripePriceUsd ? stripePriceUsd.unit_amount === dbPriceUsd : dbPriceUsd === 0;
+      const cadMatches = stripePriceCad ? stripePriceCad.unit_amount === dbPriceCad : dbPriceCad === 0;
 
       verification[dbp.id] = {
         stripeProductExists: !!stripeProduct,
-        stripePriceId: stripePrice?.id ?? null,
-        stripePriceAmount: stripePrice?.unit_amount ?? null,
-        dbPriceUsd: dbPrice,
-        priceMatches: stripePrice ? stripePrice.unit_amount === dbPrice : false,
+        stripePriceId: stripePriceUsd?.id ?? null,
+        stripePriceAmount: stripePriceUsd?.unit_amount ?? null,
+        stripePriceIdCad: stripePriceCad?.id ?? null,
+        stripePriceAmountCad: stripePriceCad?.unit_amount ?? null,
+        dbPriceUsd,
+        dbPriceCad,
+        usdMatches,
+        cadMatches,
+        priceMatches: usdMatches && cadMatches,
       };
     }
 

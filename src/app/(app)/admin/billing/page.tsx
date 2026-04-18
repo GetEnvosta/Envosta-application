@@ -1,10 +1,9 @@
 export const revalidate = 5;
 import { getAllActiveSubscriptions, getAllSubscriptionsAdmin, toMonthly } from '@/services/subscriptions';
 import { getAdminBillingStats, getAdminRecentInvoices } from '@/services/billing';
-import { getAdminUsageStats } from '@/services/usage';
 import { getAllCommissions, getCommissionStats } from '@/services/commissions';
 import { formatCents, formatDate } from '@/lib/utils';
-import { DollarSign, Receipt, AlertCircle, Users, ExternalLink, Gauge, TrendingUp, Banknote } from 'lucide-react';
+import { DollarSign, Receipt, Users, ExternalLink, Banknote } from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
 import { InvoiceFilters } from '@/components/admin/invoice-filters';
 import { SubscriptionFilters } from '@/components/admin/subscription-filters';
@@ -17,7 +16,6 @@ export default async function AdminBillingPage() {
     allSubscriptions,
     { paidInvoicesCount, outstandingInvoicesCount },
     recentInvoices,
-    usageStats,
     commissionStats,
     commissions,
   ] = await Promise.all([
@@ -25,7 +23,6 @@ export default async function AdminBillingPage() {
     getAllSubscriptionsAdmin(),
     getAdminBillingStats(),
     getAdminRecentInvoices(100),
-    getAdminUsageStats(),
     getCommissionStats(),
     getAllCommissions({}, 30),
   ]);
@@ -57,23 +54,12 @@ export default async function AdminBillingPage() {
       </div>
 
       {/* Stats — always visible */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="MRR" value={formatCents(mrr)} icon={DollarSign} color="green" />
         <StatCard label="Active subs" value={activeCount} icon={Users} color="blue" />
-        <StatCard label="Platform usage" value={`${usageStats.totalUsage}`} icon={Gauge} sub={`${usageStats.activeUsers} users`} color="purple" />
-        <StatCard label="Projected overage" value={`$${usageStats.projectedOverageRevenue}`} icon={TrendingUp} sub={`${usageStats.usersOverIncluded.length} over`} color="amber" />
         <StatCard label="Invoices" value={paidInvoicesCount} icon={Receipt} sub={`${outstandingInvoicesCount} outstanding`} color="indigo" />
+        <StatCard label="Commissions" value={formatCents(commissionStats.pendingTotal)} icon={Banknote} sub={`${commissionStats.pendingCount} pending`} color="amber" />
       </div>
-
-      {/* Overage alert — always visible above tabs */}
-      {usageStats.usersOverIncluded.length > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3 mb-6 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-          <span className="text-xs text-amber-800">
-            <strong>{usageStats.usersOverIncluded.length} user{usageStats.usersOverIncluded.length !== 1 ? 's' : ''}</strong> over included credits — ${usageStats.projectedOverageRevenue} projected overage revenue
-          </span>
-        </div>
-      )}
 
       {/* Tabbed content */}
       <BillingTabs>

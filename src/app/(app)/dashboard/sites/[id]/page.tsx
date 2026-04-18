@@ -1,22 +1,22 @@
 import { getEffectiveUserId } from '@/services/auth';
 import { getSiteById } from '@/services/sites';
 import { getUserDomainsForSite } from '@/services/domains';
-import { getUsageMeter } from '@/services/usage';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { DeleteSiteButton } from '@/components/sites/delete-site-button';
+import { DeleteSiteButton, ReactivateSiteButton } from '@/components/sites/delete-site-button';
 import { SiteBackups } from '@/components/sites/site-backups';
 import { SslStatus } from '@/components/sites/ssl-status';
 import { SitePerformance } from '@/components/sites/site-performance';
 import {
   ArrowLeft, ExternalLink, Globe, HardDrive, Server, MapPin,
-  Shield, Zap, Key, Calendar, User, Coins, Settings, Trash2,
+  Shield, Zap, Key, Calendar, User, Trash2,
 } from 'lucide-react';
 import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-switcher';
 import { SiteAccess } from '@/components/sites/site-access';
 import { SiteIp } from '@/components/sites/site-ip';
 import { SiteGuardrails } from '@/components/sites/site-guardrails';
+import { createClient } from '@/lib/supabase-server';
 
 
 export default async function SiteDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -24,12 +24,23 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const userId = await getEffectiveUserId();
   if (!userId) notFound();
 
-  const [site, domains, usageMeter] = await Promise.all([
+  const [site, domains] = await Promise.all([
     getSiteById(id),
     getUserDomainsForSite(userId),
-    getUsageMeter(userId),
   ]);
   if (!site) notFound();
+
+  // Get the plan name for this site
+  const supabase = await createClient();
+  let planName = 'Minimum';
+  if ((site as any).product_id) {
+    const { data: plan } = await supabase
+      .from('products')
+      .select('name, slug')
+      .eq('id', (site as any).product_id)
+      .single();
+    if (plan) planName = plan.name;
+  }
 
   const connectedDomain = (domains ?? []).find((d: any) => d.site_id === id) ?? null;
   const status: string = site.status ?? 'provisioning';
@@ -108,20 +119,12 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         <div className="p-6 space-y-5">
-          {/* Plan status */}
+          {/* Plan */}
           <div className="rounded-xl bg-gray-50 px-4 py-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500 flex items-center gap-1.5"><Coins className="w-3 h-3" /> Hosting</span>
-              <span className="text-xs font-medium text-emerald-600">Included in plan</span>
+              <span className="text-xs text-gray-500 flex items-center gap-1.5"><Zap className="w-3 h-3" /> Plan</span>
+              <span className="text-xs font-semibold text-gray-900">{planName}</span>
             </div>
-            {usageMeter.usage_percent >= 80 && (
-              <div className="mt-2 pt-2 border-t border-gray-200 flex justify-between text-xs">
-                <span className="text-gray-500">Plan usage</span>
-                <Link href="/dashboard/billing" className={`font-medium ${usageMeter.usage_percent > 100 ? 'text-red-600' : 'text-amber-600'}`}>
-                  {Math.round(usageMeter.usage_percent)}% — View billing →
-                </Link>
-              </div>
-            )}
           </div>
 
           {/* Storage */}
@@ -200,27 +203,51 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════ */}
-      {/* HOSTING RESOURCES — Scale up/down with credit costs    */}
-      {/* ═══════════════════════════════════════════════════════ */}
-      <div className="card p-6 mb-6">
-        <SiteGuardrails siteId={id} />
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════ */}
-      {/* DANGER ZONE                                            */}
-      {/* ═══════════════════════════════════════════════════════ */}
-      <div className="rounded-2xl border border-red-200/60 bg-gradient-to-r from-red-50/40 to-white p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-red-600 flex items-center gap-1.5">
-              <Trash2 className="w-3.5 h-3.5" /> Delete Site
-            </h3>
-            <p className="text-xs text-gray-500 mt-0.5">This will permanently delete your site and cancel your subscription.</p>
+      {status === 'cancelled' ? (
+        /* ═══ CANCELLED — Reactivation banner ═══ */
+        (() => {
+          const recoveryDeadline = meta.recovery_deadline ? new Date(meta.recovery_deadline) : null;
+          const daysLeft = recoveryDeadline ? Math.max(0, Math.ceil((recoveryDeadline.getTime() - Date.now()) / 86400000)) : 0;
+          const expired = recoveryDeadline && new Date() > recoveryDeadline;
+          return (
+            <div className={`rounded-2xl border p-6 mb-6 ${expired ? 'border-gray-200 bg-gray-50' : 'border-blue-200 bg-blue-50/50'}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className={`text-sm font-semibold flex items-center gap-1.5 ${expired ? 'text-gray-600' : 'text-blue-700'}`}>
+                    {expired ? 'Recovery Window Expired' : `${daysLeft} days left to reactivate`}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {expired
+                      ? 'This site can no longer be recovered. Create a new site to start fresh.'
+                      : 'Your site data is preserved. Reactivate to resume billing and restore access.'}
+                  </p>
+                </div>
+                {!expired && <ReactivateSiteButton siteId={site.id} siteName={site.label} />}
+              </div>
+            </div>
+          );
+        })()
+      ) : (
+        <>
+          {/* ═══ PLAN & RESOURCES ═══ */}
+          <div className="card p-6 mb-6">
+            <SiteGuardrails siteId={id} />
           </div>
-          <DeleteSiteButton siteId={site.id} siteName={site.label} />
-        </div>
-      </div>
+
+          {/* ═══ DANGER ZONE ═══ */}
+          <div className="rounded-2xl border border-red-200/60 bg-gradient-to-r from-red-50/40 to-white p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-red-600 flex items-center gap-1.5">
+                  <Trash2 className="w-3.5 h-3.5" /> Delete Site
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">Removes this site from your subscription. You have 30 days to reactivate.</p>
+              </div>
+              <DeleteSiteButton siteId={site.id} siteName={site.label} />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

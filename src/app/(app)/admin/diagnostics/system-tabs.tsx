@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Activity, ScrollText, Mail, Phone, Gauge, CreditCard, Percent } from 'lucide-react';
+import { Activity, ScrollText, Mail, Phone, CreditCard, Percent } from 'lucide-react';
 
 const TABS = [
   { id: 'health', label: 'Health', icon: Activity },
   { id: 'logs', label: 'Logs', icon: ScrollText },
   { id: 'emails', label: 'Emails', icon: Mail },
   { id: 'phone', label: 'Phone & SMS', icon: Phone },
-  { id: 'usage', label: 'Usage Rates', icon: Gauge },
   { id: 'stripe', label: 'Stripe', icon: CreditCard },
   { id: 'promotions', label: 'Promotions', icon: Percent },
 ] as const;

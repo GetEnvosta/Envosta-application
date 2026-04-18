@@ -5,16 +5,13 @@ import { formatDate, formatDateTime, formatCents, statusColor } from '@/lib/util
 import Link from 'next/link';
 import { QuickInvoice } from '@/components/admin/quick-invoice';
 import { ChargeCard } from '@/components/admin/charge-card';
-// Plans/subscriptions removed — sites are credit-metered now
 import {
   ArrowLeft, Building2, Clock, CreditCard, ExternalLink, Globe,
   Mail, Phone, Server, Shield, User, FileText, Download, Layers,
-  Check, AlertTriangle, Link2,
+  AlertTriangle, Link2, Zap, HardDrive, ArrowUpRight, PauseCircle,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { AttachDomainSubscription } from '@/components/admin/attach-domain-subscription';
-import { getUsageMeter, getUsageHistory } from '@/services/usage';
-import { AdminCreditAdjust } from '@/components/admin/admin-credit-adjust';
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -34,16 +31,19 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     );
   }
 
-  const [relatedData, usageMeter, usageHistory] = await Promise.all([
-    getCustomerRelatedData(user.id),
-    getUsageMeter(user.id),
-    getUsageHistory(user.id, 10),
-  ]);
+  const relatedData = await getCustomerRelatedData(user.id);
   const { services, domains, subscriptions, invoices, logs } = relatedData;
 
   // Split subscriptions: hosting vs domain
-  const hostingSubs = subscriptions.filter((s: any) => s.products?.type === 'hosting_plan' || (!s.products?.type && !((s.metadata as any)?.type === 'domain_renewal')));
+  const hostingSubs = subscriptions.filter((s: any) => {
+    const meta = (s.metadata as any) ?? {};
+    return meta.type !== 'domain_renewal' && meta.is_domain_purchase !== 'true' && s.products?.type !== 'domain_tld';
+  });
   const domainSubs = subscriptions.filter((s: any) => s.products?.type === 'domain_tld' || (s.metadata as any)?.type === 'domain_renewal');
+
+  // Calculate monthly total from sites
+  const activeSites = services.filter((s: any) => s.status === 'active' || s.status === 'provisioning');
+  const monthlyTotal = activeSites.reduce((sum: number, s: any) => sum + ((s.products as any)?.price_cad ?? 0), 0);
 
   return (
     <div>
@@ -79,9 +79,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <CountPill label="Sites" count={services.length} />
+          <CountPill label="Sites" count={activeSites.length} />
           <CountPill label="Domains" count={domains.length} />
-          <CountPill label="Invoices" count={invoices.length} />
+          <CountPill label="Monthly" value={formatCents(monthlyTotal, 'cad')} />
         </div>
       </div>
 
@@ -93,68 +93,130 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         </div>
       )}
 
-      {/* ── Hosting Plan ── */}
-      {hostingSubs.length > 0 && (
-        <div className="card overflow-hidden mb-6">
-          <div className="section-card-header">
-            <Layers className="w-4 h-4 text-gray-400" />
-            <h2 className="section-card-title">Hosting Plan</h2>
-          </div>
-          <div className="divide-y divide-gray-100">
+      {/* ── Subscription + Site Line Items ── */}
+      <div className="card overflow-hidden mb-6">
+        <div className="section-card-header">
+          <Layers className="w-4 h-4 text-gray-400" />
+          <h2 className="section-card-title">Subscription</h2>
+        </div>
+
+        {hostingSubs.length > 0 ? (
+          <>
+            {/* Subscription header */}
             {hostingSubs.map((sub: any) => (
-              <div key={sub.id} className="px-5 py-4">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-sm font-medium text-gray-900">{sub.products?.name ?? 'Hosting Plan'}</p>
-                  <span className={statusColor(sub.status)}>{sub.status}</span>
-                </div>
-                <div className="flex items-center gap-3 flex-wrap">
-                  {sub.billing_period && <span className="text-xs text-gray-400">{sub.billing_period}</span>}
-                  <span className="text-xs text-gray-500">{services.length} site{services.length !== 1 ? 's' : ''}</span>
-                  {sub.stripe_subscription_id && (
-                    <a href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
-                      className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{sub.stripe_subscription_id.slice(-8)}</a>
-                  )}
+              <div key={sub.id} className="px-5 py-3.5 bg-gray-50 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className={statusColor(sub.status)}>{sub.status}</span>
+                    {sub.status === 'paused' && (
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                        <PauseCircle className="w-3 h-3" /> No active sites — billing paused
+                      </span>
+                    )}
+                    {sub.billing_period && <span className="text-xs text-gray-400">{sub.billing_period}</span>}
+                    <span className="text-xs text-gray-500">{activeSites.length} active site{activeSites.length !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-900">{formatCents(monthlyTotal, 'cad')}/mo</span>
+                    {sub.stripe_subscription_id && (
+                      <a href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
+                        className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{sub.stripe_subscription_id.slice(-8)}</a>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      )}
 
-      {/* ── Sites ── */}
-      <div className="card overflow-hidden mb-6">
-        <div className="section-card-header">
-          <Server className="w-4 h-4 text-gray-400" />
-          <h2 className="section-card-title">Sites ({services.length})</h2>
-        </div>
-        {services.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-400">No sites.</div>
+            {/* Site line items */}
+            <div className="divide-y divide-gray-100">
+              {services.length === 0 ? (
+                <div className="px-5 py-8 text-center text-sm text-gray-400">No sites on this subscription.</div>
+              ) : (
+                services.map((s: any) => {
+                  const plan = s.products as any;
+                  const planMeta = (plan?.metadata as any) ?? {};
+                  const siteDomain = domains.find((d: any) => d.site_id === s.id);
+                  const siteMeta = (s.metadata as any) ?? {};
+                  const isCancelled = s.status === 'cancelled';
+                  const recoveryDeadline = siteMeta.recovery_deadline ? new Date(siteMeta.recovery_deadline) : null;
+                  const daysLeft = recoveryDeadline ? Math.max(0, Math.ceil((recoveryDeadline.getTime() - Date.now()) / 86400000)) : 0;
+
+                  return (
+                    <div key={s.id} className={`px-5 py-4 ${isCancelled ? 'bg-red-50/30' : 'hover:bg-gray-50/50'} transition-colors`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isCancelled ? 'bg-red-50' : 'bg-blue-50'}`}>
+                            <Server className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-600'}`} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <Link href={`/admin/services/${s.id}`} className="text-sm font-medium text-admin-600 hover:text-admin-700">
+                                {s.label}
+                              </Link>
+                              <span className={statusColor(s.status)}>{s.status}</span>
+                              {isCancelled && daysLeft > 0 && (
+                                <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">{daysLeft}d recovery</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {plan && (
+                                <span className="text-xs font-medium text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                                  {plan.name}
+                                </span>
+                              )}
+                              {siteDomain && (
+                                <span className="text-xs text-gray-400 inline-flex items-center gap-1">
+                                  <Globe className="w-3 h-3" /> {siteDomain.domain_name}
+                                </span>
+                              )}
+                              {s.server_region && <span className="text-xs text-gray-400">{s.server_region}</span>}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          {/* Plan price */}
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-gray-900">
+                              {plan?.price_cad ? formatCents(plan.price_cad, 'cad') : '—'}<span className="text-xs font-normal text-gray-400">/mo</span>
+                            </p>
+                          </div>
+                          {/* Link to admin site detail */}
+                          <Link href={`/admin/services/${s.id}`} className="text-gray-400 hover:text-admin-600 transition-colors">
+                            <ArrowUpRight className="w-4 h-4" />
+                          </Link>
+                        </div>
+                      </div>
+
+                      {/* Resource specs from plan */}
+                      {plan && !isCancelled && (
+                        <div className="ml-11 flex items-center gap-4 flex-wrap">
+                          <span className="text-[11px] text-gray-400 inline-flex items-center gap-1">
+                            <Zap className="w-3 h-3" /> {planMeta.php_workers_default ?? (s.config as any)?.php_workers ?? 2} workers
+                          </span>
+                          <span className="text-[11px] text-gray-400 inline-flex items-center gap-1">
+                            <HardDrive className="w-3 h-3" /> {planMeta.storage_gb ?? (s.config as any)?.storage_gb ?? 25} GB
+                          </span>
+                          {s.stripe_subscription_item_id && (
+                            <span className="text-[10px] text-gray-300 font-mono">item: {s.stripe_subscription_item_id.slice(-8)}</span>
+                          )}
+                          {s.wp_cloud_url && (
+                            <a href={s.wp_cloud_url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-gray-400 hover:text-admin-600 inline-flex items-center gap-1">
+                              <ExternalLink className="w-3 h-3" /> {s.wp_cloud_url.replace('https://', '')}
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {services.map((s: any) => {
-              const siteDomain = domains.find((d: any) => d.site_id === s.id);
-              return (
-                <div key={s.id} className="px-5 py-4">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <Link href={`/admin/services/${s.id}`} className="text-sm font-medium text-admin-600 hover:text-admin-700">{s.label}</Link>
-                    <span className={statusColor(s.status)}>{s.status}</span>
-                  </div>
-                  <div className="flex items-center gap-3 flex-wrap">
-                    {siteDomain && (
-                      <span className="text-xs text-gray-400 inline-flex items-center gap-1">
-                        <Globe className="w-3 h-3" /> {siteDomain.domain_name}
-                      </span>
-                    )}
-                    {s.wp_cloud_url && (
-                      <a href={s.wp_cloud_url} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:text-admin-600">
-                        {s.wp_cloud_url.replace('https://', '')}
-                      </a>
-                    )}
-                    {s.server_region && <span className="text-xs text-gray-400">{s.server_region}</span>}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="px-5 py-8 text-center">
+            <Layers className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">No hosting subscription.</p>
           </div>
         )}
       </div>
@@ -166,10 +228,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           <h2 className="section-card-title">Domains ({domains.length})</h2>
         </div>
         {domains.length === 0 && domainSubs.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-400">No domains or domain subscriptions.</div>
+          <div className="p-8 text-center text-sm text-gray-400">No domains.</div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {/* Domains with their linked subscription */}
             {domains.map((d: any) => {
               const linkedSub = domainSubs.find((sub: any) =>
                 (sub.metadata as any)?.domain_name === d.domain_name ||
@@ -195,7 +256,6 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                       <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">
                         <Link2 className="w-3 h-3" />
                         Renewal {linkedSub.status}
-                        {linkedSub.billing_period && <span className="text-emerald-500">· {linkedSub.billing_period}</span>}
                       </span>
                     ) : (
                       <AttachDomainSubscription domainName={d.domain_name} domainId={d.id} userId={user.id}
@@ -210,7 +270,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               );
             })}
 
-            {/* Orphaned domain subscriptions (no domain linked) */}
+            {/* Orphaned domain subscriptions */}
             {domainSubs.filter((sub: any) => {
               const dn = (sub.metadata as any)?.domain_name;
               return !domains.find((d: any) =>
@@ -227,7 +287,6 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                     <span className={statusColor(sub.status)}>{sub.status}</span>
                   </div>
                   <div className="flex items-center gap-3 flex-wrap">
-                    {sub.billing_period && <span className="text-xs text-gray-400">{sub.billing_period}</span>}
                     <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
                       <AlertTriangle className="w-3 h-3" /> No domain linked
                     </span>
@@ -241,56 +300,6 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             })}
           </div>
         )}
-      </div>
-
-      {/* ── Usage ── */}
-      <div className="card overflow-hidden mb-6">
-        <div className="section-card-header">
-          <CreditCard className="w-4 h-4 text-gray-400" />
-          <h2 className="section-card-title">Usage This Cycle</h2>
-        </div>
-        <div className="p-5">
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div>
-              <p className="text-xs text-gray-500">Used</p>
-              <p className="text-lg font-semibold text-gray-900">{usageMeter.usage_this_cycle}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Included</p>
-              <p className="text-lg font-semibold text-gray-900">{usageMeter.included_credits}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Overage</p>
-              <p className={`text-lg font-semibold ${usageMeter.current_overage > 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                {usageMeter.current_overage > 0 ? `$${usageMeter.current_overage}` : '—'}
-              </p>
-            </div>
-          </div>
-
-          <AdminCreditAdjust userId={user.id} />
-
-          {usageHistory.entries.length > 0 && (
-            <div className="mt-4 border-t border-gray-100 pt-4">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Recent Usage</p>
-              <div className="space-y-1.5">
-                {usageHistory.entries.slice(0, 10).map((e: any) => (
-                  <div key={e.id} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                      <span className="text-gray-600 truncate max-w-[250px]">{e.description}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-gray-700 font-medium">+{Number(e.amount).toFixed(2)}</span>
-                      <span className="text-gray-400 w-20 text-right">
-                        {new Date(e.created_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* ── Invoices ── */}
@@ -377,10 +386,10 @@ function InfoPill({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
-function CountPill({ label, count }: { label: string; count: number }) {
+function CountPill({ label, count, value }: { label: string; count?: number; value?: string }) {
   return (
     <div className="rounded-lg bg-gray-50 px-3.5 py-3 text-center">
-      <p className="text-lg font-semibold text-gray-900">{count}</p>
+      <p className="text-lg font-semibold text-gray-900">{value ?? count ?? 0}</p>
       <p className="text-[11px] text-gray-500 uppercase tracking-wider">{label}</p>
     </div>
   );

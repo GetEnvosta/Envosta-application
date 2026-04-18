@@ -34,10 +34,12 @@ export async function getSiteById(id: string) {
  */
 export async function getUserSitesWithSubscriptions(userId?: string) {
   const supabase = await createClient();
+  // Show active + provisioning + cancelled sites (cancelled have 30-day recovery)
+  // Only hide permanently deleted sites
   let query = supabase
     .from('sites')
     .select('*')
-    .not('status', 'in', '("cancelled","deleted")')
+    .not('status', 'eq', 'deleted')
     .order('created_at', { ascending: false });
   if (userId) query = query.eq('user_id', userId);
   const { data } = await query;
