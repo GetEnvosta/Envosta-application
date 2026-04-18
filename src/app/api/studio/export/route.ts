@@ -5,7 +5,7 @@ import JSZip from 'jszip';
 
 export const dynamic = 'force-dynamic';
 
-// ── Child theme.json (overrides parent) ──
+// ── Child theme.json (overrides Assembler parent) ──
 function buildChildThemeJson(style: any) {
   const colors = style.colors || {};
   const fonts = style.fonts || { heading: 'Playfair Display', body: 'Source Sans 3' };
@@ -15,43 +15,61 @@ function buildChildThemeJson(style: any) {
     version: 3,
     settings: {
       color: {
+        defaultPalette: false,
+        defaultGradients: false,
         palette: [
-          { slug: 'primary', color: colors.primary || '#1a1a2e', name: 'Primary' },
-          { slug: 'primary-light', color: colors.secondary || '#16213e', name: 'Primary Light' },
-          { slug: 'cta', color: colors.accent || '#e94560', name: 'CTA' },
-          { slug: 'cta-hover', color: colors.accent || '#e94560', name: 'CTA Hover' },
-          { slug: 'bg', color: colors.background || '#ffffff', name: 'Background' },
-          { slug: 'bg-soft', color: colors.surface || '#f8f8f6', name: 'Background Soft' },
-          { slug: 'bg-dark', color: colors.primary || '#111111', name: 'Background Dark' },
-          { slug: 'text', color: colors.text || '#1a1a1a', name: 'Text' },
-          { slug: 'text-muted', color: colors.textMuted || '#6b6b6b', name: 'Text Muted' },
-          { slug: 'text-light', color: '#ffffff', name: 'Text Light' },
-          { slug: 'border', color: colors.border || '#e5e5e5', name: 'Border' },
+          { slug: 'theme-1', color: colors.background || '#FFFFFF', name: 'Color 1' },
+          { slug: 'theme-2', color: colors.surface || '#EEEEEE', name: 'Color 2' },
+          { slug: 'theme-3', color: colors.border || colors.textMuted || '#BBBBBB', name: 'Color 3' },
+          { slug: 'theme-4', color: colors.primary || colors.text || '#1E1E1E', name: 'Color 4' },
+          { slug: 'theme-5', color: colors.accent || '#000000', name: 'Color 5' },
         ],
-        custom: false,
       },
       typography: {
         fontFamilies: [
           { fontFamily: `'${fonts.heading}', serif`, slug: 'heading', name: 'Heading' },
           { fontFamily: `'${fonts.body}', sans-serif`, slug: 'body', name: 'Body' },
         ],
-        customFontSize: false,
       },
       layout: {
-        contentSize: style.maxWidth || '760px',
-        wideSize: '1240px',
+        contentSize: style.maxWidth || '620px',
+        wideSize: '1440px',
       },
     },
     styles: {
-      color: { background: 'var(--wp--preset--color--bg)', text: 'var(--wp--preset--color--text)' },
-      typography: { fontFamily: 'var(--wp--preset--font-family--body)', fontSize: '1rem', lineHeight: '1.7' },
+      color: {
+        background: 'var(--wp--preset--color--theme-1)',
+        text: 'var(--wp--preset--color--theme-4)',
+      },
+      typography: {
+        fontFamily: 'var(--wp--preset--font-family--body)',
+        fontSize: '16px',
+        lineHeight: '1.65',
+      },
       elements: {
-        heading: { typography: { fontFamily: 'var(--wp--preset--font-family--heading)', fontWeight: '600', lineHeight: '1.2' } },
-        link: { color: { text: 'var(--wp--preset--color--cta)' }, ':hover': { color: { text: 'var(--wp--preset--color--cta-hover)' } } },
+        heading: {
+          typography: {
+            fontFamily: 'var(--wp--preset--font-family--heading)',
+            fontWeight: '500',
+          },
+        },
+        link: {
+          color: { text: 'currentColor' },
+        },
         button: {
-          color: { background: 'var(--wp--preset--color--cta)', text: '#ffffff' },
-          border: { radius: style.borderRadius || '9999px' },
-          typography: { fontFamily: 'var(--wp--preset--font-family--body)', fontWeight: '600' },
+          color: {
+            background: 'var(--wp--preset--color--theme-4)',
+            text: 'var(--wp--preset--color--theme-1)',
+          },
+          border: { radius: style.borderRadius || '0' },
+          typography: {
+            fontFamily: 'var(--wp--preset--font-family--heading)',
+            fontSize: 'var(--wp--preset--font-size--small)',
+            fontWeight: '450',
+          },
+          spacing: {
+            padding: { top: '16px', bottom: '16px', left: '24px', right: '24px' },
+          },
         },
       },
     },
@@ -70,7 +88,7 @@ Version: 1.0.0
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.0
-Template: envosta-theme
+Template: assembler
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: envosta-${slug}
@@ -86,7 +104,7 @@ function buildChildFunctionsPhp(fonts: any, slug: string) {
 
   return `<?php
 /**
- * Envosta Child Theme - ${slug}
+ * Envosta Child Theme (Assembler) - ${slug}
  */
 
 // Enqueue Google Fonts

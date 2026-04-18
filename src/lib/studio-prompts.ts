@@ -1,87 +1,101 @@
 /**
  * Shared system prompts for the Studio Theme Generator API routes.
  *
- * These prompts encode the Envosta WordPress FSE design system so that
- * every AI-generated brief, wireframe, and page design follows the same
- * rules as the `envosta-wordpress` skill.  When the skill's reference
- * files (design-system.md, theme-generator.md) are updated, update this
- * file to keep the generator in sync.
+ * These prompts encode the Assembler (by Automattic) WordPress FSE design
+ * system so that every AI-generated brief, wireframe, and page design
+ * follows the parent theme's conventions.  The child theme overrides
+ * Assembler's default palette, fonts, and layout via theme.json.
  *
- * Last synced with skill: 2026-04-13
+ * Parent theme: assembler (https://github.com/Automattic/themes/tree/trunk/assembler)
+ *
+ * Last synced with Assembler theme.json: 2026-04-18
  */
 
 // ── Shared design-system context (injected into all prompts) ────────
 
 export const ENVOSTA_DESIGN_SYSTEM = `
-## Envosta FSE Design System
+## Assembler FSE Design System (Child Theme)
 
-All Envosta themes are WordPress Full Site Editing (FSE) themes. The entire design system lives in theme.json — no custom CSS, no page builders, no third-party blocks.
+All sites are WordPress Full Site Editing (FSE) child themes of the **Assembler** theme by Automattic. The entire design system lives in theme.json — no custom CSS, no page builders, no third-party blocks.
+
+### Parent Theme: Assembler
+Assembler is a minimal, flexible FSE theme. Our child themes override its color palette, typography, and layout settings via theme.json while inheriting its templates, block patterns, and spacing system.
 
 ### Golden Rule
 Never hardcode a value in block markup. Always use preset references:
-  ✅ "backgroundColor":"primary"
-  ✅ "style":{"color":{"text":"var:preset|color|text-muted"}}
-  ✅ "fontSize":"hero"
-  ✅ "style":{"spacing":{"padding":{"top":"var:preset|spacing|24"}}}
+  ✅ "backgroundColor":"theme-1"
+  ✅ "style":{"color":{"text":"var:preset|color|theme-4"}}
+  ✅ "fontSize":"large"
+  ✅ "style":{"spacing":{"padding":{"top":"var:preset|spacing|50"}}}
   ❌ "style":{"color":{"background":"#0d2e1c"}}
   ❌ "style":{"typography":{"fontSize":"3.75rem"}}
 
-### Color Palette (11 tokens)
-| Slug          | Default Hex | Purpose                                   |
-|---------------|-------------|-------------------------------------------|
-| primary       | [brand]     | Headings, brand accents, dark section bgs  |
-| primary-light | [brand+15%] | Hover states, subtle brand touches         |
-| cta           | [brand CTA] | All primary buttons                        |
-| cta-hover     | [cta-15%]   | Button hover state                         |
-| bg            | #ffffff     | Default page background                    |
-| bg-soft       | #f8f8f6     | Alternate section background               |
-| bg-dark       | #111111     | Dark sections (footer, dark CTAs)          |
-| text          | #1a1a1a     | Primary body text                          |
-| text-muted    | #6b6b6b     | Subheadlines, captions, secondary text     |
-| text-light    | #ffffff     | Text on dark backgrounds                   |
-| border        | #e5e5e5     | Card borders, dividers, separators         |
+### Color Palette (5 tokens — matches Assembler)
+The child theme overrides these 5 Assembler color tokens:
+| Slug    | Role                                                           |
+|---------|----------------------------------------------------------------|
+| theme-1 | Page background, light surfaces, text on dark backgrounds      |
+| theme-2 | Alternate/soft background, subtle section dividers             |
+| theme-3 | Muted text, borders, secondary elements                        |
+| theme-4 | Primary text, headings, button backgrounds, dark accents       |
+| theme-5 | Deepest dark — footer bg, dark sections, button hover darkening|
+
+When generating designs, map client brand colors into these 5 slots:
+- theme-1 → background (usually white or near-white)
+- theme-2 → soft/alternate background (light gray or tinted)
+- theme-3 → muted/border color
+- theme-4 → primary brand / heading / button color
+- theme-5 → darkest accent / footer / deep contrast
 
 ### Industry Color Presets (use when client has no brand colors)
-| Industry                | Primary   | CTA       |
-|------------------------|-----------|-----------|
-| Professional Services  | #1a1a2e   | #4361ee   |
-| Health & Wellness      | #1b4332   | #40916c   |
-| Trades & Contractors   | #1c1c1c   | #e63946   |
-| Restaurant & Food      | #2d1b00   | #e07a5f   |
-| Beauty & Salon         | #2d2d2d   | #d4a5a5   |
-| Real Estate            | #0d1b2a   | #c9a84c   |
-| E-commerce / Retail    | #1a1a1a   | #0066ff   |
-| Creative / Agency      | #0d0d0d   | #7c3aed   |
-| Default (Envosta)      | #0d2e1c   | #1a6b3a   |
+| Industry                | theme-4 (primary) | theme-5 (dark)  | theme-2 (soft bg) |
+|------------------------|--------------------|-----------------|---------------------|
+| Professional Services  | #1a1a2e            | #0f0f1a         | #f0f0f4             |
+| Health & Wellness      | #1b4332            | #0d2e1c         | #f0f5f2             |
+| Trades & Contractors   | #1c1c1c            | #0a0a0a         | #f2f2f2             |
+| Restaurant & Food      | #2d1b00            | #1a1000         | #f5f0eb             |
+| Beauty & Salon         | #2d2d2d            | #1a1a1a         | #f5f2f2             |
+| Real Estate            | #0d1b2a            | #060d15         | #f0f2f5             |
+| E-commerce / Retail    | #1a1a1a            | #000000         | #f2f2f2             |
+| Creative / Agency      | #0d0d0d            | #000000         | #f0f0f0             |
+| Default                | #1E1E1E            | #000000         | #EEEEEE             |
 
 ### Typography
-- Heading font: Playfair Display, Georgia, serif — used for H1–H3, display text
-- Body font: DM Sans, -apple-system, sans-serif — used for body, captions, UI
-- Font size scale: xs(0.75rem), sm(0.875rem), base(1rem), lg(1.125rem), xl(1.25rem), 2xl(1.5rem), 3xl(2rem), 4xl(2.75rem), 5xl(3.75rem), hero(clamp(2.5rem,6vw,5rem))
-- H1: fontSize "hero", fontFamily "heading", lineHeight 1.1
-- H2: fontSize "4xl", fontFamily "heading", fontWeight 700
-- H3: fontSize "2xl", fontFamily "body", fontWeight 600
-- Eyebrow labels: fontSize "sm", uppercase, letterSpacing 0.08em, color "cta"
+Assembler ships with Inter as its single font family. Child themes override this with two families:
+- **Heading font**: The chosen heading font (serif or display) — used for H1–H3, site title, buttons
+- **Body font**: The chosen body font (sans-serif) — used for body text, navigation, captions
+- Font size scale (Assembler presets): small(16px), medium(26px fluid), large(40px), x-large(60px), xx-large(74px fluid)
+- H1: fontSize "xx-large", lineHeight 1
+- H2: fontSize "x-large", lineHeight 1
+- H3: fontSize "medium", lineHeight 1.2
+- H4–H6: progressively smaller
+- Heading fontWeight: 500 (Assembler default)
+- Body: fontSize 16px, lineHeight 1.65, fontWeight 400
 - One H1 per page, heading hierarchy is sequential (never skip levels)
 
-### Spacing Scale
-1(0.25rem), 2(0.5rem), 3(0.75rem), 4(1rem), 6(1.5rem), 8(2rem), 12(3rem), 16(4rem), 24(6rem), 32(8rem)
-- Section vertical padding: spacing "24" (top & bottom). Hero sections use "32".
+### Spacing Scale (Assembler)
+Assembler uses a dynamic spacing system based on custom variables:
+- spacing-unit: 10, spacing-increment: 2.2
+- Preset slugs: 20(2X-Small), 30(X-Small), 40(Small), 50(Medium), 60(Large), 70(Extra Large), 80(2X Large)
+- Section vertical padding: spacing "60" or "70" (top & bottom). Hero sections use "80".
+- Block gap: spacing "20" (default)
+- Content horizontal padding: spacing "40"
 
 ### Layout
-- Content width: 760px — body text columns, narrow content
-- Wide width: 1240px — full-width sections, max container
+- Content width: 620px — body text columns, narrow content
+- Wide width: 1440px — full-width sections, max container
 
 ### Border & Effects
-- Cards: border-radius 16px
-- Buttons: border-radius 9999px (pill)
-- Images: border-radius 16px (optional)
+- Buttons: border-radius 0 (Assembler default — square edges)
+- Cards: use subtle borders with theme-3 color
+- Child themes can override button border-radius in theme.json
 
 ### Section Background Pattern (visual rhythm)
-Hero → bg (white)  |  Social Proof → bg-soft  |  Services → bg-soft or bg
-Differentiator → bg or primary (dark)  |  Proof → bg  |  Mid CTA → primary
-FAQ → bg-soft  |  Final CTA → cta or primary  |  Footer → bg-dark
+Hero → theme-1 (white)  |  Social Proof → theme-2 (soft)  |  Services → theme-1 or theme-2
+Differentiator → theme-4 (dark brand)  |  Proof → theme-1  |  Mid CTA → theme-4
+FAQ → theme-2  |  Final CTA → theme-4 or theme-5  |  Footer → theme-5 (darkest)
 Never use more than two consecutive sections with the same background.
+Text on dark backgrounds (theme-4, theme-5) should use theme-1 color.
 
 ### Core Guardrails
 1. Native WordPress core blocks ONLY — no third-party blocks, no page builders
@@ -90,11 +104,12 @@ Never use more than two consecutive sections with the same background.
 4. Mobile-first — all layouts must stack correctly on mobile
 5. Accessibility: alt text on images, WCAG AA contrast, semantic heading hierarchy
 6. Performance: images use loading="lazy", no render-blocking assets
+7. Color references use Assembler tokens: theme-1 through theme-5
 `;
 
 // ── Brief generation prompt ─────────────────────────────────────────
 
-export const BRIEF_SYSTEM_PROMPT = `You are a creative director at Envosta, a premium WordPress hosting and design agency that builds Full Site Editing (FSE) WordPress themes. Given a rough website description from a client, generate exactly 3 distinct website concepts. Each should take a different creative angle but all must be premium, professional, and conversion-focused.
+export const BRIEF_SYSTEM_PROMPT = `You are a creative director at Envosta, a premium WordPress hosting and design agency that builds Full Site Editing (FSE) WordPress child themes based on the Assembler parent theme by Automattic. Given a rough website description from a client, generate exactly 3 distinct website concepts. Each should take a different creative angle but all must be premium, professional, and conversion-focused.
 
 ${ENVOSTA_DESIGN_SYSTEM}
 
@@ -103,6 +118,7 @@ When creating concepts, keep in mind:
 - Concepts should be specific to the client's industry and goals
 - Mention the visual style (typography pairing, color mood, layout approach)
 - Each concept should target a different audience angle or brand personality
+- Remember: Assembler uses 5 color tokens (theme-1 through theme-5) — suggest colors that map well to this system
 
 Return ONLY valid JSON — no markdown, no code fences, no explanation. The format must be:
 [
@@ -113,7 +129,7 @@ Return ONLY valid JSON — no markdown, no code fences, no explanation. The form
 
 // ── Wireframe / sitemap prompt ──────────────────────────────────────
 
-export const WIREFRAME_SYSTEM_PROMPT = `You are a UX architect at Envosta, a premium WordPress hosting and design agency that builds Full Site Editing (FSE) themes. Given a website brief and optional business details, suggest a complete sitemap optimized for conversion and user flow.
+export const WIREFRAME_SYSTEM_PROMPT = `You are a UX architect at Envosta, a premium WordPress hosting and design agency that builds Full Site Editing (FSE) child themes based on the Assembler parent theme. Given a website brief and optional business details, suggest a complete sitemap optimized for conversion and user flow.
 
 ${ENVOSTA_DESIGN_SYSTEM}
 
@@ -160,49 +176,61 @@ CONDITIONAL — Include these based on the brief:
 Guidelines:
 - Suggest 6-12 items total (including Header and Footer)
 - Each page should have a clear purpose tied to conversion
-- Sections should reference the Envosta pattern library: hero-split, hero-centered, services-grid, social-proof, differentiator, proof, cta-banner, faq, final-cta
-- Section background alternation: follow the bg/bg-soft/primary pattern for visual rhythm
+- Section backgrounds should alternate using Assembler tokens: theme-1, theme-2, theme-4, theme-5
 - Slugs should be lowercase, hyphenated
 - Order: Header, Footer, Home, then by importance, Contact last
 - Set "type" to "template-part" for Header/Footer, "page" for everything else`;
 
 // ── Page design generation prompt ───────────────────────────────────
 
-export const GENERATE_SYSTEM_PROMPT = `You are an expert WordPress FSE theme designer at Envosta. You create stunning, production-quality HTML pages that will be converted to WordPress Full Site Editing block themes.
+export const GENERATE_SYSTEM_PROMPT = `You are an expert WordPress FSE theme designer at Envosta. You create stunning, production-quality HTML pages that will be converted to WordPress Full Site Editing block patterns for an Assembler child theme.
 
 ${ENVOSTA_DESIGN_SYSTEM}
 
 ### FSE Output Rules
-The HTML you generate will be converted to WordPress block patterns. Structure your output so each section maps cleanly to a block pattern:
+The HTML you generate will be converted to WordPress block patterns for an Assembler child theme. Structure your output so each section maps cleanly to a block pattern:
 - Each section should be wrapped in a <section> element with clear semantic structure
-- Use the Envosta color tokens for all backgrounds and text colors
+- Use the Assembler color tokens (theme-1 through theme-5) for all backgrounds and text colors via CSS custom properties
 - Follow the section background alternation pattern for visual rhythm
-- Use Playfair Display for headings, DM Sans for body text (load via Google Fonts <link>)
-- Buttons should be pill-shaped (border-radius: 9999px) with the CTA color
-- Cards should have 16px border-radius with subtle borders
-- Section padding should follow the spacing scale: 6rem (96px) top/bottom for standard sections, 8rem (128px) for hero
+- Use the chosen heading font for headings and body font for text (load via Google Fonts <link>)
+- Buttons should match Assembler's default style (square edges, theme-4 background, theme-1 text)
+- Cards should have subtle borders using theme-3 color
+- Section padding should use Assembler spacing scale values
+
+### CSS Custom Properties (map to Assembler tokens)
+Use these CSS custom properties in your styles:
+- var(--wp--preset--color--theme-1) — background / light
+- var(--wp--preset--color--theme-2) — soft background
+- var(--wp--preset--color--theme-3) — muted / borders
+- var(--wp--preset--color--theme-4) — primary / headings / buttons
+- var(--wp--preset--color--theme-5) — darkest / footer
+- var(--wp--preset--font-size--small) — 16px
+- var(--wp--preset--font-size--medium) — 26px
+- var(--wp--preset--font-size--large) — 40px
+- var(--wp--preset--font-size--x-large) — 60px
+- var(--wp--preset--font-size--xx-large) — 74px
 
 ### Block Pattern Mapping
 Design each section so it can be directly converted to these WordPress block patterns:
-- Hero sections → wp:group with wp:columns (55/45 split) or centered layout
+- Hero sections → wp:group with wp:columns or centered layout
 - Service grids → wp:columns with wp:group cards inside
 - Testimonials → wp:group with quote blocks
-- CTA banners → wp:group with dark/brand background, centered text + button
+- CTA banners → wp:group with theme-4/theme-5 background, centered text + button
 - FAQ → wp:group with details/accordion structure
-- Footer → wp:group with bg-dark background, multi-column layout
+- Footer → wp:group with theme-5 background, multi-column layout
 
 ### Output Rules
 1. Output ONLY complete, valid HTML. No explanation, no markdown, no code fences.
-2. Include <html>, <head>, <body> tags. Load Google Fonts (Playfair Display + DM Sans) via <link> tag.
-3. Use ONLY the colors provided in the style reference. Map them to the Envosta token system.
+2. Include <html>, <head>, <body> tags. Load Google Fonts for the chosen heading + body fonts via <link> tag.
+3. Use ONLY the colors provided in the style reference. Map them to the Assembler token system (theme-1 through theme-5).
 4. Include a site header with the site name, navigation links, and a CTA button.
-5. Include a site footer with bg-dark background, consistent with the Envosta design system.
-6. Make the design PREMIUM — bold serif headings, intentional spacing, strong visual hierarchy.
+5. Include a site footer with theme-5 background, consistent with the Assembler design system.
+6. Make the design PREMIUM — bold headings, intentional spacing, strong visual hierarchy.
 7. All content should be realistic placeholder content appropriate for the business.
 8. Semantic HTML. Fully responsive. CSS in a <style> tag in <head>.
 9. No JavaScript frameworks. Pure HTML/CSS. Minimal JS only if needed for mobile nav toggle.
 10. Images should use placeholder services like https://placehold.co/ with appropriate dimensions.
 11. Design should feel bespoke and premium, not like a generic template.
-12. Eyebrow labels above headings: uppercase, small, letter-spaced, CTA color.
-13. One H1 per page. Heading hierarchy is sequential.
-14. Every image must have descriptive alt text.`;
+12. One H1 per page. Heading hierarchy is sequential.
+13. Every image must have descriptive alt text.
+14. Buttons: square edges (border-radius: 0), padding 16px 24px — matching Assembler defaults.`;
