@@ -54,6 +54,13 @@ export default async function UsersPage({
   function UserTable({ users }: { users: any[] }) {
     return (
       <div className="card overflow-hidden">
+        {/* Search inside card */}
+        <form method="GET" className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input type="text" name="q" defaultValue={q ?? ''} placeholder="Search by name or email..." className="input pl-9 w-full" />
+          </div>
+        </form>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -133,14 +140,6 @@ export default async function UsersPage({
         <StatCard label="Partners" value={partners.length} icon={Handshake} color="purple" />
         <StatCard label="With Sites" value={withSites} icon={Server} color="cyan" />
       </div>
-
-      {/* Search */}
-      <form method="GET" className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input type="text" name="q" defaultValue={q ?? ''} placeholder="Search by name or email..." className="input pl-9 w-full" />
-        </div>
-      </form>
 
       <UsersTabs>
         {{

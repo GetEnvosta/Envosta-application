@@ -68,21 +68,16 @@ export default async function DomainsPage({
         <StatCard label="Auto-Renew" value={autoRenew} icon={RefreshCw} color="purple" />
       </div>
 
-      {/* Filters */}
-      <form className="filter-bar">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              name="q"
-              defaultValue={search}
-              placeholder="Search by domain name..."
-              className="input pl-9 w-full"
-            />
-          </div>
-          <div>
-            <select name="status" defaultValue={statusFilter} className="input w-full sm:w-44">
+      {/* Table */}
+      <div className="card overflow-hidden">
+        {/* Search + Filter inside card */}
+        <form className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input type="text" name="q" defaultValue={search} placeholder="Search by domain name..." className="input pl-9 w-full" />
+            </div>
+            <select name="status" defaultValue={statusFilter} className="input w-auto sm:w-44">
               <option value="">All statuses</option>
               {STATUSES.map(s => (
                 <option key={s} value={s}>
@@ -90,13 +85,9 @@ export default async function DomainsPage({
                 </option>
               ))}
             </select>
+            <button type="submit" className="btn-admin">Filter</button>
           </div>
-          <button type="submit" className="btn-admin">Filter</button>
-        </div>
-      </form>
-
-      {/* Table */}
-      <div className="card overflow-hidden">
+        </form>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

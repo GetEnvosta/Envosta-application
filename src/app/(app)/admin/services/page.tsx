@@ -55,21 +55,22 @@ export default async function SitesAdminPage({
         <StatCard label="Suspended" value={suspendedSites} icon={AlertTriangle} color="red" />
       </div>
 
-      {/* Search + Filter */}
-      <form method="GET" className="filter-bar"><div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input type="text" name="q" defaultValue={q ?? ''} placeholder="Search by site name or email..." className="input pl-9 w-full" />
-        </div>
-        <select name="status" defaultValue={status ?? ''} className="input w-auto">
-          <option value="">All statuses</option>
-          {STATUSES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-        </select>
-        <button type="submit" className="btn-admin">Filter</button>
-      </div></form>
-
       {/* Table */}
       <div className="card overflow-hidden">
+        {/* Search + Filter inside card */}
+        <form method="GET" className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input type="text" name="q" defaultValue={q ?? ''} placeholder="Search by site name or email..." className="input pl-9 w-full" />
+            </div>
+            <select name="status" defaultValue={status ?? ''} className="input w-auto">
+              <option value="">All statuses</option>
+              {STATUSES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+            </select>
+            <button type="submit" className="btn-admin">Filter</button>
+          </div>
+        </form>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
