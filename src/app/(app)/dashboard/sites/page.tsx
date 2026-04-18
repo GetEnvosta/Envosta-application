@@ -2,9 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import { getUserSitesWithSubscriptions } from '@/services/sites';
 import { getEffectiveUserId } from '@/services/auth';
-import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
-import { ExternalLink, Globe, Loader2, Plus, Server, Rocket, ArrowRight, HardDrive, Zap } from 'lucide-react';
+import { Globe, Loader2, Plus, Server, Rocket, ArrowRight, RotateCcw } from 'lucide-react';
 
 export default async function SitesPage() {
   const userId = await getEffectiveUserId();
@@ -41,18 +40,18 @@ export default async function SitesPage() {
         <div className="grid grid-cols-1 gap-4">
           {services.map((site: any) => {
             const planName = site.products?.name ?? 'Starter';
+            const planPrice = site.products?.price_cad ?? 0;
             const status: string = site.status ?? 'provisioning';
             const isProvisioning = status === 'provisioning';
-            const isTrial = (site as any).subscriptions?.status === 'trialing';
-            const config = (site as any).config ?? {};
-            const phpWorkers = config.php_workers ?? 2;
-            const ssdGb = config.storage_gb ?? 25;
-            const bursting = (site as any).bursting_enabled ?? false;
-            const monthlyCost = (phpWorkers * 8) + (ssdGb * 0.8) + (bursting ? 10 : 0);
+            const isCancelled = status === 'cancelled';
+            const meta = site.metadata ?? {};
+            const recoveryDeadline = meta.recovery_deadline ? new Date(meta.recovery_deadline) : null;
+            const daysLeft = recoveryDeadline ? Math.max(0, Math.ceil((recoveryDeadline.getTime() - Date.now()) / 86400000)) : null;
 
             const statusDot =
               status === 'active' ? 'bg-emerald-500'
               : status === 'provisioning' ? 'bg-amber-500 animate-pulse'
+              : status === 'cancelled' ? 'bg-orange-400'
               : status === 'suspended' ? 'bg-red-500'
               : 'bg-gray-400';
 
@@ -93,7 +92,6 @@ export default async function SitesPage() {
                         <div className={`w-2 h-2 rounded-full ${statusDot}`} />
                         <span className="text-xs text-gray-500 capitalize">{status}</span>
                       </div>
-                      {isTrial && <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">Trial</span>}
                     </div>
 
                     {site.wp_cloud_url && (
@@ -102,31 +100,30 @@ export default async function SitesPage() {
                       </p>
                     )}
 
-                    {/* Specs row */}
+                    {/* Plan & price */}
                     <div className="flex items-center gap-3 mt-2 text-[11px] text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <Server className="w-3 h-3" /> {phpWorkers} workers
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">
+                        {planName}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <HardDrive className="w-3 h-3" /> {ssdGb}GB
-                      </span>
-                      {bursting && (
-                        <span className="flex items-center gap-1 text-amber-500">
-                          <Zap className="w-3 h-3" /> Bursting
-                        </span>
+                      {isCancelled && daysLeft !== null && (
+                        <span className="text-orange-600 font-medium">{daysLeft} days to recover</span>
                       )}
-                      <span className="ml-auto font-medium text-gray-500">{monthlyCost} cr/mo</span>
+                      <span className="ml-auto font-medium text-gray-500">${planPrice}/mo</span>
                     </div>
                   </div>
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 shrink-0">
-                    {site.wp_cloud_url && (
+                    {isCancelled ? (
+                      <span className="text-xs text-orange-600 font-medium px-2.5 py-1.5 rounded-md bg-orange-50">
+                        <RotateCcw className="w-3 h-3 inline mr-1" />Recover
+                      </span>
+                    ) : site.wp_cloud_url ? (
                       <a href={`${site.wp_cloud_url}/wp-admin`} target="_blank" rel="noopener noreferrer"
                         className="text-xs text-gray-500 hover:text-gray-700 px-2.5 py-1.5 rounded-md hover:bg-gray-100 transition-colors relative z-10">
                         WP Admin
                       </a>
-                    )}
+                    ) : null}
                     <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-brand-600 transition-colors" />
                   </div>
                 </div>
