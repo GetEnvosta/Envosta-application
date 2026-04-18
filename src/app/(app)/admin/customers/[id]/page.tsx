@@ -51,7 +51,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         <ArrowLeft className="w-4 h-4" /> Back to Customers
       </Link>
 
-      {/* ── Customer Overview ── */}
+      {/* ── Customer Overview + Billing Actions ── */}
       <div className="card p-6 mb-6">
         <div className="flex items-start gap-4 mb-5">
           <Avatar name={user.full_name || user.email} size="lg" />
@@ -62,12 +62,18 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             </div>
             <p className="text-sm text-gray-500">{user.email}</p>
           </div>
-          {user.stripe_customer_id && (
-            <a href={`https://dashboard.stripe.com/customers/${user.stripe_customer_id}`} target="_blank" rel="noopener noreferrer"
-              className="btn-secondary text-xs py-1.5 px-3 inline-flex items-center gap-1.5 shrink-0">
-              <ExternalLink className="w-3 h-3" /> Stripe
-            </a>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {user.stripe_customer_id && (
+              <>
+                <ChargeCard customerId={id} customerName={user.full_name || user.email} />
+                <QuickInvoice stripeCustomerId={user.stripe_customer_id} customerName={user.full_name || user.email} />
+                <a href={`https://dashboard.stripe.com/customers/${user.stripe_customer_id}`} target="_blank" rel="noopener noreferrer"
+                  className="btn-secondary text-xs py-1.5 px-3 inline-flex items-center gap-1.5">
+                  <ExternalLink className="w-3 h-3" /> Stripe
+                </a>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
@@ -85,52 +91,41 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         </div>
       </div>
 
-      {/* ── Billing Actions ── */}
-      {user.stripe_customer_id && (
-        <div className="mb-6 flex items-start gap-3 flex-wrap">
-          <ChargeCard customerId={id} customerName={user.full_name || user.email} />
-          <QuickInvoice stripeCustomerId={user.stripe_customer_id} customerName={user.full_name || user.email} />
-        </div>
-      )}
-
-      {/* ── Subscription + Site Line Items ── */}
+      {/* ── Sites ── */}
       <div className="card overflow-hidden mb-6">
+        {/* Single header with subscription status */}
         <div className="section-card-header">
-          <Layers className="w-4 h-4 text-gray-400" />
-          <h2 className="section-card-title">Subscription</h2>
+          <Server className="w-4 h-4 text-gray-400" />
+          <h2 className="section-card-title">Sites ({activeSites.length})</h2>
+          <div className="ml-auto flex items-center gap-3">
+            {hostingSubs.length > 0 && (() => {
+              const sub = hostingSubs[0] as any;
+              return (
+                <>
+                  <span className={statusColor(sub.status)}>{sub.status}</span>
+                  {sub.status === 'paused' && (
+                    <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                      <PauseCircle className="w-3 h-3" /> Paused
+                    </span>
+                  )}
+                  <span className="text-sm font-semibold text-gray-900">{formatCents(monthlyTotal, 'cad')}/mo</span>
+                  {sub.stripe_subscription_id && (
+                    <a href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
+                      className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{sub.stripe_subscription_id.slice(-8)}</a>
+                  )}
+                </>
+              );
+            })()}
+            {hostingSubs.length === 0 && (
+              <span className="text-xs text-gray-400">No subscription</span>
+            )}
+          </div>
         </div>
 
-        {hostingSubs.length > 0 ? (
-          <>
-            {/* Subscription header */}
-            {hostingSubs.map((sub: any) => (
-              <div key={sub.id} className="px-5 py-3.5 bg-gray-50 border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className={statusColor(sub.status)}>{sub.status}</span>
-                    {sub.status === 'paused' && (
-                      <span className="inline-flex items-center gap-1 text-xs text-amber-600">
-                        <PauseCircle className="w-3 h-3" /> No active sites — billing paused
-                      </span>
-                    )}
-                    {sub.billing_period && <span className="text-xs text-gray-400">{sub.billing_period}</span>}
-                    <span className="text-xs text-gray-500">{activeSites.length} active site{activeSites.length !== 1 ? 's' : ''}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-900">{formatCents(monthlyTotal, 'cad')}/mo</span>
-                    {sub.stripe_subscription_id && (
-                      <a href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
-                        className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{sub.stripe_subscription_id.slice(-8)}</a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {/* Site line items */}
-            <div className="divide-y divide-gray-100">
+        {/* Site list */}
+        <div className="divide-y divide-gray-100">
               {services.length === 0 ? (
-                <div className="px-5 py-8 text-center text-sm text-gray-400">No sites on this subscription.</div>
+                <div className="px-5 py-8 text-center text-sm text-gray-400">No sites.</div>
               ) : (
                 services.map((s: any) => {
                   const plan = s.products as any;
@@ -212,13 +207,6 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                 })
               )}
             </div>
-          </>
-        ) : (
-          <div className="px-5 py-8 text-center">
-            <Layers className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No hosting subscription.</p>
-          </div>
-        )}
       </div>
 
       {/* ── Domains & Renewals ── */}
@@ -238,11 +226,19 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                 sub.stripe_subscription_id === (d.metadata as any)?.renewal_stripe_subscription_id
               );
               const linkedSite = services.find((s: any) => s.id === d.site_id);
+              const domainPrice = (linkedSub?.products as any)?.price_cad ?? 0;
               return (
                 <div key={d.id} className="px-5 py-4">
                   <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-sm font-medium text-gray-900">{d.domain_name}</p>
-                    <span className={statusColor(d.status)}>{d.status}</span>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-gray-900">{d.domain_name}</p>
+                      <span className={statusColor(d.status)}>{d.status}</span>
+                    </div>
+                    {domainPrice > 0 && (
+                      <p className="text-sm font-semibold text-gray-900">
+                        {formatCents(domainPrice, 'cad')}<span className="text-xs font-normal text-gray-400">/yr</span>
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 flex-wrap">
                     {linkedSite && (
