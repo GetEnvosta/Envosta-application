@@ -38,7 +38,7 @@ export async function getUserSitesWithSubscriptions(userId?: string) {
   // Only hide permanently deleted sites
   let query = supabase
     .from('sites')
-    .select('*, products(name, slug, price_cad)')
+    .select('*, products(name, slug, price_cad), domains(domain_name)')
     .not('status', 'eq', 'deleted')
     .order('created_at', { ascending: false });
   if (userId) query = query.eq('user_id', userId);

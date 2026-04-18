@@ -48,6 +48,12 @@ export default async function SitesPage() {
             const recoveryDeadline = meta.recovery_deadline ? new Date(meta.recovery_deadline) : null;
             const daysLeft = recoveryDeadline ? Math.max(0, Math.ceil((recoveryDeadline.getTime() - Date.now()) / 86400000)) : null;
 
+            // Domain: use linked custom domain, otherwise show wp_cloud_url as temporary
+            const linkedDomains = Array.isArray(site.domains) ? site.domains : [];
+            const customDomain = linkedDomains.length > 0 ? linkedDomains[0].domain_name : null;
+            const displayDomain = customDomain || (site.wp_cloud_url ? site.wp_cloud_url.replace(/^https?:\/\//, '') : null);
+            const isTemporary = !customDomain && !!site.wp_cloud_url;
+
             const statusDot =
               status === 'active' ? 'bg-emerald-500'
               : status === 'provisioning' ? 'bg-amber-500 animate-pulse'
@@ -94,9 +100,10 @@ export default async function SitesPage() {
                       </div>
                     </div>
 
-                    {site.wp_cloud_url && (
+                    {displayDomain && (
                       <p className="text-xs text-gray-400 mt-0.5 truncate">
-                        {site.wp_cloud_url.replace(/^https?:\/\//, '')}
+                        {displayDomain}
+                        {isTemporary && <span className="ml-1.5 text-[10px] text-amber-500 font-medium">temporary</span>}
                       </p>
                     )}
 
