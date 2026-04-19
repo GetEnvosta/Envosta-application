@@ -1,12 +1,11 @@
 'use client';
 
-import { Check, MessageSquare, Layout, Paintbrush, Download } from 'lucide-react';
+import { Check, MessageSquare, Paintbrush, Download } from 'lucide-react';
 
 const STEPS = [
   { id: 1, label: 'Brief', icon: MessageSquare },
-  { id: 2, label: 'Wireframe', icon: Layout },
-  { id: 3, label: 'Design', icon: Paintbrush },
-  { id: 4, label: 'Export', icon: Download },
+  { id: 2, label: 'Design', icon: Paintbrush },
+  { id: 3, label: 'Export', icon: Download },
 ];
 
 export function StudioSteps({ currentStep, onStepClick }: { currentStep: number; onStepClick?: (step: number) => void }) {

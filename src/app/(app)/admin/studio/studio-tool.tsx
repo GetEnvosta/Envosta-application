@@ -3,7 +3,6 @@
 import { useState, useCallback } from 'react';
 import { StudioSteps } from '@/components/studio/studio-steps';
 import { StepBrief } from '@/components/studio/step-brief';
-import { StepWireframe } from '@/components/studio/step-wireframe';
 import { StepDesign } from '@/components/studio/step-design';
 import { StepExport } from '@/components/studio/step-export';
 import { Paintbrush, RotateCcw } from 'lucide-react';
@@ -16,8 +15,7 @@ export function StudioTool() {
   const [brief, setBrief] = useState('');
   const [briefOptions, setBriefOptions] = useState<any[]>([]);
   const [selectedBrief, setSelectedBrief] = useState<number | null>(null);
-  const [businessInfo, setBusinessInfo] = useState<any>({});
-  const [wireframe, setWireframe] = useState<any[]>([]);
+  const [businessInfo, setBusinessInfo] = useState<any>({ pages: ['Home', 'About', 'Services', 'Contact'] });
   const [styleConfig, setStyleConfig] = useState<any>({});
   const [pages, setPages] = useState<any[]>([]);
   const [selectedPageId, setSelectedPageId] = useState('');
@@ -29,8 +27,7 @@ export function StudioTool() {
     setBrief('');
     setBriefOptions([]);
     setSelectedBrief(null);
-    setBusinessInfo({});
-    setWireframe([]);
+    setBusinessInfo({ pages: ['Home', 'About', 'Services', 'Contact'] });
     setStyleConfig({});
     setPages([]);
     setSelectedPageId('');
@@ -74,34 +71,25 @@ export function StudioTool() {
             onSelect={(idx) => {
               setSelectedBrief(idx);
               if (businessInfo.businessName) setProjectName(businessInfo.businessName);
-              setStep(2);
-            }}
-          />
-        )}
-        {step === 2 && (
-          <StepWireframe
-            projectId=""
-            wireframe={wireframe}
-            brief={briefOptions[selectedBrief ?? 0]?.description || brief}
-            businessInfo={businessInfo}
-            onWireframeChange={setWireframe}
-            onApprove={(wf) => {
-              setWireframe(wf);
-              const newPages = wf.map((page: any, i: number) => ({
+              const pageNames: string[] = (businessInfo.pages && businessInfo.pages.length > 0)
+                ? businessInfo.pages
+                : ['Home', 'About', 'Services', 'Contact'];
+              const selectedConcept = briefOptions[idx]?.description || brief;
+              const newPages = pageNames.map((name: string, i: number) => ({
                 id: localId(),
-                title: page.name,
-                slug: page.slug,
-                prompt: page.description + (page.sections ? '\n\nSections: ' + page.sections.join(', ') : ''),
+                title: name,
+                slug: name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `page-${i + 1}`,
+                prompt: `${name} page for this website. Concept: ${selectedConcept}`,
                 sort_order: i,
                 html: '',
               }));
               setPages(newPages);
               if (newPages.length > 0) setSelectedPageId(newPages[0].id);
-              setStep(3);
+              setStep(2);
             }}
           />
         )}
-        {step === 3 && (
+        {step === 2 && (
           <StepDesign
             projectId=""
             styleConfig={styleConfig}
@@ -111,10 +99,10 @@ export function StudioTool() {
             onStyleChange={setStyleConfig}
             onPagesChange={setPages}
             onSelectPage={setSelectedPageId}
-            onContinue={() => setStep(4)}
+            onContinue={() => setStep(3)}
           />
         )}
-        {step === 4 && (
+        {step === 3 && (
           <StepExport
             projectId=""
             project={{ name: projectName || 'Theme', slug: (projectName || 'theme').toLowerCase().replace(/[^a-z0-9]+/g, '-') }}

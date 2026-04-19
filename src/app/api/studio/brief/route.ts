@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   if (!apiKey) return NextResponse.json({ error: 'AI not configured' }, { status: 503 });
 
   try {
-    const { brief, businessInfo, referenceHtml } = await req.json();
+    const { brief, businessInfo, pages, referenceHtml } = await req.json();
     if (!brief || typeof brief !== 'string' || brief.trim().length < 10) {
       return NextResponse.json({ error: 'Please describe the website in at least a few words' }, { status: 400 });
     }
@@ -41,10 +41,13 @@ export async function POST(req: Request) {
     let userMessage = brief.trim();
     if (businessInfo && typeof businessInfo === 'object') {
       const details = Object.entries(businessInfo)
-        .filter(([, v]) => v)
+        .filter(([k, v]) => v && k !== 'pages')
         .map(([k, v]) => `${k}: ${v}`)
         .join('\n');
       if (details) userMessage += `\n\nBusiness Details:\n${details}`;
+    }
+    if (Array.isArray(pages) && pages.length > 0) {
+      userMessage += `\n\nPages the site should include: ${pages.join(', ')}`;
     }
     if (referenceHtml && typeof referenceHtml === 'string') {
       // Cap HTML reference to avoid token explosion

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, Loader2, ChevronDown, ChevronUp, Globe, Search, Upload, FileCode, X } from 'lucide-react';
+import { Sparkles, Loader2, ChevronDown, ChevronUp, Globe, Search, Upload, FileCode, X, Plus } from 'lucide-react';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 
 const INDUSTRIES = [
@@ -10,6 +10,8 @@ const INDUSTRIES = [
   'Fitness / Wellness', 'Beauty / Salon', 'Automotive', 'Non-Profit',
   'Education', 'Technology', 'Creative / Agency', 'Legal', 'Finance', 'Other',
 ];
+
+const SUGGESTED_PAGES = ['Home', 'About', 'Services', 'Contact', 'Blog', 'Gallery', 'Testimonials', 'FAQ', 'Pricing', 'Portfolio', 'Team', 'Careers'];
 
 export function StepBrief({
   projectId,
@@ -41,8 +43,27 @@ export function StepBrief({
   const [scrapeUrl, setScrapeUrl] = useState('');
   const [referenceHtml, setReferenceHtml] = useState('');
   const [htmlFileName, setHtmlFileName] = useState('');
+  const [customPage, setCustomPage] = useState('');
 
   const form = businessInfo;
+  const pages: string[] = Array.isArray(form.pages) ? form.pages : ['Home', 'About', 'Services', 'Contact'];
+
+  function togglePage(name: string) {
+    const next = pages.includes(name) ? pages.filter(p => p !== name) : [...pages, name];
+    onBusinessInfoChange({ ...form, pages: next });
+  }
+
+  function addCustomPage() {
+    const name = customPage.trim();
+    if (!name) return;
+    if (pages.some(p => p.toLowerCase() === name.toLowerCase())) { setCustomPage(''); return; }
+    onBusinessInfoChange({ ...form, pages: [...pages, name] });
+    setCustomPage('');
+  }
+
+  function removePage(name: string) {
+    onBusinessInfoChange({ ...form, pages: pages.filter(p => p !== name) });
+  }
 
   function set(key: string) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -94,6 +115,7 @@ export function StepBrief({
         body: JSON.stringify({
           brief: brief.trim(),
           businessInfo: Object.values(form).some((v: any) => v) ? form : undefined,
+          pages,
           referenceHtml: referenceHtml || undefined,
         }),
       });
@@ -196,6 +218,55 @@ export function StepBrief({
                   </button>
                 </div>
               )}
+            </div>
+
+            {/* Pages wanted */}
+            <div className="rounded-xl border border-gray-200 overflow-hidden mb-4">
+              <div className="px-5 py-3 bg-gray-50 border-b border-gray-100">
+                <p className="text-sm font-medium text-gray-700">Pages wanted <span className="text-xs text-gray-400 font-normal">— {pages.length} selected</span></p>
+              </div>
+              <div className="px-5 py-4">
+                {pages.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {pages.map(name => (
+                      <span key={name} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-medium">
+                        {name}
+                        <button onClick={() => removePage(name)} className="hover:text-red-500">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {SUGGESTED_PAGES.filter(s => !pages.includes(s)).map(name => (
+                    <button
+                      key={name}
+                      onClick={() => togglePage(name)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900 text-xs font-medium border border-gray-200 transition-colors"
+                    >
+                      <Plus className="w-3 h-3" /> {name}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={customPage}
+                    onChange={e => setCustomPage(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomPage(); } }}
+                    className={inputClass}
+                    placeholder="Add custom page (e.g. Case Studies)"
+                  />
+                  <button
+                    onClick={addCustomPage}
+                    disabled={!customPage.trim()}
+                    className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 shrink-0"
+                  >
+                    <Plus className="w-4 h-4" /> Add
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Collapsible business details */}
