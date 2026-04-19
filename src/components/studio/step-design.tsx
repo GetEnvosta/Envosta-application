@@ -6,12 +6,13 @@ import {
   Sparkles, Loader2, Check, FileText, Palette, ArrowRight, Send,
   Monitor, Tablet, Smartphone, Eye, PanelLeftClose, PanelLeftOpen,
   PanelRightClose, PanelRightOpen, Plus, Trash2, LayoutTemplate,
-  Upload, X, Globe2, FileUp,
+  Upload, X, Globe2, FileUp, Download,
 } from 'lucide-react';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 import { STUDIO_PRESETS, type StudioStylePreset } from '@/lib/studio-style-presets';
 import { extractStylesFromHtml } from '@/lib/extract-styles-from-html';
 import { stripHtmlForPage } from '@/lib/studio-html-strip';
+import { downloadPageAsXml } from '@/lib/studio-wxr';
 
 const FONT_OPTIONS = [
   'Playfair Display', 'DM Serif Display', 'Fraunces', 'Libre Baskerville',
@@ -217,6 +218,19 @@ export function StepDesign({
 
   // Cleanup any pending timers on unmount
   useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
+
+  function exportPageXml(pageId: string) {
+    const page = pages.find(p => p.id === pageId);
+    if (!page) return;
+    if (!page.html) { setStatus({ type: 'error', msg: 'Generate or import HTML first' }); return; }
+    const siteName = styleConfig.siteName || 'Untitled';
+    downloadPageAsXml(siteName, {
+      title: page.title,
+      slug: page.slug || page.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+      html: page.html,
+    });
+    setStatus({ type: 'success', msg: `Exported ${page.title}.xml` });
+  }
 
   async function importPageHtml(pageId: string, file: File) {
     try {
@@ -437,6 +451,11 @@ export function StepDesign({
                       if (file) await importPageHtml(page!.id, file);
                     }} />
                   </label>
+                  <button onClick={() => exportPageXml(page!.id)} disabled={!page!.html}
+                    className="p-0.5 rounded text-gray-300 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-300"
+                    title="Export just this part as WordPress XML">
+                    <Download className="w-2.5 h-2.5" />
+                  </button>
                   <button onClick={() => promoteToGlobal(page!.id)} disabled={!page!.html}
                     className="p-0.5 rounded text-gray-300 hover:text-emerald-600 disabled:opacity-30 disabled:hover:text-gray-300"
                     title="Use this part's styles as global styles">
@@ -477,6 +496,11 @@ export function StepDesign({
                         if (file) await importPageHtml(page.id, file);
                       }} />
                     </label>
+                    <button onClick={() => exportPageXml(page.id)} disabled={!page.html}
+                      className="p-0.5 rounded text-gray-300 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-300"
+                      title="Export just this page as WordPress XML">
+                      <Download className="w-2.5 h-2.5" />
+                    </button>
                     <button onClick={() => promoteToGlobal(page.id)} disabled={!page.html}
                       className="p-0.5 rounded text-gray-300 hover:text-emerald-600 disabled:opacity-30 disabled:hover:text-gray-300"
                       title="Use this page's styles as global styles (affects all pages)">

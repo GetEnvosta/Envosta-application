@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { isStaffRole } from '@/lib/roles';
 import JSZip from 'jszip';
+import { buildWxrXml } from '@/lib/studio-wxr';
 
 export const dynamic = 'force-dynamic';
 
@@ -128,69 +129,7 @@ add_action('enqueue_block_editor_assets', function() {
 `;
 }
 
-// ── WXR XML content export ──
-function buildWxrXml(siteName: string, pages: any[]) {
-  const now = new Date().toISOString();
-
-  const items = pages.filter(p => p.html).map((page, i) => {
-    // Escape CDATA end sequences in content
-    const content = (page.html || '').replace(/]]>/g, ']]]]><![CDATA[>');
-
-    return `
-    <item>
-      <title>${escapeXml(page.title)}</title>
-      <link></link>
-      <pubDate>${now}</pubDate>
-      <dc:creator><![CDATA[admin]]></dc:creator>
-      <description></description>
-      <content:encoded><![CDATA[${content}]]></content:encoded>
-      <excerpt:encoded><![CDATA[]]></excerpt:encoded>
-      <wp:post_id>${i + 10}</wp:post_id>
-      <wp:post_date>${now}</wp:post_date>
-      <wp:post_date_gmt>${now}</wp:post_date_gmt>
-      <wp:post_modified>${now}</wp:post_modified>
-      <wp:post_modified_gmt>${now}</wp:post_modified_gmt>
-      <wp:comment_status>closed</wp:comment_status>
-      <wp:ping_status>closed</wp:ping_status>
-      <wp:post_name>${escapeXml(page.slug)}</wp:post_name>
-      <wp:status>publish</wp:status>
-      <wp:post_parent>0</wp:post_parent>
-      <wp:menu_order>${i}</wp:menu_order>
-      <wp:post_type>page</wp:post_type>
-      <wp:is_sticky>0</wp:is_sticky>
-    </item>`;
-  }).join('\n');
-
-  return `<?xml version="1.0" encoding="UTF-8" ?>
-<rss version="2.0"
-  xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/"
-  xmlns:content="http://purl.org/rss/1.0/modules/content/"
-  xmlns:dc="http://purl.org/dc/elements/1.1/"
-  xmlns:wp="http://wordpress.org/export/1.2/"
->
-  <channel>
-    <title>${escapeXml(siteName)}</title>
-    <link>https://example.com</link>
-    <description>${escapeXml(siteName)} — Built with Envosta Studio</description>
-    <language>en-US</language>
-    <wp:wxr_version>1.2</wp:wxr_version>
-    <wp:base_site_url>https://example.com</wp:base_site_url>
-    <wp:base_blog_url>https://example.com</wp:base_blog_url>
-
-    <wp:author>
-      <wp:author_id>1</wp:author_id>
-      <wp:author_login><![CDATA[admin]]></wp:author_login>
-      <wp:author_email><![CDATA[admin@envosta.com]]></wp:author_email>
-      <wp:author_display_name><![CDATA[Admin]]></wp:author_display_name>
-    </wp:author>
-${items}
-  </channel>
-</rss>`;
-}
-
-function escapeXml(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+// buildWxrXml now lives in @/lib/studio-wxr (isomorphic)
 
 // ── Main export handler ──
 export async function POST(req: Request) {
