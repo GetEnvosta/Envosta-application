@@ -7,6 +7,7 @@ import { StepDesign } from '@/components/studio/step-design';
 import { StepExport } from '@/components/studio/step-export';
 import { Paintbrush, RotateCcw, Check, Loader2, Upload } from 'lucide-react';
 import { importStudioZip, importStudioXml } from '@/lib/studio-import';
+import { extractStylesFromHtml } from '@/lib/extract-styles-from-html';
 
 let idCounter = 0;
 function localId() { return `local-${++idCounter}-${Date.now()}`; }
@@ -24,6 +25,8 @@ type Snapshot = {
   pages: any[];
   selectedPageId: string;
   projectName: string;
+  referenceHtml: string;
+  referenceHtmlName: string;
   savedAt: number;
 };
 
@@ -37,6 +40,8 @@ export function StudioTool() {
   const [pages, setPages] = useState<any[]>([]);
   const [selectedPageId, setSelectedPageId] = useState('');
   const [projectName, setProjectName] = useState('');
+  const [referenceHtml, setReferenceHtml] = useState('');
+  const [referenceHtmlName, setReferenceHtmlName] = useState('');
 
   // Persistence state
   const [hydrated, setHydrated] = useState(false);
@@ -98,6 +103,8 @@ export function StudioTool() {
           setPages(s.pages ?? []);
           setSelectedPageId(s.selectedPageId ?? '');
           setProjectName(s.projectName ?? '');
+          setReferenceHtml(s.referenceHtml ?? '');
+          setReferenceHtmlName(s.referenceHtmlName ?? '');
           setSavedAt(s.savedAt ?? null);
         }
       }
@@ -117,6 +124,7 @@ export function StudioTool() {
         const snap: Snapshot = {
           step, brief, briefOptions, selectedBrief, businessInfo,
           styleConfig, pages, selectedPageId, projectName,
+          referenceHtml, referenceHtmlName,
           savedAt: Date.now(),
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
@@ -128,7 +136,7 @@ export function StudioTool() {
       }
     }, 600);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [hydrated, step, brief, briefOptions, selectedBrief, businessInfo, styleConfig, pages, selectedPageId, projectName]);
+  }, [hydrated, step, brief, briefOptions, selectedBrief, businessInfo, styleConfig, pages, selectedPageId, projectName, referenceHtml, referenceHtmlName]);
 
   function reset() {
     if (!confirm('Start over? This will erase your saved draft.')) return;
@@ -142,6 +150,8 @@ export function StudioTool() {
     setPages([]);
     setSelectedPageId('');
     setProjectName('');
+    setReferenceHtml('');
+    setReferenceHtmlName('');
     setSavedAt(null);
     idCounter = 0;
   }
@@ -211,6 +221,12 @@ export function StudioTool() {
             onBriefChange={setBrief}
             onOptionsGenerated={setBriefOptions}
             onBusinessInfoChange={setBusinessInfo}
+            referenceHtml={referenceHtml}
+            referenceHtmlName={referenceHtmlName}
+            onReferenceHtmlChange={(html, name) => {
+              setReferenceHtml(html);
+              setReferenceHtmlName(name);
+            }}
             onSelect={(idx) => {
               setSelectedBrief(idx);
               if (businessInfo.businessName) setProjectName(businessInfo.businessName);
@@ -228,6 +244,22 @@ export function StudioTool() {
               }));
               setPages(newPages);
               if (newPages.length > 0) setSelectedPageId(newPages[0].id);
+
+              // Reference HTML takes priority over the brief for global styles
+              if (referenceHtml) {
+                const extracted = extractStylesFromHtml(referenceHtml);
+                if (extracted.colors || extracted.fonts) {
+                  setStyleConfig((prev: any) => ({
+                    ...prev,
+                    ...(extracted.colors && { colors: { ...(prev.colors || {}), ...extracted.colors } }),
+                    ...(extracted.fonts && { fonts: { ...(prev.fonts || {}), ...extracted.fonts } }),
+                    mode: 'custom',
+                    presetId: undefined,
+                    seededFromReferenceHtml: true,
+                  }));
+                }
+              }
+
               setStep(2);
             }}
           />

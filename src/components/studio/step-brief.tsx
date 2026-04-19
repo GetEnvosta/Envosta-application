@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles, Loader2, ChevronDown, ChevronUp, Globe, Search, Upload, FileCode, X, Plus } from 'lucide-react';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 
@@ -19,9 +19,12 @@ export function StepBrief({
   briefOptions,
   selectedBrief,
   businessInfo,
+  referenceHtml,
+  referenceHtmlName,
   onBriefChange,
   onOptionsGenerated,
   onBusinessInfoChange,
+  onReferenceHtmlChange,
   onSelect,
   onAuthRequired,
 }: {
@@ -30,9 +33,12 @@ export function StepBrief({
   briefOptions: any[];
   selectedBrief: number | null;
   businessInfo: any;
+  referenceHtml?: string;
+  referenceHtmlName?: string;
   onBriefChange: (brief: string) => void;
   onOptionsGenerated: (options: any[]) => void;
   onBusinessInfoChange: (info: any) => void;
+  onReferenceHtmlChange?: (html: string, name: string) => void;
   onSelect: (index: number) => void;
   onAuthRequired?: () => void;
 }) {
@@ -41,9 +47,21 @@ export function StepBrief({
   const [error, setError] = useState('');
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [scrapeUrl, setScrapeUrl] = useState('');
-  const [referenceHtml, setReferenceHtml] = useState('');
-  const [htmlFileName, setHtmlFileName] = useState('');
   const [customPage, setCustomPage] = useState('');
+
+  // Use lifted state if a callback was provided, otherwise fall back to local
+  const [localHtml, setLocalHtml] = useState('');
+  const [localName, setLocalName] = useState('');
+  const refHtml = referenceHtml ?? localHtml;
+  const refName = referenceHtmlName ?? localName;
+  const setRefHtml = (html: string, name: string) => {
+    if (onReferenceHtmlChange) onReferenceHtmlChange(html, name);
+    else { setLocalHtml(html); setLocalName(name); }
+  };
+  const [pickedIdx, setPickedIdx] = useState(0);
+
+  // Reset picker when the options list changes (regenerate or clear)
+  useEffect(() => { setPickedIdx(0); }, [briefOptions.length]);
 
   const form = businessInfo;
   const pages: string[] = Array.isArray(form.pages) ? form.pages : ['Home', 'About', 'Services', 'Contact'];
@@ -116,7 +134,7 @@ export function StepBrief({
           brief: brief.trim(),
           businessInfo: Object.values(form).some((v: any) => v) ? form : undefined,
           pages,
-          referenceHtml: referenceHtml || undefined,
+          referenceHtml: refHtml || undefined,
         }),
       });
       if (res.status === 401 && onAuthRequired) { onAuthRequired(); return; }
@@ -132,12 +150,13 @@ export function StepBrief({
 
   const inputClass = 'w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors';
 
+  const pickedOption = briefOptions[pickedIdx];
+
   return (
     <div className="flex items-start justify-center min-h-full p-8">
       <div className="max-w-3xl w-full">
-        {/* Prompt + Details area */}
-        {briefOptions.length === 0 && (
-          <div>
+        {/* Prompt + Details area — always visible */}
+        <div>
             <div className="text-center mb-8">
               <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-6">
                 <Sparkles className="w-8 h-8 text-indigo-600" />
@@ -182,12 +201,12 @@ export function StepBrief({
 
             {/* HTML reference upload */}
             <div className="mb-4">
-              {!htmlFileName ? (
+              {!refName ? (
                 <label className="flex items-center gap-3 px-4 py-3 rounded-lg border border-dashed border-gray-300 hover:border-indigo-400 cursor-pointer transition-colors bg-gray-50/50 hover:bg-indigo-50/30">
                   <Upload className="w-4 h-4 text-gray-400" />
                   <div className="flex-1">
                     <span className="text-sm text-gray-600">Upload an HTML reference</span>
-                    <span className="text-xs text-gray-400 block">Optional — helps AI match a specific layout or style</span>
+                    <span className="text-xs text-gray-400 block">If added, its colors & fonts take priority and become your global styles.</span>
                   </div>
                   <input
                     type="file"
@@ -196,9 +215,8 @@ export function StepBrief({
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
-                      setHtmlFileName(file.name);
                       const reader = new FileReader();
-                      reader.onload = () => setReferenceHtml(reader.result as string);
+                      reader.onload = () => setRefHtml(reader.result as string, file.name);
                       reader.readAsText(file);
                     }}
                   />
@@ -207,11 +225,13 @@ export function StepBrief({
                 <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-indigo-200 bg-indigo-50/50">
                   <FileCode className="w-4 h-4 text-indigo-600" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium text-indigo-700 truncate block">{htmlFileName}</span>
-                    <span className="text-xs text-indigo-500">{(referenceHtml.length / 1024).toFixed(1)} KB loaded</span>
+                    <span className="text-sm font-medium text-indigo-700 truncate block">{refName}</span>
+                    <span className="text-xs text-indigo-500">
+                      {(refHtml.length / 1024).toFixed(1)} KB loaded — will define global styles
+                    </span>
                   </div>
                   <button
-                    onClick={() => { setReferenceHtml(''); setHtmlFileName(''); }}
+                    onClick={() => setRefHtml('', '')}
                     className="text-gray-400 hover:text-red-500 transition-colors"
                   >
                     <X className="w-4 h-4" />
@@ -356,47 +376,50 @@ export function StepBrief({
               >
                 {loading ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Generating concepts...</>
+                ) : briefOptions.length > 0 ? (
+                  <><Sparkles className="w-4 h-4" /> Regenerate Concepts</>
                 ) : (
                   <><Sparkles className="w-4 h-4" /> Generate 3 Concepts</>
                 )}
               </button>
               {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
             </div>
-          </div>
-        )}
 
-        {/* Concept options */}
-        {briefOptions.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-1 text-center">Pick a direction</h2>
-            <p className="text-sm text-gray-500 mb-6 text-center">Choose the concept that best matches your vision.</p>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              {briefOptions.map((opt: any, i: number) => (
-                <button
-                  key={i}
-                  onClick={() => onSelect(i)}
-                  className="text-left rounded-xl border-2 border-gray-200 hover:border-indigo-400 p-5 transition-all hover:shadow-md group"
+            {/* Concept dropdown — appears below the Generate button once options exist */}
+            {briefOptions.length > 0 && (
+              <div className="mt-6 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4">
+                <label className="block text-xs font-medium text-indigo-700 mb-1.5">Design direction</label>
+                <select
+                  value={pickedIdx}
+                  onChange={e => setPickedIdx(Number(e.target.value))}
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none mb-3"
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold flex items-center justify-center">{i + 1}</span>
-                    <h3 className="text-sm font-semibold text-gray-900 group-hover:text-indigo-700">{opt.title}</h3>
-                  </div>
-                  <p className="text-xs text-gray-600 leading-relaxed">{opt.description}</p>
-                </button>
-              ))}
-            </div>
-
-            <div className="text-center">
-              <button
-                onClick={() => { onOptionsGenerated([]); }}
-                className="text-xs text-gray-400 hover:text-gray-600"
-              >
-                Start over with a different prompt
-              </button>
-            </div>
+                  {briefOptions.map((opt: any, i: number) => (
+                    <option key={i} value={i}>
+                      Option {i + 1} — {opt.title}
+                    </option>
+                  ))}
+                </select>
+                {pickedOption && (
+                  <p className="text-xs text-gray-600 leading-relaxed mb-3">{pickedOption.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => { onOptionsGenerated([]); }}
+                    className="text-[11px] text-gray-400 hover:text-gray-600"
+                  >
+                    Clear concepts
+                  </button>
+                  <button
+                    onClick={() => onSelect(pickedIdx)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                  >
+                    Use this concept →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        )}
       </div>
     </div>
   );
