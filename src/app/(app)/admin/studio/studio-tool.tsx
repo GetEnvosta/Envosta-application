@@ -168,21 +168,36 @@ export function StudioTool() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Top bar */}
-      <div className="flex items-center gap-4 px-5 py-3 border-b border-gray-200 bg-white shrink-0">
-        <div className="flex items-center gap-2">
+      {/* Unified top bar — studio chrome + step-specific toolbar (portalled in) */}
+      <div className="flex items-center gap-3 px-4 h-12 border-b border-gray-200 bg-white shrink-0">
+        {/* Brand */}
+        <div className="flex items-center gap-2 shrink-0">
           <Paintbrush className="w-4 h-4 text-purple-600" />
           <h1 className="text-sm font-semibold text-gray-900">Studio</h1>
         </div>
-        {step > 1 && (
-          <button
-            onClick={reset}
-            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-          >
-            <RotateCcw className="w-3 h-3" /> Start Over
-          </button>
+
+        <div className="w-px h-5 bg-gray-200 shrink-0" />
+
+        {/* Step progress */}
+        <div className="shrink-0">
+          <StudioSteps currentStep={step} onStepClick={(s) => { if (s <= step) setStep(s); }} />
+        </div>
+
+        <div className="w-px h-5 bg-gray-200 shrink-0" />
+
+        {/* Slot for step-specific toolbar items (filled by StepDesign via portal) */}
+        <div id="studio-header-slot" className="flex-1 flex items-center min-w-0" />
+
+        <div className="w-px h-5 bg-gray-200 shrink-0" />
+
+        {/* Utilities (right side) */}
+        {savedLabel && (
+          <span className="inline-flex items-center gap-1 text-[11px] text-gray-400 shrink-0" title={savedAt ? new Date(savedAt).toLocaleString() : ''}>
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3 text-emerald-500" />}
+            {savedLabel}
+          </span>
         )}
-        <label className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer" title="Import an exported theme .zip or WordPress .xml">
+        <label className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer shrink-0" title="Import an exported theme .zip or WordPress .xml">
           {importing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
           {importing ? 'Importing…' : 'Import'}
           <input
@@ -197,16 +212,16 @@ export function StudioTool() {
             }}
           />
         </label>
-        {importError && <span className="text-[11px] text-red-600">{importError}</span>}
-        {savedLabel && (
-          <span className="inline-flex items-center gap-1 text-[11px] text-gray-400">
-            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3 text-emerald-500" />}
-            {savedLabel}
-          </span>
+        {step > 1 && (
+          <button
+            onClick={reset}
+            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors shrink-0"
+            title="Start over — clears the saved draft"
+          >
+            <RotateCcw className="w-3 h-3" /> Reset
+          </button>
         )}
-        <div className="ml-auto">
-          <StudioSteps currentStep={step} onStepClick={(s) => { if (s <= step) setStep(s); }} />
-        </div>
+        {importError && <span className="text-[11px] text-red-600 shrink-0 truncate max-w-[200px]">{importError}</span>}
       </div>
 
       {/* Step content */}

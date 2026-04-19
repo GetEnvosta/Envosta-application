@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Sparkles, Loader2, Check, FileText, Palette, ArrowRight, Send,
   Monitor, Tablet, Smartphone, Eye, PanelLeftClose, PanelLeftOpen,
@@ -63,6 +64,21 @@ export function StepDesign({
   const [newPageTitle, setNewPageTitle] = useState('');
   const [suggesting, setSuggesting] = useState(false);
   const [presetsExpanded, setPresetsExpanded] = useState(false);
+  const [headerSlot, setHeaderSlot] = useState<Element | null>(null);
+
+  // Grab the studio header's toolbar slot so we can portal our controls into it
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    // Poll briefly in case this step mounts before the header (StrictMode, transitions)
+    let tries = 0;
+    const tick = () => {
+      const el = document.getElementById('studio-header-slot');
+      if (el) { setHeaderSlot(el); return; }
+      if (tries++ < 10) setTimeout(tick, 30);
+    };
+    tick();
+    return () => setHeaderSlot(null);
+  }, []);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const selectedPage = pages.find(p => p.id === selectedPageId);
@@ -123,7 +139,7 @@ export function StepDesign({
       ...styleConfig,
       ...preset.config,
       presetId: preset.id,
-      mode: styleConfig.mode === 'parent' ? 'preset' : (styleConfig.mode || 'custom'),
+      mode: 'custom',
     });
     setStatus({ type: 'success', msg: `Applied "${preset.name}"` });
   }
@@ -351,76 +367,61 @@ export function StepDesign({
         </div>
       )}
 
-      {/* ═══ CENTER: Top bar + Preview + AI Prompt ═══ */}
+      {/* ═══ CENTER: Preview + AI Prompt (top bar is portalled into the studio header) ═══ */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar */}
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 bg-white shrink-0">
-          {/* Left: sidebar toggles */}
-          <button onClick={() => setShowPages(!showPages)} className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100" title={showPages ? 'Hide pages' : 'Show pages'}>
-            {showPages ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
-          </button>
-
-          <div className="w-px h-5 bg-gray-200" />
-
-          {/* Page selector dropdown */}
-          <select
-            value={selectedPageId}
-            onChange={e => onSelectPage(e.target.value)}
-            className="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-700 focus:border-indigo-500 outline-none max-w-[160px]"
-          >
-            {pages.map(p => <option key={p.id} value={p.id}>{p.title}{p.html ? '' : ' (empty)'}</option>)}
-          </select>
-
-          {/* Generate buttons */}
-          {selectedPage && (
-            <button
-              onClick={() => generatePage(selectedPage.id)}
-              disabled={!!generating}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50"
-            >
-              {generating === selectedPage?.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-              {selectedPage?.html ? 'Regen' : 'Generate'}
+        {headerSlot && createPortal(
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <button onClick={() => setShowPages(!showPages)} className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100" title={showPages ? 'Hide pages' : 'Show pages'}>
+              {showPages ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
             </button>
-          )}
-          <button
-            onClick={generateAllPages}
-            disabled={generatingAll || allGenerated}
-            className="text-[11px] font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-40 px-2 py-1"
-          >
-            {generatingAll ? 'Generating...' : allGenerated ? '✓ All done' : 'Gen All'}
-          </button>
-
-          {status && (
-            <span className={`text-[11px] ${status.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>{status.msg}</span>
-          )}
-
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* Responsive toggles */}
-          <div className="flex gap-0.5 bg-gray-100 rounded-md p-0.5">
-            {SIZES.map(s => (
-              <button key={s.id} onClick={() => setPreviewSize(s.id)} className={`p-1 rounded text-xs transition-all ${previewSize === s.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}>
-                <s.icon className="w-3.5 h-3.5" />
+            <select
+              value={selectedPageId}
+              onChange={e => onSelectPage(e.target.value)}
+              className="rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-700 focus:border-indigo-500 outline-none max-w-[160px]"
+            >
+              {pages.map(p => <option key={p.id} value={p.id}>{p.title}{p.html ? '' : ' (empty)'}</option>)}
+            </select>
+            {selectedPage && (
+              <button
+                onClick={() => generatePage(selectedPage.id)}
+                disabled={!!generating}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50"
+              >
+                {generating === selectedPage?.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                {selectedPage?.html ? 'Regen' : 'Generate'}
               </button>
-            ))}
-          </div>
-
-          <div className="w-px h-5 bg-gray-200" />
-
-          {/* Right: styles toggle + export */}
-          <button onClick={() => setShowStyles(!showStyles)} className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100" title={showStyles ? 'Hide styles' : 'Show styles'}>
-            {showStyles ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
-          </button>
-
-          <button
-            onClick={onContinue}
-            disabled={!allGenerated}
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md disabled:opacity-50"
-          >
-            Export <ArrowRight className="w-3 h-3" />
-          </button>
-        </div>
+            )}
+            <button
+              onClick={generateAllPages}
+              disabled={generatingAll || allGenerated}
+              className="text-[11px] font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-40 px-2 py-1"
+            >
+              {generatingAll ? 'Generating...' : allGenerated ? '✓ All done' : 'Gen All'}
+            </button>
+            {status && (
+              <span className={`text-[11px] truncate ${status.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>{status.msg}</span>
+            )}
+            <div className="flex-1" />
+            <div className="flex gap-0.5 bg-gray-100 rounded-md p-0.5">
+              {SIZES.map(s => (
+                <button key={s.id} onClick={() => setPreviewSize(s.id)} className={`p-1 rounded text-xs transition-all ${previewSize === s.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}>
+                  <s.icon className="w-3.5 h-3.5" />
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setShowStyles(!showStyles)} className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100" title={showStyles ? 'Hide styles' : 'Show styles'}>
+              {showStyles ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={onContinue}
+              disabled={!allGenerated}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md disabled:opacity-50"
+            >
+              Export <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>,
+          headerSlot,
+        )}
 
         {/* Preview area */}
         <div className="flex-1 bg-gray-100 flex justify-center p-4 overflow-auto">
@@ -509,16 +510,17 @@ export function StepDesign({
           </div>
 
           <div className="p-4 space-y-5 overflow-auto flex-1">
-            {/* Style mode toggle */}
+            {/* Style mode toggle — Parent or Custom */}
             <div>
               <label className="block text-[10px] font-medium text-gray-500 mb-1.5">Style Mode</label>
               <div className="flex gap-0.5 bg-gray-100 rounded-md p-0.5">
                 {([
                   { id: 'parent', label: 'Parent', hint: 'Use Assembler defaults' },
-                  { id: 'preset', label: 'Preset', hint: 'Pick a curated style' },
                   { id: 'custom', label: 'Custom', hint: 'Full custom control' },
                 ] as const).map(m => {
-                  const active = (styleConfig.mode || 'custom') === m.id;
+                  // Treat legacy 'preset' mode as 'custom'
+                  const current = styleConfig.mode === 'preset' ? 'custom' : (styleConfig.mode || 'custom');
+                  const active = current === m.id;
                   return (
                     <button
                       key={m.id}
@@ -533,14 +535,57 @@ export function StepDesign({
               </div>
               {(styleConfig.mode || 'custom') === 'parent' && (
                 <p className="text-[10px] text-gray-400 mt-2 leading-snug">
-                  Pages will be generated using Assembler's default theme styles. Switch to Preset or Custom to override.
+                  Pages will be generated using Assembler's default theme styles. Switch to Custom to override.
                 </p>
               )}
             </div>
 
             <div className="h-px bg-gray-100" />
 
-            {/* Preset picker — visible in preset + custom modes */}
+            {/* HTML → styles uploader (custom mode only) */}
+            {(styleConfig.mode || 'custom') !== 'parent' && (
+            <div>
+              <label className="block text-[10px] font-medium text-gray-500 mb-1.5">Derive styles from HTML</label>
+              <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-gray-300 hover:border-indigo-400 cursor-pointer bg-gray-50/50 hover:bg-indigo-50/30 transition-colors">
+                <Upload className="w-3 h-3 text-gray-400 shrink-0" />
+                <span className="text-[11px] text-gray-600 truncate">Upload an HTML file</span>
+                <input
+                  type="file"
+                  accept=".html,.htm"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (!file) return;
+                    try {
+                      const html = await file.text();
+                      const extracted = extractStylesFromHtml(html);
+                      if (!extracted.colors && !extracted.fonts) {
+                        setStatus({ type: 'error', msg: 'No styles detected in that file' });
+                        return;
+                      }
+                      const next: any = { ...styleConfig };
+                      if (extracted.colors) next.colors = { ...(styleConfig.colors || {}), ...extracted.colors };
+                      if (extracted.fonts) next.fonts = { ...(styleConfig.fonts || {}), ...extracted.fonts };
+                      next.mode = 'custom';
+                      delete next.presetId;
+                      onStyleChange(next);
+                      setStatus({ type: 'success', msg: `Styles derived from ${file.name}` });
+                    } catch (err: any) {
+                      setStatus({ type: 'error', msg: err?.message || 'Failed to read file' });
+                    }
+                  }}
+                />
+              </label>
+              <p className="text-[10px] text-gray-400 mt-1 leading-snug">
+                Colors & fonts will be extracted and applied as global styles.
+              </p>
+            </div>
+            )}
+
+            {(styleConfig.mode || 'custom') !== 'parent' && <div className="h-px bg-gray-100" />}
+
+            {/* Preset picker — visible in custom mode only */}
             {(styleConfig.mode || 'custom') !== 'parent' && (
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -588,7 +633,7 @@ export function StepDesign({
             </div>
             )}
 
-            {(styleConfig.mode || 'custom') === 'custom' && (
+            {(styleConfig.mode || 'custom') !== 'parent' && (
             <>
             <div className="h-px bg-gray-100" />
 
