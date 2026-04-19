@@ -58,17 +58,75 @@ function extractHead(html: string): string {
 }
 
 /**
+ * Build a <style> block that injects the studio's current global styleConfig
+ * as CSS custom properties, plus a Google Fonts import for the chosen heading
+ * and body fonts. Generated pages reference these variables, so changing
+ * global styles updates every preview live.
+ */
+function buildStyleOverride(style: any): string {
+  const colors = style?.colors || {};
+  const fonts = style?.fonts || {};
+  const heading = fonts.heading || 'Inter';
+  const body = fonts.body || 'Inter';
+  const fontsQuery = [heading, body].filter(Boolean)
+    .map(f => `family=${encodeURIComponent(f).replace(/%20/g, '+')}:wght@300;400;500;600;700`)
+    .join('&');
+
+  // Assembler preset mapping (same as the export buildChildThemeJson)
+  const theme1 = colors.background || '#FFFFFF';
+  const theme2 = colors.surface || '#EEEEEE';
+  const theme3 = colors.border || colors.textMuted || '#BBBBBB';
+  const theme4 = colors.primary || colors.text || '#1E1E1E';
+  const theme5 = colors.accent || '#000000';
+  const radius = style?.borderRadius || '0';
+  const maxW = style?.maxWidth || '620px';
+
+  return `<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fontsQuery}&display=swap" />
+<style id="envosta-live-styles">
+:root {
+  --wp--preset--color--theme-1: ${theme1};
+  --wp--preset--color--theme-2: ${theme2};
+  --wp--preset--color--theme-3: ${theme3};
+  --wp--preset--color--theme-4: ${theme4};
+  --wp--preset--color--theme-5: ${theme5};
+  --wp--preset--font-family--heading: '${heading}', serif;
+  --wp--preset--font-family--body: '${body}', sans-serif;
+  --envosta-radius: ${radius};
+  --envosta-max-width: ${maxW};
+}
+html, body { background: var(--wp--preset--color--theme-1); color: var(--wp--preset--color--theme-4); font-family: var(--wp--preset--font-family--body); }
+h1, h2, h3, h4, h5, h6 { font-family: var(--wp--preset--font-family--heading); color: var(--wp--preset--color--theme-4); }
+</style>`;
+}
+
+/**
  * Build the preview doc shown in the iframe. If the selected page is a
  * content page, sandwich it between the Header and Footer template parts.
  * If it's a template part (Header/Footer), preview it alone.
+ * Always injects live CSS variables from styleConfig so style tweaks are visible instantly.
  */
-function buildPreviewDoc(selected: any, header: any, footer: any): string {
+function buildPreviewDoc(selected: any, header: any, footer: any, style: any): string {
   if (!selected?.html) return '';
+  const override = buildStyleOverride(style);
   const isPart = SPECIAL_PAGES.includes(selected.title);
-  if (isPart) return selected.html;
 
-  const selectedIsFullDoc = /<html[\s>]/i.test(selected.html);
-  if (!selectedIsFullDoc && !header?.html && !footer?.html) return selected.html;
+  if (isPart) {
+    // Wrap the part alone so CSS vars still apply
+    return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+${override}
+${extractHead(selected.html)}
+</head>
+<body>
+${extractBody(selected.html)}
+</body>
+</html>`;
+  }
 
   const contentBody = extractBody(selected.html);
   const contentHead = extractHead(selected.html);
@@ -82,6 +140,7 @@ function buildPreviewDoc(selected: any, header: any, footer: any): string {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+${override}
 ${contentHead}
 ${headerHead}
 ${footerHead}
@@ -489,7 +548,7 @@ export function StepDesign({
           {selectedPage?.html ? (
             <div className="bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300" style={{ width: sizeConfig.width, maxWidth: '100%' }}>
               <iframe
-                srcDoc={buildPreviewDoc(selectedPage, headerPage, footerPage)}
+                srcDoc={buildPreviewDoc(selectedPage, headerPage, footerPage, styleConfig)}
                 className="w-full border-0"
                 style={{ height: '100%', minHeight: '800px' }}
                 sandbox="allow-same-origin"

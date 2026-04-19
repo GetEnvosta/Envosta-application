@@ -222,9 +222,9 @@ Design each section so it can be directly converted to these WordPress block pat
 ### Output Rules
 1. Output ONLY complete, valid HTML. No explanation, no markdown, no code fences.
 2. Include <html>, <head>, <body> tags. Load Google Fonts for the chosen heading + body fonts via <link> tag.
-3. Use ONLY the colors provided in the style reference. Map them to the Assembler token system (theme-1 through theme-5).
-4. Include a site header with the site name, navigation links, and a CTA button.
-5. Include a site footer with theme-5 background, consistent with the Assembler design system.
+3. **CRITICAL**: For ALL colors, backgrounds, and text colors, use the CSS custom properties (var(--wp--preset--color--theme-1) through var(--wp--preset--color--theme-5)). Do NOT hardcode hex values in your CSS — the studio injects these variables at preview time so the design updates live when the user changes global styles.
+4. For fonts, reference var(--wp--preset--font-family--heading) and var(--wp--preset--font-family--body) instead of hardcoding font names in font-family declarations (except in the Google Fonts <link>).
+5. Header / Footer: Content pages MUST NOT include a site header, primary navigation, logo bar, or footer. Those are separate template parts rendered around the page. Template-part outputs (when asked for Header or Footer specifically) should output only the <header>…</header> or <footer>…</footer> block, not a full document.
 6. Make the design PREMIUM — bold headings, intentional spacing, strong visual hierarchy.
 7. All content should be realistic placeholder content appropriate for the business.
 8. Semantic HTML. Fully responsive. CSS in a <style> tag in <head>.
