@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       }, { status: 429 });
     }
 
-    const { style, pageName, pagePrompt, allPageNames, referenceHtml } = await req.json();
+    const { style, pageName, pagePrompt, allPageNames, referenceHtml, isTemplatePart, templatePartKind } = await req.json();
 
     if (!pageName || !pagePrompt) {
       return NextResponse.json({ error: 'Page name and prompt are required' }, { status: 400 });
@@ -52,7 +52,12 @@ Max Width: ${style?.maxWidth || '1200px'}
 
 Navigation pages: ${(allPageNames || [pageName]).join(', ')}
 
-PAGE TO GENERATE: "${pageName}"
+${isTemplatePart
+  ? `TEMPLATE PART TO GENERATE: "${pageName}" (${templatePartKind || 'template-part'})
+Generate ONLY the ${templatePartKind === 'header' ? 'site header (nav bar, logo area, primary navigation)' : templatePartKind === 'footer' ? 'site footer (footer links, copyright, social, etc.)' : 'template part'} markup.
+Do NOT wrap it in a full <html>/<body> document — output just the <header>…</header> or <footer>…</footer> block (with any supporting <style> tag) so it can be injected into multiple pages.`
+  : `PAGE TO GENERATE: "${pageName}" (content page)
+IMPORTANT: This is a CONTENT page only. Do NOT include the site header, primary navigation, logo bar, or footer — those are separate template parts that will be composited around this page. Start directly with the page's hero/content and end with the page's final content section. It's fine to output a full <html>/<body> document for self-contained preview, but the body content must not include any site-wide header/nav or footer.`}
 DESCRIPTION: ${pagePrompt}${referenceHtml ? `
 
 ═══ REFERENCE HTML ═══

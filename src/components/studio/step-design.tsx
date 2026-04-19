@@ -35,6 +35,65 @@ const SIZES = [
 // Special page types
 const SPECIAL_PAGES = ['Header', 'Footer'];
 
+/**
+ * Return just the <body> inner HTML of a document string, or the original
+ * string if it isn't a full HTML doc. Used when compositing the header +
+ * content + footer for preview so we don't duplicate <html>/<head>.
+ */
+function extractBody(html: string): string {
+  if (!html) return '';
+  const m = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  return m ? m[1] : html;
+}
+
+/**
+ * Return the <head> inner HTML (minus <title>) of a document, so we can
+ * preserve per-page <style> blocks and fonts in the preview composite.
+ */
+function extractHead(html: string): string {
+  if (!html) return '';
+  const m = html.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+  if (!m) return '';
+  return m[1].replace(/<title>[\s\S]*?<\/title>/i, '');
+}
+
+/**
+ * Build the preview doc shown in the iframe. If the selected page is a
+ * content page, sandwich it between the Header and Footer template parts.
+ * If it's a template part (Header/Footer), preview it alone.
+ */
+function buildPreviewDoc(selected: any, header: any, footer: any): string {
+  if (!selected?.html) return '';
+  const isPart = SPECIAL_PAGES.includes(selected.title);
+  if (isPart) return selected.html;
+
+  const selectedIsFullDoc = /<html[\s>]/i.test(selected.html);
+  if (!selectedIsFullDoc && !header?.html && !footer?.html) return selected.html;
+
+  const contentBody = extractBody(selected.html);
+  const contentHead = extractHead(selected.html);
+  const headerBody = header?.html ? extractBody(header.html) : '';
+  const footerBody = footer?.html ? extractBody(footer.html) : '';
+  const headerHead = header?.html ? extractHead(header.html) : '';
+  const footerHead = footer?.html ? extractHead(footer.html) : '';
+
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+${contentHead}
+${headerHead}
+${footerHead}
+</head>
+<body>
+${headerBody}
+${contentBody}
+${footerBody}
+</body>
+</html>`;
+}
+
 export function StepDesign({
   projectId, brief, styleConfig, pages, selectedPageId, businessInfo,
   onStyleChange, onPagesChange, onSelectPage, onContinue, onAuthRequired,
@@ -195,6 +254,8 @@ export function StepDesign({
         body: JSON.stringify({
           projectId, pageId, style: styleConfig,
           pageName: page.title, pagePrompt: prompt,
+          isTemplatePart: SPECIAL_PAGES.includes(page.title),
+          templatePartKind: page.title === 'Header' ? 'header' : page.title === 'Footer' ? 'footer' : undefined,
           allPageNames: pages.filter(p => !SPECIAL_PAGES.includes(p.title)).map(p => p.title),
           referenceHtml: referenceHtml || undefined,
         }),
@@ -428,7 +489,7 @@ export function StepDesign({
           {selectedPage?.html ? (
             <div className="bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300" style={{ width: sizeConfig.width, maxWidth: '100%' }}>
               <iframe
-                srcDoc={selectedPage.html}
+                srcDoc={buildPreviewDoc(selectedPage, headerPage, footerPage)}
                 className="w-full border-0"
                 style={{ height: '100%', minHeight: '800px' }}
                 sandbox="allow-same-origin"
