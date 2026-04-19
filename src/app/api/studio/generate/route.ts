@@ -4,7 +4,7 @@ import { checkAiTokenBudget } from '@/lib/ai-budget';
 import { GENERATE_SYSTEM_PROMPT } from '@/lib/studio-prompts';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // Claude can take a while for large pages
+export const maxDuration = 300; // Claude sonnet can take 60-120s generating a full HTML page
 
 
 export async function POST(req: Request) {
@@ -70,7 +70,7 @@ ${referenceHtml}` : ''}`;
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 16000,
+        max_tokens: 8000,
         system: GENERATE_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }],
       }),

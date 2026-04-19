@@ -109,7 +109,7 @@ export function StepDesign({
           allPageNames: pages.filter(p => !SPECIAL_PAGES.includes(p.title)).map(p => p.title),
           referenceHtml: referenceHtml || undefined,
         }),
-      });
+      }, { retries: 0 });
       if (res.status === 401 && onAuthRequired) { onAuthRequired(); return; }
       const data = await res.json();
       if (!res.ok) { setStatus({ type: 'error', msg: data.error || 'Failed' }); return; }
@@ -117,8 +117,13 @@ export function StepDesign({
       const updated = pages.map(p => p.id === pageId ? { ...p, html: data.html } : p);
       onPagesChange(updated);
       setStatus({ type: 'success', msg: `${page.title} generated!` });
-    } catch {
-      setStatus({ type: 'error', msg: 'Network error' });
+    } catch (err: any) {
+      const msg = err?.name === 'AbortError'
+        ? 'Request timed out — the page is too complex. Try a shorter prompt.'
+        : err?.message
+        ? `Network error: ${err.message}`
+        : 'Network error — check your connection and try again.';
+      setStatus({ type: 'error', msg });
     } finally {
       setGenerating(null);
     }
