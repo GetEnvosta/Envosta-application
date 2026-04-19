@@ -3,7 +3,6 @@
 import { useState, useCallback } from 'react';
 import { StudioSteps } from '@/components/studio/studio-steps';
 import { StepBrief } from '@/components/studio/step-brief';
-import { StepBusiness } from '@/components/studio/step-business';
 import { StepWireframe } from '@/components/studio/step-wireframe';
 import { StepDesign } from '@/components/studio/step-design';
 import { StepExport } from '@/components/studio/step-export';
@@ -39,9 +38,6 @@ export function StudioTool() {
     idCounter = 0;
   }
 
-  // No-op save — everything is in memory
-  const saveProject = useCallback(async (_fields: Record<string, any>) => {}, []);
-
   return (
     <div className="flex flex-col h-full">
       {/* Top bar */}
@@ -71,27 +67,18 @@ export function StudioTool() {
             brief={brief}
             briefOptions={briefOptions}
             selectedBrief={selectedBrief}
+            businessInfo={businessInfo}
             onBriefChange={setBrief}
             onOptionsGenerated={setBriefOptions}
+            onBusinessInfoChange={setBusinessInfo}
             onSelect={(idx) => {
               setSelectedBrief(idx);
+              if (businessInfo.businessName) setProjectName(businessInfo.businessName);
               setStep(2);
             }}
           />
         )}
         {step === 2 && (
-          <StepBusiness
-            businessInfo={businessInfo}
-            selectedBriefText={briefOptions[selectedBrief ?? 0]?.description || brief}
-            onSave={(info) => {
-              setBusinessInfo(info);
-              if (info.siteName) setProjectName(info.siteName);
-              setStep(3);
-            }}
-            onSkip={() => setStep(3)}
-          />
-        )}
-        {step === 3 && (
           <StepWireframe
             projectId=""
             wireframe={wireframe}
@@ -100,7 +87,6 @@ export function StudioTool() {
             onWireframeChange={setWireframe}
             onApprove={(wf) => {
               setWireframe(wf);
-              // Create in-memory pages from wireframe
               const newPages = wf.map((page: any, i: number) => ({
                 id: localId(),
                 title: page.name,
@@ -111,11 +97,11 @@ export function StudioTool() {
               }));
               setPages(newPages);
               if (newPages.length > 0) setSelectedPageId(newPages[0].id);
-              setStep(4);
+              setStep(3);
             }}
           />
         )}
-        {step === 4 && (
+        {step === 3 && (
           <StepDesign
             projectId=""
             styleConfig={styleConfig}
@@ -125,10 +111,10 @@ export function StudioTool() {
             onStyleChange={setStyleConfig}
             onPagesChange={setPages}
             onSelectPage={setSelectedPageId}
-            onContinue={() => setStep(5)}
+            onContinue={() => setStep(4)}
           />
         )}
-        {step === 5 && (
+        {step === 4 && (
           <StepExport
             projectId=""
             project={{ name: projectName || 'Theme', slug: (projectName || 'theme').toLowerCase().replace(/[^a-z0-9]+/g, '-') }}

@@ -32,9 +32,24 @@ export async function POST(req: Request) {
   if (!apiKey) return NextResponse.json({ error: 'AI not configured' }, { status: 503 });
 
   try {
-    const { brief } = await req.json();
+    const { brief, businessInfo, referenceHtml } = await req.json();
     if (!brief || typeof brief !== 'string' || brief.trim().length < 10) {
       return NextResponse.json({ error: 'Please describe the website in at least a few words' }, { status: 400 });
+    }
+
+    // Build enriched user message with business details + optional HTML reference
+    let userMessage = brief.trim();
+    if (businessInfo && typeof businessInfo === 'object') {
+      const details = Object.entries(businessInfo)
+        .filter(([, v]) => v)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join('\n');
+      if (details) userMessage += `\n\nBusiness Details:\n${details}`;
+    }
+    if (referenceHtml && typeof referenceHtml === 'string') {
+      // Cap HTML reference to avoid token explosion
+      const trimmedHtml = referenceHtml.slice(0, 12000);
+      userMessage += `\n\nReference HTML (use this as a design/layout inspiration):\n${trimmedHtml}`;
     }
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -48,7 +63,7 @@ export async function POST(req: Request) {
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2000,
         system: BRIEF_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: brief.trim() }],
+        messages: [{ role: 'user', content: userMessage }],
       }),
     });
 
