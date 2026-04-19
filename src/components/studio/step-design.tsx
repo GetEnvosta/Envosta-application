@@ -5,10 +5,11 @@ import {
   Sparkles, Loader2, Check, FileText, Palette, ArrowRight, Send,
   Monitor, Tablet, Smartphone, Eye, PanelLeftClose, PanelLeftOpen,
   PanelRightClose, PanelRightOpen, Plus, Trash2, LayoutTemplate,
-  Upload, X,
+  Upload, X, Globe2, FileUp,
 } from 'lucide-react';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 import { STUDIO_PRESETS, type StudioStylePreset } from '@/lib/studio-style-presets';
+import { extractStylesFromHtml } from '@/lib/extract-styles-from-html';
 
 const FONT_OPTIONS = [
   'Playfair Display', 'DM Serif Display', 'Fraunces', 'Libre Baskerville',
@@ -84,12 +85,45 @@ export function StepDesign({
 
   useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
+  async function importPageHtml(pageId: string, file: File) {
+    try {
+      const html = await file.text();
+      const updated = pages.map(p => p.id === pageId ? { ...p, html } : p);
+      onPagesChange(updated);
+      onSelectPage(pageId);
+      const page = pages.find(p => p.id === pageId);
+      setStatus({ type: 'success', msg: `HTML imported for ${page?.title ?? 'page'}` });
+    } catch (err: any) {
+      setStatus({ type: 'error', msg: err?.message || 'Import failed' });
+    }
+  }
+
+  function promoteToGlobal(pageId: string) {
+    const page = pages.find(p => p.id === pageId);
+    if (!page) return;
+    if (!page.html) { setStatus({ type: 'error', msg: 'Generate or import HTML first' }); return; }
+    const extracted = extractStylesFromHtml(page.html);
+    if (!extracted.colors && !extracted.fonts) {
+      setStatus({ type: 'error', msg: 'Could not detect styles in this page' });
+      return;
+    }
+    if (!confirm(`Promote "${page.title}" styles to global? This will update your global colors and fonts and apply to future page generations.`)) return;
+    const next: any = { ...styleConfig };
+    if (extracted.colors) next.colors = { ...(styleConfig.colors || {}), ...extracted.colors };
+    if (extracted.fonts) next.fonts = { ...(styleConfig.fonts || {}), ...extracted.fonts };
+    next.mode = next.mode === 'parent' ? 'custom' : (next.mode || 'custom');
+    delete next.presetId;
+    onStyleChange(next);
+    setStatus({ type: 'success', msg: `Global styles now match "${page.title}"` });
+  }
+
   function applyPreset(preset: StudioStylePreset) {
     // Merge preset on top of the current config so the user's site name is preserved
     onStyleChange({
       ...styleConfig,
       ...preset.config,
       presetId: preset.id,
+      mode: styleConfig.mode === 'parent' ? 'preset' : (styleConfig.mode || 'custom'),
     });
     setStatus({ type: 'success', msg: `Applied "${preset.name}"` });
   }
@@ -229,18 +263,33 @@ export function StepDesign({
               <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Template Parts</h3>
             </div>
             {[headerPage, footerPage].filter(Boolean).map(page => (
-              <button
-                key={page!.id}
-                onClick={() => onSelectPage(page!.id)}
-                className={`w-full flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-all text-left mb-0.5 ${
-                  page!.id === selectedPageId ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-500 hover:bg-gray-50'
-                }`}
-              >
-                <LayoutTemplate className="w-3 h-3 shrink-0" />
-                <span className="flex-1 truncate">{page!.title}</span>
-                {generating === page!.id && <Loader2 className="w-3 h-3 animate-spin text-purple-500" />}
-                {page!.html && generating !== page!.id && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />}
-              </button>
+              <div key={page!.id} className="group flex items-center mb-0.5">
+                <button
+                  onClick={() => onSelectPage(page!.id)}
+                  className={`flex-1 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-all text-left ${
+                    page!.id === selectedPageId ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  <LayoutTemplate className="w-3 h-3 shrink-0" />
+                  <span className="flex-1 truncate">{page!.title}</span>
+                  {generating === page!.id && <Loader2 className="w-3 h-3 animate-spin text-purple-500" />}
+                  {page!.html && generating !== page!.id && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />}
+                </button>
+                <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all">
+                  <label className="p-0.5 rounded text-gray-300 hover:text-indigo-600 cursor-pointer" title="Import HTML for this part">
+                    <FileUp className="w-2.5 h-2.5" />
+                    <input type="file" accept=".html,.htm" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0]; e.target.value = '';
+                      if (file) await importPageHtml(page!.id, file);
+                    }} />
+                  </label>
+                  <button onClick={() => promoteToGlobal(page!.id)} disabled={!page!.html}
+                    className="p-0.5 rounded text-gray-300 hover:text-emerald-600 disabled:opacity-30 disabled:hover:text-gray-300"
+                    title="Use this part's styles as global styles">
+                    <Globe2 className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
 
@@ -266,9 +315,23 @@ export function StepDesign({
                     {generating === page.id && <Loader2 className="w-3 h-3 animate-spin text-indigo-500" />}
                     {page.html && generating !== page.id && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />}
                   </button>
-                  <button onClick={() => deletePage(page.id)} className="p-0.5 rounded text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all mr-1">
-                    <Trash2 className="w-2.5 h-2.5" />
-                  </button>
+                  <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all mr-1">
+                    <label className="p-0.5 rounded text-gray-300 hover:text-indigo-600 cursor-pointer" title="Import HTML for this page">
+                      <FileUp className="w-2.5 h-2.5" />
+                      <input type="file" accept=".html,.htm" className="hidden" onChange={async (e) => {
+                        const file = e.target.files?.[0]; e.target.value = '';
+                        if (file) await importPageHtml(page.id, file);
+                      }} />
+                    </label>
+                    <button onClick={() => promoteToGlobal(page.id)} disabled={!page.html}
+                      className="p-0.5 rounded text-gray-300 hover:text-emerald-600 disabled:opacity-30 disabled:hover:text-gray-300"
+                      title="Use this page's styles as global styles (affects all pages)">
+                      <Globe2 className="w-2.5 h-2.5" />
+                    </button>
+                    <button onClick={() => deletePage(page.id)} className="p-0.5 rounded text-gray-300 hover:text-red-500">
+                      <Trash2 className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -446,7 +509,39 @@ export function StepDesign({
           </div>
 
           <div className="p-4 space-y-5 overflow-auto flex-1">
-            {/* Preset picker */}
+            {/* Style mode toggle */}
+            <div>
+              <label className="block text-[10px] font-medium text-gray-500 mb-1.5">Style Mode</label>
+              <div className="flex gap-0.5 bg-gray-100 rounded-md p-0.5">
+                {([
+                  { id: 'parent', label: 'Parent', hint: 'Use Assembler defaults' },
+                  { id: 'preset', label: 'Preset', hint: 'Pick a curated style' },
+                  { id: 'custom', label: 'Custom', hint: 'Full custom control' },
+                ] as const).map(m => {
+                  const active = (styleConfig.mode || 'custom') === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => onStyleChange({ ...styleConfig, mode: m.id })}
+                      title={m.hint}
+                      className={`flex-1 px-2 py-1 rounded text-[10px] font-medium transition-all ${active ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      {m.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {(styleConfig.mode || 'custom') === 'parent' && (
+                <p className="text-[10px] text-gray-400 mt-2 leading-snug">
+                  Pages will be generated using Assembler's default theme styles. Switch to Preset or Custom to override.
+                </p>
+              )}
+            </div>
+
+            <div className="h-px bg-gray-100" />
+
+            {/* Preset picker — visible in preset + custom modes */}
+            {(styleConfig.mode || 'custom') !== 'parent' && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-[10px] font-medium text-gray-500">Starting Preset</label>
@@ -491,7 +586,10 @@ export function StepDesign({
                 Pick a preset to start, then fully customize everything below.
               </p>
             </div>
+            )}
 
+            {(styleConfig.mode || 'custom') === 'custom' && (
+            <>
             <div className="h-px bg-gray-100" />
 
             <div>
@@ -538,6 +636,8 @@ export function StepDesign({
                 <input type="text" value={styleConfig.maxWidth || '1200px'} onChange={e => updateStyle(['maxWidth'], e.target.value)} className={inputClass + ' text-xs'} />
               </div>
             </div>
+            </>
+            )}
           </div>
         </div>
       )}
