@@ -10,6 +10,7 @@ import { DomainSettings } from '@/components/domains/domain-settings';
 import { AttachDomainSubscription } from '@/components/admin/attach-domain-subscription';
 import { DomainRetryRegister } from '@/components/domains/domain-retry-register';
 import { DomainOwnerAssign } from '@/components/admin/domain-owner-assign';
+import { ImpersonateButton } from '@/components/admin/impersonate-button';
 
 export default async function AdminDomainDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -42,10 +43,13 @@ export default async function AdminDomainDetailPage({ params }: { params: Promis
                 </div>
               </div>
             </div>
-            <a href="https://manage.opensrs.com" target="_blank" rel="noopener noreferrer"
-              className="btn-admin-secondary text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
-              <ExternalLink className="w-3.5 h-3.5" /> OpenSRS
-            </a>
+            <div className="flex items-center gap-2">
+              {owner?.id && <ImpersonateButton userId={owner.id} label={owner.full_name || owner.email} />}
+              <a href="https://manage.opensrs.com" target="_blank" rel="noopener noreferrer"
+                className="btn-admin-secondary text-sm py-2 px-3.5 inline-flex items-center gap-1.5">
+                <ExternalLink className="w-3.5 h-3.5" /> OpenSRS
+              </a>
+            </div>
           </div>
 
           {/* Registration failure banner */}

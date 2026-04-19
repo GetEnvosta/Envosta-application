@@ -2,9 +2,8 @@ export const revalidate = 5;
 import { getAllServices } from '@/services/sites';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { Search, Globe, ExternalLink, CheckCircle, XCircle, Shield, AlertTriangle, Server, Zap, HardDrive } from 'lucide-react';
+import { Search, Globe, ExternalLink, CheckCircle, XCircle, Shield, AlertTriangle, Server, Zap, HardDrive, Eye } from 'lucide-react';
 import { ProvisionButton } from '@/components/admin/provision-button';
-import { ImpersonateButton } from '@/components/admin/impersonate-button';
 import { StatCard } from '@/components/admin/stat-card';
 import { AdminCreateSite } from '@/components/admin/admin-create-site';
 import { SyncInfo } from '@/components/admin/sync-info';
@@ -188,8 +187,9 @@ export default async function SitesAdminPage({
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           {s.status === 'provisioning' && <ProvisionButton siteId={s.id} label={s.label} />}
-                          <Link href={`/admin/services/${s.id}`} className="text-xs text-admin-600 hover:text-admin-700">View</Link>
-                          {s.user_id && <ImpersonateButton userId={s.user_id} label={owner?.email} />}
+                          <Link href={`/admin/services/${s.id}`} className="text-xs text-admin-600 hover:text-admin-700 font-medium inline-flex items-center gap-1">
+                            <Eye className="w-3.5 h-3.5" /> View
+                          </Link>
                         </div>
                       </td>
                     </tr>
