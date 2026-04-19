@@ -11,6 +11,7 @@ import {
 import { fetchWithRetry } from '@/lib/fetch-retry';
 import { STUDIO_PRESETS, type StudioStylePreset } from '@/lib/studio-style-presets';
 import { extractStylesFromHtml } from '@/lib/extract-styles-from-html';
+import { stripHtmlForPage } from '@/lib/studio-html-strip';
 
 const FONT_OPTIONS = [
   'Playfair Display', 'DM Serif Display', 'Fraunces', 'Libre Baskerville',
@@ -221,12 +222,14 @@ export function StepDesign({
 
   async function importPageHtml(pageId: string, file: File) {
     try {
-      const html = await file.text();
-      const updated = pages.map(p => p.id === pageId ? { ...p, html } : p);
+      const raw = await file.text();
+      const page = pages.find(p => p.id === pageId);
+      const stripped = stripHtmlForPage(raw, page?.title ?? '');
+      const updated = pages.map(p => p.id === pageId ? { ...p, html: stripped } : p);
       onPagesChange(updated);
       onSelectPage(pageId);
-      const page = pages.find(p => p.id === pageId);
-      setStatus({ type: 'success', msg: `HTML imported for ${page?.title ?? 'page'}` });
+      const kind = page?.title === 'Header' ? 'header' : page?.title === 'Footer' ? 'footer' : 'page content';
+      setStatus({ type: 'success', msg: `Imported ${kind} for ${page?.title ?? 'page'}` });
     } catch (err: any) {
       setStatus({ type: 'error', msg: err?.message || 'Import failed' });
     }
