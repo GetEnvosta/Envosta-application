@@ -235,6 +235,7 @@ export function StudioTool() {
         {step === 2 && (
           <StepDesign
             projectId=""
+            brief={briefOptions[selectedBrief ?? 0]?.description || brief}
             styleConfig={styleConfig}
             pages={pages}
             selectedPageId={selectedPageId}

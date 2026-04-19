@@ -8,6 +8,7 @@ import {
   Upload, X,
 } from 'lucide-react';
 import { fetchWithRetry } from '@/lib/fetch-retry';
+import { STUDIO_PRESETS, type StudioStylePreset } from '@/lib/studio-style-presets';
 
 const FONT_OPTIONS = [
   'Playfair Display', 'DM Serif Display', 'Fraunces', 'Libre Baskerville',
@@ -33,10 +34,11 @@ const SIZES = [
 const SPECIAL_PAGES = ['Header', 'Footer'];
 
 export function StepDesign({
-  projectId, styleConfig, pages, selectedPageId, businessInfo,
+  projectId, brief, styleConfig, pages, selectedPageId, businessInfo,
   onStyleChange, onPagesChange, onSelectPage, onContinue, onAuthRequired,
 }: {
   projectId: string;
+  brief?: string;
   styleConfig: any;
   pages: any[];
   selectedPageId: string;
@@ -58,6 +60,8 @@ export function StepDesign({
   const [referenceHtml, setReferenceHtml] = useState('');
   const [addingPage, setAddingPage] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState('');
+  const [suggesting, setSuggesting] = useState(false);
+  const [presetsExpanded, setPresetsExpanded] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const selectedPage = pages.find(p => p.id === selectedPageId);
@@ -80,11 +84,46 @@ export function StepDesign({
 
   useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
+  function applyPreset(preset: StudioStylePreset) {
+    // Merge preset on top of the current config so the user's site name is preserved
+    onStyleChange({
+      ...styleConfig,
+      ...preset.config,
+      presetId: preset.id,
+    });
+    setStatus({ type: 'success', msg: `Applied "${preset.name}"` });
+  }
+
+  async function suggestPreset() {
+    setSuggesting(true);
+    setStatus(null);
+    try {
+      const res = await fetchWithRetry('/api/studio/suggest-style', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brief, businessInfo }),
+      }, { retries: 0 });
+      if (res.status === 401 && onAuthRequired) { onAuthRequired(); return; }
+      const data = await res.json();
+      if (!res.ok) { setStatus({ type: 'error', msg: data.error || 'Failed to suggest' }); return; }
+      if (data.preset) {
+        applyPreset(data.preset as StudioStylePreset);
+        setStatus({ type: 'success', msg: `AI picked "${data.preset.name}"` });
+      }
+    } catch (err: any) {
+      setStatus({ type: 'error', msg: err?.message || 'Network error' });
+    } finally {
+      setSuggesting(false);
+    }
+  }
+
   function updateStyle(path: string[], value: string) {
     const next = JSON.parse(JSON.stringify(styleConfig));
     let obj = next;
     for (let i = 0; i < path.length - 1; i++) obj = obj[path[i]] ??= {};
     obj[path[path.length - 1]] = value;
+    // User tweaked something — no longer a pure preset
+    if (path[0] !== 'siteName') delete next.presetId;
     onStyleChange(next);
     saveStyle(next);
   }
@@ -407,6 +446,54 @@ export function StepDesign({
           </div>
 
           <div className="p-4 space-y-5 overflow-auto flex-1">
+            {/* Preset picker */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-[10px] font-medium text-gray-500">Starting Preset</label>
+                <button
+                  onClick={() => setPresetsExpanded(!presetsExpanded)}
+                  className="text-[10px] text-indigo-600 hover:text-indigo-800"
+                >
+                  {presetsExpanded ? 'Collapse' : 'Browse all'}
+                </button>
+              </div>
+              <button
+                onClick={suggestPreset}
+                disabled={suggesting}
+                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 transition-colors mb-2"
+                title="Let Claude pick a starting preset based on your brief"
+              >
+                {suggesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                {suggesting ? 'Picking…' : 'AI Suggest'}
+              </button>
+              <div className={`grid grid-cols-2 gap-1.5 ${presetsExpanded ? '' : 'max-h-36 overflow-hidden'}`}>
+                {STUDIO_PRESETS.map(p => {
+                  const active = styleConfig.presetId === p.id;
+                  const c = p.config.colors;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => applyPreset(p)}
+                      className={`text-left rounded-md border p-1.5 transition-all ${active ? 'border-indigo-500 ring-1 ring-indigo-300' : 'border-gray-200 hover:border-gray-300'}`}
+                      title={p.description}
+                    >
+                      <div className="flex gap-0.5 mb-1">
+                        {[c.background, c.surface, c.primary, c.accent].map((col, i) => (
+                          <span key={i} className="flex-1 h-3 rounded-sm border border-gray-200" style={{ backgroundColor: col }} />
+                        ))}
+                      </div>
+                      <p className="text-[10px] font-medium text-gray-700 truncate">{p.name}</p>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-gray-400 mt-2 leading-snug">
+                Pick a preset to start, then fully customize everything below.
+              </p>
+            </div>
+
+            <div className="h-px bg-gray-100" />
+
             <div>
               <label className="block text-[10px] font-medium text-gray-500 mb-1">Site Name</label>
               <input type="text" value={styleConfig.siteName || ''} onChange={e => updateStyle(['siteName'], e.target.value)} className={inputClass} placeholder="Business Name" />
