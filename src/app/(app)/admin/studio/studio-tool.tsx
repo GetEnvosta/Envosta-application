@@ -1,39 +1,121 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { StudioSteps } from '@/components/studio/studio-steps';
 import { StepBrief } from '@/components/studio/step-brief';
 import { StepDesign } from '@/components/studio/step-design';
 import { StepExport } from '@/components/studio/step-export';
-import { Paintbrush, RotateCcw } from 'lucide-react';
+import { Paintbrush, RotateCcw, Check, Loader2 } from 'lucide-react';
 
 let idCounter = 0;
 function localId() { return `local-${++idCounter}-${Date.now()}`; }
+
+const STORAGE_KEY = 'envosta.studio.draft.v1';
+const DEFAULT_PAGES = ['Home', 'About', 'Services', 'Contact'];
+
+type Snapshot = {
+  step: number;
+  brief: string;
+  briefOptions: any[];
+  selectedBrief: number | null;
+  businessInfo: any;
+  styleConfig: any;
+  pages: any[];
+  selectedPageId: string;
+  projectName: string;
+  savedAt: number;
+};
 
 export function StudioTool() {
   const [step, setStep] = useState(1);
   const [brief, setBrief] = useState('');
   const [briefOptions, setBriefOptions] = useState<any[]>([]);
   const [selectedBrief, setSelectedBrief] = useState<number | null>(null);
-  const [businessInfo, setBusinessInfo] = useState<any>({ pages: ['Home', 'About', 'Services', 'Contact'] });
+  const [businessInfo, setBusinessInfo] = useState<any>({ pages: DEFAULT_PAGES });
   const [styleConfig, setStyleConfig] = useState<any>({});
   const [pages, setPages] = useState<any[]>([]);
   const [selectedPageId, setSelectedPageId] = useState('');
   const [projectName, setProjectName] = useState('');
 
+  // Persistence state
+  const [hydrated, setHydrated] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Load saved draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const s: Snapshot = JSON.parse(raw);
+        if (s && typeof s === 'object') {
+          setStep(s.step ?? 1);
+          setBrief(s.brief ?? '');
+          setBriefOptions(s.briefOptions ?? []);
+          setSelectedBrief(s.selectedBrief ?? null);
+          setBusinessInfo(s.businessInfo ?? { pages: DEFAULT_PAGES });
+          setStyleConfig(s.styleConfig ?? {});
+          setPages(s.pages ?? []);
+          setSelectedPageId(s.selectedPageId ?? '');
+          setProjectName(s.projectName ?? '');
+          setSavedAt(s.savedAt ?? null);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load studio draft:', err);
+    }
+    setHydrated(true);
+  }, []);
+
+  // Auto-save (debounced) on any state change after hydration
+  useEffect(() => {
+    if (!hydrated) return;
+    setSaving(true);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      try {
+        const snap: Snapshot = {
+          step, brief, briefOptions, selectedBrief, businessInfo,
+          styleConfig, pages, selectedPageId, projectName,
+          savedAt: Date.now(),
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
+        setSavedAt(snap.savedAt);
+      } catch (err) {
+        console.error('Failed to save studio draft:', err);
+      } finally {
+        setSaving(false);
+      }
+    }, 600);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [hydrated, step, brief, briefOptions, selectedBrief, businessInfo, styleConfig, pages, selectedPageId, projectName]);
+
   function reset() {
-    if (!confirm('Start over? All unsaved work will be lost.')) return;
+    if (!confirm('Start over? This will erase your saved draft.')) return;
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
     setStep(1);
     setBrief('');
     setBriefOptions([]);
     setSelectedBrief(null);
-    setBusinessInfo({ pages: ['Home', 'About', 'Services', 'Contact'] });
+    setBusinessInfo({ pages: DEFAULT_PAGES });
     setStyleConfig({});
     setPages([]);
     setSelectedPageId('');
     setProjectName('');
+    setSavedAt(null);
     idCounter = 0;
   }
+
+  const savedLabel = (() => {
+    if (saving) return 'Saving…';
+    if (!savedAt) return null;
+    const diff = Date.now() - savedAt;
+    if (diff < 5000) return 'Saved';
+    if (diff < 60_000) return `Saved ${Math.floor(diff / 1000)}s ago`;
+    if (diff < 3_600_000) return `Saved ${Math.floor(diff / 60_000)}m ago`;
+    return `Saved ${new Date(savedAt).toLocaleTimeString()}`;
+  })();
 
   return (
     <div className="flex flex-col h-full">
@@ -50,6 +132,12 @@ export function StudioTool() {
           >
             <RotateCcw className="w-3 h-3" /> Start Over
           </button>
+        )}
+        {savedLabel && (
+          <span className="inline-flex items-center gap-1 text-[11px] text-gray-400">
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3 text-emerald-500" />}
+            {savedLabel}
+          </span>
         )}
         <div className="ml-auto">
           <StudioSteps currentStep={step} onStepClick={(s) => { if (s <= step) setStep(s); }} />
@@ -73,7 +161,7 @@ export function StudioTool() {
               if (businessInfo.businessName) setProjectName(businessInfo.businessName);
               const pageNames: string[] = (businessInfo.pages && businessInfo.pages.length > 0)
                 ? businessInfo.pages
-                : ['Home', 'About', 'Services', 'Contact'];
+                : DEFAULT_PAGES;
               const selectedConcept = briefOptions[idx]?.description || brief;
               const newPages = pageNames.map((name: string, i: number) => ({
                 id: localId(),
