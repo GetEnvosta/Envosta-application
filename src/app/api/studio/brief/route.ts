@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   if (!apiKey) return NextResponse.json({ error: 'AI not configured' }, { status: 503 });
 
   try {
-    const { brief, businessInfo, pages, referenceHtml } = await req.json();
+    const { brief, businessInfo, pages, woocommerce, referenceHtml } = await req.json();
     if (!brief || typeof brief !== 'string' || brief.trim().length < 10) {
       return NextResponse.json({ error: 'Please describe the website in at least a few words' }, { status: 400 });
     }
@@ -48,6 +48,9 @@ export async function POST(req: Request) {
     }
     if (Array.isArray(pages) && pages.length > 0) {
       userMessage += `\n\nPages the site should include: ${pages.join(', ')}`;
+    }
+    if (woocommerce) {
+      userMessage += `\n\nThis site will include a WooCommerce online store. Concepts should account for e-commerce: product listings, shopping cart, checkout flow, customer account management, and a clean Shop page layout.`;
     }
     if (referenceHtml && typeof referenceHtml === 'string') {
       // Cap HTML reference to avoid token explosion

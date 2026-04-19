@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sparkles, Loader2, ChevronDown, ChevronUp, Globe, Search, Upload, FileCode, X, Plus } from 'lucide-react';
+import { Sparkles, Loader2, ChevronDown, ChevronUp, Globe, Search, Upload, FileCode, X, Plus, ShoppingBag } from 'lucide-react';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 
 const INDUSTRIES = [
@@ -12,6 +12,9 @@ const INDUSTRIES = [
 ];
 
 const SUGGESTED_PAGES = ['Home', 'About', 'Services', 'Contact', 'Blog', 'Gallery', 'Testimonials', 'FAQ', 'Pricing', 'Portfolio', 'Team', 'Careers'];
+
+// Default WooCommerce pages created by WooCommerce core on install
+const WOOCOMMERCE_PAGES = ['Shop', 'Cart', 'Checkout', 'My Account'];
 
 export function StepBrief({
   projectId,
@@ -83,6 +86,20 @@ export function StepBrief({
     onBusinessInfoChange({ ...form, pages: pages.filter(p => p !== name) });
   }
 
+  const wooEnabled = !!form.woocommerce;
+  function toggleWoo() {
+    if (wooEnabled) {
+      // Turn off: remove WC pages from the list
+      const next = pages.filter(p => !WOOCOMMERCE_PAGES.includes(p));
+      onBusinessInfoChange({ ...form, woocommerce: false, pages: next });
+    } else {
+      // Turn on: merge WC pages (no duplicates)
+      const existingLower = new Set(pages.map(p => p.toLowerCase()));
+      const add = WOOCOMMERCE_PAGES.filter(p => !existingLower.has(p.toLowerCase()));
+      onBusinessInfoChange({ ...form, woocommerce: true, pages: [...pages, ...add] });
+    }
+  }
+
   function set(key: string) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       onBusinessInfoChange({ ...form, [key]: e.target.value });
@@ -134,6 +151,7 @@ export function StepBrief({
           brief: brief.trim(),
           businessInfo: Object.values(form).some((v: any) => v) ? form : undefined,
           pages,
+          woocommerce: wooEnabled,
           referenceHtml: refHtml || undefined,
         }),
       });
@@ -238,6 +256,29 @@ export function StepBrief({
                   </button>
                 </div>
               )}
+            </div>
+
+            {/* WooCommerce toggle */}
+            <div className="rounded-xl border border-gray-200 overflow-hidden mb-4">
+              <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-gray-500" />
+                <p className="text-sm font-medium text-gray-700 flex-1">WooCommerce</p>
+                <button
+                  onClick={toggleWoo}
+                  role="switch"
+                  aria-checked={wooEnabled}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${wooEnabled ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${wooEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                </button>
+              </div>
+              <div className="px-5 py-3">
+                <p className="text-xs text-gray-500 leading-snug">
+                  {wooEnabled
+                    ? `An online store will be included. Auto-added pages: ${WOOCOMMERCE_PAGES.join(', ')}.`
+                    : 'Turn on to build an online store. Shop, Cart, Checkout, and My Account pages will be auto-added.'}
+                </p>
+              </div>
             </div>
 
             {/* Pages wanted */}
