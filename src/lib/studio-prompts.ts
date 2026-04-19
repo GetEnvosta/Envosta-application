@@ -221,7 +221,7 @@ Design each section so it can be directly converted to these WordPress block pat
 
 ### Output Rules
 1. Output ONLY complete, valid HTML. No explanation, no markdown, no code fences.
-2. Include <html>, <head>, <body> tags. Load Google Fonts for the chosen heading + body fonts via <link> tag.
+2. For CONTENT pages: include <html>, <head>, <body> tags and load Google Fonts via <link>. For TEMPLATE PARTS (Header/Footer): output ONLY the <header>…</header> or <footer>…</footer> fragment with an optional supporting <style> tag — do NOT wrap in <html>/<head>/<body>.
 3. **CRITICAL**: For ALL colors, backgrounds, and text colors, use the CSS custom properties (var(--wp--preset--color--theme-1) through var(--wp--preset--color--theme-5)). Do NOT hardcode hex values in your CSS — the studio injects these variables at preview time so the design updates live when the user changes global styles.
 4. For fonts, reference var(--wp--preset--font-family--heading) and var(--wp--preset--font-family--body) instead of hardcoding font names in font-family declarations (except in the Google Fonts <link>).
 5. Header / Footer: Content pages MUST NOT include a site header, primary navigation, logo bar, or footer. Those are separate template parts rendered around the page. Template-part outputs (when asked for Header or Footer specifically) should output only the <header>…</header> or <footer>…</footer> block, not a full document.

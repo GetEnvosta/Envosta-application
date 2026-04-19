@@ -9,6 +9,16 @@ export const dynamic = 'force-dynamic';
 function buildChildThemeJson(style: any) {
   const colors = style.colors || {};
   const fonts = style.fonts || { heading: 'Playfair Display', body: 'Source Sans 3' };
+  const mode = style.mode === 'preset' ? 'custom' : (style.mode || 'custom');
+
+  // Parent mode: emit a minimal theme.json that does NOT override the parent
+  // theme's palette, typography, or layout. This lets Assembler's defaults apply.
+  if (mode === 'parent') {
+    return JSON.stringify({
+      $schema: 'https://schemas.wp.org/trunk/theme.json',
+      version: 3,
+    }, null, 2);
+  }
 
   return JSON.stringify({
     $schema: 'https://schemas.wp.org/trunk/theme.json',
