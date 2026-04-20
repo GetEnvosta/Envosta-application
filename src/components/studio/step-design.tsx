@@ -456,11 +456,6 @@ export function StepDesign({
                     title="Export just this part as WordPress XML">
                     <Download className="w-2.5 h-2.5" />
                   </button>
-                  <button onClick={() => promoteToGlobal(page!.id)} disabled={!page!.html}
-                    className="p-0.5 rounded text-gray-300 hover:text-emerald-600 disabled:opacity-30 disabled:hover:text-gray-300"
-                    title="Use this part's styles as global styles">
-                    <Globe2 className="w-2.5 h-2.5" />
-                  </button>
                 </div>
               </div>
             ))}
@@ -500,11 +495,6 @@ export function StepDesign({
                       className="p-0.5 rounded text-gray-300 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-300"
                       title="Export just this page as WordPress XML">
                       <Download className="w-2.5 h-2.5" />
-                    </button>
-                    <button onClick={() => promoteToGlobal(page.id)} disabled={!page.html}
-                      className="p-0.5 rounded text-gray-300 hover:text-emerald-600 disabled:opacity-30 disabled:hover:text-gray-300"
-                      title="Use this page's styles as global styles (affects all pages)">
-                      <Globe2 className="w-2.5 h-2.5" />
                     </button>
                     <button onClick={() => deletePage(page.id)} className="p-0.5 rounded text-gray-300 hover:text-red-500">
                       <Trash2 className="w-2.5 h-2.5" />
@@ -651,10 +641,22 @@ export function StepDesign({
                 }}
               />
             </label>
+            {/* Use this page's styles as global styles */}
+            <button
+              onClick={() => selectedPage && promoteToGlobal(selectedPage.id)}
+              disabled={!selectedPage?.html}
+              className="p-2 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-400 transition-colors"
+              title={selectedPage?.html
+                ? `Update global styles from "${selectedPage.title}" — affects every page`
+                : 'Generate or import HTML first'}
+            >
+              <Globe2 className="w-4 h-4" />
+            </button>
             <button
               onClick={handleAiEdit}
               disabled={(!aiPrompt.trim() && !referenceHtml) || !selectedPage || aiLoading}
               className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 transition-colors"
+              title="Send — update this page with the prompt above"
             >
               {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </button>
