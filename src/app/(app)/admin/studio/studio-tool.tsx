@@ -444,6 +444,7 @@ Feel: utilitarian but polished.`;
             project={{ name: projectName || 'Theme', slug: (projectName || 'theme').toLowerCase().replace(/[^a-z0-9]+/g, '-') }}
             styleConfig={styleConfig}
             pages={pages}
+            onBack={() => setStep(2)}
           />
         )}
       </div>

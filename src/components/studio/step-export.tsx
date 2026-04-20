@@ -1,20 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Folder, FileText, FileCode, Loader2, Check, AlertCircle } from 'lucide-react';
+import { Download, Folder, FileText, FileCode, Loader2, Check, AlertCircle, ArrowLeft } from 'lucide-react';
 import { buildWxrXml } from '@/lib/studio-wxr';
 
 export function StepExport({
-  projectId, project, styleConfig, pages, onAuthRequired,
+  projectId, project, styleConfig, pages, onAuthRequired, onBack,
 }: {
   projectId: string;
   project: any;
   styleConfig: any;
   pages: any[];
   onAuthRequired?: () => void;
+  onBack?: () => void;
 }) {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
+  const [parentSlug, setParentSlug] = useState('assembler');
   const slug = project.slug || 'site';
   const pagesWithContent = pages.filter(p => p.html);
 
@@ -37,7 +39,7 @@ export function StepExport({
       const res = await fetch('/api/studio/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project, pages, styleConfig }),
+        body: JSON.stringify({ project, pages, styleConfig, parentSlug: parentSlug.trim() || 'assembler' }),
       });
 
       if (res.status === 401) {
@@ -75,12 +77,35 @@ export function StepExport({
   return (
     <div className="flex items-start justify-center min-h-full p-8">
       <div className="max-w-2xl w-full space-y-6">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Design
+          </button>
+        )}
         <div className="text-center">
           <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
             <Check className="w-8 h-8 text-emerald-600" />
           </div>
           <h2 className="text-xl font-semibold text-gray-900 mb-1">Ready to Export</h2>
           <p className="text-sm text-gray-500">{pagesWithContent.length} pages ready. Download the child theme and WXR import file.</p>
+        </div>
+
+        {/* Parent theme slug — must match the installed parent folder name */}
+        <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+          <label className="block text-xs font-medium text-gray-700 mb-1">Parent theme folder name</label>
+          <input
+            type="text"
+            value={parentSlug}
+            onChange={e => setParentSlug(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            placeholder="assembler"
+          />
+          <p className="text-[11px] text-gray-500 mt-1.5 leading-snug">
+            This is the folder name inside <code className="bg-white px-1 rounded">wp-content/themes/</code> where the parent theme lives. Default is <code className="bg-white px-1 rounded">assembler</code>. If WordPress says "parent theme could not be found" after activating, check the exact folder name of the installed Assembler theme and enter it here.
+          </p>
         </div>
 
         {/* Two separate downloads */}
@@ -140,7 +165,7 @@ export function StepExport({
         <div className="bg-blue-50 rounded-xl border border-blue-200 p-5">
           <h4 className="text-sm font-semibold text-blue-900 mb-2">Deployment to wp.cloud</h4>
           <ol className="text-xs text-blue-800 space-y-2 list-decimal list-inside">
-            <li>Ensure the <strong>Assembler parent theme</strong> (by Automattic) is installed on the WordPress site</li>
+            <li>Ensure the <strong>Assembler parent theme</strong> is installed on the WordPress site. Confirm the folder name inside <code className="bg-blue-100 px-1 rounded">wp-content/themes/</code> matches the "Parent theme folder name" above (default <code className="bg-blue-100 px-1 rounded">assembler</code>).</li>
             <li>Upload the <code className="bg-blue-100 px-1 rounded">envosta-child-{slug}</code> folder to <code className="bg-blue-100 px-1 rounded">wp-content/themes/</code></li>
             <li>Activate the child theme in <strong>Appearance → Themes</strong></li>
             <li>Go to <strong>Tools → Import → WordPress</strong> and upload <code className="bg-blue-100 px-1 rounded">content-{slug}.xml</code></li>

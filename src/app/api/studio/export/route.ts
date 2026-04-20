@@ -96,7 +96,7 @@ function buildChildThemeJson(style: any) {
 }
 
 // ── Child style.css header ──
-function buildChildStyleCss(siteName: string, slug: string) {
+function buildChildStyleCss(siteName: string, slug: string, parentSlug: string) {
   return `/*
 Theme Name: Envosta - ${siteName}
 Theme URI: https://envosta.com
@@ -107,7 +107,7 @@ Version: 1.0.0
 Requires at least: 6.4
 Tested up to: 6.7
 Requires PHP: 8.0
-Template: assembler
+Template: ${parentSlug}
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: envosta-${slug}
@@ -148,8 +148,9 @@ export async function POST(req: Request) {
   if (!isStaffRole(profile?.role)) return NextResponse.json({ error: 'Staff access required' }, { status: 403 });
 
   try {
-    const { project, pages: allPages, styleConfig } = await req.json();
+    const { project, pages: allPages, styleConfig, parentSlug } = await req.json();
     if (!project || !allPages) return NextResponse.json({ error: 'project and pages are required' }, { status: 400 });
+    const parent = (typeof parentSlug === 'string' && parentSlug.trim()) || 'assembler';
 
     const pagesWithContent = (allPages ?? []).filter((p: any) => p.html);
 
@@ -169,7 +170,7 @@ export async function POST(req: Request) {
     // separately so users can import it via Tools → Import after the theme
     // is active.
     zip.file(`${childDir}/theme.json`, buildChildThemeJson(style));
-    zip.file(`${childDir}/style.css`, buildChildStyleCss(siteName, slug));
+    zip.file(`${childDir}/style.css`, buildChildStyleCss(siteName, slug, parent));
     zip.file(`${childDir}/functions.php`, buildChildFunctionsPhp(style.fonts, slug));
 
     const buffer = await zip.generateAsync({ type: 'uint8array' });
