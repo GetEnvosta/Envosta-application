@@ -174,7 +174,6 @@ export function StepDesign({
   const [showPages, setShowPages] = useState(true);
   const [showStyles, setShowStyles] = useState(false);
   const [generating, setGenerating] = useState<string | null>(null);
-  const [generatingAll, setGeneratingAll] = useState(false);
   const [previewSize, setPreviewSize] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [aiPrompt, setAiPrompt] = useState('');
@@ -202,7 +201,7 @@ export function StepDesign({
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const selectedPage = pages.find(p => p.id === selectedPageId);
-  const allGenerated = pages.length > 0 && pages.every(p => p.html);
+  const hasAnyGenerated = pages.some(p => p.html);
   const sizeConfig = SIZES.find(s => s.id === previewSize)!;
 
   // Ensure Header and Footer exist in-memory (fallback if wireframe didn't include them)
@@ -369,13 +368,6 @@ export function StepDesign({
     }
   }
 
-  async function generateAllPages() {
-    setGeneratingAll(true);
-    for (const page of pages) {
-      if (!page.html) await generatePage(page.id);
-    }
-    setGeneratingAll(false);
-  }
 
   async function handleAiEdit() {
     if ((!aiPrompt.trim() && !referenceHtml) || !selectedPage) return;
@@ -551,13 +543,6 @@ export function StepDesign({
                 {selectedPage?.html ? 'Regen' : 'Generate'}
               </button>
             )}
-            <button
-              onClick={generateAllPages}
-              disabled={generatingAll || allGenerated}
-              className="text-[11px] font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-40 px-2 py-1"
-            >
-              {generatingAll ? 'Generating...' : allGenerated ? '✓ All done' : 'Gen All'}
-            </button>
             {status && (
               <span className={`text-[11px] truncate ${status.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>{status.msg}</span>
             )}
@@ -574,8 +559,9 @@ export function StepDesign({
             </button>
             <button
               onClick={onContinue}
-              disabled={!allGenerated}
+              disabled={!hasAnyGenerated}
               className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md disabled:opacity-50"
+              title={hasAnyGenerated ? 'Continue to export' : 'Generate at least one page first'}
             >
               Export <ArrowRight className="w-3 h-3" />
             </button>
