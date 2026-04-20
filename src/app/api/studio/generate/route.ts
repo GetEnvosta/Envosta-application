@@ -100,23 +100,25 @@ ${isTemplatePart
 
 REFERENCE HTML (transform this in-place — preserve structure, swap only the allowed values):
 ${referenceHtml}`
-      : `GLOBAL STYLE REFERENCE:
-Site Name: ${style?.siteName || 'Untitled'}
-Heading Font: ${fonts.heading}
-Body Font: ${fonts.body}
-Colors:
-  Primary: ${colors.primary || '#1a1a2e'}
-  Secondary: ${colors.secondary || '#16213e'}
-  Accent: ${colors.accent || '#e94560'}
-  Background: ${colors.background || '#0f0f1a'}
-  Surface: ${colors.surface || '#1a1a2e'}
-  Text: ${colors.text || '#e8e8e8'}
-  Text Muted: ${colors.textMuted || '#8a8a9a'}
-  Border: ${colors.border || '#2a2a3e'}
-Border Radius: ${style?.borderRadius || '4px'}
-Max Width: ${style?.maxWidth || '1200px'}
+      : `ACTIVE GLOBAL STYLES — the studio injects these at preview time as CSS variables. Your output MUST reference the variables (var(--wp--preset--color--theme-N), var(--wp--preset--font-family--heading|body)), never the raw values below. The values are listed here only so you can pick the closest variable for any given use case:
 
-Navigation pages: ${(allPageNames || [pageName]).join(', ')}
+Site name: ${style?.siteName || 'Untitled'}
+Heading font: ${fonts.heading}   → var(--wp--preset--font-family--heading)
+Body font:    ${fonts.body}      → var(--wp--preset--font-family--body)
+
+Theme-1 (page background, light):     ${colors.background || '#FFFFFF'}   → var(--wp--preset--color--theme-1)
+Theme-2 (soft / alternate background): ${colors.surface || '#EEEEEE'}      → var(--wp--preset--color--theme-2)
+Theme-3 (borders, muted text):         ${colors.border || colors.textMuted || '#BBBBBB'} → var(--wp--preset--color--theme-3)
+Theme-4 (primary / heading / button):  ${colors.primary || colors.text || '#1E1E1E'}    → var(--wp--preset--color--theme-4)
+Theme-5 (deepest accent, dark CTA):    ${colors.accent || '#000000'}        → var(--wp--preset--color--theme-5)
+
+Border radius default: ${style?.borderRadius || '0'}  (use var(--envosta-radius))
+Content max-width:     ${style?.maxWidth || '620px'}  (use var(--envosta-max-width))
+
+Google Fonts <link> — emit this exact URL in <head> so both fonts load:
+https://fonts.googleapis.com/css2?family=${encodeURIComponent(fonts.heading).replace(/%20/g, '+')}:wght@400;500;600;700&family=${encodeURIComponent(fonts.body).replace(/%20/g, '+')}:wght@300;400;500;600;700&display=swap
+
+Navigation pages (other pages on this site): ${(allPageNames || [pageName]).join(', ')}
 
 ${isTemplatePart
   ? `TEMPLATE PART TO GENERATE: "${pageName}" (${templatePartKind || 'template-part'})

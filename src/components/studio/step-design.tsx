@@ -6,7 +6,7 @@ import {
   Sparkles, Loader2, Check, FileText, Palette, ArrowRight, Send,
   Monitor, Tablet, Smartphone, Eye, PanelLeftClose, PanelLeftOpen,
   PanelRightClose, PanelRightOpen, Plus, Trash2, LayoutTemplate,
-  Upload, X, Globe2, FileUp, Download,
+  Upload, X, Globe2, FileUp, Download, ShoppingBag,
 } from 'lucide-react';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 import { ASSEMBLER_VARIATIONS, CUSTOM_PRESETS, type StudioStylePreset } from '@/lib/studio-style-presets';
@@ -36,6 +36,10 @@ const SIZES = [
 
 // Special page types
 const SPECIAL_PAGES = ['Header', 'Footer'];
+
+// Pages that belong to the WooCommerce category in the sidebar when
+// WooCommerce is enabled on the brief.
+const WOOCOMMERCE_PAGE_TITLES = new Set(['Shop', 'Cart', 'Checkout', 'My Account']);
 
 /**
  * Return just the <body> inner HTML of a document string, or the original
@@ -443,7 +447,11 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
     () => buildPreviewDoc(selectedPage, headerPage, footerPage, styleConfig),
     [selectedPage?.id, selectedPage?.html, headerPage?.html, footerPage?.html, styleConfig],
   );
-  const contentPages = pages.filter(p => !SPECIAL_PAGES.includes(p.title));
+  // Split content pages into WooCommerce vs regular.
+  const nonPart = pages.filter(p => !SPECIAL_PAGES.includes(p.title));
+  const wcEnabled = !!businessInfo?.woocommerce;
+  const wooCommercePages = wcEnabled ? nonPart.filter(p => WOOCOMMERCE_PAGE_TITLES.has(p.title)) : [];
+  const contentPages = wcEnabled ? nonPart.filter(p => !WOOCOMMERCE_PAGE_TITLES.has(p.title)) : nonPart;
 
   return (
     <div className="flex h-full">
@@ -484,6 +492,50 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
               </div>
             ))}
           </div>
+
+          {/* WooCommerce category — only when the brief has WC enabled and matching pages exist */}
+          {wooCommercePages.length > 0 && (
+            <div className="p-3 border-b border-gray-100">
+              <div className="flex items-center gap-1.5 mb-2">
+                <ShoppingBag className="w-3 h-3 text-amber-500" />
+                <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">WooCommerce</h3>
+              </div>
+              <div className="space-y-0.5">
+                {wooCommercePages.map(page => (
+                  <div key={page.id} className="group flex items-center">
+                    <button
+                      onClick={() => onSelectPage(page.id)}
+                      className={`flex-1 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-all text-left ${
+                        page.id === selectedPageId ? 'bg-amber-50 text-amber-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <ShoppingBag className="w-3 h-3 shrink-0" />
+                      <span className="flex-1 truncate">{page.title}</span>
+                      {generating === page.id && <Loader2 className="w-3 h-3 animate-spin text-amber-500" />}
+                      {page.html && generating !== page.id && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />}
+                    </button>
+                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all mr-1">
+                      <label className="p-0.5 rounded text-gray-300 hover:text-indigo-600 cursor-pointer" title="Import HTML for this page">
+                        <FileUp className="w-2.5 h-2.5" />
+                        <input type="file" accept=".html,.htm" className="hidden" onChange={async (e) => {
+                          const file = e.target.files?.[0]; e.target.value = '';
+                          if (file) await importPageHtml(page.id, file);
+                        }} />
+                      </label>
+                      <button onClick={() => exportPageXml(page.id)} disabled={!page.html}
+                        className="p-0.5 rounded text-gray-300 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-300"
+                        title="Export just this page as WordPress XML">
+                        <Download className="w-2.5 h-2.5" />
+                      </button>
+                      <button onClick={() => deletePage(page.id)} className="p-0.5 rounded text-gray-300 hover:text-red-500">
+                        <Trash2 className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="p-3 flex-1">
             <div className="flex items-center justify-between mb-2">
