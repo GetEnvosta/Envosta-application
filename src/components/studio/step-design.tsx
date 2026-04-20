@@ -264,14 +264,16 @@ export function StepDesign({
       });
       return;
     }
-    if (!confirm(`Promote "${page.title}" styles to global? This will update your global colors and fonts and apply to future page generations.`)) return;
+    const colorCount = extracted.colors ? Object.keys(extracted.colors).length : 0;
+    const fontCount = extracted.fonts ? Object.keys(extracted.fonts).length : 0;
+    if (!confirm(`Promote "${page.title}" styles to global?\n\nDetected: ${colorCount} color${colorCount === 1 ? '' : 's'}, ${fontCount} font${fontCount === 1 ? '' : 's'}.\nThis will update your global palette and typography and apply to every future page generation.`)) return;
     const next: any = { ...styleConfig };
     if (extracted.colors) next.colors = { ...(styleConfig.colors || {}), ...extracted.colors };
     if (extracted.fonts) next.fonts = { ...(styleConfig.fonts || {}), ...extracted.fonts };
     next.mode = next.mode === 'parent' ? 'custom' : (next.mode || 'custom');
     delete next.presetId;
     onStyleChange(next);
-    setStatus({ type: 'success', msg: `Global styles now match "${page.title}"` });
+    setStatus({ type: 'success', msg: `Global styles updated from "${page.title}" — ${colorCount} colors, ${fontCount} fonts` });
   }
 
   function applyPreset(preset: StudioStylePreset) {
@@ -728,7 +730,9 @@ export function StepDesign({
                       next.mode = 'custom';
                       delete next.presetId;
                       onStyleChange(next);
-                      setStatus({ type: 'success', msg: `Styles derived from ${file.name}` });
+                      const colorCount = extracted.colors ? Object.keys(extracted.colors).length : 0;
+                      const fontCount = extracted.fonts ? Object.keys(extracted.fonts).length : 0;
+                      setStatus({ type: 'success', msg: `Applied ${colorCount} colors + ${fontCount} fonts from ${file.name}` });
                     } catch (err: any) {
                       setStatus({ type: 'error', msg: err?.message || 'Failed to read file' });
                     }
