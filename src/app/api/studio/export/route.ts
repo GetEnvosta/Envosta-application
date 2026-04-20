@@ -3,6 +3,7 @@ import { createClient as createServerClient } from '@/lib/supabase-server';
 import { isStaffRole } from '@/lib/roles';
 import JSZip from 'jszip';
 import { getAssemblerVariationById } from '@/lib/studio-style-presets';
+import { buildEnvostaParentThemeFiles, ENVOSTA_PARENT_SLUG } from '@/lib/envosta-parent-theme';
 
 export const dynamic = 'force-dynamic';
 
@@ -148,9 +149,28 @@ export async function POST(req: Request) {
   if (!isStaffRole(profile?.role)) return NextResponse.json({ error: 'Staff access required' }, { status: 403 });
 
   try {
-    const { project, pages: allPages, styleConfig, parentSlug } = await req.json();
+    const { project, pages: allPages, styleConfig, parentSlug, target } = await req.json();
+
+    // target: 'parent' → returns the Envosta parent theme zip (no pages needed)
+    //         'child'  → returns the child theme zip (requires pages)
+    if (target === 'parent') {
+      const files = buildEnvostaParentThemeFiles();
+      const zip = new JSZip();
+      for (const f of files) zip.file(f.path, f.body);
+      const buffer = await zip.generateAsync({ type: 'uint8array' });
+      return new Response(buffer as unknown as BodyInit, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': `attachment; filename="${ENVOSTA_PARENT_SLUG}.zip"`,
+        },
+      });
+    }
+
     if (!project || !allPages) return NextResponse.json({ error: 'project and pages are required' }, { status: 400 });
-    const parent = (typeof parentSlug === 'string' && parentSlug.trim()) || 'assembler';
+    // Default parent slug: envosta-theme (our own parent). Users can override
+    // to "assembler" if they want to run on stock Assembler instead.
+    const parent = (typeof parentSlug === 'string' && parentSlug.trim()) || ENVOSTA_PARENT_SLUG;
 
     const pagesWithContent = (allPages ?? []).filter((p: any) => p.html);
 
