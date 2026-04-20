@@ -60,8 +60,16 @@ Do NOT wrap it in a full <html>/<body> document — output just the <header>…<
 IMPORTANT: This is a CONTENT page only. Do NOT include the site header, primary navigation, logo bar, or footer — those are separate template parts that will be composited around this page. Start directly with the page's hero/content and end with the page's final content section. It's fine to output a full <html>/<body> document for self-contained preview, but the body content must not include any site-wide header/nav or footer.`}
 DESCRIPTION: ${pagePrompt}${referenceHtml ? `
 
-═══ REFERENCE HTML ═══
-The user has provided an existing HTML page to use as a reference. Rebuild this page with the same layout, structure, sections, and content but apply the style reference above (colors, fonts, spacing). Match the reference design as closely as possible while using the provided design system. If sections are present, keep them in the same order. Replace any branding with the site name and colors above.
+═══ REFERENCE HTML (PRE-STRIPPED) ═══
+The user uploaded an existing HTML reference. It has ALREADY been stripped to only the relevant portion for this ${isTemplatePart ? 'template part' : 'content page'} — you do not need to remove site chrome or decide what's relevant.
+
+REBUILD RULES — follow ALL of these:
+1. Preserve EVERY section and block from the reference, in the same order. Do not drop, merge, or reorder sections.
+2. Preserve the exact text content verbatim — headings, paragraphs, bullet items, button labels, form labels, captions. Do not paraphrase.
+3. Preserve the visual layout: columns, grids, alignments, image/text ratios.
+4. Replace hardcoded colors with CSS variables (var(--wp--preset--color--theme-1..5)) and hardcoded fonts with var(--wp--preset--font-family--heading|body) — use the closest mapping from the style reference above.
+5. Preserve any images but replace external asset URLs with placehold.co equivalents of similar dimensions.
+6. The output should look nearly identical to the reference, just restyled to the design system.
 
 REFERENCE:
 ${referenceHtml}` : ''}`;
@@ -75,7 +83,7 @@ ${referenceHtml}` : ''}`;
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 8000,
+        max_tokens: referenceHtml ? 16000 : 8000,
         system: GENERATE_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }],
       }),

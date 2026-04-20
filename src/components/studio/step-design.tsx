@@ -330,6 +330,14 @@ export function StepDesign({
       : page.prompt;
 
     try {
+      // Pre-strip the reference HTML so the AI receives only the relevant
+      // portion: content for content pages, just the <header>/<footer> for
+      // template parts. This stops the model from re-generating site chrome
+      // it was told NOT to emit, and drastically reduces wasted tokens.
+      const strippedReference = referenceHtml
+        ? stripHtmlForPage(referenceHtml, page.title)
+        : undefined;
+
       const res = await fetchWithRetry('/api/studio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -339,7 +347,7 @@ export function StepDesign({
           isTemplatePart: SPECIAL_PAGES.includes(page.title),
           templatePartKind: page.title === 'Header' ? 'header' : page.title === 'Footer' ? 'footer' : undefined,
           allPageNames: pages.filter(p => !SPECIAL_PAGES.includes(p.title)).map(p => p.title),
-          referenceHtml: referenceHtml || undefined,
+          referenceHtml: strippedReference,
         }),
       }, { retries: 0 });
       if (res.status === 401 && onAuthRequired) { onAuthRequired(); return; }
