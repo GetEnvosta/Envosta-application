@@ -372,10 +372,12 @@ export function StepDesign({
 
 
   async function handleAiEdit() {
-    if ((!aiPrompt.trim() && !referenceHtml) || !selectedPage) return;
+    if (!selectedPage) return;
     setAiLoading(true);
+    // An empty prompt means "just generate this page from its brief prompt" —
+    // the bottom bar doubles as both the AI edit bar AND the generate button.
     const prompt = aiPrompt.trim() || (referenceHtml ? 'Rebuild this page exactly using my style system' : '');
-    await generatePage(selectedPage.id, prompt);
+    await generatePage(selectedPage.id, prompt || undefined);
     setAiPrompt('');
     setReferenceHtml(''); // clear after use
     setAiLoading(false);
@@ -535,15 +537,10 @@ export function StepDesign({
             >
               {pages.map(p => <option key={p.id} value={p.id}>{p.title}{p.html ? '' : ' (empty)'}</option>)}
             </select>
-            {selectedPage && (
-              <button
-                onClick={() => generatePage(selectedPage.id)}
-                disabled={!!generating}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50"
-              >
-                {generating === selectedPage?.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                {selectedPage?.html ? 'Regen' : 'Generate'}
-              </button>
+            {generating && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-indigo-600 font-medium">
+                <Loader2 className="w-3 h-3 animate-spin" /> Generating…
+              </span>
             )}
             {status && (
               <span className={`text-[11px] truncate ${status.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>{status.msg}</span>
@@ -615,6 +612,8 @@ export function StepDesign({
               className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
               placeholder={referenceHtml
                 ? 'Describe changes to the reference — or just hit enter to rebuild it with your styles...'
+                : selectedPage && !selectedPage.html
+                ? `Hit enter to generate "${selectedPage.title}" — or type instructions to refine it...`
                 : selectedPage
                 ? `Edit "${selectedPage.title}" — e.g. "make the hero bigger", "add testimonials"...`
                 : 'Select a page first...'}
@@ -650,9 +649,15 @@ export function StepDesign({
             </button>
             <button
               onClick={handleAiEdit}
-              disabled={(!aiPrompt.trim() && !referenceHtml) || !selectedPage || aiLoading}
+              disabled={!selectedPage || aiLoading}
               className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 transition-colors"
-              title="Send — update this page with the prompt above"
+              title={
+                !selectedPage ? 'Select a page first' :
+                aiPrompt.trim() ? `Send — update "${selectedPage.title}" with your instructions` :
+                referenceHtml ? 'Rebuild from the uploaded reference' :
+                selectedPage.html ? `Regenerate "${selectedPage.title}"` :
+                `Generate "${selectedPage.title}"`
+              }
             >
               {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </button>

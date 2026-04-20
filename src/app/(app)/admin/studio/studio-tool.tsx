@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { StudioSteps } from '@/components/studio/studio-steps';
 import { StepBrief } from '@/components/studio/step-brief';
 import { StepDesign } from '@/components/studio/step-design';
 import { StepExport } from '@/components/studio/step-export';
@@ -178,13 +177,6 @@ export function StudioTool() {
 
         <div className="w-px h-5 bg-gray-200 shrink-0" />
 
-        {/* Step progress */}
-        <div className="shrink-0">
-          <StudioSteps currentStep={step} onStepClick={(s) => { if (s <= step) setStep(s); }} />
-        </div>
-
-        <div className="w-px h-5 bg-gray-200 shrink-0" />
-
         {/* Slot for step-specific toolbar items (filled by StepDesign via portal) */}
         <div id="studio-header-slot" className="flex-1 flex items-center min-w-0" />
 
@@ -242,6 +234,9 @@ export function StudioTool() {
               setReferenceHtml(html);
               setReferenceHtmlName(name);
             }}
+            onImportPreviousWebsite={handleImportFile}
+            importing={importing}
+            importError={importError}
             onSelect={(idx) => {
               setSelectedBrief(idx);
               if (businessInfo.businessName) setProjectName(businessInfo.businessName);

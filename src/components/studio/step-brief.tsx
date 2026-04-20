@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sparkles, Loader2, ChevronDown, ChevronUp, Globe, Search, Upload, FileCode, X, Plus, ShoppingBag } from 'lucide-react';
+import { Sparkles, Loader2, ChevronDown, ChevronUp, Globe, Search, Upload, FileCode, X, Plus, ShoppingBag, FileArchive } from 'lucide-react';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 
 const INDUSTRIES = [
@@ -28,6 +28,9 @@ export function StepBrief({
   onOptionsGenerated,
   onBusinessInfoChange,
   onReferenceHtmlChange,
+  onImportPreviousWebsite,
+  importing: externalImporting,
+  importError,
   onSelect,
   onAuthRequired,
 }: {
@@ -42,6 +45,9 @@ export function StepBrief({
   onOptionsGenerated: (options: any[]) => void;
   onBusinessInfoChange: (info: any) => void;
   onReferenceHtmlChange?: (html: string, name: string) => void;
+  onImportPreviousWebsite?: (file: File) => void | Promise<void>;
+  importing?: boolean;
+  importError?: string;
   onSelect: (index: number) => void;
   onAuthRequired?: () => void;
 }) {
@@ -184,6 +190,52 @@ export function StepBrief({
                 Describe the website you want to create. Add business details below for better results, or paste a URL to auto-fill.
               </p>
             </div>
+
+            {/* Import previous website — fast path that skips the brief entirely */}
+            {onImportPreviousWebsite && (
+              <div className="mb-4 rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/30 p-4 hover:border-indigo-400 hover:bg-indigo-50/50 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                    <FileArchive className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">Already have a website? Import it</p>
+                    <p className="text-xs text-gray-600 mt-0.5 leading-snug">
+                      Upload an exported theme .zip or WordPress .xml to skip the brief and jump straight to the design editor with your pages and styles loaded.
+                    </p>
+                    <label className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                      externalImporting
+                        ? 'bg-indigo-300 text-white cursor-wait'
+                        : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                    }`}>
+                      {externalImporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                      {externalImporting ? 'Importing…' : 'Import previous website'}
+                      <input
+                        type="file"
+                        accept=".zip,.xml"
+                        className="hidden"
+                        disabled={externalImporting}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = '';
+                          if (file) await onImportPreviousWebsite(file);
+                        }}
+                      />
+                    </label>
+                    {importError && <p className="text-xs text-red-600 mt-2">{importError}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Or separator */}
+            {onImportPreviousWebsite && (
+              <div className="flex items-center gap-3 my-4">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">or start fresh</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+            )}
 
             {/* Scrape URL */}
             <div className="mb-4">
