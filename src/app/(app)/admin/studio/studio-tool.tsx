@@ -244,11 +244,54 @@ export function StudioTool() {
                 ? businessInfo.pages
                 : DEFAULT_PAGES;
               const selectedConcept = briefOptions[idx]?.description || brief;
+              // Per-page prompt: WooCommerce pages get Shopify-grade e-commerce
+              // guidance; everything else gets the concept-aware generic prompt.
+              const wcPagePrompt = (name: string): string | null => {
+                const n = name.toLowerCase();
+                if (n === 'shop') {
+                  return `WooCommerce SHOP page — build a Shopify-grade product catalog experience. Structure:
+- Hero band with a short store tagline + seasonal/featured collection imagery.
+- Filter + sort row (category pills, sort dropdown, view toggle).
+- Responsive product grid (4 cols desktop, 2 tablet, 1 mobile) — each product tile has image (1:1 ratio), quick-view on hover, title, price, rating stars, "Add to cart" hover button.
+- Featured collection section with larger imagery.
+- Trust strip (free shipping, returns, secure checkout, support).
+- Include the WooCommerce shortcode [products limit="12" columns="4"] in a visible <div> so the real product grid renders in WordPress; the designed tiles around it are marketing content.
+- Feel: clean, generous whitespace, Shopify-Dawn-level polish.`;
+                }
+                if (n === 'cart') {
+                  return `WooCommerce CART page — build a Shopify-grade cart experience. Structure:
+- Slim progress indicator at top (Cart → Information → Shipping → Payment).
+- Two-column layout (desktop): LEFT = cart line items with quantity steppers, remove, price. RIGHT = sticky order summary with subtotal, estimated shipping, discount code input, total, and a big "Checkout" CTA linking to /checkout.
+- Include the WooCommerce shortcode [woocommerce_cart] inside a styled wrapper so real cart functionality works.
+- Below the fold: trust badges (free shipping, 30-day returns, secure checkout), "You may also like" upsell grid, recently viewed strip.
+- Mobile: stacks to single column, order summary collapses into a sticky bottom sheet.
+- Feel: calm, confident, frictionless — Shopify-level polish.`;
+                }
+                if (n === 'checkout') {
+                  return `WooCommerce CHECKOUT page — build a Shopify-grade checkout. Structure:
+- Slim progress indicator at top (Cart ✓ → Information → Shipping → Payment).
+- Two-column layout (desktop): LEFT = contact info → shipping address → shipping method → payment fields. RIGHT = sticky order summary with product thumbnails, subtotal, discount code, shipping, tax, total, and a trust block (secure, 30-day returns, support).
+- Include the WooCommerce shortcode [woocommerce_checkout] inside a styled wrapper so real checkout fields render. Use the surrounding layout to visually guide the user through the form.
+- Under-form row: payment-method logos (Visa, MC, Apple Pay, PayPal), security seal, "256-bit SSL" microcopy.
+- Mobile: order summary becomes collapsible accordion at top; fields flow full-width.
+- Feel: fast, trustworthy, never crowded — Shopify-Dawn polish.`;
+                }
+                if (n === 'my account' || n === 'my-account' || n === 'account') {
+                  return `WooCommerce MY ACCOUNT page — build a Shopify-grade customer dashboard. Structure:
+- Welcome header with customer name placeholder + account quick stats (orders, store credit, saved items).
+- Left sidebar navigation (Dashboard, Orders, Addresses, Payment methods, Downloads, Account details, Logout).
+- Main panel: recent orders table (order #, date, status pill, total, "View" link), tracking info, and a quick "Reorder" button per row.
+- Below: saved addresses cards, saved payment methods cards, preferences section.
+- Include the WooCommerce shortcode [woocommerce_my_account] inside a styled wrapper so the real account UI renders.
+- Feel: calm, organised, Shopify-account-page polish.`;
+                }
+                return null;
+              };
               const newPages = pageNames.map((name: string, i: number) => ({
                 id: localId(),
                 title: name,
                 slug: name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `page-${i + 1}`,
-                prompt: `${name} page for this website. Concept: ${selectedConcept}`,
+                prompt: wcPagePrompt(name) || `${name} page for this website. Concept: ${selectedConcept}`,
                 sort_order: i,
                 html: '',
               }));
