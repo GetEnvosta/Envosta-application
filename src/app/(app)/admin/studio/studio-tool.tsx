@@ -249,14 +249,18 @@ export function StudioTool() {
               const wcPagePrompt = (name: string): string | null => {
                 const n = name.toLowerCase();
                 if (n === 'shop') {
-                  return `WooCommerce SHOP page — build a Shopify-grade product catalog experience. Structure:
-- Hero band with a short store tagline + seasonal/featured collection imagery.
-- Filter + sort row (category pills, sort dropdown, view toggle).
-- Responsive product grid (4 cols desktop, 2 tablet, 1 mobile) — each product tile has image (1:1 ratio), quick-view on hover, title, price, rating stars, "Add to cart" hover button.
-- Featured collection section with larger imagery.
-- Trust strip (free shipping, returns, secure checkout, support).
-- Include the WooCommerce shortcode [products limit="12" columns="4"] in a visible <div> so the real product grid renders in WordPress; the designed tiles around it are marketing content.
-- Feel: clean, generous whitespace, Shopify-Dawn-level polish.`;
+                  return `WooCommerce SHOP page — full design freedom. Build whatever catalogue experience fits the brand (hero, collections, category strips, brand story, seasonal features, editorial sections, trust signals, etc.). Aim for a premium, bespoke feel — Shopify-Dawn quality floor, but please don't copy it verbatim.
+
+The ONLY non-negotiable: the actual product grid MUST render using the WooCommerce Product Collection Gutenberg block, not a shortcode and not a hand-rolled grid of placeholder tiles. Embed it exactly as:
+
+<!-- wp:woocommerce/product-collection {"queryId":0,"query":{"perPage":12,"pages":0,"offset":0,"postType":"product","order":"asc","orderBy":"title","inherit":false,"taxQuery":{},"woocommerceOnSale":false,"woocommerceStockStatus":["instock","outofstock","onbackorder"]},"displayLayout":{"type":"flex","columns":4,"shrinkColumns":true}} -->
+<div class="wp-block-woocommerce-product-collection">
+  <!-- wp:woocommerce/product-template -->
+  <!-- /wp:woocommerce/product-template -->
+</div>
+<!-- /wp:woocommerce/product-collection -->
+
+Feel free to customise the block's attributes in the opening comment (columns 2-6, orderBy title/popularity/rating/price/date, perPage, woocommerceOnSale true/false, filter by category via taxQuery, etc.) to match the section you're building. You can include MULTIPLE Product Collection blocks — e.g. a "Best sellers" one (orderBy popularity, perPage 4) and a full catalogue one (perPage 12, columns 4) — and style the sections around them freely. Wrap each block in whatever sectional markup you want; WordPress will render the tiles inside.`;
                 }
                 if (n === 'cart') {
                   return `WooCommerce CART page — build a Shopify-grade cart experience. Structure:

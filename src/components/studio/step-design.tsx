@@ -221,7 +221,13 @@ export function StepDesign({
     const hasFooter = pages.some(p => p.title === 'Footer');
     if (hasHeader && hasFooter) return;
     const toAdd: any[] = [];
-    if (!hasHeader) toAdd.push({ id: `local-hdr-${Date.now()}`, title: 'Header', slug: 'header', sort_order: -2, prompt: 'Site header with logo, primary navigation, and CTA button. Mobile responsive with hamburger menu.', html: '' });
+    if (!hasHeader) toAdd.push({ id: `local-hdr-${Date.now()}`, title: 'Header', slug: 'header', sort_order: -2, prompt: `Site header template part — full design freedom for the desktop layout (logo placement, nav positioning, CTA button style, announcement bar, cart + account icons if WooCommerce is on, etc.).
+
+MOBILE REQUIREMENT (non-negotiable): the mobile navigation MUST use the WordPress core Navigation block with its built-in responsive/overlay behaviour, not a hand-rolled hamburger + <ul>. Embed it like this (customise attributes freely):
+
+<!-- wp:navigation {"ref":0,"overlayMenu":"mobile","icon":"menu","openSubmenusOnClick":true,"overlayBackgroundColor":"theme-1","overlayTextColor":"theme-4","style":{"spacing":{"blockGap":"var:preset|spacing|40"}}} /-->
+
+You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"|"never"; icon can be "menu"|"menu-alt"|"menu-alt2"|"menu-alt3"; overlayBackgroundColor/overlayTextColor accept any theme-N slug; add hasIcon:true for a branded trigger; openSubmenusOnClick:true makes nested menus tap-to-open. You can wrap the Navigation block in a <div> with your own styles for position, padding, background, and motion — just keep the <!-- wp:navigation /--> comment intact so WordPress renders the real mobile slide-out menu on import. If WooCommerce is on, also include a styled cart icon that links to /cart and an account icon linking to /my-account alongside the nav.`, html: '' });
     if (!hasFooter) toAdd.push({ id: `local-ftr-${Date.now()}`, title: 'Footer', slug: 'footer', sort_order: -1, prompt: 'Site footer with company info, quick links, social media icons, and copyright.', html: '' });
     if (toAdd.length) onPagesChange([...toAdd, ...pages]);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
