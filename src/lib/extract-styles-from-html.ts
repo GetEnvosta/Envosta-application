@@ -108,19 +108,110 @@ function saturation({ r, g, b }: RGB): number {
 
 function collectCssText(doc: Document): string {
   const styleBlocks = Array.from(doc.querySelectorAll('style')).map(s => s.textContent || '');
-  const inlineStyles = Array.from(doc.querySelectorAll('[style]')).map(el => el.getAttribute('style') || '');
-  return [...styleBlocks, ...inlineStyles].join('\n');
+  return styleBlocks.join('\n');
 }
 
-function collectColorFrequency(css: string): ColorInfo[] {
-  const colorRegex = /#[0-9a-f]{3,8}\b|rgba?\([^)]+\)|hsla?\([^)]+\)|\b(?:white|black|red|green|blue|gray|grey|silver|maroon|yellow|olive|lime|aqua|cyan|teal|navy|fuchsia|magenta|purple|orange|pink|brown)\b/gi;
-  const matches = css.match(colorRegex) || [];
+const COLOR_VALUE_RE = /#[0-9a-f]{3,8}\b|rgba?\([^()]*\)|hsla?\([^()]*\)|\b(?:white|black|red|green|blue|gray|grey|silver|maroon|yellow|olive|lime|aqua|cyan|teal|navy|fuchsia|magenta|purple|orange|pink|brown)\b/gi;
+
+/**
+ * Extract all color tokens from a CSS property value, including colors
+ * nested inside linear-gradient / radial-gradient / conic-gradient stops.
+ */
+function extractColorsFromValue(value: string): string[] {
+  if (!value) return [];
+  // Our COLOR_VALUE_RE already picks up colors inside gradient parens
+  // (hex and rgba both work), so a direct regex scan is sufficient.
+  const matches = value.match(COLOR_VALUE_RE);
+  return matches ? Array.from(matches) : [];
+}
+
+/**
+ * Weight a declaration by property. Background properties matter most because
+ * they define section visuals; color matters for typography; border / fill
+ * are secondary signals.
+ */
+function declarationWeight(prop: string): number {
+  const p = prop.toLowerCase();
+  if (p === 'background' || p === 'background-color' || p === 'background-image') return 6;
+  if (p === 'color') return 3;
+  if (p === 'fill' || p === 'stroke') return 3;
+  if (p.startsWith('border') && p.includes('color')) return 2;
+  if (p === 'outline-color' || p === 'text-decoration-color') return 1;
+  // Custom property holding a color value — worth moderate weight (design tokens)
+  if (p.startsWith('--')) return 3;
+  return 0; // unknown property, skip
+}
+
+/**
+ * Weight a CSS selector by how "section-level" it looks. Section / hero /
+ * CTA / footer / main / body selectors define the page's visual rhythm,
+ * so their background colors should dominate the palette extraction.
+ */
+function selectorWeight(selector: string): number {
+  const s = selector.toLowerCase();
+  if (/(?:^|[\s,>+~])(?:body|html)(?:[\s,.:#[]|$)/.test(s)) return 5;
+  if (/\b(?:section|\.section|\.hero|\.cta|\.banner|\.footer|\.site-footer|\.header|\.site-header|main|\[role="banner"]|\[role="contentinfo"])\b/.test(s)) return 4;
+  if (/\b(?:\.bg-|\.background|article|aside|nav|\.navbar)\b/.test(s)) return 2;
+  if (/\b(?:\.card|\.feature|\.block|\.container|\.wrapper|\.hero-|\.cta-)\b/.test(s)) return 2;
+  return 1;
+}
+
+function collectColorFrequency(css: string, doc: Document): ColorInfo[] {
   const freq: Record<string, number> = {};
-  for (const raw of matches) {
+  const add = (raw: string, weight: number) => {
+    if (weight <= 0) return;
     const norm = normalizeColor(raw);
-    if (!norm) continue;
-    freq[norm] = (freq[norm] || 0) + 1;
+    if (!norm) return;
+    freq[norm] = (freq[norm] || 0) + weight;
+  };
+
+  // Parse CSS rule blocks — selector { declarations }
+  const ruleRe = /([^{}]+)\{([^{}]*)\}/g;
+  let match: RegExpExecArray | null;
+  while ((match = ruleRe.exec(css)) !== null) {
+    const selector = match[1].trim();
+    if (!selector || selector.startsWith('@')) continue; // skip @media, @keyframes, etc.
+    const sw = selectorWeight(selector);
+    const body = match[2];
+
+    // Walk declarations
+    for (const decl of body.split(';')) {
+      const colon = decl.indexOf(':');
+      if (colon < 1) continue;
+      const prop = decl.slice(0, colon).trim();
+      const value = decl.slice(colon + 1).trim();
+      const dw = declarationWeight(prop);
+      if (dw === 0) continue;
+      const w = sw * dw;
+      for (const c of extractColorsFromValue(value)) add(c, w);
+    }
   }
+
+  // Process inline style="" attributes — section elements in the DOM get
+  // the biggest boost because they almost always define visual bands.
+  doc.querySelectorAll('[style]').forEach(el => {
+    const tag = el.tagName.toLowerCase();
+    const cls = (typeof el.className === 'string' ? el.className : '').toLowerCase();
+    const id = el.id?.toLowerCase() ?? '';
+    const isBigBand =
+      tag === 'section' || tag === 'main' || tag === 'body' || tag === 'header' || tag === 'footer' ||
+      /\b(?:hero|cta|banner|footer|header|section)\b/.test(cls) ||
+      /\b(?:hero|cta|banner|footer|header|section)\b/.test(id);
+    const sw = isBigBand ? 6 : tag === 'div' || tag === 'article' ? 2 : 1;
+
+    const styleStr = el.getAttribute('style') || '';
+    for (const decl of styleStr.split(';')) {
+      const colon = decl.indexOf(':');
+      if (colon < 1) continue;
+      const prop = decl.slice(0, colon).trim();
+      const value = decl.slice(colon + 1).trim();
+      const dw = declarationWeight(prop);
+      if (dw === 0) continue;
+      const w = sw * dw;
+      for (const c of extractColorsFromValue(value)) add(c, w);
+    }
+  });
+
   const infos: ColorInfo[] = [];
   for (const [color, count] of Object.entries(freq)) {
     const rgb = toRgb(color);
@@ -131,7 +222,7 @@ function collectColorFrequency(css: string): ColorInfo[] {
       saturation: saturation(rgb),
     });
   }
-  // Sort by frequency descending as the primary ordering
+  // Sort by weighted score descending
   return infos.sort((a, b) => b.count - a.count);
 }
 
@@ -265,7 +356,7 @@ export function extractStylesFromHtml(html: string): ExtractedStyles {
   }
 
   // Frequency-based extraction for arbitrary HTML
-  const colorInfos = collectColorFrequency(combinedCss);
+  const colorInfos = collectColorFrequency(combinedCss, doc);
   const colors = pickColors(colorInfos);
   const fonts = extractFonts(combinedCss, doc);
 
