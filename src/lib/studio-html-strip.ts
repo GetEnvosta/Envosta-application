@@ -34,31 +34,45 @@ ${bodyInner}
 </html>`;
 }
 
-/** Strip site-wide chrome (header, nav, footer) from an uploaded page. */
+/** Strip site-wide chrome (header, nav, footer) from an uploaded page.
+ *
+ * Intentionally conservative: only removes elements that look like SITE
+ * chrome (direct children of <body>, or explicitly marked as banner /
+ * contentinfo / site-header / site-footer). In-page <nav>/card "headers"
+ * are preserved so the rebuild matches the uploaded layout as closely
+ * as possible.
+ */
 export function stripToPageContent(html: string): string {
   if (typeof DOMParser === 'undefined') return html;
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const body = doc.body;
   if (!body) return html;
 
-  // Remove obvious site-wide chrome
-  body.querySelectorAll('header').forEach(el => el.remove());
-  body.querySelectorAll('footer').forEach(el => el.remove());
-  body.querySelectorAll(
-    '.site-header, #site-header, .site-footer, #site-footer, .header, .footer, [role="banner"], [role="contentinfo"]'
-  ).forEach(el => el.remove());
+  // 1. Remove explicit site-chrome landmarks anywhere in the tree.
+  body.querySelectorAll('.site-header, #site-header, .site-footer, #site-footer, [role="banner"], [role="contentinfo"]')
+    .forEach(el => el.remove());
 
-  // Remove top-level navigation — a nav that isn't inside main content
-  body.querySelectorAll('nav').forEach(el => {
-    const insideContent = el.closest('main, article, [role="main"]');
-    if (!insideContent) el.remove();
+  // 2. Remove <header> / <footer> / <nav> elements only when they are
+  //    DIRECT children of <body> (or direct children of a wrapper that is
+  //    itself a direct child of body — many sites use <div id="page">
+  //    or <div class="wrapper"> as the outermost container).
+  const isSiteChrome = (el: Element): boolean => {
+    const parent = el.parentElement;
+    if (!parent) return false;
+    if (parent === body) return true;
+    if (parent.parentElement === body) {
+      // Only consider this site chrome if the wrapper itself looks like
+      // a site shell — e.g. the parent has no siblings of content.
+      const siblingCount = parent.children.length;
+      if (siblingCount <= 6) return true;
+    }
+    return false;
+  };
+  Array.from(body.querySelectorAll('header, footer, nav')).forEach(el => {
+    if (isSiteChrome(el)) el.remove();
   });
 
-  // Some exports nest content under main/article — prefer that if present
-  const main = body.querySelector('main, [role="main"], article');
-  const inner = main ? main.innerHTML : body.innerHTML;
-
-  return wrapDoc(inner.trim(), collectHeadAssets(doc));
+  return wrapDoc(body.innerHTML.trim(), collectHeadAssets(doc));
 }
 
 /** Extract only the site header from an uploaded page. */

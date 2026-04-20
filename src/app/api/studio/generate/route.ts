@@ -34,7 +34,73 @@ export async function POST(req: Request) {
     const fonts = style?.fonts || { heading: 'Playfair Display', body: 'Source Sans 3' };
     const colors = style?.colors || {};
 
-    const userMessage = `GLOBAL STYLE REFERENCE:
+    // ─── Reference-rebuild prompt ────────────────────────────────────
+    // When a reference HTML is present we use a completely different,
+    // strict preservation prompt that says "emit the reference almost
+    // verbatim, only swap specific values." The default GENERATE prompt
+    // (which forces our base-CSS utility system) is deliberately NOT used
+    // here because it would restructure the reference into our layout
+    // primitives instead of preserving the uploaded design.
+    const referenceMode = !!referenceHtml;
+
+    const systemPrompt = referenceMode
+      ? `You are a faithful HTML transformer. The user has provided a reference HTML page. Your job is to OUTPUT THAT HTML ALMOST VERBATIM, changing ONLY what's listed below. You are NOT designing — you are doing a structured find-and-replace.
+
+STRICT PRESERVATION — you MUST keep ALL of the following identical to the reference:
+- Every HTML tag, in the same order, with the same attributes (id, class, data-*, role, aria-*, href/src behaviour, etc.)
+- Every section, <div>, <article>, <section>, <header>, <footer>, list, grid, and table — in the same nesting.
+- All text content: every heading, paragraph, list item, button label, form label, caption, quote, tooltip — VERBATIM. Do not paraphrase, shorten, or "improve" copy.
+- All CSS rules for layout (display, grid-template, flex, position, margin, padding, width, height, gap, align-*, justify-*, transform, border-radius, box-shadow, transition, animation, overflow, z-index, etc.) — keep them EXACTLY.
+- All media queries and responsive logic.
+- All inline styles except where a specific swap below applies.
+
+ALLOWED CHANGES — these are the ONLY modifications you may make:
+1. Every hex / rgb / rgba / hsl / hsla / named color value → replace with the closest matching CSS variable:
+    - Lightest background colors → var(--wp--preset--color--theme-1)
+    - Secondary light / soft backgrounds → var(--wp--preset--color--theme-2)
+    - Borders, muted text, dividers → var(--wp--preset--color--theme-3)
+    - Primary text, dark backgrounds, heading color, primary buttons → var(--wp--preset--color--theme-4)
+    - Deepest dark / footer / strongest accent → var(--wp--preset--color--theme-5)
+    - Gradient stops: replace EACH stop color with its closest variable. Keep the gradient syntax intact.
+2. Every font-family declaration (except generic fallbacks like sans-serif / serif / monospace):
+    - Headings / h1..h6 / display type → var(--wp--preset--font-family--heading)
+    - Body / paragraph / nav / everything else → var(--wp--preset--font-family--body)
+    - Update the Google Fonts <link> if present to load the fonts named in the GLOBAL STYLE REFERENCE below (use those family names in the href query).
+3. Every external image / video asset URL that is NOT already placehold.co → replace the src with an equivalent-dimension https://placehold.co/WIDTHxHEIGHT placeholder. Keep alt text identical.
+4. ${isTemplatePart
+    ? `This is a template part. Output only the <${templatePartKind || 'section'}>…</${templatePartKind || 'section'}> fragment (plus any supporting <style> block). Do NOT wrap in <html>/<head>/<body>.`
+    : `This is a content page. If the reference already has a <html>/<head>/<body> shell, keep it. Keep its <style> blocks but inside those blocks apply the color/font swaps above.`}
+
+FORBIDDEN:
+- Do NOT add or remove sections.
+- Do NOT re-order sections.
+- Do NOT rename classes or IDs.
+- Do NOT replace the reference's CSS with your own base stylesheet.
+- Do NOT restructure layouts or "improve" them.
+- Do NOT change the copy, even if it's placeholder/Lorem Ipsum.
+- Do NOT emit explanations, markdown, or code fences. Output raw HTML only.
+
+The goal: the rendered result should be pixel-close to the reference, just with the color and font tokens swapped to CSS variables so it stays reactive to the user's global styles.`
+      : GENERATE_SYSTEM_PROMPT;
+
+    const userMessage = referenceMode
+      ? `GLOBAL STYLE REFERENCE (for mapping + Google Fonts <link>):
+Heading Font: ${fonts.heading}
+Body Font: ${fonts.body}
+Color mapping hints (closest hex → theme slot):
+  theme-1 (lightest / bg): ${colors.background || '#FFFFFF'}
+  theme-2 (soft bg): ${colors.surface || '#EEEEEE'}
+  theme-3 (border / muted): ${colors.border || colors.textMuted || '#BBBBBB'}
+  theme-4 (primary / text / heading / button): ${colors.primary || colors.text || '#1E1E1E'}
+  theme-5 (deepest / accent): ${colors.accent || '#000000'}
+
+${isTemplatePart
+  ? `TEMPLATE PART: "${pageName}" (${templatePartKind || 'template-part'})`
+  : `CONTENT PAGE: "${pageName}"`}
+
+REFERENCE HTML (transform this in-place — preserve structure, swap only the allowed values):
+${referenceHtml}`
+      : `GLOBAL STYLE REFERENCE:
 Site Name: ${style?.siteName || 'Untitled'}
 Heading Font: ${fonts.heading}
 Body Font: ${fonts.body}
@@ -57,22 +123,8 @@ ${isTemplatePart
 Generate ONLY the ${templatePartKind === 'header' ? 'site header (nav bar, logo area, primary navigation)' : templatePartKind === 'footer' ? 'site footer (footer links, copyright, social, etc.)' : 'template part'} markup.
 Do NOT wrap it in a full <html>/<body> document — output just the <header>…</header> or <footer>…</footer> block (with any supporting <style> tag) so it can be injected into multiple pages.`
   : `PAGE TO GENERATE: "${pageName}" (content page)
-IMPORTANT: This is a CONTENT page only. Do NOT include the site header, primary navigation, logo bar, or footer — those are separate template parts that will be composited around this page. Start directly with the page's hero/content and end with the page's final content section. It's fine to output a full <html>/<body> document for self-contained preview, but the body content must not include any site-wide header/nav or footer.`}
-DESCRIPTION: ${pagePrompt}${referenceHtml ? `
-
-═══ REFERENCE HTML (PRE-STRIPPED) ═══
-The user uploaded an existing HTML reference. It has ALREADY been stripped to only the relevant portion for this ${isTemplatePart ? 'template part' : 'content page'} — you do not need to remove site chrome or decide what's relevant.
-
-REBUILD RULES — follow ALL of these:
-1. Preserve EVERY section and block from the reference, in the same order. Do not drop, merge, or reorder sections.
-2. Preserve the exact text content verbatim — headings, paragraphs, bullet items, button labels, form labels, captions. Do not paraphrase.
-3. Preserve the visual layout: columns, grids, alignments, image/text ratios.
-4. Replace hardcoded colors with CSS variables (var(--wp--preset--color--theme-1..5)) and hardcoded fonts with var(--wp--preset--font-family--heading|body) — use the closest mapping from the style reference above.
-5. Preserve any images but replace external asset URLs with placehold.co equivalents of similar dimensions.
-6. The output should look nearly identical to the reference, just restyled to the design system.
-
-REFERENCE:
-${referenceHtml}` : ''}`;
+IMPORTANT: This is a CONTENT page only. Do NOT include the site header, primary navigation, logo bar, or footer — those are separate template parts that will be composited around this page.`}
+DESCRIPTION: ${pagePrompt}`;
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -83,8 +135,10 @@ ${referenceHtml}` : ''}`;
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: referenceHtml ? 16000 : 8000,
-        system: GENERATE_SYSTEM_PROMPT,
+        // Reference rebuilds are essentially verbatim output + replacements,
+        // so the output size ≈ input size. Bump to 24k to avoid mid-page truncation.
+        max_tokens: referenceMode ? 24000 : 8000,
+        system: systemPrompt,
         messages: [{ role: 'user', content: userMessage }],
       }),
     });
