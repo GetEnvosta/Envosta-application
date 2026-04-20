@@ -9,7 +9,7 @@ import {
   Upload, X, Globe2, FileUp, Download,
 } from 'lucide-react';
 import { fetchWithRetry } from '@/lib/fetch-retry';
-import { STUDIO_PRESETS, type StudioStylePreset } from '@/lib/studio-style-presets';
+import { ASSEMBLER_VARIATIONS, CUSTOM_PRESETS, type StudioStylePreset } from '@/lib/studio-style-presets';
 import { extractStylesFromHtml } from '@/lib/extract-styles-from-html';
 import { stripHtmlForPage } from '@/lib/studio-html-strip';
 import { downloadPageAsXml } from '@/lib/studio-wxr';
@@ -86,6 +86,7 @@ function buildStyleOverride(style: any): string {
   return `<link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fontsQuery}&display=swap" />
+<base target="_self" />
 <style id="envosta-live-styles">
 :root {
   --wp--preset--color--theme-1: ${theme1};
@@ -100,7 +101,17 @@ function buildStyleOverride(style: any): string {
 }
 html, body { background: var(--wp--preset--color--theme-1); color: var(--wp--preset--color--theme-4); font-family: var(--wp--preset--font-family--body); }
 h1, h2, h3, h4, h5, h6 { font-family: var(--wp--preset--font-family--heading); color: var(--wp--preset--color--theme-4); }
-</style>`;
+</style>
+<script>
+// Preview click-proofing: prevent any in-iframe navigation so clicking a
+// nav link or button doesn't blow away the preview doc. Hover states,
+// focus rings, and visual feedback stay intact.
+document.addEventListener('click', function (e) {
+  var target = e.target && e.target.closest ? e.target.closest('a, button[type="submit"], form') : null;
+  if (target) { e.preventDefault(); e.stopPropagation(); }
+}, true);
+document.addEventListener('submit', function (e) { e.preventDefault(); }, true);
+</script>`;
 }
 
 /**
@@ -277,12 +288,15 @@ export function StepDesign({
   }
 
   function applyPreset(preset: StudioStylePreset) {
-    // Merge preset on top of the current config so the user's site name is preserved
+    // Merge preset on top of the current config so the user's site name is preserved.
+    // Keep Parent mode when picking an Assembler variation; otherwise use Custom.
+    const isAssemblerVariation = preset.id.startsWith('assembler-');
+    const nextMode = styleConfig.mode === 'parent' && isAssemblerVariation ? 'parent' : 'custom';
     onStyleChange({
       ...styleConfig,
       ...preset.config,
       presetId: preset.id,
-      mode: 'custom',
+      mode: nextMode,
     });
     setStatus({ type: 'success', msg: `Applied "${preset.name}"` });
   }
@@ -576,7 +590,7 @@ export function StepDesign({
                 srcDoc={previewSrcDoc}
                 className="w-full border-0"
                 style={{ height: '100%', minHeight: '800px' }}
-                sandbox="allow-same-origin"
+                sandbox="allow-same-origin allow-scripts"
                 title={`Preview: ${selectedPage?.title}`}
               />
             </div>
@@ -700,12 +714,43 @@ export function StepDesign({
               </div>
               {(styleConfig.mode || 'custom') === 'parent' && (
                 <p className="text-[10px] text-gray-400 mt-2 leading-snug">
-                  Pages will be generated using Assembler's default theme styles. Switch to Custom to override.
+                  Pages render with the chosen Assembler variation. Export writes a theme.json that matches so WordPress uses the same palette.
                 </p>
               )}
             </div>
 
             <div className="h-px bg-gray-100" />
+
+            {/* Assembler variations — visible only in Parent mode */}
+            {(styleConfig.mode || 'custom') === 'parent' && (
+              <div>
+                <label className="block text-[10px] font-medium text-gray-500 mb-2">Assembler variation</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {ASSEMBLER_VARIATIONS.map(p => {
+                    const active = styleConfig.presetId === p.id;
+                    const c = p.config.colors;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => applyPreset(p)}
+                        className={`text-left rounded-md border p-1.5 transition-all ${active ? 'border-indigo-500 ring-1 ring-indigo-300' : 'border-gray-200 hover:border-gray-300'}`}
+                        title={`${p.description}\n${p.vibe}`}
+                      >
+                        <div className="flex gap-0.5 mb-1">
+                          {[c.background, c.surface, c.primary, c.accent].map((col, i) => (
+                            <span key={i} className="flex-1 h-3 rounded-sm border border-gray-200" style={{ backgroundColor: col }} />
+                          ))}
+                        </div>
+                        <p className="text-[10px] font-medium text-gray-700 truncate">{p.name}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-gray-400 mt-2 leading-snug">
+                  Click a variation to apply its palette + fonts. Want full control? Switch to Custom.
+                </p>
+              </div>
+            )}
 
             {/* HTML → styles uploader (custom mode only) */}
             {(styleConfig.mode || 'custom') !== 'parent' && (
@@ -774,7 +819,7 @@ export function StepDesign({
                 {suggesting ? 'Picking…' : 'AI Suggest'}
               </button>
               <div className={`grid grid-cols-2 gap-1.5 ${presetsExpanded ? '' : 'max-h-36 overflow-hidden'}`}>
-                {STUDIO_PRESETS.map(p => {
+                {CUSTOM_PRESETS.map(p => {
                   const active = styleConfig.presetId === p.id;
                   const c = p.config.colors;
                   return (

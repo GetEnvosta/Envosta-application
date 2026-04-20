@@ -3,23 +3,32 @@ import { createClient as createServerClient } from '@/lib/supabase-server';
 import { isStaffRole } from '@/lib/roles';
 import JSZip from 'jszip';
 import { buildWxrXml } from '@/lib/studio-wxr';
+import { getAssemblerVariationById } from '@/lib/studio-style-presets';
 
 export const dynamic = 'force-dynamic';
 
 // ── Child theme.json (overrides Assembler parent) ──
 function buildChildThemeJson(style: any) {
-  const colors = style.colors || {};
-  const fonts = style.fonts || { heading: 'Playfair Display', body: 'Source Sans 3' };
   const mode = style.mode === 'preset' ? 'custom' : (style.mode || 'custom');
 
-  // Parent mode: emit a minimal theme.json that does NOT override the parent
-  // theme's palette, typography, or layout. This lets Assembler's defaults apply.
+  // Parent mode: if the user picked an Assembler variation, emit a theme.json
+  // that matches that variation's palette + fonts so WordPress renders the
+  // same look. If no variation is selected, emit a minimal theme.json that
+  // lets Assembler's own defaults apply.
   if (mode === 'parent') {
-    return JSON.stringify({
-      $schema: 'https://schemas.wp.org/trunk/theme.json',
-      version: 3,
-    }, null, 2);
+    const variation = style.presetId ? getAssemblerVariationById(style.presetId) : null;
+    if (!variation) {
+      return JSON.stringify({
+        $schema: 'https://schemas.wp.org/trunk/theme.json',
+        version: 3,
+      }, null, 2);
+    }
+    // Use the variation's colors/fonts below via the normal code path
+    style = { ...style, ...variation.config, mode: 'parent', presetId: variation.id };
   }
+
+  const colors = style.colors || {};
+  const fonts = style.fonts || { heading: 'Playfair Display', body: 'Source Sans 3' };
 
   return JSON.stringify({
     $schema: 'https://schemas.wp.org/trunk/theme.json',
