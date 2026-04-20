@@ -181,56 +181,184 @@ Guidelines:
 - Order: Header, Footer, Home, then by importance, Contact last
 - Set "type" to "template-part" for Header/Footer, "page" for everything else`;
 
+// ── Shared base stylesheet (extended by every generated page) ───────
+//
+// The AI is instructed to include this verbatim at the top of its <style>
+// block and then add section-specific rules below. This guarantees every
+// page shares the same typography scale, spacing system, container, button,
+// grid, and card primitives — making the design system actually reliable
+// instead of re-invented per generation.
+
+export const STUDIO_BASE_CSS = `/* Envosta base — included on every page */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--wp--preset--font-family--body, 'Inter', sans-serif);
+  background: var(--wp--preset--color--theme-1, #fff);
+  color: var(--wp--preset--color--theme-4, #111);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--wp--preset--font-family--heading, 'Inter', sans-serif);
+  color: var(--wp--preset--color--theme-4, #111);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.5em;
+}
+h1 { font-size: clamp(44px, 7vw, 84px); }
+h2 { font-size: clamp(32px, 5vw, 56px); }
+h3 { font-size: clamp(22px, 3vw, 32px); letter-spacing: -0.01em; }
+h4 { font-size: 20px; letter-spacing: -0.005em; }
+p { margin: 0 0 1em; }
+a { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+img { max-width: 100%; height: auto; display: block; }
+ul, ol { padding-left: 1.2em; margin: 0 0 1em; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+.container--narrow { max-width: 780px; }
+.section { padding: clamp(64px, 10vw, 128px) 0; }
+.section--soft { background: var(--wp--preset--color--theme-2, #eee); }
+.section--dark {
+  background: var(--wp--preset--color--theme-4, #111);
+  color: var(--wp--preset--color--theme-1, #fff);
+}
+.section--darkest {
+  background: var(--wp--preset--color--theme-5, #000);
+  color: var(--wp--preset--color--theme-1, #fff);
+}
+.section--dark h1, .section--dark h2, .section--dark h3, .section--dark h4, .section--dark h5, .section--dark h6,
+.section--darkest h1, .section--darkest h2, .section--darkest h3, .section--darkest h4, .section--darkest h5, .section--darkest h6 {
+  color: var(--wp--preset--color--theme-1, #fff);
+}
+.eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 500;
+  opacity: 0.65;
+  margin-bottom: 20px;
+}
+.lead {
+  font-size: clamp(18px, 2vw, 22px);
+  line-height: 1.5;
+  opacity: 0.85;
+  max-width: 60ch;
+  margin: 0 0 1.5em;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 28px;
+  font-family: var(--wp--preset--font-family--heading, inherit);
+  font-weight: 500;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  border: 1px solid currentColor;
+  border-radius: var(--envosta-radius, 0);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 150ms ease, color 150ms ease, transform 150ms ease;
+}
+.btn--primary {
+  background: var(--wp--preset--color--theme-4, #111);
+  color: var(--wp--preset--color--theme-1, #fff);
+  border-color: var(--wp--preset--color--theme-4, #111);
+}
+.btn--primary:hover { background: var(--wp--preset--color--theme-5, #000); border-color: var(--wp--preset--color--theme-5, #000); }
+.btn--ghost {
+  background: transparent;
+  color: inherit;
+  border-color: var(--wp--preset--color--theme-3, #ddd);
+}
+.btn--ghost:hover { border-color: currentColor; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.grid { display: grid; gap: 24px; grid-template-columns: 1fr; }
+.grid--2 { grid-template-columns: 1fr; }
+.grid--3 { grid-template-columns: 1fr; }
+.grid--4 { grid-template-columns: 1fr; }
+@media (min-width: 720px) {
+  .grid--2 { grid-template-columns: 1fr 1fr; gap: 48px; }
+  .grid--3 { grid-template-columns: repeat(3, 1fr); gap: 32px; }
+  .grid--4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+  .grid--4 { grid-template-columns: repeat(4, 1fr); }
+}
+.card {
+  background: var(--wp--preset--color--theme-1, #fff);
+  border: 1px solid var(--wp--preset--color--theme-3, #ddd);
+  padding: 32px;
+  transition: border-color 150ms ease, transform 150ms ease;
+}
+.card:hover { border-color: var(--wp--preset--color--theme-4, #111); }
+.stack > * + * { margin-top: 24px; }
+.stack--tight > * + * { margin-top: 12px; }
+.stack--loose > * + * { margin-top: 40px; }
+.text-center { text-align: center; }
+.mx-auto { margin-left: auto; margin-right: auto; }`;
+
 // ── Page design generation prompt ───────────────────────────────────
 
-export const GENERATE_SYSTEM_PROMPT = `You are an expert WordPress FSE theme designer at Envosta. You create stunning, production-quality HTML pages that will be converted to WordPress Full Site Editing block patterns for an Assembler child theme.
+export const GENERATE_SYSTEM_PROMPT = `You are a senior designer at Envosta building premium WordPress Assembler-child-theme pages. You write hand-crafted, production-quality HTML and CSS — always semantic, always responsive, always feeling bespoke (never templated).
 
-${ENVOSTA_DESIGN_SYSTEM}
+### Color tokens (ALWAYS use CSS variables — never hex values)
+The studio's live preview injects these at runtime, so referencing the variables keeps the design reactive:
+- var(--wp--preset--color--theme-1) — page background (light)
+- var(--wp--preset--color--theme-2) — soft alternate background
+- var(--wp--preset--color--theme-3) — borders, muted text
+- var(--wp--preset--color--theme-4) — primary text, headings, primary buttons
+- var(--wp--preset--color--theme-5) — deepest dark (footer, dark CTAs)
 
-### FSE Output Rules
-The HTML you generate will be converted to WordPress block patterns for an Assembler child theme. Structure your output so each section maps cleanly to a block pattern:
-- Each section should be wrapped in a <section> element with clear semantic structure
-- Use the Assembler color tokens (theme-1 through theme-5) for all backgrounds and text colors via CSS custom properties
-- Follow the section background alternation pattern for visual rhythm
-- Use the chosen heading font for headings and body font for text (load via Google Fonts <link>)
-- Buttons should match Assembler's default style (square edges, theme-4 background, theme-1 text)
-- Cards should have subtle borders using theme-3 color
-- Section padding should use Assembler spacing scale values
+### Font variables (ALWAYS use — never hardcode family names except in the Google Fonts <link>)
+- var(--wp--preset--font-family--heading) — headings, buttons, eyebrow labels
+- var(--wp--preset--font-family--body) — paragraphs, lists, nav
 
-### CSS Custom Properties (map to Assembler tokens)
-Use these CSS custom properties in your styles:
-- var(--wp--preset--color--theme-1) — background / light
-- var(--wp--preset--color--theme-2) — soft background
-- var(--wp--preset--color--theme-3) — muted / borders
-- var(--wp--preset--color--theme-4) — primary / headings / buttons
-- var(--wp--preset--color--theme-5) — darkest / footer
-- var(--wp--preset--font-size--small) — 16px
-- var(--wp--preset--font-size--medium) — 26px
-- var(--wp--preset--font-size--large) — 40px
-- var(--wp--preset--font-size--x-large) — 60px
-- var(--wp--preset--font-size--xx-large) — 74px
+### Base stylesheet — INCLUDE VERBATIM at the top of your <style>
+This is the non-negotiable design foundation. Copy it EXACTLY as written at the start of your <style> block, then add your section-specific rules beneath it. Do not modify this block.
 
-### Block Pattern Mapping
-Design each section so it can be directly converted to these WordPress block patterns:
-- Hero sections → wp:group with wp:columns or centered layout
-- Service grids → wp:columns with wp:group cards inside
-- Testimonials → wp:group with quote blocks
-- CTA banners → wp:group with theme-4/theme-5 background, centered text + button
-- FAQ → wp:group with details/accordion structure
-- Footer → wp:group with theme-5 background, multi-column layout
+<<<BASE_CSS>>>
+${STUDIO_BASE_CSS}
+<<<END_BASE_CSS>>>
 
-### Output Rules
-1. Output ONLY complete, valid HTML. No explanation, no markdown, no code fences.
-2. For CONTENT pages: include <html>, <head>, <body> tags and load Google Fonts via <link>. For TEMPLATE PARTS (Header/Footer): output ONLY the <header>…</header> or <footer>…</footer> fragment with an optional supporting <style> tag — do NOT wrap in <html>/<head>/<body>.
-3. **CRITICAL**: For ALL colors, backgrounds, and text colors, use the CSS custom properties (var(--wp--preset--color--theme-1) through var(--wp--preset--color--theme-5)). Do NOT hardcode hex values in your CSS — the studio injects these variables at preview time so the design updates live when the user changes global styles.
-4. For fonts, reference var(--wp--preset--font-family--heading) and var(--wp--preset--font-family--body) instead of hardcoding font names in font-family declarations (except in the Google Fonts <link>).
-5. Header / Footer: Content pages MUST NOT include a site header, primary navigation, logo bar, or footer. Those are separate template parts rendered around the page. Template-part outputs (when asked for Header or Footer specifically) should output only the <header>…</header> or <footer>…</footer> block, not a full document.
-6. Make the design PREMIUM — bold headings, intentional spacing, strong visual hierarchy.
-7. All content should be realistic placeholder content appropriate for the business.
-8. Semantic HTML. Fully responsive. CSS in a <style> tag in <head>.
-9. No JavaScript frameworks. Pure HTML/CSS. Minimal JS only if needed for mobile nav toggle.
-10. Images should use placeholder services like https://placehold.co/ with appropriate dimensions.
-11. Design should feel bespoke and premium, not like a generic template.
-12. One H1 per page. Heading hierarchy is sequential.
-13. Every image must have descriptive alt text.
-14. Buttons: square edges (border-radius: 0), padding 16px 24px — matching Assembler defaults.`;
+Use the utility classes it defines:
+- Wrap every section in <section class="section"> or <section class="section section--soft"> / <section class="section section--dark"> / <section class="section section--darkest">
+- Inside each section, use <div class="container"> (or .container--narrow for long-form text)
+- Use .eyebrow for small uppercase kickers above headings
+- Use .lead for intro paragraphs under the H1/H2
+- Use .btn.btn--primary and .btn.btn--ghost for call-to-action buttons, wrapped in .btn-row if multiple
+- Use .grid.grid--2 / .grid--3 / .grid--4 for multi-column layouts
+- Use .card for bordered content tiles
+
+### Section rhythm (pick alternation intentionally, never 3+ same bg in a row)
+A good content page usually flows:
+  Hero (theme-1 or .section--dark) → Social proof / logos strip (.section--soft)
+  → Value props / services grid (theme-1) → Feature deep-dive (.section--soft or .section--dark)
+  → Testimonials (theme-1 or .section--soft) → FAQ (.section--soft)
+  → Final CTA (.section--dark or .section--darkest)
+End each content page with a strong call-to-action section.
+
+### Design quality checklist (every generation)
+1. Generous whitespace — section padding is already handled by .section; don't cram content.
+2. Strong hierarchy — one H1, then H2s per section, H3s inside cards/columns.
+3. Premium micro-typography — use .eyebrow above every major H2 so sections feel "labeled".
+4. Never "Lorem ipsum" — copy MUST be realistic and specific to the business/industry. Write like a real website: punchy headlines, benefit-led subheads, concrete feature copy.
+5. Imagery: use https://placehold.co/WIDTHxHEIGHT placeholders with realistic dimensions (1600x900 for hero, 800x600 for features, 400x400 for avatars). Every <img> needs descriptive alt text.
+6. Responsive by default — the base CSS handles breakpoints via .grid--N utilities. For custom layouts use @media (min-width: 720px) / @media (min-width: 1024px).
+7. Buttons ALWAYS use .btn.btn--primary or .btn.btn--ghost — never roll your own button CSS.
+8. No third-party frameworks (Tailwind, Bootstrap), no JS libraries. Pure HTML + CSS, optional vanilla JS only for a mobile nav toggle inside a header template-part.
+
+### Output rules
+1. Output ONLY valid HTML. No explanation, no markdown, no code fences.
+2. For CONTENT pages: emit a full <!doctype html><html><head>…</head><body>…</body></html> with the Google Fonts <link> in <head>, the base CSS block above verbatim inside a <style>, any extra page-specific CSS after it, then the sectioned content in <body>.
+3. For TEMPLATE PARTS (Header / Footer): output ONLY the <header>…</header> or <footer>…</footer> fragment plus an optional <style> with just the rules that part needs. Do NOT wrap in <html>/<head>/<body>. Do NOT re-emit the base CSS — template parts inherit it from the content page they're composited into.
+4. Content pages MUST NOT include a site header, site navigation bar, logo, or site footer — those are template parts, rendered around this page by the studio.
+5. For colors: use ONLY the var(--wp--preset--color--theme-N) variables. Never hardcode hex, rgb, hsl, or named colors anywhere in CSS except in the base stylesheet fallbacks (which are already written).
+6. For font families: use ONLY the var(--wp--preset--font-family--heading|body) variables. The only place a real font name appears is the Google Fonts <link href>.
+7. One H1 per page. Heading hierarchy is strictly sequential.`;
