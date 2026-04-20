@@ -6,7 +6,7 @@ import {
   Sparkles, Loader2, Check, FileText, Palette, ArrowRight, Send,
   Monitor, Tablet, Smartphone, Eye, PanelLeftClose, PanelLeftOpen,
   PanelRightClose, PanelRightOpen, Plus, Trash2, LayoutTemplate,
-  Upload, X, Globe2, FileUp, Download, ShoppingBag,
+  Upload, X, Globe2, FileUp, Download, ShoppingBag, Newspaper, Wrench, RotateCcw,
 } from 'lucide-react';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 import { ASSEMBLER_VARIATIONS, CUSTOM_PRESETS, type StudioStylePreset } from '@/lib/studio-style-presets';
@@ -39,7 +39,9 @@ const SPECIAL_PAGES = ['Header', 'Footer'];
 
 // Pages that belong to the WooCommerce category in the sidebar when
 // WooCommerce is enabled on the brief.
-const WOOCOMMERCE_PAGE_TITLES = new Set(['Shop', 'Cart', 'Checkout', 'My Account']);
+const WOOCOMMERCE_PAGE_TITLES = new Set(['Shop', 'Single Product', 'Cart', 'Checkout', 'My Account']);
+const BLOG_PAGE_TITLES = new Set(['Blog', 'Single Post']);
+const SYSTEM_PAGE_TITLES = new Set(['404', 'Search Results']);
 
 /**
  * Return just the <body> inner HTML of a document string, or the original
@@ -252,6 +254,14 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
     setStatus({ type: 'success', msg: `Exported ${page.title}.xml` });
   }
 
+  function resetPage(pageId: string) {
+    const page = pages.find(p => p.id === pageId);
+    if (!page) return;
+    if (page.html && !confirm(`Clear "${page.title}" content? This removes the generated HTML so you can regenerate from scratch.`)) return;
+    onPagesChange(pages.map(p => p.id === pageId ? { ...p, html: '' } : p));
+    setStatus({ type: 'success', msg: `Cleared "${page.title}"` });
+  }
+
   async function importPageHtml(pageId: string, file: File) {
     try {
       const raw = await file.text();
@@ -447,11 +457,18 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
     () => buildPreviewDoc(selectedPage, headerPage, footerPage, styleConfig),
     [selectedPage?.id, selectedPage?.html, headerPage?.html, footerPage?.html, styleConfig],
   );
-  // Split content pages into WooCommerce vs regular.
+  // Split content pages into categories for the sidebar.
   const nonPart = pages.filter(p => !SPECIAL_PAGES.includes(p.title));
   const wcEnabled = !!businessInfo?.woocommerce;
+  const blogEnabled = !!businessInfo?.blog;
   const wooCommercePages = wcEnabled ? nonPart.filter(p => WOOCOMMERCE_PAGE_TITLES.has(p.title)) : [];
-  const contentPages = wcEnabled ? nonPart.filter(p => !WOOCOMMERCE_PAGE_TITLES.has(p.title)) : nonPart;
+  const blogPages = blogEnabled ? nonPart.filter(p => BLOG_PAGE_TITLES.has(p.title)) : [];
+  const systemPages = nonPart.filter(p => SYSTEM_PAGE_TITLES.has(p.title));
+  const contentPages = nonPart.filter(p =>
+    !(wcEnabled && WOOCOMMERCE_PAGE_TITLES.has(p.title)) &&
+    !(blogEnabled && BLOG_PAGE_TITLES.has(p.title)) &&
+    !SYSTEM_PAGE_TITLES.has(p.title)
+  );
 
   return (
     <div className="flex h-full">
@@ -483,6 +500,11 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
                       if (file) await importPageHtml(page!.id, file);
                     }} />
                   </label>
+                  <button onClick={() => resetPage(page!.id)} disabled={!page!.html}
+                    className="p-0.5 rounded text-gray-300 hover:text-amber-600 disabled:opacity-30 disabled:hover:text-gray-300"
+                    title="Reset this part to blank">
+                    <RotateCcw className="w-2.5 h-2.5" />
+                  </button>
                   <button onClick={() => exportPageXml(page!.id)} disabled={!page!.html}
                     className="p-0.5 rounded text-gray-300 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-300"
                     title="Export just this part as WordPress XML">
@@ -493,48 +515,61 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
             ))}
           </div>
 
-          {/* WooCommerce category — only when the brief has WC enabled and matching pages exist */}
+          {/* WooCommerce category */}
           {wooCommercePages.length > 0 && (
-            <div className="p-3 border-b border-gray-100">
-              <div className="flex items-center gap-1.5 mb-2">
-                <ShoppingBag className="w-3 h-3 text-amber-500" />
-                <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">WooCommerce</h3>
-              </div>
-              <div className="space-y-0.5">
-                {wooCommercePages.map(page => (
-                  <div key={page.id} className="group flex items-center">
-                    <button
-                      onClick={() => onSelectPage(page.id)}
-                      className={`flex-1 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-all text-left ${
-                        page.id === selectedPageId ? 'bg-amber-50 text-amber-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      <ShoppingBag className="w-3 h-3 shrink-0" />
-                      <span className="flex-1 truncate">{page.title}</span>
-                      {generating === page.id && <Loader2 className="w-3 h-3 animate-spin text-amber-500" />}
-                      {page.html && generating !== page.id && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />}
-                    </button>
-                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all mr-1">
-                      <label className="p-0.5 rounded text-gray-300 hover:text-indigo-600 cursor-pointer" title="Import HTML for this page">
-                        <FileUp className="w-2.5 h-2.5" />
-                        <input type="file" accept=".html,.htm" className="hidden" onChange={async (e) => {
-                          const file = e.target.files?.[0]; e.target.value = '';
-                          if (file) await importPageHtml(page.id, file);
-                        }} />
-                      </label>
-                      <button onClick={() => exportPageXml(page.id)} disabled={!page.html}
-                        className="p-0.5 rounded text-gray-300 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-300"
-                        title="Export just this page as WordPress XML">
-                        <Download className="w-2.5 h-2.5" />
-                      </button>
-                      <button onClick={() => deletePage(page.id)} className="p-0.5 rounded text-gray-300 hover:text-red-500">
-                        <Trash2 className="w-2.5 h-2.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <PageCategory
+              title="WooCommerce"
+              icon={<ShoppingBag className="w-3 h-3 text-amber-500" />}
+              activeClasses="bg-amber-50 text-amber-700"
+              accentClass="text-amber-500"
+              pages={wooCommercePages}
+              selectedPageId={selectedPageId}
+              generating={generating}
+              onSelectPage={onSelectPage}
+              importPageHtml={importPageHtml}
+              exportPageXml={exportPageXml}
+              deletePage={deletePage}
+              resetPage={resetPage}
+              RowIcon={ShoppingBag}
+            />
+          )}
+
+          {/* Blog category */}
+          {blogPages.length > 0 && (
+            <PageCategory
+              title="Blog"
+              icon={<Newspaper className="w-3 h-3 text-rose-500" />}
+              activeClasses="bg-rose-50 text-rose-700"
+              accentClass="text-rose-500"
+              pages={blogPages}
+              selectedPageId={selectedPageId}
+              generating={generating}
+              onSelectPage={onSelectPage}
+              importPageHtml={importPageHtml}
+              exportPageXml={exportPageXml}
+              deletePage={deletePage}
+              resetPage={resetPage}
+              RowIcon={Newspaper}
+            />
+          )}
+
+          {/* System category */}
+          {systemPages.length > 0 && (
+            <PageCategory
+              title="System"
+              icon={<Wrench className="w-3 h-3 text-gray-500" />}
+              activeClasses="bg-gray-100 text-gray-800"
+              accentClass="text-gray-500"
+              pages={systemPages}
+              selectedPageId={selectedPageId}
+              generating={generating}
+              onSelectPage={onSelectPage}
+              importPageHtml={importPageHtml}
+              exportPageXml={exportPageXml}
+              deletePage={deletePage}
+              resetPage={resetPage}
+              RowIcon={Wrench}
+            />
           )}
 
           <div className="p-3 flex-1">
@@ -567,12 +602,17 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
                         if (file) await importPageHtml(page.id, file);
                       }} />
                     </label>
+                    <button onClick={() => resetPage(page.id)} disabled={!page.html}
+                      className="p-0.5 rounded text-gray-300 hover:text-amber-600 disabled:opacity-30 disabled:hover:text-gray-300"
+                      title="Reset this page to blank">
+                      <RotateCcw className="w-2.5 h-2.5" />
+                    </button>
                     <button onClick={() => exportPageXml(page.id)} disabled={!page.html}
                       className="p-0.5 rounded text-gray-300 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-300"
                       title="Export just this page as WordPress XML">
                       <Download className="w-2.5 h-2.5" />
                     </button>
-                    <button onClick={() => deletePage(page.id)} className="p-0.5 rounded text-gray-300 hover:text-red-500">
+                    <button onClick={() => deletePage(page.id)} className="p-0.5 rounded text-gray-300 hover:text-red-500" title="Delete this page">
                       <Trash2 className="w-2.5 h-2.5" />
                     </button>
                   </div>
@@ -956,6 +996,76 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── PageCategory: reusable sidebar section for grouped pages ───────
+
+function PageCategory({
+  title, icon, activeClasses, accentClass, pages, selectedPageId, generating,
+  onSelectPage, importPageHtml, exportPageXml, deletePage, resetPage, RowIcon,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  activeClasses: string;
+  accentClass: string;
+  pages: any[];
+  selectedPageId: string;
+  generating: string | null;
+  onSelectPage: (id: string) => void;
+  importPageHtml: (id: string, file: File) => void | Promise<void>;
+  exportPageXml: (id: string) => void;
+  deletePage: (id: string) => void;
+  resetPage: (id: string) => void;
+  RowIcon: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <div className="p-3 border-b border-gray-100">
+      <div className="flex items-center gap-1.5 mb-2">
+        {icon}
+        <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">{title}</h3>
+      </div>
+      <div className="space-y-0.5">
+        {pages.map(page => (
+          <div key={page.id} className="group flex items-center">
+            <button
+              onClick={() => onSelectPage(page.id)}
+              className={`flex-1 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-all text-left ${
+                page.id === selectedPageId ? `${activeClasses} font-medium` : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <RowIcon className="w-3 h-3 shrink-0" />
+              <span className="flex-1 truncate">{page.title}</span>
+              {generating === page.id && <Loader2 className={`w-3 h-3 animate-spin ${accentClass}`} />}
+              {page.html && generating !== page.id && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />}
+            </button>
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all mr-1">
+              <label className="p-0.5 rounded text-gray-300 hover:text-indigo-600 cursor-pointer" title="Import HTML for this page">
+                <FileUp className="w-2.5 h-2.5" />
+                <input type="file" accept=".html,.htm" className="hidden" onChange={async (e) => {
+                  const file = e.target.files?.[0]; e.target.value = '';
+                  if (file) await importPageHtml(page.id, file);
+                }} />
+              </label>
+              <button onClick={() => resetPage(page.id)} disabled={!page.html}
+                className="p-0.5 rounded text-gray-300 hover:text-amber-600 disabled:opacity-30 disabled:hover:text-gray-300"
+                title="Reset this page to blank">
+                <RotateCcw className="w-2.5 h-2.5" />
+              </button>
+              <button onClick={() => exportPageXml(page.id)} disabled={!page.html}
+                className="p-0.5 rounded text-gray-300 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-300"
+                title="Export just this page as WordPress XML">
+                <Download className="w-2.5 h-2.5" />
+              </button>
+              <button onClick={() => deletePage(page.id)} className="p-0.5 rounded text-gray-300 hover:text-red-500"
+                title="Delete this page">
+                <Trash2 className="w-2.5 h-2.5" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

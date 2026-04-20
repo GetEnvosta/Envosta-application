@@ -13,8 +13,15 @@ const INDUSTRIES = [
 
 const SUGGESTED_PAGES = ['Home', 'About', 'Services', 'Contact', 'Blog', 'Gallery', 'Testimonials', 'FAQ', 'Pricing', 'Portfolio', 'Team', 'Careers'];
 
-// Default WooCommerce pages created by WooCommerce core on install
-const WOOCOMMERCE_PAGES = ['Shop', 'Cart', 'Checkout', 'My Account'];
+// Default WooCommerce pages created by WooCommerce core on install,
+// plus the Single Product template for the product-detail layout.
+const WOOCOMMERCE_PAGES = ['Shop', 'Single Product', 'Cart', 'Checkout', 'My Account'];
+
+// Blog pages: a Blog archive + a Single Post template.
+const BLOG_PAGES = ['Blog', 'Single Post'];
+
+// System pages: WordPress-wide templates every site should have.
+const SYSTEM_PAGES = ['404', 'Search Results'];
 
 export function StepBrief({
   projectId,
@@ -103,6 +110,18 @@ export function StepBrief({
       const existingLower = new Set(pages.map(p => p.toLowerCase()));
       const add = WOOCOMMERCE_PAGES.filter(p => !existingLower.has(p.toLowerCase()));
       onBusinessInfoChange({ ...form, woocommerce: true, pages: [...pages, ...add] });
+    }
+  }
+
+  const blogEnabled = !!form.blog;
+  function toggleBlog() {
+    if (blogEnabled) {
+      const next = pages.filter(p => !BLOG_PAGES.includes(p));
+      onBusinessInfoChange({ ...form, blog: false, pages: next });
+    } else {
+      const existingLower = new Set(pages.map(p => p.toLowerCase()));
+      const add = BLOG_PAGES.filter(p => !existingLower.has(p.toLowerCase()));
+      onBusinessInfoChange({ ...form, blog: true, pages: [...pages, ...add] });
     }
   }
 
@@ -328,7 +347,30 @@ export function StepBrief({
                 <p className="text-xs text-gray-500 leading-snug">
                   {wooEnabled
                     ? `An online store will be included. Auto-added pages: ${WOOCOMMERCE_PAGES.join(', ')}.`
-                    : 'Turn on to build an online store. Shop, Cart, Checkout, and My Account pages will be auto-added.'}
+                    : 'Turn on to build an online store. Shop, Single Product, Cart, Checkout, and My Account will be auto-added.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Blog toggle */}
+            <div className="rounded-xl border border-gray-200 overflow-hidden mb-4">
+              <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                <FileCode className="w-4 h-4 text-gray-500" />
+                <p className="text-sm font-medium text-gray-700 flex-1">Blog</p>
+                <button
+                  onClick={toggleBlog}
+                  role="switch"
+                  aria-checked={blogEnabled}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${blogEnabled ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${blogEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                </button>
+              </div>
+              <div className="px-5 py-3">
+                <p className="text-xs text-gray-500 leading-snug">
+                  {blogEnabled
+                    ? `A blog will be included. Auto-added pages: ${BLOG_PAGES.join(', ')}.`
+                    : 'Turn on to include a blog archive page and a single-post template.'}
                 </p>
               </div>
             </div>

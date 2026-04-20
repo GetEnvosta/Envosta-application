@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Download, Folder, FileText, FileCode, Loader2, Check, AlertCircle } from 'lucide-react';
+import { buildWxrXml } from '@/lib/studio-wxr';
 
 export function StepExport({
   projectId, project, styleConfig, pages, onAuthRequired,
@@ -17,12 +18,22 @@ export function StepExport({
   const slug = project.slug || 'site';
   const pagesWithContent = pages.filter(p => p.html);
 
+  function triggerDownload(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   async function handleExport() {
     setExporting(true);
     setError('');
     try {
-      // Delegate to the API — it's the single source of truth for the
-      // Assembler-compatible theme.json, style.css, functions.php, and WXR.
+      // 1) Fetch the child-theme zip from the API
       const res = await fetch('/api/studio/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -42,15 +53,18 @@ export function StepExport({
         return;
       }
 
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `envosta-${slug}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const themeZip = await res.blob();
+      triggerDownload(themeZip, `envosta-child-${slug}.zip`);
+
+      // 2) Build the WXR content file client-side and trigger a second
+      //    download. This keeps the two files separate so users can upload
+      //    the theme zip directly to /wp-content/themes/ and import the
+      //    .xml via Tools → Import after the theme is active.
+      const siteName = (styleConfig?.siteName || project?.name || 'Site').toString();
+      const xml = buildWxrXml(siteName, pages);
+      const xmlBlob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
+      // Small delay to avoid some browsers suppressing the second download
+      setTimeout(() => triggerDownload(xmlBlob, `content-${slug}.xml`), 250);
     } catch (err: any) {
       setError(err?.message || 'Export failed — please try again');
     } finally {
@@ -69,18 +83,30 @@ export function StepExport({
           <p className="text-sm text-gray-500">{pagesWithContent.length} pages ready. Download the child theme and WXR import file.</p>
         </div>
 
-        {/* File tree */}
-        <div className="bg-gray-50 rounded-xl border border-gray-200 p-5 font-mono text-xs text-gray-600">
-          <div className="flex items-center gap-2 text-gray-900 font-semibold mb-2">
-            <Folder className="w-3.5 h-3.5 text-amber-500" /> envosta-child-{slug}/
+        {/* Two separate downloads */}
+        <div className="grid sm:grid-cols-2 gap-4">
+          {/* File 1: theme zip */}
+          <div className="bg-gray-50 rounded-xl border border-gray-200 p-5 font-mono text-xs text-gray-600">
+            <div className="flex items-center gap-2 text-gray-900 font-semibold mb-2">
+              <Folder className="w-3.5 h-3.5 text-amber-500" /> envosta-child-{slug}.zip
+            </div>
+            <div className="ml-5 space-y-1">
+              <div className="flex items-center gap-2"><FileCode className="w-3 h-3 text-blue-500" /> theme.json</div>
+              <div className="flex items-center gap-2"><FileText className="w-3 h-3 text-gray-400" /> style.css</div>
+              <div className="flex items-center gap-2"><FileCode className="w-3 h-3 text-purple-500" /> functions.php</div>
+            </div>
+            <p className="mt-3 text-[11px] text-gray-500 font-sans leading-snug">
+              The child theme — upload to <code className="bg-white px-1 rounded">wp-content/themes/</code>.
+            </p>
           </div>
-          <div className="ml-5 space-y-1">
-            <div className="flex items-center gap-2"><FileCode className="w-3 h-3 text-blue-500" /> theme.json <span className="text-gray-400 font-sans">(overrides parent colors, fonts)</span></div>
-            <div className="flex items-center gap-2"><FileText className="w-3 h-3 text-gray-400" /> style.css <span className="text-gray-400 font-sans">(child theme header → Template: assembler)</span></div>
-            <div className="flex items-center gap-2"><FileCode className="w-3 h-3 text-purple-500" /> functions.php <span className="text-gray-400 font-sans">(Google Fonts, patterns)</span></div>
-          </div>
-          <div className="flex items-center gap-2 mt-3 text-gray-900 font-semibold">
-            <FileCode className="w-3.5 h-3.5 text-green-500" /> content-{slug}.xml <span className="text-gray-400 font-sans font-normal">(WXR import — {pagesWithContent.length} pages)</span>
+          {/* File 2: WXR content */}
+          <div className="bg-gray-50 rounded-xl border border-gray-200 p-5 font-mono text-xs text-gray-600">
+            <div className="flex items-center gap-2 text-gray-900 font-semibold mb-2">
+              <FileCode className="w-3.5 h-3.5 text-green-500" /> content-{slug}.xml
+            </div>
+            <p className="ml-5 text-[11px] text-gray-500 font-sans leading-snug">
+              WXR with {pagesWithContent.length} page{pagesWithContent.length === 1 ? '' : 's'} + a Main Menu containing every page. Import via <strong>Tools → Import → WordPress</strong> after activating the theme.
+            </p>
           </div>
         </div>
 
@@ -105,7 +131,7 @@ export function StepExport({
             className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors disabled:opacity-50"
           >
             {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            {exporting ? 'Generating...' : 'Download ZIP'}
+            {exporting ? 'Generating...' : 'Download both files'}
           </button>
           {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
         </div>

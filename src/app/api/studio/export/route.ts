@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { isStaffRole } from '@/lib/roles';
 import JSZip from 'jszip';
-import { buildWxrXml } from '@/lib/studio-wxr';
 import { getAssemblerVariationById } from '@/lib/studio-style-presets';
 
 export const dynamic = 'force-dynamic';
@@ -165,13 +164,13 @@ export async function POST(req: Request) {
 
     const zip = new JSZip();
 
-    // Child theme files
+    // Child theme files — the ZIP is now JUST the theme, ready to upload
+    // straight to /wp-content/themes/. The WXR content file is returned
+    // separately so users can import it via Tools → Import after the theme
+    // is active.
     zip.file(`${childDir}/theme.json`, buildChildThemeJson(style));
     zip.file(`${childDir}/style.css`, buildChildStyleCss(siteName, slug));
     zip.file(`${childDir}/functions.php`, buildChildFunctionsPhp(style.fonts, slug));
-
-    // WXR XML content file
-    zip.file(`content-${slug}.xml`, buildWxrXml(siteName, allPages));
 
     const buffer = await zip.generateAsync({ type: 'uint8array' });
 
@@ -179,7 +178,7 @@ export async function POST(req: Request) {
       status: 200,
       headers: {
         'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="envosta-${slug}.zip"`,
+        'Content-Disposition': `attachment; filename="envosta-child-${slug}.zip"`,
       },
     });
   } catch (e: any) {

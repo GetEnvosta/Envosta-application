@@ -14,6 +14,9 @@ function localId() { return `local-${++idCounter}-${Date.now()}`; }
 const STORAGE_KEY = 'envosta.studio.draft.v1';
 const DEFAULT_PAGES = ['Home', 'About', 'Services', 'Contact'];
 
+// Always added to every project so the theme has proper fallbacks.
+const SYSTEM_PAGE_TITLES = ['404', 'Search Results'];
+
 type Snapshot = {
   step: number;
   brief: string;
@@ -240,13 +243,18 @@ export function StudioTool() {
             onSelect={(idx) => {
               setSelectedBrief(idx);
               if (businessInfo.businessName) setProjectName(businessInfo.businessName);
-              const pageNames: string[] = (businessInfo.pages && businessInfo.pages.length > 0)
+              const userPageNames: string[] = (businessInfo.pages && businessInfo.pages.length > 0)
                 ? businessInfo.pages
                 : DEFAULT_PAGES;
+              // Always add the system pages (404, Search Results) at the end,
+              // skipping any that the user already included.
+              const userLower = new Set(userPageNames.map(p => p.toLowerCase()));
+              const systemExtras = SYSTEM_PAGE_TITLES.filter(s => !userLower.has(s.toLowerCase()));
+              const pageNames: string[] = [...userPageNames, ...systemExtras];
               const selectedConcept = briefOptions[idx]?.description || brief;
               // Per-page prompt: WooCommerce pages get Shopify-grade e-commerce
               // guidance; everything else gets the concept-aware generic prompt.
-              const wcPagePrompt = (name: string): string | null => {
+              const specialPagePrompt = (name: string): string | null => {
                 const n = name.toLowerCase();
                 if (n === 'shop') {
                   return `WooCommerce SHOP page — full design freedom. Build whatever catalogue experience fits the brand (hero, collections, category strips, brand story, seasonal features, editorial sections, trust signals, etc.). Aim for a premium, bespoke feel — Shopify-Dawn quality floor, but please don't copy it verbatim.
@@ -289,13 +297,108 @@ Feel free to customise the block's attributes in the opening comment (columns 2-
 - Include the WooCommerce shortcode [woocommerce_my_account] inside a styled wrapper so the real account UI renders.
 - Feel: calm, organised, Shopify-account-page polish.`;
                 }
+                if (n === 'single product' || n === 'single-product' || n === 'product') {
+                  return `WooCommerce SINGLE PRODUCT template — the product-detail page shown when a shopper opens a product. Full design freedom for the layout, but the actual product content MUST render via native WooCommerce blocks. Structure suggestion (adapt freely):
+- Two-column top section: LEFT = product gallery (main image + thumbnail strip, supports zoom), RIGHT = product title, price, short description, variation selector, quantity input, Add-to-cart, wishlist icon, SKU, categories, trust micro-badges.
+- Product details tabs or accordion below: Description, Specifications, Shipping & Returns, Reviews.
+- Related products section (4-col grid) using another Product Collection block filtered to related items.
+- Trust strip (free shipping, returns, secure checkout, support).
+Embed the official WooCommerce single-product blocks:
+<!-- wp:woocommerce/single-product /-->
+or for fine control, individual product blocks like:
+<!-- wp:woocommerce/product-image-gallery /-->
+<!-- wp:woocommerce/product-details /-->
+<!-- wp:woocommerce/add-to-cart-form /-->
+<!-- wp:woocommerce/product-meta /-->
+Wrap these in your own styled sections so the page feels bespoke. Feel: Shopify-product-page polish.`;
+                }
+                if (n === 'blog' || n === 'blog-archive' || n === 'articles' || n === 'news') {
+                  return `BLOG ARCHIVE page — the page that lists all blog posts. Full design freedom for the editorial layout. Typical structure (adapt freely):
+- Editorial hero with the blog name, a tagline, and maybe a featured post.
+- Category / tag filter pills.
+- Masonry or asymmetric grid of post cards (featured image, category tag, title, excerpt, author + date, reading time).
+- Featured/sticky post with larger treatment.
+- Newsletter signup section near the bottom.
+Use the WordPress Query Loop block for the actual posts list so real posts render:
+<!-- wp:query {"queryId":0,"query":{"perPage":12,"pages":0,"offset":0,"postType":"post","order":"desc","orderBy":"date","inherit":false}} -->
+<div class="wp-block-query">
+  <!-- wp:post-template -->
+  <!-- wp:post-featured-image {"isLink":true} /-->
+  <!-- wp:post-title {"isLink":true,"level":3} /-->
+  <!-- wp:post-excerpt /-->
+  <!-- wp:post-date /-->
+  <!-- /wp:post-template -->
+  <!-- wp:query-pagination -->
+    <!-- wp:query-pagination-previous /-->
+    <!-- wp:query-pagination-numbers /-->
+    <!-- wp:query-pagination-next /-->
+  <!-- /wp:query-pagination -->
+</div>
+<!-- /wp:query -->
+Style the surrounding sections however you want.`;
+                }
+                if (n === 'single post' || n === 'single-post' || n === 'post') {
+                  return `SINGLE POST template — the template used to render individual blog posts. Full design freedom for the reading layout. Suggested structure:
+- Hero section: featured image, category pill, title, author + date + reading time + share icons.
+- Content column centred at reading width (~620-720px) with strong typography, pull quotes, image captions.
+- Sidebar or floating table-of-contents (desktop only).
+- Author bio card at end (avatar, bio, link to archive).
+- Related posts grid (3-col) at the bottom.
+- Newsletter / CTA section.
+Use the core Gutenberg post blocks so real post content renders:
+<!-- wp:post-title /-->
+<!-- wp:post-featured-image /-->
+<!-- wp:post-date /-->
+<!-- wp:post-author-name /-->
+<!-- wp:post-content /-->
+<!-- wp:post-terms {"term":"category"} /-->
+<!-- wp:comments /-->
+Feel: premium editorial like Medium / Substack.`;
+                }
+                if (n === '404' || n === 'not found' || n === '404 not found') {
+                  return `404 "Not Found" template — shown when a visitor hits a URL that doesn't exist. Keep it human and helpful. Suggested elements:
+- Large "404" typography (could be decorative or integrated into a witty illustration/wordmark).
+- Empathetic headline ("Looks like this page took a wrong turn" — match brand voice).
+- Short helpful paragraph.
+- Primary CTA back to home + secondary to a search box.
+- A small row of links to popular destinations (Shop, About, Contact, Blog if relevant).
+- Optional: include a WordPress Search block so visitors can search directly:
+<!-- wp:search {"label":"Try searching","buttonText":"Search"} /-->
+Feel: on-brand, brief, never punishing.`;
+                }
+                if (n === 'search results' || n === 'search' || n === 'search-results') {
+                  return `SEARCH RESULTS template — shown when a visitor runs a site search. Full design freedom. Suggested structure:
+- Hero band with a Search block (pre-populated with the current query) and a result count.
+- Filter/sort row (post type tabs if there are products, date, relevance).
+- Results list/grid using the Query Loop block with 'inherit':true so it picks up the search query:
+<!-- wp:query {"queryId":0,"query":{"perPage":12,"pages":0,"offset":0,"postType":"post","inherit":true}} -->
+<div class="wp-block-query">
+  <!-- wp:post-template -->
+  <!-- wp:post-title {"isLink":true,"level":3} /-->
+  <!-- wp:post-excerpt /-->
+  <!-- wp:post-date /-->
+  <!-- /wp:post-template -->
+  <!-- wp:query-no-results>
+    <p>No results — try a different search.</p>
+  <!-- /wp:query-no-results -->
+  <!-- wp:query-pagination>
+    <!-- wp:query-pagination-previous /-->
+    <!-- wp:query-pagination-numbers /-->
+    <!-- wp:query-pagination-next /-->
+  <!-- /wp:query-pagination>
+</div>
+<!-- /wp:query -->
+- An empty-state design for no results (witty copy + links to popular pages).
+- Trust/footer CTA row.
+Feel: utilitarian but polished.`;
+                }
                 return null;
               };
               const newPages = pageNames.map((name: string, i: number) => ({
                 id: localId(),
                 title: name,
                 slug: name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `page-${i + 1}`,
-                prompt: wcPagePrompt(name) || `${name} page for this website. Concept: ${selectedConcept}`,
+                prompt: specialPagePrompt(name) || `${name} page for this website. Concept: ${selectedConcept}`,
                 sort_order: i,
                 html: '',
               }));
