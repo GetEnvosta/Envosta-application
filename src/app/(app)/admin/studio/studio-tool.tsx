@@ -262,17 +262,30 @@ export function StudioTool() {
               setSelectedBrief(idx);
               if (businessInfo.businessName) setProjectName(businessInfo.businessName);
 
-              // Auto-suggest a parent-theme style variation from the brief
-              // so the user lands on Design with the palette + fonts already
-              // chosen. Fire-and-forget; errors are non-fatal.
+              // Fire two AI calls in parallel:
+              //   1) suggest-style picks an Envosta parent style variation
+              //   2) suggest-site-meta fills in blank businessName / tagline /
+              //      industry / targetAudience so the export's WXR carries
+              //      real site-title + tagline without the user needing to
+              //      dive into the Business Details section.
+              // Both are fire-and-forget; errors are non-fatal.
+              const briefForAi = briefOptions[idx]?.description || brief;
               try {
-                const res = await fetch('/api/studio/suggest-style', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ brief: briefOptions[idx]?.description || brief, businessInfo }),
-                });
-                if (res.ok) {
-                  const data = await res.json();
+                const [styleRes, metaRes] = await Promise.all([
+                  fetch('/api/studio/suggest-style', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ brief: briefForAi, businessInfo }),
+                  }),
+                  fetch('/api/studio/suggest-site-meta', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ brief: briefForAi, businessInfo }),
+                  }),
+                ]);
+
+                if (styleRes.ok) {
+                  const data = await styleRes.json();
                   if (data?.preset) {
                     setStyleConfig((prev: any) => ({
                       ...prev,
@@ -280,6 +293,24 @@ export function StudioTool() {
                       presetId: data.preset.id,
                       mode: prev.mode === 'custom' ? 'custom' : 'parent',
                     }));
+                  }
+                }
+
+                if (metaRes.ok) {
+                  const data = await metaRes.json();
+                  const s = data?.suggested;
+                  if (s && typeof s === 'object' && Object.keys(s).length > 0) {
+                    setBusinessInfo((prev: any) => {
+                      const next = { ...prev };
+                      // User input always wins — only fill blank fields.
+                      for (const k of Object.keys(s)) {
+                        if (!next[k]) next[k] = s[k];
+                      }
+                      return next;
+                    });
+                    // If businessName was just filled, mirror it to projectName
+                    // so the export filename + slug reflect the brand.
+                    if (s.businessName && !projectName) setProjectName(s.businessName);
                   }
                 }
               } catch {}
