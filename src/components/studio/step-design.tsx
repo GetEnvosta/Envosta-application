@@ -411,6 +411,32 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
     onStyleChange(next);
   }
 
+  async function planSections(pageId: string): Promise<Array<{ id: string; title: string; description: string }> | null> {
+    const page = pages.find(p => p.id === pageId);
+    if (!page) return null;
+    try {
+      const res = await fetchWithRetry('/api/studio/plan-sections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brief, businessInfo,
+          pageName: page.title, pagePrompt: page.prompt,
+          allPageNames: pages.filter(p => !SPECIAL_PAGES.includes(p.title)).map(p => p.title),
+          woocommerce: !!businessInfo?.woocommerce,
+          blog: !!businessInfo?.blog,
+          isTemplatePart: SPECIAL_PAGES.includes(page.title),
+        }),
+      }, { retries: 0 });
+      if (res.status === 401 && onAuthRequired) { onAuthRequired(); return null; }
+      const data = await res.json();
+      if (!res.ok) { setStatus({ type: 'error', msg: data.error || 'Section planning failed' }); return null; }
+      return Array.isArray(data.sections) ? data.sections : null;
+    } catch (err: any) {
+      setStatus({ type: 'error', msg: err?.message || 'Section planning failed' });
+      return null;
+    }
+  }
+
   async function generatePage(pageId: string, extraPrompt?: string) {
     const page = pages.find(p => p.id === pageId);
     if (!page) return;
@@ -422,10 +448,20 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
       : page.prompt;
 
     try {
-      // Pre-strip the reference HTML so the AI receives only the relevant
-      // portion: content for content pages, just the <header>/<footer> for
-      // template parts. This stops the model from re-generating site chrome
-      // it was told NOT to emit, and drastically reduces wasted tokens.
+      // Plan sections if this page has none yet — first-ever generation.
+      // Skipped when a reference HTML is present (user's dictating structure).
+      let sections: any[] = Array.isArray(page.sections) ? page.sections : [];
+      if (sections.length === 0 && !referenceHtml) {
+        setStatus({ type: 'success', msg: `Planning sections for ${page.title}…` });
+        const planned = await planSections(pageId);
+        if (planned && planned.length > 0) {
+          sections = planned;
+          // Persist the plan on the page BEFORE generating so it survives
+          // errors / retries.
+          onPagesChange(pages.map(p => p.id === pageId ? { ...p, sections } : p));
+        }
+      }
+
       const strippedReference = referenceHtml
         ? stripHtmlForPage(referenceHtml, page.title)
         : undefined;
@@ -440,13 +476,14 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
           templatePartKind: page.title === 'Header' ? 'header' : page.title === 'Footer' ? 'footer' : undefined,
           allPageNames: pages.filter(p => !SPECIAL_PAGES.includes(p.title)).map(p => p.title),
           referenceHtml: strippedReference,
+          sections: sections.length > 0 ? sections : undefined,
         }),
       }, { retries: 0 });
       if (res.status === 401 && onAuthRequired) { onAuthRequired(); return; }
       const data = await res.json();
       if (!res.ok) { setStatus({ type: 'error', msg: data.error || 'Failed' }); return; }
 
-      const updated = pages.map(p => p.id === pageId ? { ...p, html: data.html } : p);
+      const updated = pages.map(p => p.id === pageId ? { ...p, html: data.html, sections } : p);
       onPagesChange(updated);
       setStatus({ type: 'success', msg: `${page.title} generated!` });
     } catch (err: any) {
@@ -756,6 +793,91 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
             </div>
           )}
         </div>
+
+        {/* Sections panel — shows the planned sections for the selected page */}
+        {selectedPage && Array.isArray(selectedPage.sections) && selectedPage.sections.length > 0 && (
+          <div className="border-t border-gray-200 bg-gray-50/60 px-4 py-2 shrink-0 max-h-[140px] overflow-y-auto">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Sections in {selectedPage.title}</span>
+              <button
+                onClick={async () => {
+                  if (!confirm(`Re-plan sections for "${selectedPage.title}"? This replaces the current section list. The next generation will use the new plan.`)) return;
+                  const planned = await planSections(selectedPage.id);
+                  if (planned && planned.length > 0) {
+                    onPagesChange(pages.map(p => p.id === selectedPage.id ? { ...p, sections: planned } : p));
+                    setStatus({ type: 'success', msg: `Sections re-planned (${planned.length})` });
+                  }
+                }}
+                className="text-[10px] text-indigo-600 hover:text-indigo-800"
+                title="Ask the AI to re-plan sections from the full site context"
+              >
+                Re-plan
+              </button>
+              <button
+                onClick={() => {
+                  const title = prompt('Section title (e.g. "Testimonials"):', '')?.trim();
+                  if (!title) return;
+                  const description = prompt('One-sentence description:', '')?.trim() || '';
+                  const id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `section-${Date.now()}`;
+                  const next = [...selectedPage.sections, { id, title, description }];
+                  onPagesChange(pages.map(p => p.id === selectedPage.id ? { ...p, sections: next } : p));
+                  setStatus({ type: 'success', msg: `Added "${title}" — regenerate the page to render it` });
+                }}
+                className="text-[10px] text-indigo-600 hover:text-indigo-800"
+              >
+                + Add
+              </button>
+            </div>
+            <ol className="space-y-0.5 text-[11px]">
+              {selectedPage.sections.map((s: any, i: number) => (
+                <li key={s.id} className="group flex items-start gap-2">
+                  <span className="text-gray-400 font-mono shrink-0">{String(i + 1).padStart(2, '0')}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-medium text-gray-700">{s.title}</span>
+                    {s.description && <span className="text-gray-500"> — {s.description}</span>}
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => {
+                        if (i === 0) return;
+                        const next = [...selectedPage.sections];
+                        [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                        onPagesChange(pages.map(p => p.id === selectedPage.id ? { ...p, sections: next } : p));
+                      }}
+                      disabled={i === 0}
+                      className="p-0.5 text-gray-400 hover:text-indigo-600 disabled:opacity-30"
+                      title="Move up"
+                    >↑</button>
+                    <button
+                      onClick={() => {
+                        if (i === selectedPage.sections.length - 1) return;
+                        const next = [...selectedPage.sections];
+                        [next[i], next[i + 1]] = [next[i + 1], next[i]];
+                        onPagesChange(pages.map(p => p.id === selectedPage.id ? { ...p, sections: next } : p));
+                      }}
+                      disabled={i === selectedPage.sections.length - 1}
+                      className="p-0.5 text-gray-400 hover:text-indigo-600 disabled:opacity-30"
+                      title="Move down"
+                    >↓</button>
+                    <button
+                      onClick={() => {
+                        if (!confirm(`Remove the "${s.title}" section from the plan?`)) return;
+                        const next = selectedPage.sections.filter((x: any) => x.id !== s.id);
+                        onPagesChange(pages.map(p => p.id === selectedPage.id ? { ...p, sections: next } : p));
+                        setStatus({ type: 'success', msg: `Removed "${s.title}" — regenerate to update` });
+                      }}
+                      className="p-0.5 text-gray-400 hover:text-red-500"
+                      title="Remove section"
+                    ><X className="w-2.5 h-2.5" /></button>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <p className="text-[10px] text-gray-400 mt-1.5 leading-snug">
+              Edit the plan, then hit <strong>Send</strong> in the prompt bar to regenerate the page with the updated sections.
+            </p>
+          </div>
+        )}
 
         {/* AI Chat prompt — bottom bar */}
         <div className="border-t border-gray-200 bg-white px-4 py-3 shrink-0">

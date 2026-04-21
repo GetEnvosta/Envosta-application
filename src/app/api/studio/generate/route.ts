@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       }, { status: 429 });
     }
 
-    const { style, pageName, pagePrompt, allPageNames, referenceHtml, isTemplatePart, templatePartKind } = await req.json();
+    const { style, pageName, pagePrompt, allPageNames, referenceHtml, isTemplatePart, templatePartKind, sections } = await req.json();
 
     if (!pageName || !pagePrompt) {
       return NextResponse.json({ error: 'Page name and prompt are required' }, { status: 400 });
@@ -122,10 +122,16 @@ Navigation pages (other pages on this site): ${(allPageNames || [pageName]).join
 
 ${isTemplatePart
   ? `TEMPLATE PART TO GENERATE: "${pageName}" (${templatePartKind || 'template-part'})
-Generate ONLY the ${templatePartKind === 'header' ? 'site header (nav bar, logo area, primary navigation)' : templatePartKind === 'footer' ? 'site footer (footer links, copyright, social, etc.)' : 'template part'} markup.
-Do NOT wrap it in a full <html>/<body> document — output just the <header>…</header> or <footer>…</footer> block (with any supporting <style> tag) so it can be injected into multiple pages.`
+Emit ONLY the template-part block markup — a single outer <!-- wp:group --> (or equivalent) containing everything needed for a ${templatePartKind === 'header' ? 'site header' : templatePartKind === 'footer' ? 'site footer' : 'template part'}. No <html>/<body>/<style>.`
   : `PAGE TO GENERATE: "${pageName}" (content page)
-IMPORTANT: This is a CONTENT page only. Do NOT include the site header, primary navigation, logo bar, or footer — those are separate template parts that will be composited around this page.`}
+CONTENT PAGE RULES: do NOT include a site header, primary navigation, logo bar, or site footer — those are separate template parts wrapped around this page. Emit a sequence of block-level sections (each a <!-- wp:group --> or <!-- wp:cover -->) in order.`}
+
+${Array.isArray(sections) && sections.length > 0 ? `SECTIONS — the studio has planned these for this page. Emit ONE top-level <!-- wp:group --> (or <!-- wp:cover --> for hero-style visual sections) per section, in this exact order. Each group's inner content fulfils the section's description. Alternate background slugs intentionally (no 3+ consecutive same bg).
+
+${sections.map((s: any, i: number) => `${i + 1}. id:"${s.id}" — ${s.title}\n   ${s.description || ''}`).join('\n\n')}
+
+To make section boundaries recoverable, add a data-section-id attribute on the outer block's wrapper div (via the block's "anchor" attribute, e.g. \`<!-- wp:group {"anchor":"section-${sections[0]?.id}", ...} -->\`). The "anchor" attribute emits as an id on the div and lets the studio target sections for per-section edits later.` : ''}
+
 DESCRIPTION: ${pagePrompt}`;
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {

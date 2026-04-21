@@ -450,6 +450,7 @@ Feel: utilitarian but polished.`;
                 prompt: specialPagePrompt(name) || `${name} page for this website. Concept: ${selectedConcept}`,
                 sort_order: i,
                 html: '',
+                sections: [] as Array<{ id: string; title: string; description: string }>,
               }));
               setPages(newPages);
               if (newPages.length > 0) setSelectedPageId(newPages[0].id);
