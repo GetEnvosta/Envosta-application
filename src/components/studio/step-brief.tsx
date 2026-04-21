@@ -38,6 +38,9 @@ export function StepBrief({
   onImportPreviousWebsite,
   importing: externalImporting,
   importError,
+  importedSummary,
+  onContinueToDesign,
+  onDismissImportSummary,
   onSelect,
   onAuthRequired,
 }: {
@@ -55,6 +58,9 @@ export function StepBrief({
   onImportPreviousWebsite?: (file: File) => void | Promise<void>;
   importing?: boolean;
   importError?: string;
+  importedSummary?: { projectName: string; pageCount: number } | null;
+  onContinueToDesign?: () => void;
+  onDismissImportSummary?: () => void;
   onSelect: (index: number) => void;
   onAuthRequired?: () => void;
 }) {
@@ -211,7 +217,7 @@ export function StepBrief({
             </div>
 
             {/* Import previous website — fast path that skips the brief entirely */}
-            {onImportPreviousWebsite && (
+            {onImportPreviousWebsite && !importedSummary && (
               <div className="mb-4 rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/30 p-4 hover:border-indigo-400 hover:bg-indigo-50/50 transition-colors">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
@@ -220,7 +226,7 @@ export function StepBrief({
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">Already have a website? Import it</p>
                     <p className="text-xs text-gray-600 mt-0.5 leading-snug">
-                      Upload an exported theme .zip or WordPress .xml to skip the brief and jump straight to the design editor with your pages and styles loaded.
+                      Upload an exported theme .zip or WordPress .xml. You can keep tweaking the brief below or jump straight to the design editor.
                     </p>
                     <label className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
                       externalImporting
@@ -242,6 +248,44 @@ export function StepBrief({
                       />
                     </label>
                     {importError && <p className="text-xs text-red-600 mt-2">{importError}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Post-import success banner — lets the user continue to design now, or stay on brief to tweak */}
+            {importedSummary && (
+              <div className="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                    <FileArchive className="w-5 h-5 text-emerald-700" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-emerald-900">
+                      Imported "{importedSummary.projectName}"
+                      <span className="text-emerald-700 font-normal"> — {importedSummary.pageCount} page{importedSummary.pageCount === 1 ? '' : 's'} + styles loaded.</span>
+                    </p>
+                    <p className="text-xs text-emerald-700 mt-0.5 leading-snug">
+                      You can keep refining the brief below, or jump straight to the design editor.
+                    </p>
+                    <div className="flex items-center gap-2 mt-3">
+                      {onContinueToDesign && (
+                        <button
+                          onClick={onContinueToDesign}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors"
+                        >
+                          Continue to design →
+                        </button>
+                      )}
+                      {onDismissImportSummary && (
+                        <button
+                          onClick={onDismissImportSummary}
+                          className="text-[11px] text-emerald-700 hover:text-emerald-900"
+                        >
+                          Keep editing the brief
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

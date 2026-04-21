@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { StepBrief } from '@/components/studio/step-brief';
 import { StepDesign } from '@/components/studio/step-design';
 import { StepExport } from '@/components/studio/step-export';
-import { Paintbrush, RotateCcw, Check, Loader2, Upload } from 'lucide-react';
+import { Paintbrush, RotateCcw, Check, Loader2 } from 'lucide-react';
 import { importStudioZip, importStudioXml } from '@/lib/studio-import';
 import { extractStylesFromHtml } from '@/lib/extract-styles-from-html';
 
@@ -54,6 +54,9 @@ export function StudioTool() {
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
+  // Summary shown on the brief step right after a successful import, with a
+  // CTA to continue to the design step immediately if the user wants.
+  const [importedSummary, setImportedSummary] = useState<{ projectName: string; pageCount: number } | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   async function handleImportFile(file: File) {
@@ -75,13 +78,13 @@ export function StudioTool() {
           setPages(result.pages);
           setSelectedPageId(result.pages[0].id);
         }
-        setStep(2); // jump to design
+        setImportedSummary({ projectName: result.projectName, pageCount: result.pages.length });
       } else if (name.endsWith('.xml')) {
         const importedPages = await importStudioXml(file);
         if (importedPages.length === 0) throw new Error('No pages found in XML');
         setPages(importedPages);
         setSelectedPageId(importedPages[0].id);
-        setStep(2);
+        setImportedSummary({ projectName: projectName || 'Imported site', pageCount: importedPages.length });
       } else {
         throw new Error('Please upload a .zip or .xml file');
       }
@@ -157,6 +160,7 @@ export function StudioTool() {
     setProjectName('');
     setReferenceHtml('');
     setReferenceHtmlName('');
+    setImportedSummary(null);
     setSavedAt(null);
     idCounter = 0;
   }
@@ -218,21 +222,6 @@ export function StudioTool() {
             {savedLabel}
           </span>
         )}
-        <label className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer shrink-0" title="Import an exported theme .zip or WordPress .xml">
-          {importing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-          {importing ? 'Importing…' : 'Import'}
-          <input
-            type="file"
-            accept=".zip,.xml"
-            className="hidden"
-            disabled={importing}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = '';
-              if (file) handleImportFile(file);
-            }}
-          />
-        </label>
         {step > 1 && (
           <button
             onClick={reset}
@@ -266,6 +255,9 @@ export function StudioTool() {
             onImportPreviousWebsite={handleImportFile}
             importing={importing}
             importError={importError}
+            importedSummary={importedSummary}
+            onContinueToDesign={() => { setImportedSummary(null); setStep(2); }}
+            onDismissImportSummary={() => setImportedSummary(null)}
             onSelect={async (idx) => {
               setSelectedBrief(idx);
               if (businessInfo.businessName) setProjectName(businessInfo.businessName);
