@@ -13,6 +13,7 @@ import { ASSEMBLER_VARIATIONS, CUSTOM_PRESETS, type StudioStylePreset } from '@/
 import { extractStylesFromHtml } from '@/lib/extract-styles-from-html';
 import { stripHtmlForPage } from '@/lib/studio-html-strip';
 import { downloadPageAsXml } from '@/lib/studio-wxr';
+import { replaceSectionBlock, ensureAnchorOnFirstBlock } from '@/lib/studio-block-splice';
 
 const FONT_OPTIONS = [
   'Playfair Display', 'DM Serif Display', 'Fraunces', 'Libre Baskerville',
@@ -409,6 +410,67 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
     // User tweaked something — no longer a pure preset
     if (path[0] !== 'siteName') delete next.presetId;
     onStyleChange(next);
+  }
+
+  // Track which (pageId, sectionId) is currently regenerating so we can show
+  // inline feedback on the right row.
+  const [regenKey, setRegenKey] = useState<string | null>(null);
+
+  async function regenerateSection(pageId: string, sectionId: string, extraPrompt?: string) {
+    const page = pages.find(p => p.id === pageId);
+    if (!page) return;
+    const section = (page.sections || []).find((s: any) => s.id === sectionId);
+    if (!section) { setStatus({ type: 'error', msg: 'Section not found' }); return; }
+    setRegenKey(`${pageId}:${sectionId}`);
+    setStatus({ type: 'success', msg: `Regenerating "${section.title}"…` });
+    try {
+      const res = await fetchWithRetry('/api/studio/generate-section', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          style: styleConfig,
+          pageName: page.title,
+          pageContext: page.prompt,
+          allSections: page.sections,
+          section,
+          extraPrompt,
+        }),
+      }, { retries: 0 });
+      if (res.status === 401 && onAuthRequired) { onAuthRequired(); return; }
+      const data = await res.json();
+      if (!res.ok) { setStatus({ type: 'error', msg: data.error || 'Section regen failed' }); return; }
+
+      const anchor = `section-${section.id}`;
+      // Safety net: make sure the returned block carries the right anchor
+      // so our splice always finds it and so the id on the output div is
+      // stable for subsequent edits.
+      const replacement = ensureAnchorOnFirstBlock(String(data.html || ''), anchor);
+
+      if (!page.html) {
+        // No existing page yet — just store the single section's markup.
+        onPagesChange(pages.map(p => p.id === pageId ? { ...p, html: replacement } : p));
+        setStatus({ type: 'success', msg: `Generated "${section.title}" (first section on the page)` });
+        return;
+      }
+
+      const spliced = replaceSectionBlock(page.html, anchor, replacement);
+      if (spliced !== null) {
+        onPagesChange(pages.map(p => p.id === pageId ? { ...p, html: spliced } : p));
+        setStatus({ type: 'success', msg: `Updated "${section.title}"` });
+      } else {
+        // Fall back: append the new block to the end of page.html. Not ideal
+        // but better than losing the generation — user can re-plan to fix order.
+        onPagesChange(pages.map(p => p.id === pageId ? { ...p, html: (p.html || '') + '\n\n' + replacement } : p));
+        setStatus({
+          type: 'error',
+          msg: `Couldn't find the existing "${section.title}" section to replace — appended to the end. Full regen will fix ordering.`,
+        });
+      }
+    } catch (err: any) {
+      setStatus({ type: 'error', msg: err?.message || 'Section regen failed' });
+    } finally {
+      setRegenKey(null);
+    }
   }
 
   async function planSections(pageId: string): Promise<Array<{ id: string; title: string; description: string }> | null> {
@@ -829,14 +891,39 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
               </button>
             </div>
             <ol className="space-y-0.5 text-[11px]">
-              {selectedPage.sections.map((s: any, i: number) => (
+              {selectedPage.sections.map((s: any, i: number) => {
+                const isRegening = regenKey === `${selectedPage.id}:${s.id}`;
+                return (
                 <li key={s.id} className="group flex items-start gap-2">
                   <span className="text-gray-400 font-mono shrink-0">{String(i + 1).padStart(2, '0')}</span>
                   <div className="flex-1 min-w-0">
                     <span className="font-medium text-gray-700">{s.title}</span>
                     {s.description && <span className="text-gray-500"> — {s.description}</span>}
+                    {isRegening && <Loader2 className="inline-block w-2.5 h-2.5 ml-1 animate-spin text-indigo-500" />}
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => regenerateSection(selectedPage.id, s.id)}
+                      disabled={!!regenKey}
+                      className="p-0.5 text-gray-400 hover:text-indigo-600 disabled:opacity-30"
+                      title="Regenerate just this section"
+                    ><Sparkles className="w-2.5 h-2.5" /></button>
+                    <button
+                      onClick={async () => {
+                        const instr = window.prompt(`Regenerate "${s.title}" with what changes?\n(Examples: "make it darker with a full-width CTA", "add a video under the heading")`, '')?.trim();
+                        if (!instr) return;
+                        // Also update the section's description so the plan
+                        // reflects the user's intent.
+                        const next = selectedPage.sections.map((x: any) =>
+                          x.id === s.id ? { ...x, description: instr } : x
+                        );
+                        onPagesChange(pages.map(p => p.id === selectedPage.id ? { ...p, sections: next } : p));
+                        regenerateSection(selectedPage.id, s.id, instr);
+                      }}
+                      disabled={!!regenKey}
+                      className="p-0.5 text-gray-400 hover:text-indigo-600 disabled:opacity-30"
+                      title="Edit instructions + regenerate"
+                    ><Send className="w-2.5 h-2.5" /></button>
                     <button
                       onClick={() => {
                         if (i === 0) return;
@@ -871,7 +958,8 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
                     ><X className="w-2.5 h-2.5" /></button>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ol>
             <p className="text-[10px] text-gray-400 mt-1.5 leading-snug">
               Edit the plan, then hit <strong>Send</strong> in the prompt bar to regenerate the page with the updated sections.
