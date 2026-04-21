@@ -309,9 +309,11 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
 
   function applyPreset(preset: StudioStylePreset) {
     // Merge preset on top of the current config so the user's site name is preserved.
-    // Keep Parent mode when picking an Assembler variation; otherwise use Custom.
-    const isAssemblerVariation = preset.id.startsWith('assembler-');
-    const nextMode = styleConfig.mode === 'parent' && isAssemblerVariation ? 'parent' : 'custom';
+    // Applying an Envosta parent-theme variation keeps us in parent mode;
+    // applying one of our custom curated presets implies the user wants
+    // Full Custom (so flip them to it).
+    const isParentVariation = preset.id.startsWith('assembler-');
+    const nextMode = isParentVariation ? (styleConfig.mode || 'parent') : 'custom';
     onStyleChange({
       ...styleConfig,
       ...preset.config,
@@ -787,42 +789,27 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
           </div>
 
           <div className="p-4 space-y-5 overflow-auto flex-1">
-            {/* Style mode toggle — Parent or Custom */}
-            <div>
-              <label className="block text-[10px] font-medium text-gray-500 mb-1.5">Style Mode</label>
-              <div className="flex gap-0.5 bg-gray-100 rounded-md p-0.5">
-                {([
-                  { id: 'parent', label: 'Parent', hint: 'Use Assembler defaults' },
-                  { id: 'custom', label: 'Custom', hint: 'Full custom control' },
-                ] as const).map(m => {
-                  // Treat legacy 'preset' mode as 'custom'
-                  const current = styleConfig.mode === 'preset' ? 'custom' : (styleConfig.mode || 'custom');
-                  const active = current === m.id;
-                  return (
-                    <button
-                      key={m.id}
-                      onClick={() => onStyleChange({ ...styleConfig, mode: m.id })}
-                      title={m.hint}
-                      className={`flex-1 px-2 py-1 rounded text-[10px] font-medium transition-all ${active ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                      {m.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {(styleConfig.mode || 'custom') === 'parent' && (
-                <p className="text-[10px] text-gray-400 mt-2 leading-snug">
-                  Pages render with the chosen Assembler variation. Export writes a theme.json that matches so WordPress uses the same palette.
+            {/* Mode banner — reflects the header toggle */}
+            {(styleConfig.mode || 'parent') === 'parent' ? (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-[11px] font-medium text-gray-700">Parent theme mode</p>
+                <p className="text-[10px] text-gray-500 mt-1 leading-snug">
+                  All styles inherit from the Envosta parent theme's presets. Pick one of its style variations below. Flip the <strong>Full custom</strong> toggle in the top bar to override any of it in this child theme.
                 </p>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50/50 p-3">
+                <p className="text-[11px] font-medium text-indigo-700">Full custom mode — global styles</p>
+                <p className="text-[10px] text-indigo-700/80 mt-1 leading-snug">
+                  Any change here writes to the child theme and affects <strong>every page</strong>. Per-page prompts that promote styles to global will ask for confirmation first.
+                </p>
+              </div>
+            )}
 
-            <div className="h-px bg-gray-100" />
-
-            {/* Assembler variations — visible only in Parent mode */}
-            {(styleConfig.mode || 'custom') === 'parent' && (
+            {/* Envosta parent theme variations */}
+            {(styleConfig.mode || 'parent') === 'parent' && (
               <div>
-                <label className="block text-[10px] font-medium text-gray-500 mb-2">Assembler variation</label>
+                <label className="block text-[10px] font-medium text-gray-500 mb-2">Envosta variation</label>
                 <div className="grid grid-cols-2 gap-1.5">
                   {ASSEMBLER_VARIATIONS.map(p => {
                     const active = styleConfig.presetId === p.id;
@@ -851,7 +838,7 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
             )}
 
             {/* HTML → styles uploader (custom mode only) */}
-            {(styleConfig.mode || 'custom') !== 'parent' && (
+            {((styleConfig.mode === 'preset' ? 'custom' : (styleConfig.mode || 'parent')) === 'custom') && (
             <div>
               <label className="block text-[10px] font-medium text-gray-500 mb-1.5">Derive styles from HTML</label>
               <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed border-gray-300 hover:border-indigo-400 cursor-pointer bg-gray-50/50 hover:bg-indigo-50/30 transition-colors">
@@ -893,10 +880,10 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
             </div>
             )}
 
-            {(styleConfig.mode || 'custom') !== 'parent' && <div className="h-px bg-gray-100" />}
+            {((styleConfig.mode === 'preset' ? 'custom' : (styleConfig.mode || 'parent')) === 'custom') && <div className="h-px bg-gray-100" />}
 
             {/* Preset picker — visible in custom mode only */}
-            {(styleConfig.mode || 'custom') !== 'parent' && (
+            {((styleConfig.mode === 'preset' ? 'custom' : (styleConfig.mode || 'parent')) === 'custom') && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-[10px] font-medium text-gray-500">Starting Preset</label>
@@ -943,7 +930,7 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
             </div>
             )}
 
-            {(styleConfig.mode || 'custom') !== 'parent' && (
+            {((styleConfig.mode === 'preset' ? 'custom' : (styleConfig.mode || 'parent')) === 'custom') && (
             <>
             <div className="h-px bg-gray-100" />
 

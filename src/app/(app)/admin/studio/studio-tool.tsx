@@ -38,7 +38,10 @@ export function StudioTool() {
   const [briefOptions, setBriefOptions] = useState<any[]>([]);
   const [selectedBrief, setSelectedBrief] = useState<number | null>(null);
   const [businessInfo, setBusinessInfo] = useState<any>({ pages: DEFAULT_PAGES });
-  const [styleConfig, setStyleConfig] = useState<any>({});
+  // Mode default: 'parent' — use the Envosta parent theme's presets. Full
+  // Custom mode (header toggle) flips this to 'custom' and unlocks per-field
+  // overrides. Persisted via the snapshot.
+  const [styleConfig, setStyleConfig] = useState<any>({ mode: 'parent' });
   const [pages, setPages] = useState<any[]>([]);
   const [selectedPageId, setSelectedPageId] = useState('');
   const [projectName, setProjectName] = useState('');
@@ -148,7 +151,7 @@ export function StudioTool() {
     setBriefOptions([]);
     setSelectedBrief(null);
     setBusinessInfo({ pages: DEFAULT_PAGES });
-    setStyleConfig({});
+    setStyleConfig({ mode: 'parent' });
     setPages([]);
     setSelectedPageId('');
     setProjectName('');
@@ -184,6 +187,29 @@ export function StudioTool() {
         <div id="studio-header-slot" className="flex-1 flex items-center min-w-0" />
 
         <div className="w-px h-5 bg-gray-200 shrink-0" />
+
+        {/* Full custom toggle — the single global switch that decides whether
+            the child theme overrides anything (on) or inherits everything
+            from the Envosta parent theme's presets (off, default). */}
+        {(() => {
+          const fullCustom = (styleConfig.mode === 'preset' ? 'custom' : (styleConfig.mode || 'parent')) === 'custom';
+          return (
+            <button
+              onClick={() => setStyleConfig((prev: any) => ({ ...prev, mode: fullCustom ? 'parent' : 'custom' }))}
+              role="switch"
+              aria-checked={fullCustom}
+              className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors shrink-0 ${fullCustom ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}
+              title={fullCustom
+                ? 'Full custom mode — child theme overrides colors, fonts, and styles'
+                : 'Parent mode — inherits everything from the Envosta parent theme'}
+            >
+              <span className={`relative inline-flex h-3.5 w-6 rounded-full transition-colors ${fullCustom ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                <span className={`inline-block h-2.5 w-2.5 translate-y-[2px] rounded-full bg-white shadow transition-transform ${fullCustom ? 'translate-x-[14px]' : 'translate-x-[2px]'}`} />
+              </span>
+              Full custom
+            </button>
+          );
+        })()}
 
         {/* Utilities (right side) */}
         {savedLabel && (

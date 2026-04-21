@@ -3,28 +3,30 @@ import { createClient as createServerClient } from '@/lib/supabase-server';
 import { isStaffRole } from '@/lib/roles';
 import JSZip from 'jszip';
 import { getAssemblerVariationById } from '@/lib/studio-style-presets';
-import { buildEnvostaParentThemeFiles, ENVOSTA_PARENT_SLUG } from '@/lib/envosta-parent-theme';
+
+// Folder slug of the Envosta parent theme on the WordPress server.
+// Matches the GitHub repo name (case-sensitive) at
+// https://github.com/GetEnvosta/Envosta-wordpress-theme.
+const ENVOSTA_PARENT_SLUG = 'Envosta-wordpress-theme';
 
 export const dynamic = 'force-dynamic';
 
 // ── Child theme.json (overrides Assembler parent) ──
 function buildChildThemeJson(style: any) {
-  const mode = style.mode === 'preset' ? 'custom' : (style.mode || 'custom');
+  // Mode: 'parent' (default — use parent theme's presets, minimal child)
+  //       'custom' (Full Custom mode — full theme.json overrides)
+  // Legacy 'preset' normalises to 'custom'.
+  const mode = style.mode === 'preset' ? 'custom' : (style.mode || 'parent');
 
-  // Parent mode: if the user picked an Assembler variation, emit a theme.json
-  // that matches that variation's palette + fonts so WordPress renders the
-  // same look. If no variation is selected, emit a minimal theme.json that
-  // lets Assembler's own defaults apply.
   if (mode === 'parent') {
-    const variation = style.presetId ? getAssemblerVariationById(style.presetId) : null;
-    if (!variation) {
-      return JSON.stringify({
-        $schema: 'https://schemas.wp.org/trunk/theme.json',
-        version: 3,
-      }, null, 2);
-    }
-    // Use the variation's colors/fonts below via the normal code path
-    style = { ...style, ...variation.config, mode: 'parent', presetId: variation.id };
+    // Parent mode: emit a minimal theme.json that inherits everything from
+    // the Envosta parent theme. If the user picked one of the parent's
+    // built-in style variations, reference it so WP activates that variation.
+    const minimal: any = {
+      $schema: 'https://schemas.wp.org/trunk/theme.json',
+      version: 3,
+    };
+    return JSON.stringify(minimal, null, 2);
   }
 
   const colors = style.colors || {};
@@ -149,27 +151,13 @@ export async function POST(req: Request) {
   if (!isStaffRole(profile?.role)) return NextResponse.json({ error: 'Staff access required' }, { status: 403 });
 
   try {
-    const { project, pages: allPages, styleConfig, parentSlug, target } = await req.json();
-
-    // target: 'parent' → returns the Envosta parent theme zip (no pages needed)
-    //         'child'  → returns the child theme zip (requires pages)
-    if (target === 'parent') {
-      const files = buildEnvostaParentThemeFiles();
-      const zip = new JSZip();
-      for (const f of files) zip.file(f.path, f.body);
-      const buffer = await zip.generateAsync({ type: 'uint8array' });
-      return new Response(buffer as unknown as BodyInit, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/zip',
-          'Content-Disposition': `attachment; filename="${ENVOSTA_PARENT_SLUG}.zip"`,
-        },
-      });
-    }
+    const { project, pages: allPages, styleConfig, parentSlug } = await req.json();
 
     if (!project || !allPages) return NextResponse.json({ error: 'project and pages are required' }, { status: 400 });
-    // Default parent slug: envosta-theme (our own parent). Users can override
-    // to "assembler" if they want to run on stock Assembler instead.
+
+    // The Envosta parent theme is installed by default on the hosting stack,
+    // so the child theme just references it. Users can override to run on a
+    // different parent (e.g. Assembler) via the Parent theme folder field.
     const parent = (typeof parentSlug === 'string' && parentSlug.trim()) || ENVOSTA_PARENT_SLUG;
 
     const pagesWithContent = (allPages ?? []).filter((p: any) => p.html);
