@@ -119,17 +119,28 @@ Text Domain: envosta-${slug}
 }
 
 // ── Child functions.php ──
-function buildChildFunctionsPhp(fonts: any, slug: string) {
-  const heading = (fonts?.heading || 'Playfair Display').replace(/\s+/g, '+');
-  const body = (fonts?.body || 'Source Sans 3').replace(/\s+/g, '+');
+//
+// Emits Google Fonts enqueue hooks and a one-shot auto-setup that runs
+// after the child theme is activated to configure site title, tagline,
+// static homepage, and posts page based on pages imported via WXR.
+function buildChildFunctionsPhp(
+  fonts: any,
+  slug: string,
+  options: { siteName?: string; tagline?: string; homePageName?: string; blogPageName?: string; fullCustom?: boolean },
+) {
+  const heading = (fonts?.heading || 'Inter').replace(/\s+/g, '+');
+  const body = (fonts?.body || 'Inter').replace(/\s+/g, '+');
   const fontsUrl = `https://fonts.googleapis.com/css2?family=${heading}:wght@400;500;600;700&family=${body}:wght@300;400;500;600;700&display=swap`;
 
-  return `<?php
-/**
- * Envosta Child Theme (Assembler) - ${slug}
- */
+  // Escape values for PHP single-quoted strings
+  const esc = (v: string | undefined | null) => String(v ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const phpSiteName = esc(options.siteName);
+  const phpTagline = esc(options.tagline);
+  const phpHome = esc(options.homePageName || 'Home');
+  const phpBlog = esc(options.blogPageName || 'Blog');
 
-// Enqueue Google Fonts
+  const fontsBlock = options.fullCustom
+    ? `// Enqueue Google Fonts (Full Custom mode — child overrides parent's default fonts)
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('envosta-child-fonts', '${fontsUrl}', array(), null);
 });
@@ -137,6 +148,71 @@ add_action('wp_enqueue_scripts', function() {
 add_action('enqueue_block_editor_assets', function() {
     wp_enqueue_style('envosta-child-fonts-editor', '${fontsUrl}', array(), null);
 });
+`
+    : `// Fonts inherited from the Envosta parent theme.
+`;
+
+  return `<?php
+/**
+ * Envosta Child Theme — ${slug}
+ *
+ * Handles one-shot WordPress site setup after the child theme is activated:
+ *   • Site title + tagline
+ *   • Static homepage (Settings → Reading)
+ *   • Posts page (if a Blog page exists)
+ *   • Assigns the imported Main Menu to the primary location
+ *
+ * Re-running the setup is idempotent — controlled by a theme-mod flag so
+ * manual site-option changes made after setup are never clobbered.
+ */
+
+if (!defined('ABSPATH')) exit;
+
+${fontsBlock}
+// ── One-shot site setup (runs on first activation) ───────────────────
+add_action('after_switch_theme', 'envosta_${slug.replace(/[^a-z0-9]/gi, '_')}_setup');
+function envosta_${slug.replace(/[^a-z0-9]/gi, '_')}_setup() {
+    if (get_theme_mod('envosta_studio_configured')) return;
+
+    // Site identity
+    $site_name = '${phpSiteName}';
+    $tagline = '${phpTagline}';
+    if ($site_name !== '') update_option('blogname', $site_name);
+    if ($tagline !== '') update_option('blogdescription', $tagline);
+
+    // Static homepage (Settings → Reading → A static page)
+    $home = get_page_by_title('${phpHome}');
+    if ($home instanceof WP_Post) {
+        update_option('show_on_front', 'page');
+        update_option('page_on_front', $home->ID);
+    }
+    // Blog / posts page (if the import includes one)
+    $blog = get_page_by_title('${phpBlog}');
+    if ($blog instanceof WP_Post && (!$home || $blog->ID !== $home->ID)) {
+        update_option('page_for_posts', $blog->ID);
+    }
+
+    // Assign "Main Menu" (imported via WXR) to the primary nav location.
+    $menu = wp_get_nav_menu_object('Main Menu');
+    if ($menu) {
+        $locations = get_theme_mod('nav_menu_locations');
+        if (!is_array($locations)) $locations = array();
+        // Cover the common location slugs shipped by Envosta + Assembler.
+        foreach (array('primary', 'header-navigation', 'main', 'header') as $loc) {
+            $locations[$loc] = $menu->term_id;
+        }
+        set_theme_mod('nav_menu_locations', $locations);
+    }
+
+    // Permalinks — /post-name/ is the most common human-friendly default.
+    // Only touch it if it's still the install-time "plain" setting so we
+    // don't override an SEO agency's choice.
+    if (get_option('permalink_structure') === '') {
+        update_option('permalink_structure', '/%postname%/');
+    }
+
+    set_theme_mod('envosta_studio_configured', time());
+}
 `;
 }
 
@@ -151,7 +227,7 @@ export async function POST(req: Request) {
   if (!isStaffRole(profile?.role)) return NextResponse.json({ error: 'Staff access required' }, { status: 403 });
 
   try {
-    const { project, pages: allPages, styleConfig, parentSlug } = await req.json();
+    const { project, pages: allPages, styleConfig, parentSlug, siteName: reqSiteName, tagline } = await req.json();
 
     if (!project || !allPages) return NextResponse.json({ error: 'project and pages are required' }, { status: 400 });
 
@@ -168,8 +244,15 @@ export async function POST(req: Request) {
 
     const style = styleConfig || project.style_config || {};
     const slug = project.slug || 'site';
-    const siteName = style.siteName || project.name;
+    const siteName = reqSiteName || style.siteName || project.name;
     const childDir = `envosta-child-${slug}`;
+    const fullCustom = (style.mode === 'preset' ? 'custom' : (style.mode || 'parent')) === 'custom';
+
+    // Detect which page titles exist so the setup can point show_on_front /
+    // page_for_posts at the right posts on first activation.
+    const titles = new Set((allPages || []).map((p: any) => String(p?.title || '').trim()).filter(Boolean));
+    const homePageName = titles.has('Home') ? 'Home' : (allPages[0]?.title || 'Home');
+    const blogPageName = titles.has('Blog') ? 'Blog' : '';
 
     const zip = new JSZip();
 
@@ -179,7 +262,16 @@ export async function POST(req: Request) {
     // is active.
     zip.file(`${childDir}/theme.json`, buildChildThemeJson(style));
     zip.file(`${childDir}/style.css`, buildChildStyleCss(siteName, slug, parent));
-    zip.file(`${childDir}/functions.php`, buildChildFunctionsPhp(style.fonts, slug));
+    zip.file(
+      `${childDir}/functions.php`,
+      buildChildFunctionsPhp(style.fonts, slug, {
+        siteName,
+        tagline: typeof tagline === 'string' ? tagline : '',
+        homePageName,
+        blogPageName,
+        fullCustom,
+      }),
+    );
 
     const buffer = await zip.generateAsync({ type: 'uint8array' });
 

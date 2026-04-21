@@ -486,6 +486,7 @@ Feel: utilitarian but polished.`;
             project={{ name: projectName || 'Theme', slug: (projectName || 'theme').toLowerCase().replace(/[^a-z0-9]+/g, '-') }}
             styleConfig={styleConfig}
             pages={pages}
+            businessInfo={businessInfo}
             onBack={() => setStep(2)}
           />
         )}
