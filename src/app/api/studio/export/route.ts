@@ -120,27 +120,45 @@ Text Domain: envosta-${slug}
 
 // ── Child functions.php ──
 //
-// Emits Google Fonts enqueue hooks and a one-shot auto-setup that runs
-// after the child theme is activated to configure site title, tagline,
-// static homepage, and posts page based on pages imported via WXR.
+// In Full Custom mode, the child's only job is to enqueue Google Fonts for
+// the user's chosen heading + body families (so theme.json overrides
+// resolve visually). Site-option setup (title / tagline / homepage /
+// menus / style variation) is handled by the Envosta parent theme's
+// `import_end` hook, driven by post-meta embedded in the WXR on the
+// Home page.
 function buildChildFunctionsPhp(
   fonts: any,
   slug: string,
-  options: { siteName?: string; tagline?: string; homePageName?: string; blogPageName?: string; fullCustom?: boolean },
+  options: { fullCustom?: boolean },
 ) {
   const heading = (fonts?.heading || 'Inter').replace(/\s+/g, '+');
   const body = (fonts?.body || 'Inter').replace(/\s+/g, '+');
   const fontsUrl = `https://fonts.googleapis.com/css2?family=${heading}:wght@400;500;600;700&family=${body}:wght@300;400;500;600;700&display=swap`;
 
-  // Escape values for PHP single-quoted strings
-  const esc = (v: string | undefined | null) => String(v ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-  const phpSiteName = esc(options.siteName);
-  const phpTagline = esc(options.tagline);
-  const phpHome = esc(options.homePageName || 'Home');
-  const phpBlog = esc(options.blogPageName || 'Blog');
+  if (!options.fullCustom) {
+    return `<?php
+/**
+ * Envosta Child Theme — ${slug}
+ *
+ * Minimal child theme — inherits all styles and logic from the Envosta
+ * parent. Site setup (title / tagline / homepage / menus) is applied
+ * by the parent theme's import_end hook when the WXR is imported.
+ */
+if (!defined('ABSPATH')) exit;
+`;
+  }
 
-  const fontsBlock = options.fullCustom
-    ? `// Enqueue Google Fonts (Full Custom mode — child overrides parent's default fonts)
+  return `<?php
+/**
+ * Envosta Child Theme — ${slug}  (Full Custom mode)
+ *
+ * Overrides the parent's palette, fonts, and layout via theme.json and
+ * enqueues the user's chosen Google Fonts. Site-option setup is still
+ * handled by the parent theme's import_end hook — see the parent's
+ * functions.php for the setup logic.
+ */
+if (!defined('ABSPATH')) exit;
+
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('envosta-child-fonts', '${fontsUrl}', array(), null);
 });
@@ -148,71 +166,6 @@ add_action('wp_enqueue_scripts', function() {
 add_action('enqueue_block_editor_assets', function() {
     wp_enqueue_style('envosta-child-fonts-editor', '${fontsUrl}', array(), null);
 });
-`
-    : `// Fonts inherited from the Envosta parent theme.
-`;
-
-  return `<?php
-/**
- * Envosta Child Theme — ${slug}
- *
- * Handles one-shot WordPress site setup after the child theme is activated:
- *   • Site title + tagline
- *   • Static homepage (Settings → Reading)
- *   • Posts page (if a Blog page exists)
- *   • Assigns the imported Main Menu to the primary location
- *
- * Re-running the setup is idempotent — controlled by a theme-mod flag so
- * manual site-option changes made after setup are never clobbered.
- */
-
-if (!defined('ABSPATH')) exit;
-
-${fontsBlock}
-// ── One-shot site setup (runs on first activation) ───────────────────
-add_action('after_switch_theme', 'envosta_${slug.replace(/[^a-z0-9]/gi, '_')}_setup');
-function envosta_${slug.replace(/[^a-z0-9]/gi, '_')}_setup() {
-    if (get_theme_mod('envosta_studio_configured')) return;
-
-    // Site identity
-    $site_name = '${phpSiteName}';
-    $tagline = '${phpTagline}';
-    if ($site_name !== '') update_option('blogname', $site_name);
-    if ($tagline !== '') update_option('blogdescription', $tagline);
-
-    // Static homepage (Settings → Reading → A static page)
-    $home = get_page_by_title('${phpHome}');
-    if ($home instanceof WP_Post) {
-        update_option('show_on_front', 'page');
-        update_option('page_on_front', $home->ID);
-    }
-    // Blog / posts page (if the import includes one)
-    $blog = get_page_by_title('${phpBlog}');
-    if ($blog instanceof WP_Post && (!$home || $blog->ID !== $home->ID)) {
-        update_option('page_for_posts', $blog->ID);
-    }
-
-    // Assign "Main Menu" (imported via WXR) to the primary nav location.
-    $menu = wp_get_nav_menu_object('Main Menu');
-    if ($menu) {
-        $locations = get_theme_mod('nav_menu_locations');
-        if (!is_array($locations)) $locations = array();
-        // Cover the common location slugs shipped by Envosta + Assembler.
-        foreach (array('primary', 'header-navigation', 'main', 'header') as $loc) {
-            $locations[$loc] = $menu->term_id;
-        }
-        set_theme_mod('nav_menu_locations', $locations);
-    }
-
-    // Permalinks — /post-name/ is the most common human-friendly default.
-    // Only touch it if it's still the install-time "plain" setting so we
-    // don't override an SEO agency's choice.
-    if (get_option('permalink_structure') === '') {
-        update_option('permalink_structure', '/%postname%/');
-    }
-
-    set_theme_mod('envosta_studio_configured', time());
-}
 `;
 }
 
@@ -248,29 +201,19 @@ export async function POST(req: Request) {
     const childDir = `envosta-child-${slug}`;
     const fullCustom = (style.mode === 'preset' ? 'custom' : (style.mode || 'parent')) === 'custom';
 
-    // Detect which page titles exist so the setup can point show_on_front /
-    // page_for_posts at the right posts on first activation.
-    const titles = new Set((allPages || []).map((p: any) => String(p?.title || '').trim()).filter(Boolean));
-    const homePageName = titles.has('Home') ? 'Home' : (allPages[0]?.title || 'Home');
-    const blogPageName = titles.has('Blog') ? 'Blog' : '';
+    // Reference tagline / siteName are captured in the WXR (on Home page
+     // meta), not in the child theme — so we don't thread them here.
+    void tagline; void siteName;
 
     const zip = new JSZip();
 
-    // Child theme files — the ZIP is now JUST the theme, ready to upload
-    // straight to /wp-content/themes/. The WXR content file is returned
-    // separately so users can import it via Tools → Import after the theme
-    // is active.
+    // Child theme files — carries theme.json overrides + Google Fonts for
+    // Full Custom; minimal shell otherwise.
     zip.file(`${childDir}/theme.json`, buildChildThemeJson(style));
     zip.file(`${childDir}/style.css`, buildChildStyleCss(siteName, slug, parent));
     zip.file(
       `${childDir}/functions.php`,
-      buildChildFunctionsPhp(style.fonts, slug, {
-        siteName,
-        tagline: typeof tagline === 'string' ? tagline : '',
-        homePageName,
-        blogPageName,
-        fullCustom,
-      }),
+      buildChildFunctionsPhp(style.fonts, slug, { fullCustom }),
     );
 
     const buffer = await zip.generateAsync({ type: 'uint8array' });

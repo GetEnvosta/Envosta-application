@@ -9,6 +9,24 @@ export type WxrPage = {
   html?: string | null;
 };
 
+/**
+ * Site-level settings carried inside the WXR as post_meta on the Home page.
+ * The Envosta parent theme picks these up on `import_end` and applies them
+ * to site options (blogname / blogdescription / show_on_front /
+ * page_on_front / page_for_posts / nav_menu_locations).
+ *
+ * Each key is prefixed with `_envosta_` so nothing else on the site collides
+ * with it, and they're all deleted by the parent after being consumed.
+ */
+export type WxrSiteSettings = {
+  siteName?: string;
+  tagline?: string;
+  homePageTitle?: string;  // defaults to "Home"
+  blogPageTitle?: string;  // if a blog page exists
+  styleVariation?: string; // e.g. "03-ember" — parent theme activates via set_theme_mod
+  menuName?: string;       // defaults to "Main Menu"
+};
+
 /** Pages whose titles are template parts — excluded from pages and the menu. */
 const TEMPLATE_PART_TITLES = new Set(['Header', 'Footer']);
 
@@ -63,17 +81,41 @@ function menuItemPostmeta(meta: Record<string, string>): string {
 export function buildWxrXml(
   siteName: string,
   pages: WxrPage[],
-  opts: { menuName?: string; includeMenu?: boolean } = {},
+  opts: { menuName?: string; includeMenu?: boolean; siteSettings?: WxrSiteSettings } = {},
 ): string {
   const now = new Date().toISOString();
   const includeMenu = opts.includeMenu ?? true;
-  const menuName = opts.menuName || 'Main Menu';
+  const menuName = opts.menuName || opts.siteSettings?.menuName || 'Main Menu';
   const menuSlug = slugify(menuName);
+  const siteSettings = opts.siteSettings;
+  const homeTitle = siteSettings?.homePageTitle || 'Home';
 
   // Content pages (excluding template parts) become WP page posts.
   const contentPages = pages.filter(p => p.html && !TEMPLATE_PART_TITLES.has(p.title));
   const pageItems = contentPages.map((page, i) => {
     const postId = i + 10;
+    // Site-settings post-meta rides on the Home page item. The parent
+    // theme's import_end hook reads + applies them + cleans them up.
+    const isHome = siteSettings && page.title === homeTitle;
+    const settingMeta: Array<[string, string]> = [];
+    if (isHome) {
+      if (siteSettings!.siteName)        settingMeta.push(['_envosta_site_title',     siteSettings!.siteName!]);
+      if (siteSettings!.tagline)         settingMeta.push(['_envosta_site_tagline',   siteSettings!.tagline!]);
+      if (siteSettings!.homePageTitle)   settingMeta.push(['_envosta_home_title',     siteSettings!.homePageTitle!]);
+      if (siteSettings!.blogPageTitle)   settingMeta.push(['_envosta_blog_title',     siteSettings!.blogPageTitle!]);
+      if (siteSettings!.styleVariation)  settingMeta.push(['_envosta_style_variation', siteSettings!.styleVariation!]);
+      if (siteSettings!.menuName)        settingMeta.push(['_envosta_menu_name',      siteSettings!.menuName!]);
+      // Sentinel — parent theme looks for this to know it should run setup.
+      settingMeta.push(['_envosta_pending_setup', '1']);
+    }
+    const metaBlock = settingMeta.length
+      ? settingMeta.map(([k, v]) => `
+      <wp:postmeta>
+        <wp:meta_key>${escapeXml(k)}</wp:meta_key>
+        <wp:meta_value><![CDATA[${encodeCdata(v)}]]></wp:meta_value>
+      </wp:postmeta>`).join('')
+      : '';
+
     return `
     <item>
       <title>${escapeXml(page.title)}</title>
@@ -96,7 +138,7 @@ export function buildWxrXml(
       <wp:post_parent>0</wp:post_parent>
       <wp:menu_order>${i}</wp:menu_order>
       <wp:post_type>page</wp:post_type>
-      <wp:is_sticky>0</wp:is_sticky>
+      <wp:is_sticky>0</wp:is_sticky>${metaBlock}
     </item>`;
   });
 
