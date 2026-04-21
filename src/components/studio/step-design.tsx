@@ -105,8 +105,63 @@ function buildStyleOverride(style: any): string {
   --envosta-radius: ${radius};
   --envosta-max-width: ${maxW};
 }
-html, body { background: var(--wp--preset--color--theme-1); color: var(--wp--preset--color--theme-4); font-family: var(--wp--preset--font-family--body); }
-h1, h2, h3, h4, h5, h6 { font-family: var(--wp--preset--font-family--heading); color: var(--wp--preset--color--theme-4); }
+html, body { margin: 0; background: var(--wp--preset--color--theme-1); color: var(--wp--preset--color--theme-4); font-family: var(--wp--preset--font-family--body); line-height: 1.6; }
+*, *::before, *::after { box-sizing: border-box; }
+img { max-width: 100%; height: auto; display: block; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--wp--preset--font-family--heading); color: var(--wp--preset--color--theme-4); font-weight: 500; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 0.5em; }
+h1 { font-size: clamp(44px, 7vw, 80px); }
+h2 { font-size: clamp(32px, 5vw, 60px); }
+h3 { font-size: clamp(22px, 3vw, 38px); }
+p { margin: 0 0 1em; }
+
+/* Auto-generated WP block classes (has-{slug}-background-color, etc.) */
+.has-theme-1-background-color { background-color: var(--wp--preset--color--theme-1) !important; }
+.has-theme-2-background-color { background-color: var(--wp--preset--color--theme-2) !important; }
+.has-theme-3-background-color { background-color: var(--wp--preset--color--theme-3) !important; }
+.has-theme-4-background-color { background-color: var(--wp--preset--color--theme-4) !important; }
+.has-theme-5-background-color { background-color: var(--wp--preset--color--theme-5) !important; }
+.has-theme-1-color { color: var(--wp--preset--color--theme-1) !important; }
+.has-theme-2-color { color: var(--wp--preset--color--theme-2) !important; }
+.has-theme-3-color { color: var(--wp--preset--color--theme-3) !important; }
+.has-theme-4-color { color: var(--wp--preset--color--theme-4) !important; }
+.has-theme-5-color { color: var(--wp--preset--color--theme-5) !important; }
+.has-heading-font-family { font-family: var(--wp--preset--font-family--heading) !important; }
+.has-body-font-family { font-family: var(--wp--preset--font-family--body) !important; }
+.has-small-font-size { font-size: 16px; }
+.has-medium-font-size { font-size: clamp(20px, 2vw, 24px); }
+.has-large-font-size { font-size: 38px; }
+.has-x-large-font-size { font-size: 60px; }
+.has-xx-large-font-size { font-size: clamp(40px, 6vw, 80px); }
+.has-xxx-large-font-size { font-size: clamp(40px, 8vw, 160px); line-height: 0.95; }
+
+/* Core block layout helpers */
+.wp-block-group.is-layout-constrained { max-width: 1440px; margin-left: auto; margin-right: auto; padding-left: 24px; padding-right: 24px; }
+.wp-block-group > .wp-block-group { max-width: none; }
+.wp-block-columns { display: grid; gap: 32px; grid-template-columns: 1fr; }
+@media (min-width: 780px) {
+  .wp-block-columns { grid-template-columns: repeat(var(--envosta-cols, 2), 1fr); }
+  .wp-block-columns.has-2-columns { --envosta-cols: 2; }
+  .wp-block-columns.has-3-columns { --envosta-cols: 3; }
+  .wp-block-columns.has-4-columns { --envosta-cols: 4; }
+}
+.wp-block-column { min-width: 0; }
+.wp-block-buttons { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0; }
+.wp-block-button__link {
+  display: inline-flex; align-items: center; padding: 16px 28px;
+  font-family: var(--wp--preset--font-family--heading);
+  font-weight: 500; font-size: 15px; letter-spacing: 0.02em;
+  border: 1px solid currentColor; text-decoration: none; cursor: pointer;
+  background: var(--wp--preset--color--theme-4); color: var(--wp--preset--color--theme-1);
+  transition: background 150ms ease, transform 150ms ease;
+}
+.wp-block-button__link:hover { background: var(--wp--preset--color--theme-5); transform: translateY(-1px); }
+.wp-block-separator { border: 0; border-top: 1px solid var(--wp--preset--color--theme-3); margin: 48px auto; max-width: 120px; }
+.wp-block-spacer { display: block; }
+.wp-block-cover { position: relative; min-height: 480px; display: flex; align-items: center; justify-content: center; padding: 64px 24px; background-size: cover; background-position: center; color: var(--wp--preset--color--theme-1); }
+.wp-block-cover__inner-container { position: relative; z-index: 1; max-width: 780px; text-align: center; }
+.wp-block-image img { max-width: 100%; height: auto; display: block; }
+.wp-block-quote { border-left: 3px solid var(--wp--preset--color--theme-4); padding: 8px 0 8px 24px; margin: 32px 0; font-size: 20px; }
+.wp-block-list { padding-left: 1.2em; }
 </style>
 <script>
 // Preview click-proofing: prevent any in-iframe navigation so clicking a

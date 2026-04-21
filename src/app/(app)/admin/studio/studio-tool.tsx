@@ -266,9 +266,32 @@ export function StudioTool() {
             onImportPreviousWebsite={handleImportFile}
             importing={importing}
             importError={importError}
-            onSelect={(idx) => {
+            onSelect={async (idx) => {
               setSelectedBrief(idx);
               if (businessInfo.businessName) setProjectName(businessInfo.businessName);
+
+              // Auto-suggest a parent-theme style variation from the brief
+              // so the user lands on Design with the palette + fonts already
+              // chosen. Fire-and-forget; errors are non-fatal.
+              try {
+                const res = await fetch('/api/studio/suggest-style', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ brief: briefOptions[idx]?.description || brief, businessInfo }),
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  if (data?.preset) {
+                    setStyleConfig((prev: any) => ({
+                      ...prev,
+                      ...data.preset.config,
+                      presetId: data.preset.id,
+                      mode: prev.mode === 'custom' ? 'custom' : 'parent',
+                    }));
+                  }
+                }
+              } catch {}
+
               const userPageNames: string[] = (businessInfo.pages && businessInfo.pages.length > 0)
                 ? businessInfo.pages
                 : DEFAULT_PAGES;
