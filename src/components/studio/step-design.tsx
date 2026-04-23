@@ -6,10 +6,10 @@ import {
   Sparkles, Loader2, Check, FileText, Palette, ArrowRight, Send,
   Monitor, Tablet, Smartphone, Eye, PanelLeftClose, PanelLeftOpen,
   PanelRightClose, PanelRightOpen, Plus, Trash2, LayoutTemplate,
-  Upload, X, Globe2, FileUp, Download, ShoppingBag, Newspaper, Wrench, RotateCcw,
+  Upload, X, Globe2, Download, ShoppingBag, Newspaper, Wrench, RotateCcw,
 } from 'lucide-react';
 import { fetchWithRetry } from '@/lib/fetch-retry';
-import { ASSEMBLER_VARIATIONS, CUSTOM_PRESETS, type StudioStylePreset } from '@/lib/studio-style-presets';
+import { ASSEMBLER_VARIATIONS, type StudioStylePreset } from '@/lib/studio-style-presets';
 import { extractStylesFromHtml } from '@/lib/extract-styles-from-html';
 import { stripHtmlForPage } from '@/lib/studio-html-strip';
 import { downloadPageAsXml } from '@/lib/studio-wxr';
@@ -343,7 +343,6 @@ export function StepDesign({
   const [addingPage, setAddingPage] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState('');
   const [suggesting, setSuggesting] = useState(false);
-  const [presetsExpanded, setPresetsExpanded] = useState(false);
   const [headerSlot, setHeaderSlot] = useState<Element | null>(null);
 
   // Grab the studio header's toolbar slot so we can portal our controls into it
@@ -759,13 +758,6 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
                   {page!.html && generating !== page!.id && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />}
                 </button>
                 <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all">
-                  <label className="p-0.5 rounded text-gray-300 hover:text-indigo-600 cursor-pointer" title="Import HTML for this part">
-                    <FileUp className="w-2.5 h-2.5" />
-                    <input type="file" accept=".html,.htm" className="hidden" onChange={async (e) => {
-                      const file = e.target.files?.[0]; e.target.value = '';
-                      if (file) await importPageHtml(page!.id, file);
-                    }} />
-                  </label>
                   <button onClick={() => resetPage(page!.id)} disabled={!page!.html}
                     className="p-0.5 rounded text-gray-300 hover:text-amber-600 disabled:opacity-30 disabled:hover:text-gray-300"
                     title="Reset this part to blank">
@@ -792,7 +784,6 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
             selectedPageId={selectedPageId}
             generating={generating}
             onSelectPage={onSelectPage}
-            importPageHtml={importPageHtml}
             exportPageXml={exportPageXml}
             deletePage={deletePage}
             resetPage={resetPage}
@@ -811,7 +802,6 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
             selectedPageId={selectedPageId}
             generating={generating}
             onSelectPage={onSelectPage}
-            importPageHtml={importPageHtml}
             exportPageXml={exportPageXml}
             deletePage={deletePage}
             resetPage={resetPage}
@@ -830,7 +820,6 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
             selectedPageId={selectedPageId}
             generating={generating}
             onSelectPage={onSelectPage}
-            importPageHtml={importPageHtml}
             exportPageXml={exportPageXml}
             deletePage={deletePage}
             resetPage={resetPage}
@@ -871,13 +860,6 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
                     {page.html && generating !== page.id && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />}
                   </button>
                   <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all mr-1">
-                    <label className="p-0.5 rounded text-gray-300 hover:text-indigo-600 cursor-pointer" title="Import HTML for this page">
-                      <FileUp className="w-2.5 h-2.5" />
-                      <input type="file" accept=".html,.htm" className="hidden" onChange={async (e) => {
-                        const file = e.target.files?.[0]; e.target.value = '';
-                        if (file) await importPageHtml(page.id, file);
-                      }} />
-                    </label>
                     <button onClick={() => resetPage(page.id)} disabled={!page.html}
                       className="p-0.5 rounded text-gray-300 hover:text-amber-600 disabled:opacity-30 disabled:hover:text-gray-300"
                       title="Reset this page to blank">
@@ -1174,22 +1156,36 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
           </div>
 
           <div className="p-4 space-y-5 overflow-auto flex-1">
-            {/* Mode banner — reflects the header toggle */}
-            {(styleConfig.mode || 'parent') === 'parent' ? (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <p className="text-[11px] font-medium text-gray-700">Parent theme mode</p>
-                <p className="text-[10px] text-gray-500 mt-1 leading-snug">
-                  All styles inherit from the Envosta parent theme's presets. Pick one of its style variations below. Flip the <strong>Full custom</strong> toggle in the top bar to override any of it in this child theme.
-                </p>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-indigo-200 bg-indigo-50/50 p-3">
-                <p className="text-[11px] font-medium text-indigo-700">Full custom mode — global styles</p>
-                <p className="text-[10px] text-indigo-700/80 mt-1 leading-snug">
-                  Any change here writes to the child theme and affects <strong>every page</strong>. Per-page prompts that promote styles to global will ask for confirmation first.
-                </p>
-              </div>
-            )}
+            {/* Custom styles toggle — lives here, separate from the header's
+                "Custom HTML blocks" toggle. Controls whether the child theme
+                ships overrides for the parent's palette / fonts / layout. */}
+            {(() => {
+              const custom = (styleConfig.mode === 'preset' ? 'custom' : (styleConfig.mode || 'parent')) === 'custom';
+              return (
+                <div>
+                  <button
+                    onClick={() => onStyleChange({ ...styleConfig, mode: custom ? 'parent' : 'custom' })}
+                    role="switch"
+                    aria-checked={custom}
+                    className={`w-full inline-flex items-center gap-2 px-3 py-2 rounded-md text-[11px] font-medium transition-colors ${custom ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                    title={custom
+                      ? 'Custom styles ON — child theme overrides parent palette, fonts, and layout'
+                      : 'Custom styles OFF — site inherits everything from the Envosta parent theme'}
+                  >
+                    <span className={`relative inline-flex h-3.5 w-6 rounded-full transition-colors ${custom ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                      <span className={`inline-block h-2.5 w-2.5 translate-y-[2px] rounded-full bg-white shadow transition-transform ${custom ? 'translate-x-[14px]' : 'translate-x-[2px]'}`} />
+                    </span>
+                    <span className="flex-1 text-left">Custom styles</span>
+                    <span className="text-[10px] text-gray-400">{custom ? 'overriding parent' : 'inheriting parent'}</span>
+                  </button>
+                  <p className="text-[10px] text-gray-400 mt-2 leading-snug">
+                    {custom
+                      ? 'Changes below write into the exported child theme and affect every page. Per-page prompts that promote styles to global ask for confirmation.'
+                      : 'Site inherits palette, fonts, and layout from the Envosta parent theme. Pick one of its style variations below.'}
+                  </p>
+                </div>
+              );
+            })()}
 
             {/* Envosta parent theme variations */}
             {(styleConfig.mode || 'parent') === 'parent' && (
@@ -1267,52 +1263,26 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
 
             {((styleConfig.mode === 'preset' ? 'custom' : (styleConfig.mode || 'parent')) === 'custom') && <div className="h-px bg-gray-100" />}
 
-            {/* Preset picker — visible in custom mode only */}
+            {/* AI Suggest — visible in custom mode only. Curated presets
+                grid was removed; AI Suggest + HTML derive (above) cover
+                starting-style selection when you want a quick jumping-off
+                point, or edit the fields directly below. */}
             {((styleConfig.mode === 'preset' ? 'custom' : (styleConfig.mode || 'parent')) === 'custom') && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-[10px] font-medium text-gray-500">Starting Preset</label>
+              <div>
+                <label className="block text-[10px] font-medium text-gray-500 mb-2">AI-picked starting point</label>
                 <button
-                  onClick={() => setPresetsExpanded(!presetsExpanded)}
-                  className="text-[10px] text-indigo-600 hover:text-indigo-800"
+                  onClick={suggestPreset}
+                  disabled={suggesting}
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 transition-colors"
+                  title="Let Claude pick a starting palette + fonts based on your brief"
                 >
-                  {presetsExpanded ? 'Collapse' : 'Browse all'}
+                  {suggesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                  {suggesting ? 'Picking…' : 'AI Suggest'}
                 </button>
+                <p className="text-[10px] text-gray-400 mt-2 leading-snug">
+                  Hit AI Suggest or drop in an HTML reference above — then fine-tune every field below.
+                </p>
               </div>
-              <button
-                onClick={suggestPreset}
-                disabled={suggesting}
-                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 transition-colors mb-2"
-                title="Let Claude pick a starting preset based on your brief"
-              >
-                {suggesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                {suggesting ? 'Picking…' : 'AI Suggest'}
-              </button>
-              <div className={`grid grid-cols-2 gap-1.5 ${presetsExpanded ? '' : 'max-h-36 overflow-hidden'}`}>
-                {CUSTOM_PRESETS.map(p => {
-                  const active = styleConfig.presetId === p.id;
-                  const c = p.config.colors;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => applyPreset(p)}
-                      className={`text-left rounded-md border p-1.5 transition-all ${active ? 'border-indigo-500 ring-1 ring-indigo-300' : 'border-gray-200 hover:border-gray-300'}`}
-                      title={p.description}
-                    >
-                      <div className="flex gap-0.5 mb-1">
-                        {[c.background, c.surface, c.primary, c.accent].map((col, i) => (
-                          <span key={i} className="flex-1 h-3 rounded-sm border border-gray-200" style={{ backgroundColor: col }} />
-                        ))}
-                      </div>
-                      <p className="text-[10px] font-medium text-gray-700 truncate">{p.name}</p>
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-[10px] text-gray-400 mt-2 leading-snug">
-                Pick a preset to start, then fully customize everything below.
-              </p>
-            </div>
             )}
 
             {((styleConfig.mode === 'preset' ? 'custom' : (styleConfig.mode || 'parent')) === 'custom') && (
@@ -1376,7 +1346,7 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
 
 function PageCategory({
   title, icon, activeClasses, accentClass, pages, selectedPageId, generating,
-  onSelectPage, importPageHtml, exportPageXml, deletePage, resetPage, RowIcon,
+  onSelectPage, exportPageXml, deletePage, resetPage, RowIcon,
   availableTemplates, onAddTemplate,
 }: {
   title: string;
@@ -1387,7 +1357,6 @@ function PageCategory({
   selectedPageId: string;
   generating: string | null;
   onSelectPage: (id: string) => void;
-  importPageHtml: (id: string, file: File) => void | Promise<void>;
   exportPageXml: (id: string) => void;
   deletePage: (id: string) => void;
   resetPage: (id: string) => void;
@@ -1444,13 +1413,6 @@ function PageCategory({
               {page.html && generating !== page.id && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />}
             </button>
             <div className="flex items-center opacity-0 group-hover:opacity-100 transition-all mr-1">
-              <label className="p-0.5 rounded text-gray-300 hover:text-indigo-600 cursor-pointer" title="Import HTML for this page">
-                <FileUp className="w-2.5 h-2.5" />
-                <input type="file" accept=".html,.htm" className="hidden" onChange={async (e) => {
-                  const file = e.target.files?.[0]; e.target.value = '';
-                  if (file) await importPageHtml(page.id, file);
-                }} />
-              </label>
               <button onClick={() => resetPage(page.id)} disabled={!page.html}
                 className="p-0.5 rounded text-gray-300 hover:text-amber-600 disabled:opacity-30 disabled:hover:text-gray-300"
                 title="Reset this page to blank">

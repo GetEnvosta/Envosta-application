@@ -26,6 +26,7 @@ export async function POST(req: Request) {
     }
 
     const { style, pageName, pagePrompt, allPageNames, referenceHtml, isTemplatePart, templatePartKind, sections } = await req.json();
+    const customHtmlBlocks = !!style?.customHtmlBlocks;
 
     if (!pageName || !pagePrompt) {
       return NextResponse.json({ error: 'Page name and prompt are required' }, { status: 400 });
@@ -101,7 +102,9 @@ FORBIDDEN:
 - Markdown fences, explanations, comments outside block comments.
 
 The goal: the rendered result is pixel-close to the reference AND imports into WordPress as REAL editable blocks — not an HTML blob.`
-      : GENERATE_SYSTEM_PROMPT;
+      : GENERATE_SYSTEM_PROMPT + (customHtmlBlocks
+          ? '\n\nCUSTOM HTML BLOCKS: ON — you MAY use <!-- wp:html --> blocks for bespoke design (custom CSS grids, SVG decoration, gradients, animations) inside section groups. Use them sparingly when core blocks can\'t express the design.'
+          : '\n\nCUSTOM HTML BLOCKS: OFF — do NOT emit any <!-- wp:html --> blocks. Use ONLY core Gutenberg blocks (wp:group, wp:heading, wp:paragraph, wp:buttons, wp:button, wp:columns, wp:column, wp:image, wp:cover, wp:list, wp:quote, wp:separator, wp:spacer, wp:media-text) and WooCommerce blocks. All styling comes from block attributes (backgroundColor, textColor, fontFamily, fontSize, style.spacing, style.color.gradient, align, etc.) — the theme handles the rest. The result must be fully editable as native Gutenberg blocks.');
 
     const userMessage = referenceMode
       ? `ACTIVE GLOBAL STYLES — use these CSS variables in your block output. Don't hardcode hex.

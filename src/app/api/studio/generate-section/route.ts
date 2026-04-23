@@ -40,6 +40,7 @@ export async function POST(req: Request) {
     }
 
     const { style, pageName, pageContext, allSections, section, extraPrompt } = await req.json();
+    const customHtmlBlocks = !!style?.customHtmlBlocks;
 
     if (!section?.id || !section?.title) {
       return NextResponse.json({ error: 'section { id, title } is required' }, { status: 400 });
@@ -110,7 +111,10 @@ RULES
 3. placehold.co for all images with realistic dimensions and alt text.
 4. No <h1> inside a section — that's reserved for the page title. Use h2 / h3.
 5. No JavaScript. CSS transitions and keyframes are fine.
-6. Scope any custom CSS class names so they don't collide (e.g. envosta-{section}__{element}).`;
+6. Scope any custom CSS class names so they don't collide (e.g. envosta-{section}__{element}).
+${customHtmlBlocks
+  ? '7. CUSTOM HTML BLOCKS: ON — you may use <!-- wp:html --> for bespoke design inside this section. Use sparingly when core blocks can\'t express the design.'
+  : '7. CUSTOM HTML BLOCKS: OFF — do NOT emit any <!-- wp:html --> blocks. Use ONLY core Gutenberg blocks + WooCommerce blocks. Style everything via block attributes (backgroundColor, textColor, fontFamily, fontSize, style.spacing, style.color.gradient, align, etc.) so the result is fully editable in Gutenberg.'}`;
 
     const userMessage = `GLOBAL STYLE REFERENCE (all via theme.json vars — never hardcode):
 Heading font slug: "heading" (currently loads ${fonts.heading})

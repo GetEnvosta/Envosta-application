@@ -192,25 +192,29 @@ export function StudioTool() {
 
         <div className="w-px h-5 bg-gray-200 shrink-0" />
 
-        {/* Full custom toggle — the single global switch that decides whether
-            the child theme overrides anything (on) or inherits everything
-            from the Envosta parent theme's presets (off, default). */}
+        {/* Custom HTML blocks toggle — when ON, the AI is allowed to use
+            <!-- wp:html --> escape hatches for bespoke design (custom grids,
+            SVG, gradients, animations). When OFF (default), the AI sticks
+            to core Gutenberg blocks only. This is separate from the
+            "Custom styles" toggle in the Global Styles panel, which
+            controls whether the child theme overrides the parent's
+            palette / fonts / layout. */}
         {(() => {
-          const fullCustom = (styleConfig.mode === 'preset' ? 'custom' : (styleConfig.mode || 'parent')) === 'custom';
+          const customHtml = !!styleConfig.customHtmlBlocks;
           return (
             <button
-              onClick={() => setStyleConfig((prev: any) => ({ ...prev, mode: fullCustom ? 'parent' : 'custom' }))}
+              onClick={() => setStyleConfig((prev: any) => ({ ...prev, customHtmlBlocks: !customHtml }))}
               role="switch"
-              aria-checked={fullCustom}
-              className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors shrink-0 ${fullCustom ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}
-              title={fullCustom
-                ? 'Full custom mode — child theme overrides colors, fonts, and styles'
-                : 'Parent mode — inherits everything from the Envosta parent theme'}
+              aria-checked={customHtml}
+              className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors shrink-0 ${customHtml ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}
+              title={customHtml
+                ? 'Custom HTML blocks ON — AI can use wp:html escape hatches for bespoke design'
+                : 'Custom HTML blocks OFF — AI uses core Gutenberg blocks only (more editable, safer)'}
             >
-              <span className={`relative inline-flex h-3.5 w-6 rounded-full transition-colors ${fullCustom ? 'bg-indigo-600' : 'bg-gray-300'}`}>
-                <span className={`inline-block h-2.5 w-2.5 translate-y-[2px] rounded-full bg-white shadow transition-transform ${fullCustom ? 'translate-x-[14px]' : 'translate-x-[2px]'}`} />
+              <span className={`relative inline-flex h-3.5 w-6 rounded-full transition-colors ${customHtml ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                <span className={`inline-block h-2.5 w-2.5 translate-y-[2px] rounded-full bg-white shadow transition-transform ${customHtml ? 'translate-x-[14px]' : 'translate-x-[2px]'}`} />
               </span>
-              Full custom
+              Custom HTML blocks
             </button>
           );
         })()}
@@ -480,7 +484,11 @@ Feel: utilitarian but polished.`;
               setPages(newPages);
               if (newPages.length > 0) setSelectedPageId(newPages[0].id);
 
-              // Reference HTML takes priority over the brief for global styles
+              // Reference HTML gives us a style hint, but we DON'T flip the
+              // project into Full Custom mode automatically — that's a
+              // user-driven toggle. We seed the extracted colors/fonts so
+              // they're available if the user opens Full Custom later,
+              // without overriding the parent theme's defaults unless asked.
               if (referenceHtml) {
                 const extracted = extractStylesFromHtml(referenceHtml);
                 if (extracted.colors || extracted.fonts) {
@@ -488,8 +496,6 @@ Feel: utilitarian but polished.`;
                     ...prev,
                     ...(extracted.colors && { colors: { ...(prev.colors || {}), ...extracted.colors } }),
                     ...(extracted.fonts && { fonts: { ...(prev.fonts || {}), ...extracted.fonts } }),
-                    mode: 'custom',
-                    presetId: undefined,
                     seededFromReferenceHtml: true,
                   }));
                 }
