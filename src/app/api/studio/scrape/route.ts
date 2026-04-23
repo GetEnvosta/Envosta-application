@@ -13,10 +13,11 @@ export async function POST(req: Request) {
   if (!apiKey) return NextResponse.json({ error: 'AI not configured' }, { status: 503 });
 
   try {
-    const { url } = await req.json();
+    const { url, existingInfo, brief } = await req.json();
     if (!url || typeof url !== 'string') {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
+    const existing = (existingInfo && typeof existingInfo === 'object') ? existingInfo : {};
 
     // Normalize URL
     let targetUrl = url.trim();
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
-        system: `You extract business information from website content. Return ONLY valid JSON with these fields (leave empty string if not found):
+        system: `You extract business information from website content and return ONLY valid JSON. The requested fields are:
 {
   "businessName": "Company name",
   "industry": "One of: Restaurant / Food Service, Retail / E-commerce, Healthcare / Medical, Real Estate, Professional Services, Construction / Trades, Fitness / Wellness, Beauty / Salon, Automotive, Non-Profit, Education, Technology, Creative / Agency, Legal, Finance, Other",
@@ -75,10 +76,21 @@ export async function POST(req: Request) {
   "email": "Email address",
   "address": "Physical address",
   "description": "A 2-3 sentence description of what the business does, suitable as a website brief"
-}`,
+}
+
+IMPORTANT — locked fields: the user has already approved some of these values. They will be listed in the user message as LOCKED. Do NOT return any value for a locked field — omit the key entirely from your JSON. The user's locked values are authoritative; your job is only to fill the blanks.
+
+If you can't confidently determine a value, omit the key. Empty string is fine too but omitting is cleaner.`,
         messages: [{
           role: 'user',
-          content: `Page title: ${pageTitle}\nMeta description: ${metaDesc}\n\nPage content:\n${textContent}`,
+          content: `LOCKED FIELDS (do not return these — user already set them):
+${Object.entries(existing).filter(([k, v]) => v && typeof v === 'string' && ['businessName','industry','tagline','phone','email','address'].includes(k)).map(([k, v]) => `  ${k}: ${v}`).join('\n') || '  (none)'}
+${brief ? `\nUser's brief so far (use as extra context, don't overwrite):\n${String(brief).slice(0, 2000)}\n` : ''}
+Page title: ${pageTitle}
+Meta description: ${metaDesc}
+
+Page content:
+${textContent}`,
         }],
       }),
     });

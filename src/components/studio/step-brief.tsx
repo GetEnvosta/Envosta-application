@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sparkles, Loader2, ChevronDown, ChevronUp, Globe, Search, Upload, FileCode, X, Plus, ShoppingBag, FileArchive } from 'lucide-react';
+import { Sparkles, Loader2, ChevronDown, ChevronUp, Globe, Upload, FileCode, X, Plus, FileArchive } from 'lucide-react';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 
 const INDUSTRIES = [
@@ -105,77 +105,93 @@ export function StepBrief({
     onBusinessInfoChange({ ...form, pages: pages.filter(p => p !== name) });
   }
 
+  // WC + blog flags are still carried on businessInfo for back-compat (older
+  // saved drafts may have them set). They're not exposed on the UI anymore —
+  // users add WC / blog pages from the design tool's sidebar categories.
   const wooEnabled = !!form.woocommerce;
-  function toggleWoo() {
-    if (wooEnabled) {
-      // Turn off: remove WC pages from the list
-      const next = pages.filter(p => !WOOCOMMERCE_PAGES.includes(p));
-      onBusinessInfoChange({ ...form, woocommerce: false, pages: next });
-    } else {
-      // Turn on: merge WC pages (no duplicates)
-      const existingLower = new Set(pages.map(p => p.toLowerCase()));
-      const add = WOOCOMMERCE_PAGES.filter(p => !existingLower.has(p.toLowerCase()));
-      onBusinessInfoChange({ ...form, woocommerce: true, pages: [...pages, ...add] });
-    }
-  }
-
-  const blogEnabled = !!form.blog;
-  function toggleBlog() {
-    if (blogEnabled) {
-      const next = pages.filter(p => !BLOG_PAGES.includes(p));
-      onBusinessInfoChange({ ...form, blog: false, pages: next });
-    } else {
-      const existingLower = new Set(pages.map(p => p.toLowerCase()));
-      const add = BLOG_PAGES.filter(p => !existingLower.has(p.toLowerCase()));
-      onBusinessInfoChange({ ...form, blog: true, pages: [...pages, ...add] });
-    }
-  }
 
   function set(key: string) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       onBusinessInfoChange({ ...form, [key]: e.target.value });
   }
 
-  async function handleScrape() {
-    if (!scrapeUrl.trim()) return;
-    setScraping(true);
-    setError('');
-    try {
-      const res = await fetchWithRetry('/api/studio/scrape', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: scrapeUrl.trim() }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || 'Could not scrape site');
-        return;
-      }
-      const data = await res.json();
-      // Merge scraped data into business info
-      const merged = { ...form };
-      if (data.businessName && !form.businessName) merged.businessName = data.businessName;
-      if (data.industry && !form.industry) merged.industry = data.industry;
-      if (data.tagline && !form.tagline) merged.tagline = data.tagline;
-      if (data.phone && !form.phone) merged.phone = data.phone;
-      if (data.email && !form.email) merged.email = data.email;
-      if (data.address && !form.address) merged.address = data.address;
-      if (data.description && !brief) onBriefChange(data.description);
-      onBusinessInfoChange(merged);
-      setDetailsOpen(true); // Show the details so user can review
-    } catch {
-      setError('Failed to scrape website');
-    } finally {
-      setScraping(false);
-    }
+  /**
+   * Detect URLs the user may have dropped in the brief text itself so we
+   * can auto-scrape them alongside the URL field. Matches bare www. or
+   * http(s):// forms.
+   */
+  function findUrlsInText(text: string): string[] {
+    const matches = text.match(/\b(?:https?:\/\/|www\.)[^\s,;)]+/gi) || [];
+    return Array.from(new Set(matches));
   }
 
-  async function handleGenerate() {
+  async function runScrape(url: string): Promise<void> {
+    const res = await fetchWithRetry('/api/studio/scrape', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, existingInfo: form, brief }),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || typeof data !== 'object') return;
+    // Field-level "locked" = any field the user already has a value for.
+    // Scrape respects that — only fills blanks.
+    const merged = { ...form };
+    const fields = ['businessName', 'industry', 'tagline', 'phone', 'email', 'address'] as const;
+    for (const k of fields) {
+      if (data[k] && !merged[k]) merged[k] = data[k];
+    }
+    // If the user hasn't written any brief yet, seed it with the scraped
+    // description so the concepts generator has something to chew on.
+    if (data.description && !brief.trim()) onBriefChange(data.description);
+    onBusinessInfoChange(merged);
+  }
+
+  async function runSuggestMeta(): Promise<void> {
     if (!brief.trim()) return;
+    try {
+      const res = await fetch('/api/studio/suggest-site-meta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brief, businessInfo: form }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const s = data?.suggested;
+      if (!s || typeof s !== 'object') return;
+      const merged = { ...form };
+      for (const k of Object.keys(s)) {
+        if (!merged[k]) merged[k] = s[k];
+      }
+      onBusinessInfoChange(merged);
+    } catch {}
+  }
+
+  /**
+   * "Generate brief rewrites + auto-fill" — the one big button on the brief.
+   *
+   * Runs three things in parallel:
+   *   1. /api/studio/brief — returns 3 alternative brief rewrites the user
+   *      can click to replace their text with. Not a final answer.
+   *   2. /api/studio/suggest-site-meta — fills in any blank
+   *      businessName / tagline / industry / targetAudience.
+   *   3. /api/studio/scrape — if the user gave a URL in the URL field OR
+   *      mentioned one in the brief text, scrape it. Fills only blank
+   *      business-info fields.
+   *
+   * All three respect the "field has a value = locked" rule — existing
+   * values are never overwritten.
+   */
+  async function handleGenerate() {
+    if (!brief.trim() && !scrapeUrl.trim()) {
+      setError('Add a brief or a URL to start');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      const res = await fetchWithRetry('/api/studio/brief', {
+      // Kick off all three in parallel. If any one fails, the others still land.
+      const briefPromise = brief.trim() ? fetchWithRetry('/api/studio/brief', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -185,16 +201,35 @@ export function StepBrief({
           woocommerce: wooEnabled,
           referenceHtml: refHtml || undefined,
         }),
-      });
-      if (res.status === 401 && onAuthRequired) { onAuthRequired(); return; }
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Generation failed'); return; }
-      onOptionsGenerated(data.options);
-    } catch {
-      setError('Network error');
+      }).then(async (res) => {
+        if (res.status === 401 && onAuthRequired) { onAuthRequired(); return null; }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Generation failed');
+        return data.options;
+      }) : Promise.resolve(null);
+
+      const urls = [scrapeUrl.trim(), ...findUrlsInText(brief)].filter(Boolean);
+      const scrapePromises = urls.slice(0, 2).map(u => runScrape(u).catch(() => {}));
+      const metaPromise = runSuggestMeta().catch(() => {});
+
+      const [options] = await Promise.all([briefPromise, ...scrapePromises, metaPromise]);
+      if (options) onOptionsGenerated(options);
+      setDetailsOpen(true); // surface the auto-filled fields
+    } catch (e: any) {
+      setError(e?.message || 'Generation failed');
     } finally {
       setLoading(false);
     }
+  }
+
+  /** Click a concept rewrite → replace the brief text with it. No advancement. */
+  function applyConceptAsBrief(idx: number) {
+    const opt = briefOptions[idx];
+    if (!opt) return;
+    // Compose: title + description — the description is the substantial part.
+    const nextBrief = opt.description || opt.title || '';
+    if (nextBrief) onBriefChange(nextBrief);
+    onOptionsGenerated([]); // clear concepts after picking one
   }
 
   const inputClass = 'w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors';
@@ -216,44 +251,74 @@ export function StepBrief({
               </p>
             </div>
 
-            {/* Import previous website — fast path that skips the brief entirely */}
-            {onImportPreviousWebsite && !importedSummary && (
-              <div className="mb-4 rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/30 p-4 hover:border-indigo-400 hover:bg-indigo-50/50 transition-colors">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
-                    <FileArchive className="w-5 h-5 text-indigo-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">Already have a website? Import it</p>
-                    <p className="text-xs text-gray-600 mt-0.5 leading-snug">
-                      Upload an exported theme .zip or WordPress .xml. You can keep tweaking the brief below or jump straight to the design editor.
-                    </p>
-                    <label className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
-                      externalImporting
-                        ? 'bg-indigo-300 text-white cursor-wait'
-                        : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                    }`}>
-                      {externalImporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                      {externalImporting ? 'Importing…' : 'Import previous website'}
-                      <input
-                        type="file"
-                        accept=".zip,.xml"
-                        className="hidden"
-                        disabled={externalImporting}
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          e.target.value = '';
-                          if (file) await onImportPreviousWebsite(file);
-                        }}
-                      />
-                    </label>
-                    {importError && <p className="text-xs text-red-600 mt-2">{importError}</p>}
-                  </div>
+            {/* Unified upload — accepts .html/.htm (design reference) or
+                .zip/.xml (previous Envosta export → skip to design). */}
+            {!importedSummary && (refName ? (
+              <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-lg border border-indigo-200 bg-indigo-50/50">
+                <FileCode className="w-4 h-4 text-indigo-600" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium text-indigo-700 truncate block">{refName}</span>
+                  <span className="text-xs text-indigo-500">
+                    {(refHtml.length / 1024).toFixed(1)} KB loaded — design reference + style source. You can continue to design now or keep refining the brief.
+                  </span>
                 </div>
+                {onContinueToDesign && (
+                  <button
+                    onClick={onContinueToDesign}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors"
+                  >
+                    Continue →
+                  </button>
+                )}
+                <button
+                  onClick={() => setRefHtml('', '')}
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                  title="Remove reference"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            )}
+            ) : (
+              <label className={`mb-4 flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
+                externalImporting
+                  ? 'border-indigo-300 bg-indigo-50/40 cursor-wait'
+                  : 'border-gray-300 hover:border-indigo-400 bg-gray-50/50 hover:bg-indigo-50/30'
+              }`}>
+                {externalImporting ? <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" /> : <Upload className="w-5 h-5 text-gray-400" />}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">
+                    {externalImporting ? 'Importing…' : 'Upload a file to start (optional)'}
+                  </p>
+                  <p className="text-[11px] text-gray-500 leading-snug mt-0.5">
+                    <strong>.html / .htm</strong> — use as a design reference, extract colors + fonts as global styles.{' '}
+                    <strong>.zip / .xml</strong> — import a previous Envosta export (pages + styles) and skip straight to design.
+                  </p>
+                </div>
+                <input
+                  type="file"
+                  accept=".html,.htm,.zip,.xml"
+                  className="hidden"
+                  disabled={externalImporting}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (!file) return;
+                    const name = file.name.toLowerCase();
+                    if (name.endsWith('.zip') || name.endsWith('.xml')) {
+                      if (onImportPreviousWebsite) await onImportPreviousWebsite(file);
+                    } else {
+                      // Treat as design reference — read text + stash.
+                      const reader = new FileReader();
+                      reader.onload = () => setRefHtml(reader.result as string, file.name);
+                      reader.readAsText(file);
+                    }
+                  }}
+                />
+              </label>
+            ))}
+            {importError && <p className="text-xs text-red-600 -mt-2 mb-4">{importError}</p>}
 
-            {/* Post-import success banner — lets the user continue to design now, or stay on brief to tweak */}
+            {/* Post-import success banner — appears after .zip/.xml import. */}
             {importedSummary && (
               <div className="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 p-4">
                 <div className="flex items-start gap-3">
@@ -266,7 +331,7 @@ export function StepBrief({
                       <span className="text-emerald-700 font-normal"> — {importedSummary.pageCount} page{importedSummary.pageCount === 1 ? '' : 's'} + styles loaded.</span>
                     </p>
                     <p className="text-xs text-emerald-700 mt-0.5 leading-snug">
-                      You can keep refining the brief below, or jump straight to the design editor.
+                      Continue to design now, or keep tweaking the brief first.
                     </p>
                     <div className="flex items-center gap-2 mt-3">
                       {onContinueToDesign && (
@@ -291,36 +356,17 @@ export function StepBrief({
               </div>
             )}
 
-            {/* Or separator */}
-            {onImportPreviousWebsite && (
-              <div className="flex items-center gap-3 my-4">
-                <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">or start fresh</span>
-                <div className="flex-1 h-px bg-gray-200" />
-              </div>
-            )}
-
-            {/* Scrape URL */}
+            {/* Optional URL — scraped when you hit "Improve brief". */}
             <div className="mb-4">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="url"
-                    value={scrapeUrl}
-                    onChange={e => setScrapeUrl(e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
-                    placeholder="Paste an existing website URL to auto-fill details..."
-                  />
-                </div>
-                <button
-                  onClick={handleScrape}
-                  disabled={scraping || !scrapeUrl.trim()}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {scraping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                  {scraping ? 'Scanning...' : 'Auto-fill'}
-                </button>
+              <div className="relative">
+                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="url"
+                  value={scrapeUrl}
+                  onChange={e => setScrapeUrl(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                  placeholder="Business website URL (optional) — scraped for details when you improve the brief"
+                />
               </div>
             </div>
 
@@ -332,92 +378,12 @@ export function StepBrief({
               placeholder="A plumbing company in Calgary that needs a professional website to generate more leads. They specialize in emergency plumbing and bathroom renovations..."
             />
 
-            {/* HTML reference upload */}
-            <div className="mb-4">
-              {!refName ? (
-                <label className="flex items-center gap-3 px-4 py-3 rounded-lg border border-dashed border-gray-300 hover:border-indigo-400 cursor-pointer transition-colors bg-gray-50/50 hover:bg-indigo-50/30">
-                  <Upload className="w-4 h-4 text-gray-400" />
-                  <div className="flex-1">
-                    <span className="text-sm text-gray-600">Upload an HTML reference</span>
-                    <span className="text-xs text-gray-400 block">If added, its colors & fonts take priority and become your global styles.</span>
-                  </div>
-                  <input
-                    type="file"
-                    accept=".html,.htm"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const reader = new FileReader();
-                      reader.onload = () => setRefHtml(reader.result as string, file.name);
-                      reader.readAsText(file);
-                    }}
-                  />
-                </label>
-              ) : (
-                <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-indigo-200 bg-indigo-50/50">
-                  <FileCode className="w-4 h-4 text-indigo-600" />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium text-indigo-700 truncate block">{refName}</span>
-                    <span className="text-xs text-indigo-500">
-                      {(refHtml.length / 1024).toFixed(1)} KB loaded — will define global styles
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setRefHtml('', '')}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* WooCommerce toggle */}
-            <div className="rounded-xl border border-gray-200 overflow-hidden mb-4">
-              <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 text-gray-500" />
-                <p className="text-sm font-medium text-gray-700 flex-1">WooCommerce</p>
-                <button
-                  onClick={toggleWoo}
-                  role="switch"
-                  aria-checked={wooEnabled}
-                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${wooEnabled ? 'bg-indigo-600' : 'bg-gray-300'}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${wooEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                </button>
-              </div>
-              <div className="px-5 py-3">
-                <p className="text-xs text-gray-500 leading-snug">
-                  {wooEnabled
-                    ? `An online store will be included. Auto-added pages: ${WOOCOMMERCE_PAGES.join(', ')}.`
-                    : 'Turn on to build an online store. Shop, Single Product, Cart, Checkout, and My Account will be auto-added.'}
-                </p>
-              </div>
-            </div>
-
-            {/* Blog toggle */}
-            <div className="rounded-xl border border-gray-200 overflow-hidden mb-4">
-              <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
-                <FileCode className="w-4 h-4 text-gray-500" />
-                <p className="text-sm font-medium text-gray-700 flex-1">Blog</p>
-                <button
-                  onClick={toggleBlog}
-                  role="switch"
-                  aria-checked={blogEnabled}
-                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${blogEnabled ? 'bg-indigo-600' : 'bg-gray-300'}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${blogEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                </button>
-              </div>
-              <div className="px-5 py-3">
-                <p className="text-xs text-gray-500 leading-snug">
-                  {blogEnabled
-                    ? `A blog will be included. Auto-added pages: ${BLOG_PAGES.join(', ')}.`
-                    : 'Turn on to include a blog archive page and a single-post template.'}
-                </p>
-              </div>
-            </div>
+            {/* WooCommerce + Blog toggles are intentionally NOT here.
+                The Envosta parent theme ships WC + blog templates baked in
+                and activates them automatically when the plugins are
+                installed / the page types exist. Shop / Cart / Checkout /
+                My Account / Single Product / Blog / Single Post can all be
+                added from the design tool's sidebar categories on demand. */}
 
             {/* Pages wanted */}
             <div className="rounded-xl border border-gray-200 overflow-hidden mb-4">
@@ -546,56 +512,64 @@ export function StepBrief({
               )}
             </div>
 
-            {/* Generate button */}
-            <div className="text-center">
-              <button
-                onClick={handleGenerate}
-                disabled={loading || brief.trim().length < 10}
-                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors disabled:opacity-50"
-              >
-                {loading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Generating concepts...</>
-                ) : briefOptions.length > 0 ? (
-                  <><Sparkles className="w-4 h-4" /> Regenerate Concepts</>
-                ) : (
-                  <><Sparkles className="w-4 h-4" /> Generate 3 Concepts</>
-                )}
-              </button>
-              {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
+            {/* Improve brief + auto-fill — runs concepts + suggest-site-meta
+                + URL scrape in parallel. Concepts are rewrite suggestions
+                you can click to replace your brief text; they're NOT the
+                final gate to move on. */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleGenerate}
+                  disabled={loading || (!brief.trim() && !scrapeUrl.trim())}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50"
+                  title="Ask the AI for 3 brief rewrites, fill in any blank business details, and (if a URL is set) scrape it for more info"
+                >
+                  {loading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Working…</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4" /> {briefOptions.length > 0 ? 'Improve again' : 'Improve brief + auto-fill'}</>
+                  )}
+                </button>
+                <button
+                  onClick={onContinueToDesign}
+                  disabled={!onContinueToDesign || (!brief.trim() && !refHtml)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-40"
+                  title="Continue to the design editor — you can always come back and tweak the brief"
+                >
+                  Continue to design →
+                </button>
+              </div>
+              {error && <p className="text-sm text-red-600">{error}</p>}
             </div>
 
-            {/* Concept dropdown — appears below the Generate button once options exist */}
+            {/* Concept rewrites — click one to REPLACE the brief text.
+                Doesn't advance; the Continue button above does that. */}
             {briefOptions.length > 0 && (
-              <div className="mt-6 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4">
-                <label className="block text-xs font-medium text-indigo-700 mb-1.5">Design direction</label>
-                <select
-                  value={pickedIdx}
-                  onChange={e => setPickedIdx(Number(e.target.value))}
-                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none mb-3"
-                >
-                  {briefOptions.map((opt: any, i: number) => (
-                    <option key={i} value={i}>
-                      Option {i + 1} — {opt.title}
-                    </option>
-                  ))}
-                </select>
-                {pickedOption && (
-                  <p className="text-xs text-gray-600 leading-relaxed mb-3">{pickedOption.description}</p>
-                )}
-                <div className="flex items-center justify-between">
+              <div className="mt-6 rounded-xl border border-indigo-200 bg-indigo-50/30 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-indigo-900">Pick one to replace your brief (or ignore)</p>
                   <button
-                    onClick={() => { onOptionsGenerated([]); }}
-                    className="text-[11px] text-gray-400 hover:text-gray-600"
+                    onClick={() => onOptionsGenerated([])}
+                    className="text-[10px] text-indigo-700 hover:text-indigo-900"
                   >
-                    Clear concepts
-                  </button>
-                  <button
-                    onClick={() => onSelect(pickedIdx)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
-                  >
-                    Use this concept →
+                    Dismiss
                   </button>
                 </div>
+                <div className="grid gap-2">
+                  {briefOptions.map((opt: any, i: number) => (
+                    <button
+                      key={i}
+                      onClick={() => applyConceptAsBrief(i)}
+                      className="text-left rounded-lg border border-indigo-200 bg-white hover:border-indigo-500 hover:shadow-sm p-3 transition-all"
+                    >
+                      <p className="text-xs font-semibold text-indigo-900 mb-1">{opt.title}</p>
+                      <p className="text-[11px] text-gray-600 leading-snug">{opt.description}</p>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-indigo-700/80 mt-3 leading-snug">
+                  These are suggested rewrites of your brief, not final designs. Clicking one just replaces the text above — you can keep editing freely. Happy with the brief? Hit <strong>Continue to design</strong>.
+                </p>
               </div>
             )}
           </div>

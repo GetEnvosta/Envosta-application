@@ -256,20 +256,22 @@ export function StudioTool() {
             importing={importing}
             importError={importError}
             importedSummary={importedSummary}
-            onContinueToDesign={() => { setImportedSummary(null); setStep(2); }}
-            onDismissImportSummary={() => setImportedSummary(null)}
-            onSelect={async (idx) => {
-              setSelectedBrief(idx);
+            onContinueToDesign={async () => {
+              // Imported flow: pages already exist, just advance.
+              if (pages.length > 0) {
+                setImportedSummary(null);
+                setStep(2);
+                return;
+              }
+
               if (businessInfo.businessName) setProjectName(businessInfo.businessName);
 
               // Fire two AI calls in parallel:
               //   1) suggest-style picks an Envosta parent style variation
-              //   2) suggest-site-meta fills in blank businessName / tagline /
-              //      industry / targetAudience so the export's WXR carries
-              //      real site-title + tagline without the user needing to
-              //      dive into the Business Details section.
+              //   2) suggest-site-meta fills in any remaining blank
+              //      businessName / tagline / industry / targetAudience.
               // Both are fire-and-forget; errors are non-fatal.
-              const briefForAi = briefOptions[idx]?.description || brief;
+              const briefForAi = brief;
               try {
                 const [styleRes, metaRes] = await Promise.all([
                   fetch('/api/studio/suggest-style', {
@@ -323,7 +325,7 @@ export function StudioTool() {
               const userLower = new Set(userPageNames.map(p => p.toLowerCase()));
               const systemExtras = SYSTEM_PAGE_TITLES.filter(s => !userLower.has(s.toLowerCase()));
               const pageNames: string[] = [...userPageNames, ...systemExtras];
-              const selectedConcept = briefOptions[idx]?.description || brief;
+              const selectedConcept = brief;
               // Per-page prompt: WooCommerce pages get Shopify-grade e-commerce
               // guidance; everything else gets the concept-aware generic prompt.
               const specialPagePrompt = (name: string): string | null => {
@@ -494,6 +496,11 @@ Feel: utilitarian but polished.`;
               }
 
               setStep(2);
+            }}
+            onDismissImportSummary={() => setImportedSummary(null)}
+            onSelect={() => {
+              // Concepts are rewrites now — they replace brief text via the
+              // component's own handler. Nothing to do here.
             }}
           />
         )}

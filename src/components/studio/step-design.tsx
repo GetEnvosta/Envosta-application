@@ -14,6 +14,7 @@ import { extractStylesFromHtml } from '@/lib/extract-styles-from-html';
 import { stripHtmlForPage } from '@/lib/studio-html-strip';
 import { downloadPageAsXml } from '@/lib/studio-wxr';
 import { replaceSectionBlock, ensureAnchorOnFirstBlock } from '@/lib/studio-block-splice';
+import { WOOCOMMERCE_TEMPLATES, BLOG_TEMPLATES, SYSTEM_TEMPLATES, getTemplateByTitle } from '@/lib/studio-page-templates';
 
 const FONT_OPTIONS = [
   'Playfair Display', 'DM Serif Display', 'Fraunces', 'Libre Baskerville',
@@ -332,6 +333,28 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
       html: page.html,
     });
     setStatus({ type: 'success', msg: `Exported ${page.title}.xml` });
+  }
+
+  function addPageFromTemplate(title: string) {
+    const tpl = getTemplateByTitle(title);
+    if (!tpl) return;
+    // Skip if a page with this title already exists
+    if (pages.some(p => p.title.toLowerCase() === tpl.title.toLowerCase())) {
+      setStatus({ type: 'error', msg: `"${tpl.title}" already exists` });
+      return;
+    }
+    const newPage = {
+      id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      title: tpl.title,
+      slug: tpl.slug,
+      sort_order: pages.length,
+      prompt: tpl.prompt,
+      html: '',
+      sections: [] as Array<{ id: string; title: string; description: string }>,
+    };
+    onPagesChange([...pages, newPage]);
+    onSelectPage(newPage.id);
+    setStatus({ type: 'success', msg: `Added "${tpl.title}" — hit Send to generate it` });
   }
 
   function resetPage(pageId: string) {
@@ -695,61 +718,71 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
             ))}
           </div>
 
-          {/* WooCommerce category */}
-          {wooCommercePages.length > 0 && (
-            <PageCategory
-              title="WooCommerce"
-              icon={<ShoppingBag className="w-3 h-3 text-amber-500" />}
-              activeClasses="bg-amber-50 text-amber-700"
-              accentClass="text-amber-500"
-              pages={wooCommercePages}
-              selectedPageId={selectedPageId}
-              generating={generating}
-              onSelectPage={onSelectPage}
-              importPageHtml={importPageHtml}
-              exportPageXml={exportPageXml}
-              deletePage={deletePage}
-              resetPage={resetPage}
-              RowIcon={ShoppingBag}
-            />
-          )}
+          {/* WooCommerce category — always shown so users can add WC pages
+              on demand from the + picker, even if none exist yet. */}
+          <PageCategory
+            title="WooCommerce"
+            icon={<ShoppingBag className="w-3 h-3 text-amber-500" />}
+            activeClasses="bg-amber-50 text-amber-700"
+            accentClass="text-amber-500"
+            pages={wooCommercePages}
+            selectedPageId={selectedPageId}
+            generating={generating}
+            onSelectPage={onSelectPage}
+            importPageHtml={importPageHtml}
+            exportPageXml={exportPageXml}
+            deletePage={deletePage}
+            resetPage={resetPage}
+            RowIcon={ShoppingBag}
+            availableTemplates={WOOCOMMERCE_TEMPLATES}
+            onAddTemplate={addPageFromTemplate}
+          />
 
           {/* Blog category */}
-          {blogPages.length > 0 && (
-            <PageCategory
-              title="Blog"
-              icon={<Newspaper className="w-3 h-3 text-rose-500" />}
-              activeClasses="bg-rose-50 text-rose-700"
-              accentClass="text-rose-500"
-              pages={blogPages}
-              selectedPageId={selectedPageId}
-              generating={generating}
-              onSelectPage={onSelectPage}
-              importPageHtml={importPageHtml}
-              exportPageXml={exportPageXml}
-              deletePage={deletePage}
-              resetPage={resetPage}
-              RowIcon={Newspaper}
-            />
-          )}
+          <PageCategory
+            title="Blog"
+            icon={<Newspaper className="w-3 h-3 text-rose-500" />}
+            activeClasses="bg-rose-50 text-rose-700"
+            accentClass="text-rose-500"
+            pages={blogPages}
+            selectedPageId={selectedPageId}
+            generating={generating}
+            onSelectPage={onSelectPage}
+            importPageHtml={importPageHtml}
+            exportPageXml={exportPageXml}
+            deletePage={deletePage}
+            resetPage={resetPage}
+            RowIcon={Newspaper}
+            availableTemplates={BLOG_TEMPLATES}
+            onAddTemplate={addPageFromTemplate}
+          />
 
           {/* System category */}
-          {systemPages.length > 0 && (
-            <PageCategory
-              title="System"
-              icon={<Wrench className="w-3 h-3 text-gray-500" />}
-              activeClasses="bg-gray-100 text-gray-800"
-              accentClass="text-gray-500"
-              pages={systemPages}
-              selectedPageId={selectedPageId}
-              generating={generating}
-              onSelectPage={onSelectPage}
-              importPageHtml={importPageHtml}
-              exportPageXml={exportPageXml}
-              deletePage={deletePage}
-              resetPage={resetPage}
-              RowIcon={Wrench}
-            />
+          <PageCategory
+            title="System"
+            icon={<Wrench className="w-3 h-3 text-gray-500" />}
+            activeClasses="bg-gray-100 text-gray-800"
+            accentClass="text-gray-500"
+            pages={systemPages}
+            selectedPageId={selectedPageId}
+            generating={generating}
+            onSelectPage={onSelectPage}
+            importPageHtml={importPageHtml}
+            exportPageXml={exportPageXml}
+            deletePage={deletePage}
+            resetPage={resetPage}
+            RowIcon={Wrench}
+            availableTemplates={SYSTEM_TEMPLATES}
+            onAddTemplate={addPageFromTemplate}
+          />
+
+          {/* When a category has no pages, show a tiny hint row so it
+              doesn't look empty. Placed here rather than in PageCategory
+              so each category's `pages` list drives the render cleanly. */}
+          {wooCommercePages.length === 0 && blogPages.length === 0 && systemPages.length === 0 && (
+            <div className="px-3 pb-2 -mt-2 text-[10px] text-gray-400 leading-snug">
+              Use the <strong>+</strong> buttons above to add Shop / Cart / Blog / Single Post / 404 / Search Results templates on demand.
+            </div>
           )}
 
           <div className="p-3 flex-1">
@@ -1281,6 +1314,7 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
 function PageCategory({
   title, icon, activeClasses, accentClass, pages, selectedPageId, generating,
   onSelectPage, importPageHtml, exportPageXml, deletePage, resetPage, RowIcon,
+  availableTemplates, onAddTemplate,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -1295,12 +1329,42 @@ function PageCategory({
   deletePage: (id: string) => void;
   resetPage: (id: string) => void;
   RowIcon: React.ComponentType<{ className?: string }>;
+  availableTemplates?: Array<{ title: string; description: string }>;
+  onAddTemplate?: (title: string) => void;
 }) {
+  const [adderOpen, setAdderOpen] = useState(false);
+  const existingTitles = new Set(pages.map(p => p.title.toLowerCase()));
+  const addable = (availableTemplates || []).filter(t => !existingTitles.has(t.title.toLowerCase()));
   return (
     <div className="p-3 border-b border-gray-100">
       <div className="flex items-center gap-1.5 mb-2">
         {icon}
-        <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">{title}</h3>
+        <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest flex-1">{title}</h3>
+        {addable.length > 0 && onAddTemplate && (
+          <div className="relative">
+            <button
+              onClick={() => setAdderOpen(!adderOpen)}
+              className="p-0.5 rounded text-gray-400 hover:text-indigo-600"
+              title={`Add a ${title.toLowerCase()} template`}
+            >
+              <Plus className="w-3 h-3" />
+            </button>
+            {adderOpen && (
+              <div className="absolute right-0 top-5 z-20 w-56 rounded-md border border-gray-200 bg-white shadow-lg py-1">
+                {addable.map(t => (
+                  <button
+                    key={t.title}
+                    onClick={() => { onAddTemplate(t.title); setAdderOpen(false); }}
+                    className="w-full text-left px-3 py-1.5 hover:bg-indigo-50"
+                  >
+                    <p className="text-xs font-medium text-gray-900">{t.title}</p>
+                    <p className="text-[10px] text-gray-500 leading-snug">{t.description}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <div className="space-y-0.5">
         {pages.map(page => (
