@@ -56,7 +56,14 @@ export async function POST(req: Request) {
 
 STRUCTURE — this is the only hard constraint:
 
-Output EXACTLY one top-level <!-- wp:group {"anchor":"section-{ID}"} -->…<!-- /wp:group --> block (using the id the user supplied). Nothing outside the group. Inside the group you have total freedom:
+Output EXACTLY one top-level <!-- wp:group {"anchor":"section-{ID}","align":"full",...} -->…<!-- /wp:group --> block (using the id the user supplied). Nothing outside the group. Sections are full-width bands, so the outer group MUST include \`"align":"full"\` with class \`alignfull\` on the wrapper div so any background (solid color OR gradient) stretches edge-to-edge.
+
+BACKGROUND RULE: gradients and solid colors ALWAYS live on the outer wp:group, never on an inner wp:html box. For gradient bands, set style.color.gradient with a real CSS gradient string referencing CSS vars, and add \`has-background\` to the wrapper div. Example:
+
+  <!-- wp:group {"anchor":"section-{ID}","align":"full","style":{"color":{"gradient":"linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%)"},"spacing":{"padding":{"top":"var:preset|spacing|80","bottom":"var:preset|spacing|80"}}},"textColor":"theme-1","layout":{"type":"constrained"}} -->
+  <div id="section-{ID}" class="wp-block-group alignfull has-theme-1-color has-text-color has-background" style="background:linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%);color:var(--wp--preset--color--theme-1);padding-top:var(--wp--preset--spacing--80);padding-bottom:var(--wp--preset--spacing--80)">
+
+Inside the group you have total freedom:
 
   (a) Mix core Gutenberg blocks (wp:heading, wp:paragraph, wp:buttons, wp:columns, wp:image, wp:cover, wp:list, wp:quote, wp:query, wp:woocommerce/product-collection, etc.) for content users may want to edit in the block editor.
   (b) Use <!-- wp:html --> blocks with any HTML + inline <style> for rich design. Custom layouts, SVG, gradients, animations — all go here. HTML blocks are fully editable in WP as a single Custom HTML block.

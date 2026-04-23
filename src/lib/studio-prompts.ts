@@ -311,22 +311,40 @@ export const GENERATE_SYSTEM_PROMPT = `You are a world-class web designer buildi
 The ONLY structural constraint is WordPress compatibility — your output has to round-trip into the block editor. To keep both the design freedom AND block compatibility, we use this recipe:
 
 ═══ STRUCTURE (hard rule) ═══
-Emit one top-level <!-- wp:group {"anchor":"section-<id>"} --> per section in the section plan, in order. The anchor attribute is REQUIRED — the studio uses it to splice sections independently later. Inside each group, you have total freedom to use either:
+Emit one top-level <!-- wp:group {"anchor":"section-<id>","align":"full",...} --> per section in the section plan, in order. The anchor attribute is REQUIRED — the studio uses it to splice sections independently later. Sections are full-width bands, so the outer group MUST include \`"align":"full"\` so the section's background (solid color OR gradient) stretches edge-to-edge instead of being a boxed rectangle.
+
+Inside each group, you have total freedom to use either:
 
   (a) Core Gutenberg blocks (wp:heading, wp:paragraph, wp:buttons, wp:columns, wp:image, wp:cover, etc.) — good for content that users will want to edit in the block editor.
   (b) **<!-- wp:html -->** blocks wrapping any HTML + inline <style> you want. This is your escape hatch for rich design: custom grids, hero layouts, SVG, gradients, CSS animations, decorative dividers, anything. The HTML block renders the raw content verbatim in WordPress and remains editable as a single "Custom HTML" block.
 
-Mix both freely inside a section. Example — a hero section built mostly with custom HTML plus an editable heading:
+═══ FULL-WIDTH BANDS + BACKGROUNDS (important) ═══
 
-  <!-- wp:group {"anchor":"section-hero","style":{"spacing":{"padding":{"top":"var:preset|spacing|80","bottom":"var:preset|spacing|80"}}},"layout":{"type":"constrained"}} -->
-  <div id="section-hero" class="wp-block-group" style="padding-top:var(--wp--preset--spacing--80);padding-bottom:var(--wp--preset--spacing--80)">
+Section backgrounds ALWAYS live on the outer wp:group, never on an inner wp:html box. This is how a gradient / solid band stretches edge-to-edge instead of looking like a card.
+
+For a solid color background, set the slug attribute:
+  <!-- wp:group {"anchor":"section-x","align":"full","backgroundColor":"theme-4","textColor":"theme-1",...} -->
+
+For a gradient background, set style.color.gradient with a real CSS gradient string AND add \`has-background\` to the wrapper div's class list. Use CSS variables inside the gradient so it reacts to theme changes:
+  <!-- wp:group {"anchor":"section-x","align":"full","style":{"color":{"gradient":"linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%)"},"spacing":{"padding":{"top":"var:preset|spacing|80","bottom":"var:preset|spacing|80"}}},"textColor":"theme-1","layout":{"type":"constrained"}} -->
+  <div id="section-x" class="wp-block-group alignfull has-theme-1-color has-text-color has-background" style="background:linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%);color:var(--wp--preset--color--theme-1);padding-top:var(--wp--preset--spacing--80);padding-bottom:var(--wp--preset--spacing--80)">
+
+Inside the alignfull group, wrap your content in another <!-- wp:group {"layout":{"type":"constrained"}} --> OR a wp:columns so the actual copy stays readable-width while the background bleeds edge-to-edge.
+
+Never put a "background:linear-gradient" inside a wp:html block expecting it to fill the band — wp:html only covers its own element. Put gradients on the outer wp:group every time.
+
+═══ EXAMPLE — gradient hero section with full-bleed background ═══
+
+Mix both core blocks and wp:html freely inside:
+
+  <!-- wp:group {"anchor":"section-hero","align":"full","style":{"color":{"gradient":"linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%)"},"spacing":{"padding":{"top":"var:preset|spacing|80","bottom":"var:preset|spacing|80","left":"var:preset|spacing|40","right":"var:preset|spacing|40"}}},"textColor":"theme-1","layout":{"type":"constrained"}} -->
+  <div id="section-hero" class="wp-block-group alignfull has-theme-1-color has-text-color has-background" style="background:linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%);color:var(--wp--preset--color--theme-1);padding-top:var(--wp--preset--spacing--80);padding-right:var(--wp--preset--spacing--40);padding-bottom:var(--wp--preset--spacing--80);padding-left:var(--wp--preset--spacing--40)">
     <!-- wp:html -->
     <style>
-      .envosta-hero { position: relative; display: grid; grid-template-columns: 1.2fr 1fr; gap: 64px; align-items: center; }
+      .envosta-hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 64px; align-items: center; }
       .envosta-hero__copy h1 { font-size: clamp(44px, 7vw, 88px); line-height: 1.02; letter-spacing: -0.03em; margin: 0 0 24px; font-family: var(--wp--preset--font-family--heading); }
-      .envosta-hero__copy p  { font-size: 19px; max-width: 46ch; color: var(--wp--preset--color--theme-3); }
-      .envosta-hero__visual { aspect-ratio: 4/5; border-radius: 0; background: linear-gradient(135deg, var(--wp--preset--color--theme-4) 0%, var(--wp--preset--color--theme-5) 100%); position: relative; overflow: hidden; }
-      .envosta-hero__visual::after { content: ""; position: absolute; inset: 0; background: url('https://placehold.co/1200x1500') center/cover; mix-blend-mode: luminosity; opacity: 0.85; }
+      .envosta-hero__copy p  { font-size: 19px; max-width: 46ch; opacity: 0.85; }
+      .envosta-hero__visual { aspect-ratio: 4/5; background: url('https://placehold.co/1200x1500') center/cover; mix-blend-mode: luminosity; opacity: 0.85; }
       @media (max-width: 860px) { .envosta-hero { grid-template-columns: 1fr; gap: 40px; } }
     </style>
     <div class="envosta-hero">
@@ -338,8 +356,8 @@ Mix both freely inside a section. Example — a hero section built mostly with c
     </div>
     <!-- /wp:html -->
     <!-- wp:buttons {"layout":{"type":"flex","justifyContent":"left"}} -->
-    <div class="wp-block-buttons"><!-- wp:button {"backgroundColor":"theme-4","textColor":"theme-1"} -->
-    <div class="wp-block-button"><a class="wp-block-button__link has-theme-1-color has-theme-4-background-color has-text-color has-background wp-element-button" href="/contact">Book a call</a></div>
+    <div class="wp-block-buttons"><!-- wp:button {"backgroundColor":"theme-1","textColor":"theme-4"} -->
+    <div class="wp-block-button"><a class="wp-block-button__link has-theme-4-color has-theme-1-background-color has-text-color has-background wp-element-button" href="/contact">Book a call</a></div>
     <!-- /wp:button --></div>
     <!-- /wp:buttons -->
   </div>

@@ -136,8 +136,32 @@ p { margin: 0 0 1em; }
 .has-xxx-large-font-size { font-size: clamp(40px, 8vw, 160px); line-height: 0.95; }
 
 /* Core block layout helpers */
+/* The preview mimics how WordPress renders blocks: alignfull sections
+ * stretch edge-to-edge (gradient / colour backgrounds bleed past the
+ * content-size container); inner constrained groups clip back to the
+ * readable content width. */
 .wp-block-group.is-layout-constrained { max-width: 1440px; margin-left: auto; margin-right: auto; padding-left: 24px; padding-right: 24px; }
 .wp-block-group > .wp-block-group { max-width: none; }
+.alignfull,
+.wp-block-group.alignfull {
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+.alignfull.is-layout-constrained,
+.wp-block-group.alignfull.is-layout-constrained {
+  /* Outer spans the viewport; inner content still wraps at the content size */
+  padding-left: max(24px, calc(50vw - 720px));
+  padding-right: max(24px, calc(50vw - 720px));
+}
+.alignwide {
+  width: 100%;
+  max-width: min(1440px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+.has-background { background-clip: padding-box; }
 .wp-block-columns { display: grid; gap: 32px; grid-template-columns: 1fr; }
 @media (min-width: 780px) {
   .wp-block-columns { grid-template-columns: repeat(var(--envosta-cols, 2), 1fr); }
