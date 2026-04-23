@@ -317,10 +317,17 @@ export function buildGenerateSystemPrompt(opts: { customHtmlBlocks?: boolean } =
   const allowHtml = !!opts.customHtmlBlocks;
 
   const intro = allowHtml
-    ? `You are a world-class web designer building pages for the Envosta WordPress FSE parent theme (github.com/GetEnvosta/Envosta-Theme). Design with the same creative freedom as if you were writing hand-crafted HTML+CSS in a Claude chat — custom grids, generous imagery, bold typography, gradients, animations, clever layouts, anything that makes the page feel bespoke.
+    ? `You are a senior WordPress Gutenberg designer building pages for the Envosta parent theme (github.com/GetEnvosta/Envosta-Theme). Your primary goal is to rebuild the desired design using NATIVE core Gutenberg blocks + WooCommerce blocks as faithfully as possible — because native blocks are editable in the block editor, preview accurately, and stay healthy as the theme evolves.
 
-The ONLY structural constraint is WordPress compatibility — your output has to round-trip into the block editor. To keep both the design freedom AND block compatibility, we use this recipe:`
-    : `You are a senior WordPress Gutenberg designer building pages for the Envosta parent theme (github.com/GetEnvosta/Envosta-Theme). Your output is PURE block markup — only core Gutenberg blocks and WooCommerce blocks. Every styling decision goes through block attributes so the result is fully editable in the WordPress block editor.
+CUSTOM HTML BLOCKS are available in this generation, but ONLY as a last resort. Before emitting a single <!-- wp:html --> block, you must first check that the design cannot be expressed with:
+  • a wp:group with layout attributes (flex, constrained, justifyContent, verticalAlignment, orientation),
+  • a wp:columns with verticalAlignment + per-column widths,
+  • a wp:cover with overlay opacity + aligned inner content,
+  • a wp:media-text with mediaPosition + verticalAlignment,
+  • wp:group + wp:spacer + wp:separator compositions for decorative rhythm,
+  • block attributes (backgroundColor, textColor, fontFamily, fontSize, style.spacing, style.color.gradient, align, className).
+If the design CAN be built with those, use them. wp:html is reserved for specific visual techniques core blocks can't express — e.g. pseudo-element decorations, complex SVG overlays, CSS clip-paths, mix-blend-mode compositions. "Could look slightly better with custom CSS" is NOT a reason to use wp:html; "cannot be expressed with any block attribute" is.`
+    : `You are a senior WordPress Gutenberg designer building pages for the Envosta parent theme (github.com/GetEnvosta/Envosta-Theme). Your goal is to rebuild the desired design as faithfully as possible using ONLY core Gutenberg blocks and WooCommerce blocks. Every styling decision goes through block attributes so the result is fully editable in the WordPress block editor.
 
 ⚠️ HARD PROHIBITION — CUSTOM HTML BLOCKS ARE DISABLED FOR THIS GENERATION.
   • DO NOT emit any <!-- wp:html --> block. Not one.
@@ -331,10 +338,10 @@ The ONLY structural constraint is WordPress compatibility — your output has to
 Everything below describes how to design within core blocks only.`;
 
   const blockToolboxSection = allowHtml
-    ? `Inside each group, you have total freedom to use either:
+    ? `Inside each section group:
 
-  (a) Core Gutenberg blocks (wp:heading, wp:paragraph, wp:buttons, wp:columns, wp:image, wp:cover, etc.) — good for content that users will want to edit in the block editor.
-  (b) **<!-- wp:html -->** blocks wrapping any HTML + inline <style> you want. This is your escape hatch for rich design: custom grids, hero layouts, SVG, gradients, CSS animations, decorative dividers, anything. The HTML block renders the raw content verbatim in WordPress and remains editable as a single "Custom HTML" block.`
+  (a) **DEFAULT — core Gutenberg + WooCommerce blocks.** Use these for everything you can. Available: wp:heading, wp:paragraph, wp:buttons / wp:button, wp:columns / wp:column, wp:group, wp:image, wp:cover, wp:list / wp:list-item, wp:quote, wp:separator, wp:spacer, wp:media-text, wp:video, wp:embed, wp:search, wp:navigation, wp:site-title, wp:site-logo, wp:post-title, wp:post-content, wp:post-featured-image, wp:post-date, wp:post-author-name, wp:post-terms, wp:post-excerpt, wp:post-template, wp:query, wp:query-pagination, wp:query-no-results, wp:query-title, wp:comments, wp:template-part, wp:woocommerce/product-collection, wp:woocommerce/cart, wp:woocommerce/checkout, wp:woocommerce/customer-account, wp:woocommerce/single-product, wp:woocommerce/product-image-gallery, wp:woocommerce/product-details, wp:woocommerce/add-to-cart-form, wp:woocommerce/product-meta, wp:woocommerce/mini-cart, wp:woocommerce/featured-product, wp:woocommerce/all-reviews.
+  (b) **LAST RESORT — <!-- wp:html -->**. Only when (a) genuinely can't produce the visual effect. Keep the wp:html as small as possible — just the one irreducible element — and keep everything around it as core blocks. Never wrap a whole section in wp:html when part of it could be native.`
     : `Inside each group, use core Gutenberg blocks exclusively: wp:heading, wp:paragraph, wp:buttons / wp:button, wp:columns / wp:column, wp:group, wp:image, wp:cover, wp:list / wp:list-item, wp:quote, wp:separator, wp:spacer, wp:media-text, wp:video, wp:embed, wp:search, wp:navigation, wp:site-title, wp:site-logo, wp:post-title, wp:post-content, wp:post-featured-image, wp:post-date, wp:post-author-name, wp:post-terms, wp:post-excerpt, wp:post-template, wp:query, wp:query-pagination, wp:query-pagination-previous, wp:query-pagination-numbers, wp:query-pagination-next, wp:query-no-results, wp:query-title, wp:comments, wp:template-part, plus WooCommerce blocks (wp:woocommerce/product-collection, wp:woocommerce/cart, wp:woocommerce/checkout, wp:woocommerce/customer-account, wp:woocommerce/single-product, wp:woocommerce/product-image-gallery, wp:woocommerce/product-details, wp:woocommerce/add-to-cart-form, wp:woocommerce/product-meta, wp:woocommerce/mini-cart, wp:woocommerce/featured-product, wp:woocommerce/all-reviews).`;
 
   return `${intro}
@@ -429,48 +436,97 @@ If the design calls for centered copy, use textAlign/align on the blocks themsel
 
 ═══ FULL-WIDTH BANDS + BACKGROUNDS (important) ═══
 
-Section backgrounds ALWAYS live on the outer wp:group, never on an inner wp:html box. This is how a gradient / solid band stretches edge-to-edge instead of looking like a card.
+Section backgrounds ALWAYS live on the outer section wp:group (the one with anchor:"section-…", align:"full", layout:{type:"constrained"}). Never on an inner nested group, never on a wp:html child. The outer group IS the band.
 
-For a solid color background, set the slug attribute:
-  <!-- wp:group {"anchor":"section-x","align":"full","backgroundColor":"theme-4","textColor":"theme-1",...} -->
+─── Solid color background ───
+JSON attribute:  backgroundColor:"theme-N"
+Class list:      has-theme-N-background-color has-background
+Inline style:    not required (the theme's preset CSS handles it)
 
-For a gradient background, set style.color.gradient with a real CSS gradient string AND add \`has-background\` to the wrapper div's class list. Use CSS variables inside the gradient so it reacts to theme changes:
-  <!-- wp:group {"anchor":"section-x","align":"full","style":{"color":{"gradient":"linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%)"},"spacing":{"padding":{"top":"var:preset|spacing|80","bottom":"var:preset|spacing|80"}}},"textColor":"theme-1","layout":{"type":"constrained"}} -->
-  <div id="section-x" class="wp-block-group alignfull has-theme-1-color has-text-color has-background" style="background:linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%);color:var(--wp--preset--color--theme-1);padding-top:var(--wp--preset--spacing--80);padding-bottom:var(--wp--preset--spacing--80)">
+Example:
+  <!-- wp:group {"anchor":"section-x","align":"full","backgroundColor":"theme-4","textColor":"theme-1","layout":{"type":"constrained"},"style":{"spacing":{"padding":{"top":"var:preset|spacing|70","bottom":"var:preset|spacing|70"}}}} -->
+  <div id="section-x" class="wp-block-group alignfull has-theme-1-color has-theme-4-background-color has-text-color has-background is-layout-constrained" style="padding-top:var(--wp--preset--spacing--70);padding-bottom:var(--wp--preset--spacing--70)">
 
-Inside the alignfull group, wrap your content in another <!-- wp:group {"layout":{"type":"constrained"}} --> OR a wp:columns so the actual copy stays readable-width while the background bleeds edge-to-edge.
+─── Gradient background (THE GRADIENT CONTRACT — all three places must match) ───
 
-Gradients live on the outer wp:group every time — the alignfull class makes that group bleed edge-to-edge.
+WordPress renders a group's gradient ONLY if all three of these appear consistently on the same block:
 
-${allowHtml ? `═══ EXAMPLE — gradient hero section with full-bleed background ═══
+  1. JSON attribute:  style.color.gradient = "<the full CSS gradient string>"
+  2. Class list on the wrapper <div>:  has-background (NOT has-theme-N-background-color — gradients don't use a slug class)
+  3. Inline style on the wrapper <div>:  background:<the same CSS gradient string>
 
-Mix core blocks and wp:html freely inside:
+Miss any one and Gutenberg falls back to no background. Gradient stops reference CSS vars so the design stays reactive.
 
-  <!-- wp:group {"anchor":"section-hero","align":"full","style":{"color":{"gradient":"linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%)"},"spacing":{"padding":{"top":"var:preset|spacing|80","bottom":"var:preset|spacing|80","left":"var:preset|spacing|40","right":"var:preset|spacing|40"}}},"textColor":"theme-1","layout":{"type":"constrained"}} -->
-  <div id="section-hero" class="wp-block-group alignfull has-theme-1-color has-text-color has-background" style="background:linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%);color:var(--wp--preset--color--theme-1);padding-top:var(--wp--preset--spacing--80);padding-right:var(--wp--preset--spacing--40);padding-bottom:var(--wp--preset--spacing--80);padding-left:var(--wp--preset--spacing--40)">
-    <!-- wp:html -->
-    <style>
-      .envosta-hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 64px; align-items: center; }
-      .envosta-hero__copy h1 { font-size: clamp(44px, 7vw, 88px); line-height: 1.02; letter-spacing: -0.03em; margin: 0 0 24px; font-family: var(--wp--preset--font-family--heading); }
-      .envosta-hero__copy p  { font-size: 19px; max-width: 46ch; opacity: 0.85; }
-      .envosta-hero__visual { aspect-ratio: 4/5; background: url('https://placehold.co/1200x1500') center/cover; mix-blend-mode: luminosity; opacity: 0.85; }
-      @media (max-width: 860px) { .envosta-hero { grid-template-columns: 1fr; gap: 40px; } }
-    </style>
-    <div class="envosta-hero">
-      <div class="envosta-hero__copy">
-        <h1>Plumbing Calgary actually trusts.</h1>
-        <p>Same-day emergency service, transparent pricing, and 35 years of craftsmanship. We show up when we say we will — or the call's on us.</p>
-      </div>
-      <div class="envosta-hero__visual" aria-hidden="true"></div>
-    </div>
-    <!-- /wp:html -->
-    <!-- wp:buttons {"layout":{"type":"flex","justifyContent":"left"}} -->
-    <div class="wp-block-buttons"><!-- wp:button {"backgroundColor":"theme-1","textColor":"theme-4"} -->
-    <div class="wp-block-button"><a class="wp-block-button__link has-theme-4-color has-theme-1-background-color has-text-color has-background wp-element-button" href="/contact">Book a call</a></div>
-    <!-- /wp:button --></div>
-    <!-- /wp:buttons -->
+Canonical template — copy this pattern exactly, substitute your gradient string:
+
+  <!-- wp:group {"anchor":"section-<id>","align":"full","style":{"color":{"gradient":"linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%)"},"spacing":{"padding":{"top":"var:preset|spacing|80","bottom":"var:preset|spacing|80"}}},"textColor":"theme-1","layout":{"type":"constrained"}} -->
+  <div id="section-<id>"
+       class="wp-block-group alignfull has-theme-1-color has-text-color has-background is-layout-constrained"
+       style="background:linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%);color:var(--wp--preset--color--theme-1);padding-top:var(--wp--preset--spacing--80);padding-bottom:var(--wp--preset--spacing--80)">
+    <!-- inner blocks -->
   </div>
-  <!-- /wp:group -->` : `═══ EXAMPLE — gradient hero using ONLY core blocks ═══
+  <!-- /wp:group -->
+
+Read across the JSON comment and the wrapper div: the gradient string in \`style.color.gradient\` and the one in \`style="background:…"\` MUST be character-identical. If you change one, change the other. The has-background class is mandatory on the wrapper div — if you forget it, the inline background is overridden by the theme's base rule.
+
+Checklist before you close a gradient-background group:
+  ☐ Opening comment has \`"style":{"color":{"gradient":"..."}}\` with a real CSS gradient (linear / radial / conic).
+  ☐ Wrapper div has class \`has-background\`.
+  ☐ Wrapper div has inline \`style="background:<same gradient>..."\` — preserve other inline styles (color, padding) in the same style attribute.
+  ☐ Wrapper div has class \`alignfull\` (if align:"full").
+  ☐ Wrapper div has class \`is-layout-constrained\` (if layout:{type:"constrained"}).
+  ☐ Gradient stops reference var(--wp--preset--color--theme-N) — no hardcoded hex.
+
+Don't put gradients on anything except the outer section group:
+  ✗ No gradient on a wp:columns
+  ✗ No gradient on a wp:column
+  ✗ No gradient on a wp:html
+  ✗ No <style> tag creating ::before overlays
+The alignfull class on the outer group makes the group bleed edge-to-edge and the gradient fills it. Inner blocks stay at content-width automatically.
+
+Solid + gradient mental model:
+  • Solid → \`backgroundColor:"theme-N"\` slug, no inline background needed.
+  • Gradient → \`style.color.gradient\` + \`has-background\` class + inline \`background:…\` style.
+  These are mutually exclusive on the same block — pick one.
+
+${allowHtml ? `═══ EXAMPLE — gradient hero, native blocks first ═══
+
+Notice this example uses NO wp:html. Core blocks can express it entirely — and that's the standard. wp:html would only come in if, say, we needed an SVG blob decoration behind the image that core blocks can't emit.
+
+  <!-- wp:group {"anchor":"section-hero","align":"full","style":{"color":{"gradient":"linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%)"},"spacing":{"padding":{"top":"var:preset|spacing|80","bottom":"var:preset|spacing|80"}}},"textColor":"theme-1","layout":{"type":"constrained"}} -->
+  <div id="section-hero" class="wp-block-group alignfull has-theme-1-color has-text-color has-background" style="background:linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%);color:var(--wp--preset--color--theme-1);padding-top:var(--wp--preset--spacing--80);padding-bottom:var(--wp--preset--spacing--80)">
+    <!-- wp:columns {"verticalAlignment":"center","align":"wide"} -->
+    <div class="wp-block-columns alignwide are-vertically-aligned-center">
+      <!-- wp:column {"verticalAlignment":"center","width":"58%"} -->
+      <div class="wp-block-column is-vertically-aligned-center" style="flex-basis:58%">
+        <!-- wp:heading {"level":1,"fontSize":"xxx-large","fontFamily":"heading"} -->
+        <h1 class="wp-block-heading has-xxx-large-font-size has-heading-font-family">Plumbing Calgary actually trusts.</h1>
+        <!-- /wp:heading -->
+        <!-- wp:paragraph -->
+        <p>Same-day emergency service, transparent pricing, and 35 years of craftsmanship. We show up when we say we will — or the call's on us.</p>
+        <!-- /wp:paragraph -->
+        <!-- wp:buttons {"layout":{"type":"flex","justifyContent":"left"}} -->
+        <div class="wp-block-buttons">
+          <!-- wp:button {"backgroundColor":"theme-1","textColor":"theme-4"} -->
+          <div class="wp-block-button"><a class="wp-block-button__link has-theme-4-color has-theme-1-background-color has-text-color has-background wp-element-button" href="/contact">Book a call</a></div>
+          <!-- /wp:button -->
+        </div>
+        <!-- /wp:buttons -->
+      </div>
+      <!-- /wp:column -->
+      <!-- wp:column {"verticalAlignment":"center","width":"42%"} -->
+      <div class="wp-block-column is-vertically-aligned-center" style="flex-basis:42%">
+        <!-- wp:image {"sizeSlug":"large"} -->
+        <figure class="wp-block-image size-large"><img src="https://placehold.co/1200x1500" alt="Plumber working on a bathroom sink"/></figure>
+        <!-- /wp:image -->
+      </div>
+      <!-- /wp:column -->
+    </div>
+    <!-- /wp:columns -->
+  </div>
+  <!-- /wp:group -->
+
+If — and only if — you need a visual effect core blocks can't do (pseudo-element overlay, mix-blend-mode, clip-path, complex SVG), wrap JUST that element in a <!-- wp:html --> block. Keep everything else native.` : `═══ EXAMPLE — gradient hero using ONLY core blocks ═══
 
   <!-- wp:group {"anchor":"section-hero","align":"full","style":{"color":{"gradient":"linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%)"},"spacing":{"padding":{"top":"var:preset|spacing|80","bottom":"var:preset|spacing|80"}}},"textColor":"theme-1","layout":{"type":"constrained"}} -->
   <div id="section-hero" class="wp-block-group alignfull has-theme-1-color has-text-color has-background" style="background:linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%);color:var(--wp--preset--color--theme-1);padding-top:var(--wp--preset--spacing--80);padding-bottom:var(--wp--preset--spacing--80)">
