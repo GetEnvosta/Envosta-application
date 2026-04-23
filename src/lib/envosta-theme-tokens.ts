@@ -1,32 +1,17 @@
 /**
  * Runtime loader for the Envosta parent theme's design tokens.
  *
- * Source of truth: https://github.com/GetEnvosta/Envosta-Theme
+ * Source of truth: https://github.com/GetEnvosta/Envosta-Theme (public).
  *
- * Strategy:
- *   1. Every call checks the current commit SHA of the configured ref (default
- *      `main`) via api.github.com/repos/.../commits/REF — tiny response.
- *   2. If the SHA matches what we have cached, return cached tokens.
- *   3. If SHA changed (or no cache), fetch theme.json + styles/*.json +
- *      styles/block/*.json + parts/*.html + patterns/*.php from raw.github,
- *      parse, and update the in-memory cache.
- *   4. SHA checks are themselves throttled (default 10 min) so typing in the
- *      studio doesn't hammer GitHub.
- *   5. On any GitHub error we fall back to the last-known cache, then to the
- *      typed hardcoded fallback at the bottom of this file. The studio
- *      degrades to "best guess" instead of crashing.
- *
- * Config env vars (all optional):
- *   ENVOSTA_THEME_REPO   — override "GetEnvosta/Envosta-Theme"
- *   ENVOSTA_THEME_REF    — override "main" (could point at a release tag)
- *   ENVOSTA_GITHUB_TOKEN — PAT for the 5000/hr rate limit (unauth is 60/hr)
- *   ENVOSTA_THEME_WEBHOOK_SECRET — required for /api/studio/theme-tokens
- *                                  POST webhook-based invalidation
+ * getEnvostaThemeTokens() checks the current commit SHA of main once per
+ * 10 minutes. If it matches the cache, returns cached tokens. If not,
+ * fetches theme.json + styles/*.json + styles/block/*.json + parts/*.html
+ * + patterns/*.php in parallel, parses, caches. GitHub errors → last-known
+ * cache, then the typed hardcoded fallback at the bottom of this file.
  */
 
-const THEME_REPO = process.env.ENVOSTA_THEME_REPO || 'GetEnvosta/Envosta-Theme';
-const THEME_REF = process.env.ENVOSTA_THEME_REF || 'main';
-const GITHUB_TOKEN = process.env.ENVOSTA_GITHUB_TOKEN;
+const THEME_REPO = 'GetEnvosta/Envosta-Theme';
+const THEME_REF = 'main';
 const SHA_CHECK_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 const FETCH_TIMEOUT_MS = 8000;
 
@@ -64,7 +49,6 @@ export type EnvostaThemeTokens = {
   repo: string;
   ref: string;
   fetchedAt: number;          // epoch ms the tokens were fetched
-  source: 'live' | 'cache-stale' | 'fallback';
 
   // From theme.json
   themeJson: any | null;
@@ -97,22 +81,17 @@ let lastShaCheckAt = 0;
 
 // ─── Low-level fetch helpers ─────────────────────────────────────────
 
-function ghHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
+const FETCH_OPTS = {
+  headers: {
     'User-Agent': 'EnvostaStudio/1.0',
     Accept: 'application/vnd.github+json',
-  };
-  if (GITHUB_TOKEN) headers.Authorization = `Bearer ${GITHUB_TOKEN}`;
-  return headers;
-}
+  } as Record<string, string>,
+  cache: 'no-store' as const,
+};
 
 async function fetchJson<T>(url: string): Promise<T | null> {
   try {
-    const res = await fetch(url, {
-      headers: ghHeaders(),
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      cache: 'no-store',
-    });
+    const res = await fetch(url, { ...FETCH_OPTS, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -122,11 +101,7 @@ async function fetchJson<T>(url: string): Promise<T | null> {
 
 async function fetchText(url: string): Promise<string | null> {
   try {
-    const res = await fetch(url, {
-      headers: ghHeaders(),
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      cache: 'no-store',
-    });
+    const res = await fetch(url, { ...FETCH_OPTS, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!res.ok) return null;
     return await res.text();
   } catch {
@@ -239,7 +214,6 @@ async function fetchAllTokens(sha: string): Promise<EnvostaThemeTokens | null> {
     repo: THEME_REPO,
     ref: THEME_REF,
     fetchedAt: now,
-    source: 'live',
     themeJson,
     palette: (themeJson?.settings?.color?.palette || []) as ColorStop[],
     fontFamilies: (themeJson?.settings?.typography?.fontFamilies || []).map((f: any) => ({
@@ -289,7 +263,6 @@ export const ENVOSTA_THEME_TOKENS_FALLBACK: EnvostaThemeTokens = {
   repo: THEME_REPO,
   ref: THEME_REF,
   fetchedAt: 0,
-  source: 'fallback',
   themeJson: null,
   palette: [
     { slug: 'theme-1', color: '#FFFFFF', name: 'Color 1' },
@@ -354,11 +327,8 @@ export async function getEnvostaThemeTokens(
   lastShaCheckAt = now;
 
   if (!currentSha) {
-    // GitHub unreachable — degrade gracefully.
-    if (cache) {
-      return { ...cache.tokens, source: 'cache-stale' };
-    }
-    return ENVOSTA_THEME_TOKENS_FALLBACK;
+    // GitHub unreachable — use last cache, or the hardcoded fallback.
+    return cache?.tokens ?? ENVOSTA_THEME_TOKENS_FALLBACK;
   }
 
   // SHA unchanged — cache is still valid.
@@ -374,29 +344,11 @@ export async function getEnvostaThemeTokens(
   }
 
   // Refetch failed despite GitHub being reachable. Fall back.
-  if (cache) return { ...cache.tokens, source: 'cache-stale' };
-  return ENVOSTA_THEME_TOKENS_FALLBACK;
+  return cache?.tokens ?? ENVOSTA_THEME_TOKENS_FALLBACK;
 }
 
-/** Drop the in-memory cache (webhook / admin refresh). */
+/** Drop the in-memory cache (manual refresh). */
 export function invalidateEnvostaThemeTokensCache(): void {
   cache = null;
   lastShaCheckAt = 0;
-}
-
-/** Introspection for admin UIs. */
-export function envostaThemeTokensCacheInfo(): {
-  cached: boolean;
-  sha: string | null;
-  fetchedAt: number | null;
-  repo: string;
-  ref: string;
-} {
-  return {
-    cached: !!cache,
-    sha: cache?.sha ?? null,
-    fetchedAt: cache?.fetchedAt ?? null,
-    repo: THEME_REPO,
-    ref: THEME_REF,
-  };
 }
