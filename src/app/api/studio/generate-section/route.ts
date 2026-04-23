@@ -58,6 +58,28 @@ STRUCTURE — this is the only hard constraint:
 
 Output EXACTLY one top-level <!-- wp:group {"anchor":"section-{ID}","align":"full",...} -->…<!-- /wp:group --> block (using the id the user supplied). Nothing outside the group. Sections are full-width bands, so the outer group MUST include \`"align":"full"\` with class \`alignfull\` on the wrapper div so any background (solid color OR gradient) stretches edge-to-edge.
 
+LAYOUT + ALIGNMENT RECIPE (single constrained+full group pattern):
+
+  One wp:group with BOTH align:"full" AND layout:{type:"constrained"} →
+  background bleeds edge-to-edge AND inner blocks auto-wrap at content-width
+  (Gutenberg's "Inner blocks use content width"). The wrapper div gets
+  classes "alignfull is-layout-constrained" plus any has-…-background-color,
+  has-…-color, has-background, has-…-font-family / font-size that match the
+  attributes. Padding (top/bottom via style.spacing.padding with
+  var:preset|spacing|NN slugs) goes on this same group.
+
+  Inside the section pick one of:
+    • horizontal row  → wp:group layout:{type:"flex",justifyContent:"center",verticalAlignment:"center",flexWrap:"wrap"}
+    • vertical stack  → wp:group layout:{type:"flex",orientation:"vertical",justifyContent:"center"}
+    • column grid     → wp:columns with verticalAlignment + per-column widths
+    • media + text    → wp:media-text with mediaPosition + verticalAlignment
+  Centered headings / paragraphs / buttons set textAlign/align on the block
+  AND the wrapper has class has-text-align-center. Flex groups must have
+  matching classes: is-content-justification-{left|center|right|space-between},
+  is-vertical-alignment-{top|center|bottom}, is-vertical-orientation.
+  Inner blocks with align:"wide" break out to wideSize; align:"full" breaks
+  to the viewport edge. Plain inner blocks stay at contentSize.
+
 BACKGROUND RULE: gradients and solid colors ALWAYS live on the outer wp:group, never on an inner wp:html box. For gradient bands, set style.color.gradient with a real CSS gradient string referencing CSS vars, and add \`has-background\` to the wrapper div. Example:
 
   <!-- wp:group {"anchor":"section-{ID}","align":"full","style":{"color":{"gradient":"linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%)"},"spacing":{"padding":{"top":"var:preset|spacing|80","bottom":"var:preset|spacing|80"}}},"textColor":"theme-1","layout":{"type":"constrained"}} -->

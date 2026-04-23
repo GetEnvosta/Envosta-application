@@ -136,11 +136,7 @@ p { margin: 0 0 1em; }
 .has-xx-large-font-size { font-size: clamp(40px, 6vw, 80px); }
 .has-xxx-large-font-size { font-size: clamp(40px, 8vw, 160px); line-height: 0.95; }
 
-/* Core block layout helpers */
-/* The preview mimics how WordPress renders blocks: alignfull sections
- * stretch edge-to-edge (gradient / colour backgrounds bleed past the
- * content-size container); inner constrained groups clip back to the
- * readable content width. */
+/* Core block layout helpers — mimic how WordPress renders blocks. */
 .wp-block-group.is-layout-constrained { max-width: 1440px; margin-left: auto; margin-right: auto; padding-left: 24px; padding-right: 24px; }
 .wp-block-group > .wp-block-group { max-width: none; }
 .alignfull,
@@ -152,7 +148,6 @@ p { margin: 0 0 1em; }
 }
 .alignfull.is-layout-constrained,
 .wp-block-group.alignfull.is-layout-constrained {
-  /* Outer spans the viewport; inner content still wraps at the content size */
   padding-left: max(24px, calc(50vw - 720px));
   padding-right: max(24px, calc(50vw - 720px));
 }
@@ -163,6 +158,74 @@ p { margin: 0 0 1em; }
   margin-right: auto;
 }
 .has-background { background-clip: padding-box; }
+
+/* Flex layouts (wp:group with layout.type:"flex") */
+.is-layout-flex {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--wp--style--block-gap, 0.5em);
+}
+.is-layout-flex.is-nowrap { flex-wrap: nowrap; }
+.is-layout-flex.is-vertical-orientation,
+.is-layout-flex.is-layout-flex-vertical { flex-direction: column; }
+.is-layout-flex.is-content-justification-left { justify-content: flex-start; }
+.is-layout-flex.is-content-justification-center { justify-content: center; }
+.is-layout-flex.is-content-justification-right { justify-content: flex-end; }
+.is-layout-flex.is-content-justification-space-between { justify-content: space-between; }
+.is-layout-flex.is-content-justification-space-around { justify-content: space-around; }
+.is-layout-flex.is-vertical-alignment-top { align-items: flex-start; }
+.is-layout-flex.is-vertical-alignment-center { align-items: center; }
+.is-layout-flex.is-vertical-alignment-bottom { align-items: flex-end; }
+/* In vertical orientation, the alignment axes swap */
+.is-layout-flex.is-vertical-orientation.is-content-justification-center { align-items: center; justify-content: flex-start; }
+
+/* Text alignment helpers */
+.has-text-align-left   { text-align: left; }
+.has-text-align-center { text-align: center; }
+.has-text-align-right  { text-align: right; }
+
+/* wp:columns — use CSS columns as intended by Gutenberg */
+.wp-block-columns {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 1.75em;
+}
+.wp-block-columns.are-vertically-aligned-top    { align-items: flex-start; }
+.wp-block-columns.are-vertically-aligned-center { align-items: center; }
+.wp-block-columns.are-vertically-aligned-bottom { align-items: flex-end; }
+.wp-block-column {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.wp-block-column.is-vertically-aligned-top    { align-self: flex-start; }
+.wp-block-column.is-vertically-aligned-center { align-self: center; }
+.wp-block-column.is-vertically-aligned-bottom { align-self: flex-end; }
+@media (max-width: 780px) {
+  .wp-block-columns:not(.is-not-stacked-on-mobile) { flex-direction: column; }
+  .wp-block-columns:not(.is-not-stacked-on-mobile) > .wp-block-column { flex-basis: 100% !important; }
+}
+
+/* wp:media-text — side-by-side media and copy */
+.wp-block-media-text {
+  display: grid;
+  grid-template-columns: 50% 1fr;
+  align-items: center;
+  gap: 48px;
+}
+.wp-block-media-text.has-media-on-the-right { grid-template-columns: 1fr 50%; }
+.wp-block-media-text.has-media-on-the-right .wp-block-media-text__media { order: 2; }
+.wp-block-media-text.has-media-on-the-right .wp-block-media-text__content { order: 1; }
+.wp-block-media-text.is-vertically-aligned-top    { align-items: flex-start; }
+.wp-block-media-text.is-vertically-aligned-center { align-items: center; }
+.wp-block-media-text.is-vertically-aligned-bottom { align-items: flex-end; }
+.wp-block-media-text__media img { width: 100%; height: auto; display: block; }
+.wp-block-media-text__content { padding: 0 8%; }
+@media (max-width: 780px) {
+  .wp-block-media-text.is-stacked-on-mobile { grid-template-columns: 1fr; }
+  .wp-block-media-text.is-stacked-on-mobile .wp-block-media-text__content { padding: 24px; }
+}
 .wp-block-columns { display: grid; gap: 32px; grid-template-columns: 1fr; }
 @media (min-width: 780px) {
   .wp-block-columns { grid-template-columns: repeat(var(--envosta-cols, 2), 1fr); }

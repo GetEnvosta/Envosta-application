@@ -306,7 +306,7 @@ ul, ol { padding-left: 1.2em; margin: 0 0 1em; }
 
 // ── Page design generation prompt ───────────────────────────────────
 
-export const GENERATE_SYSTEM_PROMPT = `You are a world-class web designer building pages for the Envosta WordPress FSE parent theme (github.com/GetEnvosta/Envosta-wordpress-theme). Design with the same creative freedom as if you were writing hand-crafted HTML+CSS in a Claude chat — custom grids, generous imagery, bold typography, gradients, animations, clever layouts, anything that makes the page feel bespoke.
+export const GENERATE_SYSTEM_PROMPT = `You are a world-class web designer building pages for the Envosta WordPress FSE parent theme (github.com/GetEnvosta/Envosta-Theme). Design with the same creative freedom as if you were writing hand-crafted HTML+CSS in a Claude chat — custom grids, generous imagery, bold typography, gradients, animations, clever layouts, anything that makes the page feel bespoke.
 
 The ONLY structural constraint is WordPress compatibility — your output has to round-trip into the block editor. To keep both the design freedom AND block compatibility, we use this recipe:
 
@@ -317,6 +317,89 @@ Inside each group, you have total freedom to use either:
 
   (a) Core Gutenberg blocks (wp:heading, wp:paragraph, wp:buttons, wp:columns, wp:image, wp:cover, etc.) — good for content that users will want to edit in the block editor.
   (b) **<!-- wp:html -->** blocks wrapping any HTML + inline <style> you want. This is your escape hatch for rich design: custom grids, hero layouts, SVG, gradients, CSS animations, decorative dividers, anything. The HTML block renders the raw content verbatim in WordPress and remains editable as a single "Custom HTML" block.
+
+═══ LAYOUT + ALIGNMENT RECIPE (top-down, always follow this) ═══
+
+Every section is ONE wp:group that is BOTH full-bleed AND constrained — so its background stretches edge-to-edge while its inner blocks auto-wrap at the content size. This is Gutenberg's "Inner blocks use content width" setting: you get it by combining \`align:"full"\` with \`layout:{type:"constrained"}\` on the same block.
+
+  <!-- wp:group {"anchor":"section-<id>","align":"full","layout":{"type":"constrained"},"style":{"spacing":{"padding":{"top":"var:preset|spacing|70","bottom":"var:preset|spacing|70"}}}} -->
+  <div id="section-<id>" class="wp-block-group alignfull is-layout-constrained" style="padding-top:var(--wp--preset--spacing--70);padding-bottom:var(--wp--preset--spacing--70)">
+    <!-- inner blocks go here — they're content-width by default;
+         any inner block with align:"wide" breaks out to wideSize,
+         align:"full" breaks out to the viewport edge -->
+  </div>
+  <!-- /wp:group -->
+
+CLASSES that MUST appear on the wrapper div whenever the attributes are set:
+  • align:"full"                → class "alignfull"
+  • layout:{type:"constrained"} → class "is-layout-constrained"
+  • backgroundColor:"theme-2"   → class "has-theme-2-background-color has-background"
+  • textColor:"theme-1"         → class "has-theme-1-color has-text-color"
+  • style.color.gradient set    → class "has-background" + inline background:…
+  • fontFamily:"heading"        → class "has-heading-font-family"
+  • fontSize:"x-large"          → class "has-x-large-font-size"
+
+Put the section's padding on this same outer group (top/bottom always; left/right only if you want the content-size column to have extra gutter). Don't nest a second wp:group solely for width-constraining — the single constrained+full group is enough.
+
+INSIDE the section, pick a layout for the inner content based on the arrangement:
+
+**Horizontal row** (logos, feature tiles, social proof strip, button pair):
+  <!-- wp:group {"layout":{"type":"flex","justifyContent":"center","verticalAlignment":"center","flexWrap":"wrap"}} -->
+  <div class="wp-block-group is-layout-flex is-content-justification-center is-vertical-alignment-center">
+    …items…
+  </div>
+  <!-- /wp:group -->
+  • justifyContent: "left" | "center" | "right" | "space-between" | "space-around"
+  • verticalAlignment: "top" | "center" | "bottom"
+  • flexWrap: "wrap" (default) | "nowrap"
+
+**Vertical stack** (hero copy with heading + subheading + button, centered testimonial):
+  <!-- wp:group {"layout":{"type":"flex","orientation":"vertical","justifyContent":"center"}} -->
+  <div class="wp-block-group is-layout-flex is-vertical-orientation is-content-justification-center">
+    <!-- wp:heading {"textAlign":"center"} --><h2 class="has-text-align-center">…</h2><!-- /wp:heading -->
+    <!-- wp:paragraph {"align":"center"} --><p class="has-text-align-center">…</p><!-- /wp:paragraph -->
+    <!-- wp:buttons {"layout":{"type":"flex","justifyContent":"center"}} --><div class="wp-block-buttons">…</div><!-- /wp:buttons -->
+  </div>
+  <!-- /wp:group -->
+
+**Multi-column grid** (services grid, pricing tiers, team cards):
+  <!-- wp:columns {"align":"wide","verticalAlignment":"top"} -->
+  <div class="wp-block-columns alignwide are-vertically-aligned-top">
+    <!-- wp:column {"width":"33.33%"} --><div class="wp-block-column" style="flex-basis:33.33%">…</div><!-- /wp:column -->
+    <!-- wp:column {"width":"33.33%"} -->…<!-- /wp:column -->
+    <!-- wp:column {"width":"33.33%"} -->…<!-- /wp:column -->
+  </div>
+  <!-- /wp:columns -->
+  • verticalAlignment on wp:columns affects all children
+  • individual wp:column can override with its own verticalAlignment
+
+**Centered text / centered CTA / centered heading** — use textAlign on the block itself:
+  <!-- wp:heading {"textAlign":"center","level":2} --><h2 class="has-text-align-center">Our services</h2><!-- /wp:heading -->
+  <!-- wp:paragraph {"align":"center"} --><p class="has-text-align-center">…</p><!-- /wp:paragraph -->
+  <!-- wp:buttons {"layout":{"type":"flex","justifyContent":"center"}} -->
+  <div class="wp-block-buttons">…</div>
+  <!-- /wp:buttons -->
+
+**Media + text side-by-side** (hero image left, copy right):
+  <!-- wp:media-text {"mediaPosition":"left","mediaWidth":50,"verticalAlignment":"center"} -->
+  <div class="wp-block-media-text alignwide is-stacked-on-mobile is-vertically-aligned-center">
+    <figure class="wp-block-media-text__media"><img src="…" alt="…"/></figure>
+    <div class="wp-block-media-text__content">
+      <!-- wp:heading --><h2>…</h2><!-- /wp:heading -->
+      <!-- wp:paragraph --><p>…</p><!-- /wp:paragraph -->
+    </div>
+  </div>
+  <!-- /wp:media-text -->
+
+The HTML classes matter — Gutenberg generates these class names based on the block attributes AND the theme's generated CSS targets them. Double-check that:
+- has-text-align-center always pairs with {"textAlign":"center"} / {"align":"center"}
+- is-content-justification-{left|center|right|space-between} pairs with {"justifyContent":"…"}
+- is-vertical-alignment-{top|center|bottom} pairs with {"verticalAlignment":"…"}
+- is-vertical-orientation pairs with {"orientation":"vertical"}
+- is-layout-flex / is-layout-constrained on every wp-block-group based on its layout type
+- alignfull / alignwide on the wrapper div match the "align" attr
+
+If the design calls for centered copy, use textAlign/align on the blocks themselves. If the design calls for a row of items centered horizontally, use a flex group with justifyContent:"center". If it needs a vertical stack with everything centered, use orientation:"vertical" + center justify.
 
 ═══ FULL-WIDTH BANDS + BACKGROUNDS (important) ═══
 
