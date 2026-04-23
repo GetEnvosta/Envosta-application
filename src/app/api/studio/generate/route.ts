@@ -36,69 +36,88 @@ export async function POST(req: Request) {
 
     // ─── Reference-rebuild prompt ────────────────────────────────────
     // When a reference HTML is present we use a completely different,
-    // strict preservation prompt that says "emit the reference almost
-    // verbatim, only swap specific values." The default GENERATE prompt
+    // prompt that says "convert this HTML design into real Gutenberg
+    // block markup" — preserving the visual design via wp:html escape
+    // hatches while surfacing headings / paragraphs / buttons / images
+    // as editable core blocks. The default GENERATE prompt
     // (which forces our base-CSS utility system) is deliberately NOT used
     // here because it would restructure the reference into our layout
     // primitives instead of preserving the uploaded design.
     const referenceMode = !!referenceHtml;
 
     const systemPrompt = referenceMode
-      ? `You are a faithful HTML transformer. The user has provided a reference HTML page. Your job is to OUTPUT THAT HTML ALMOST VERBATIM, changing ONLY what's listed below. You are NOT designing — you are doing a structured find-and-replace.
+      ? `You are converting a reference HTML design into valid WordPress Gutenberg block markup. The design must look nearly identical to the reference when rendered, but the output has to be REAL BLOCKS so WordPress imports it as editable content (not an HTML island).
 
-STRICT PRESERVATION — you MUST keep ALL of the following identical to the reference:
-- Every HTML tag, in the same order, with the same attributes (id, class, data-*, role, aria-*, href/src behaviour, etc.)
-- Every section, <div>, <article>, <section>, <header>, <footer>, list, grid, and table — in the same nesting.
-- All text content: every heading, paragraph, list item, button label, form label, caption, quote, tooltip — VERBATIM. Do not paraphrase, shorten, or "improve" copy.
-- All CSS rules for layout (display, grid-template, flex, position, margin, padding, width, height, gap, align-*, justify-*, transform, border-radius, box-shadow, transition, animation, overflow, z-index, etc.) — keep them EXACTLY.
-- All media queries and responsive logic.
-- All inline styles except where a specific swap below applies.
+OUTPUT FORMAT — exactly like the studio's other pages:
 
-ALLOWED CHANGES — these are the ONLY modifications you may make:
-1. Every hex / rgb / rgba / hsl / hsla / named color value → replace with the closest matching CSS variable:
-    - Lightest background colors → var(--wp--preset--color--theme-1)
-    - Secondary light / soft backgrounds → var(--wp--preset--color--theme-2)
-    - Borders, muted text, dividers → var(--wp--preset--color--theme-3)
-    - Primary text, dark backgrounds, heading color, primary buttons → var(--wp--preset--color--theme-4)
-    - Deepest dark / footer / strongest accent → var(--wp--preset--color--theme-5)
-    - Gradient stops: replace EACH stop color with its closest variable. Keep the gradient syntax intact.
-2. Every font-family declaration (except generic fallbacks like sans-serif / serif / monospace):
-    - Headings / h1..h6 / display type → var(--wp--preset--font-family--heading)
-    - Body / paragraph / nav / everything else → var(--wp--preset--font-family--body)
-    - Update the Google Fonts <link> if present to load the fonts named in the GLOBAL STYLE REFERENCE below (use those family names in the href query).
-3. Every external image / video asset URL that is NOT already placehold.co → replace the src with an equivalent-dimension https://placehold.co/WIDTHxHEIGHT placeholder. Keep alt text identical.
-4. ${isTemplatePart
-    ? `This is a template part. Output only the <${templatePartKind || 'section'}>…</${templatePartKind || 'section'}> fragment (plus any supporting <style> block). Do NOT wrap in <html>/<head>/<body>.`
-    : `This is a content page. If the reference already has a <html>/<head>/<body> shell, keep it. Keep its <style> blocks but inside those blocks apply the color/font swaps above.`}
+  Emit ONE top-level <!-- wp:group {"anchor":"section-<id>","align":"full",...} -->…<!-- /wp:group --> per visually distinct section / band in the reference. The sections are recovered from the reference's own structure — look at its <header>, <section>, <article>, hero/cta/feature divs, footer regions, etc. Give each a stable kebab-case anchor id based on the section's purpose: section-hero, section-features, section-testimonials, section-pricing, section-cta, section-footer-cta, etc. No <html>, no <body>, no <style> at the document level.
+
+INSIDE EACH wp:group YOU HAVE TWO MODES — use them in combination:
+
+  (a) **Core Gutenberg blocks** for content users will want to edit later:
+      - <!-- wp:heading {"level":N,"fontSize":"x-large"} --> for H1–H6 headings
+      - <!-- wp:paragraph --> for body copy
+      - <!-- wp:buttons --> + <!-- wp:button {"backgroundColor":"theme-4","textColor":"theme-1"} --> for CTAs
+      - <!-- wp:image --> for content images (not decorative layout images)
+      - <!-- wp:list --> / <!-- wp:list-item --> for bullet lists
+      - <!-- wp:quote --> for testimonials / pull quotes
+      - <!-- wp:columns --> / <!-- wp:column --> for simple multi-col layouts
+      - <!-- wp:woocommerce/product-collection --> for product grids
+
+  (b) **<!-- wp:html --> escape hatches** for the bespoke design work core blocks can't express: custom CSS grids, SVG decoration, gradients, CSS animations, absolutely-positioned overlays, pseudo-element decorations, etc. Scope the CSS classes inside wp:html to that section only (e.g. envosta-hero__stack) so nothing leaks.
+
+The split: take the reference's TEXT CONTENT (headings, paragraphs, button labels, list items, quote text) and extract it into editable core blocks. Take the reference's VISUAL LAYOUT (the surrounding grid, decorative imagery, gradient bands, animations, custom type treatments) and wrap it in wp:html blocks.
+
+THEME TOKENS — reference vars, never hardcode:
+
+  Every color / background / border in your output MUST reference var(--wp--preset--color--theme-N) for N in 1..5 (mapping below). Every font-family MUST reference var(--wp--preset--font-family--heading|body). Gradient stops use the vars too. The reference's hex values map like this:
+
+  - Lightest backgrounds in the reference → theme-1
+  - Secondary soft backgrounds → theme-2
+  - Borders / muted text → theme-3
+  - Primary text / headings / primary buttons → theme-4
+  - Deepest dark / strong accent → theme-5
+
+  For attribute-style usage (on core blocks):
+    "backgroundColor":"theme-2", "textColor":"theme-1", "fontFamily":"heading"
+
+  For section-level gradient backgrounds, put them on the outer wp:group with style.color.gradient (CSS gradient string using the vars) AND add has-background to the wrapper div's class + inline background:… on the wrapper. Full-width sections need align:"full" and class alignfull so the gradient bleeds edge-to-edge.
+
+STRUCTURE RULES:
+1. Preserve the reference's section order, section count, and the purpose of each section. If the reference has hero → features → testimonials → CTA, your blocks do the same.
+2. Preserve every piece of text verbatim. Headlines, subheads, paragraph copy, button labels, list items, form labels — exact.
+3. Preserve the visual layout (columns, grids, alignments, image ratios, spacing rhythm). Use wp:html for anything core blocks can't cleanly express.
+4. Every external image URL → https://placehold.co/WIDTHxHEIGHT with alt text copied from the original.
+5. ${isTemplatePart
+    ? `This is a template part. Output ONE outer <!-- wp:group --> (anchor:"header-main" or "footer-main") containing the part's blocks. Do NOT wrap in <html>/<body>.`
+    : `This is a CONTENT page. Do NOT emit a site header, primary navigation, logo bar, or site footer — those are separate template parts wrapped around the page. If the reference HAS a site header/footer, drop it (the reference was likely pre-stripped by the studio, but double-check).`}
 
 FORBIDDEN:
-- Do NOT add or remove sections.
-- Do NOT re-order sections.
-- Do NOT rename classes or IDs.
-- Do NOT replace the reference's CSS with your own base stylesheet.
-- Do NOT restructure layouts or "improve" them.
-- Do NOT change the copy, even if it's placeholder/Lorem Ipsum.
-- Do NOT emit explanations, markdown, or code fences. Output raw HTML only.
+- Plain HTML output without block comments — every piece of the page must be inside a <!-- wp:... --> block.
+- <!doctype>, <html>, <head>, <body> — never emit these.
+- Any hardcoded hex / rgb / hsl color, or hardcoded font-family name (except inside Google Fonts <link> if you emit one in a wp:html — but the parent theme loads the fonts already, so you usually don't need to).
+- Paraphrasing or "improving" the reference's copy.
+- Reordering or dropping sections.
+- Markdown fences, explanations, comments outside block comments.
 
-The goal: the rendered result should be pixel-close to the reference, just with the color and font tokens swapped to CSS variables so it stays reactive to the user's global styles.`
+The goal: the rendered result is pixel-close to the reference AND imports into WordPress as REAL editable blocks — not an HTML blob.`
       : GENERATE_SYSTEM_PROMPT;
 
     const userMessage = referenceMode
-      ? `GLOBAL STYLE REFERENCE (for mapping + Google Fonts <link>):
-Heading Font: ${fonts.heading}
-Body Font: ${fonts.body}
-Color mapping hints (closest hex → theme slot):
-  theme-1 (lightest / bg): ${colors.background || '#FFFFFF'}
-  theme-2 (soft bg): ${colors.surface || '#EEEEEE'}
-  theme-3 (border / muted): ${colors.border || colors.textMuted || '#BBBBBB'}
-  theme-4 (primary / text / heading / button): ${colors.primary || colors.text || '#1E1E1E'}
-  theme-5 (deepest / accent): ${colors.accent || '#000000'}
+      ? `ACTIVE GLOBAL STYLES — use these CSS variables in your block output. Don't hardcode hex.
+Heading font: ${fonts.heading} → var(--wp--preset--font-family--heading)
+Body font:    ${fonts.body}    → var(--wp--preset--font-family--body)
+theme-1 (lightest / page bg):          ${colors.background || '#FFFFFF'}
+theme-2 (soft / alternate bg):         ${colors.surface || '#EEEEEE'}
+theme-3 (borders / muted text):        ${colors.border || colors.textMuted || '#BBBBBB'}
+theme-4 (primary / heading / button):  ${colors.primary || colors.text || '#1E1E1E'}
+theme-5 (deepest accent / dark CTA):   ${colors.accent || '#000000'}
 
 ${isTemplatePart
   ? `TEMPLATE PART: "${pageName}" (${templatePartKind || 'template-part'})`
   : `CONTENT PAGE: "${pageName}"`}
 
-REFERENCE HTML (transform this in-place — preserve structure, swap only the allowed values):
+REFERENCE HTML TO CONVERT (the structure + content + visual design to preserve; output as Gutenberg block markup per the system rules):
 ${referenceHtml}`
       : `ACTIVE GLOBAL STYLES — the studio injects these at preview time as CSS variables. Your output MUST reference the variables (var(--wp--preset--color--theme-N), var(--wp--preset--font-family--heading|body)), never the raw values below. The values are listed here only so you can pick the closest variable for any given use case:
 
@@ -143,8 +162,9 @@ DESCRIPTION: ${pagePrompt}`;
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        // Reference rebuilds are essentially verbatim output + replacements,
-        // so the output size ≈ input size. Bump to 24k to avoid mid-page truncation.
+        // Reference rebuilds convert input HTML into block markup — output
+        // is usually similar in size to input (sometimes larger because of
+        // block comments). 24k gives headroom for bigger pages.
         max_tokens: referenceMode ? 24000 : 8000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userMessage }],
