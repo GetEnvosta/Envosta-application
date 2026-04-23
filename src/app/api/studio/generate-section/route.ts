@@ -53,7 +53,9 @@ export async function POST(req: Request) {
       ? allSections.map((s: any, i: number) => `  ${i + 1}. ${s.id === section.id ? '▸ ' : '  '}${s.title}${s.description ? ' — ' + s.description : ''}`).join('\n')
       : '';
 
-    const systemPrompt = `You are a world-class designer shipping ONE section of a WordPress page. Design with full creative freedom — custom grids, bold typography, gradients, decorative SVG, CSS animations, anything that makes this section feel bespoke.
+    const systemPrompt = `You are a senior designer shipping ONE section of a WordPress page.${customHtmlBlocks
+      ? ' Design with full creative freedom — custom grids, bold typography, gradients, decorative SVG, CSS animations, anything that makes this section feel bespoke.'
+      : ' CUSTOM HTML BLOCKS ARE DISABLED — use ONLY core Gutenberg blocks and WooCommerce blocks. Do NOT emit any <!-- wp:html --> block. If a design detail can\'t be expressed with block attributes alone, simplify it.'}
 
 STRUCTURE — this is the only hard constraint:
 
@@ -81,17 +83,17 @@ LAYOUT + ALIGNMENT RECIPE (single constrained+full group pattern):
   Inner blocks with align:"wide" break out to wideSize; align:"full" breaks
   to the viewport edge. Plain inner blocks stay at contentSize.
 
-BACKGROUND RULE: gradients and solid colors ALWAYS live on the outer wp:group, never on an inner wp:html box. For gradient bands, set style.color.gradient with a real CSS gradient string referencing CSS vars, and add \`has-background\` to the wrapper div. Example:
+BACKGROUND RULE: gradients and solid colors ALWAYS live on the outer wp:group. For gradient bands, set style.color.gradient with a real CSS gradient string referencing CSS vars, and add \`has-background\` to the wrapper div. Example:
 
   <!-- wp:group {"anchor":"section-{ID}","align":"full","style":{"color":{"gradient":"linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%)"},"spacing":{"padding":{"top":"var:preset|spacing|80","bottom":"var:preset|spacing|80"}}},"textColor":"theme-1","layout":{"type":"constrained"}} -->
   <div id="section-{ID}" class="wp-block-group alignfull has-theme-1-color has-text-color has-background" style="background:linear-gradient(135deg,var(--wp--preset--color--theme-4) 0%,var(--wp--preset--color--theme-5) 100%);color:var(--wp--preset--color--theme-1);padding-top:var(--wp--preset--spacing--80);padding-bottom:var(--wp--preset--spacing--80)">
 
-Inside the group you have total freedom:
+${customHtmlBlocks ? `Inside the group you have two building blocks:
 
-  (a) Mix core Gutenberg blocks (wp:heading, wp:paragraph, wp:buttons, wp:columns, wp:image, wp:cover, wp:list, wp:quote, wp:query, wp:woocommerce/product-collection, etc.) for content users may want to edit in the block editor.
-  (b) Use <!-- wp:html --> blocks with any HTML + inline <style> for rich design. Custom layouts, SVG, gradients, animations — all go here. HTML blocks are fully editable in WP as a single Custom HTML block.
+  (a) Core Gutenberg blocks (wp:heading, wp:paragraph, wp:buttons, wp:columns, wp:image, wp:cover, wp:list, wp:quote, wp:query, wp:woocommerce/product-collection, etc.) for content users may want to edit in the block editor.
+  (b) <!-- wp:html --> blocks with any HTML + inline <style> for rich design. Custom layouts, SVG, gradients, animations — all go here.
 
-Mix both as the design calls for. Hero sections, visual bands, decorative components typically use wp:html. Simple text rows can use core blocks.
+Mix both as the design calls for. Hero sections, visual bands, decorative components typically use wp:html. Simple text rows can use core blocks.` : `Inside the group, use ONLY core Gutenberg blocks and WooCommerce blocks (no wp:html). Every styling decision goes through block attributes: backgroundColor, textColor, fontFamily, fontSize, style.spacing, style.color.gradient, align, layout:{type:"flex"|"constrained",...}, verticalAlignment, justifyContent. Available blocks: wp:heading, wp:paragraph, wp:buttons / wp:button, wp:columns / wp:column, wp:group, wp:image, wp:cover, wp:list / wp:list-item, wp:quote, wp:separator, wp:spacer, wp:media-text, wp:query, wp:post-template, wp:woocommerce/product-collection, wp:woocommerce/*. Design around what these can express — drop decorative complexity if needed.`}
 
 THEME TOKENS — USE VARIABLES EVERYWHERE (no hardcoded hex / font names):
   var(--wp--preset--color--theme-1)  light bg

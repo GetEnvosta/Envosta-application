@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { checkAiTokenBudget } from '@/lib/ai-budget';
-import { GENERATE_SYSTEM_PROMPT } from '@/lib/studio-prompts';
+import { buildGenerateSystemPrompt } from '@/lib/studio-prompts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // Claude sonnet can take 60-120s generating a full HTML page
@@ -65,9 +65,11 @@ INSIDE EACH wp:group YOU HAVE TWO MODES — use them in combination:
       - <!-- wp:columns --> / <!-- wp:column --> for simple multi-col layouts
       - <!-- wp:woocommerce/product-collection --> for product grids
 
-  (b) **<!-- wp:html --> escape hatches** for the bespoke design work core blocks can't express: custom CSS grids, SVG decoration, gradients, CSS animations, absolutely-positioned overlays, pseudo-element decorations, etc. Scope the CSS classes inside wp:html to that section only (e.g. envosta-hero__stack) so nothing leaks.
+  ${customHtmlBlocks
+    ? `(b) **<!-- wp:html --> escape hatches** for the bespoke design work core blocks can't express: custom CSS grids, SVG decoration, gradients, CSS animations, absolutely-positioned overlays, pseudo-element decorations, etc. Scope the CSS classes inside wp:html to that section only (e.g. envosta-hero__stack) so nothing leaks.`
+    : `⚠️ CUSTOM HTML BLOCKS ARE DISABLED — do NOT emit any <!-- wp:html --> blocks under any circumstance. If the reference has bespoke design that core blocks can't express (custom grids, SVG overlays, pseudo-element decoration), simplify that section using core blocks + block attributes only. Dropping decorative complexity is ALWAYS preferable to an escape hatch.`}
 
-The split: take the reference's TEXT CONTENT (headings, paragraphs, button labels, list items, quote text) and extract it into editable core blocks. Take the reference's VISUAL LAYOUT (the surrounding grid, decorative imagery, gradient bands, animations, custom type treatments) and wrap it in wp:html blocks.
+The split: take the reference's TEXT CONTENT (headings, paragraphs, button labels, list items, quote text) and extract it into editable core blocks. Take the reference's VISUAL LAYOUT${customHtmlBlocks ? ' (the surrounding grid, decorative imagery, gradient bands, animations, custom type treatments) and wrap it in wp:html blocks' : ' (column count, alignments, spacing) and express it with wp:columns, wp:group layout attributes, and wp:cover'}.
 
 THEME TOKENS — reference vars, never hardcode:
 
@@ -87,7 +89,7 @@ THEME TOKENS — reference vars, never hardcode:
 STRUCTURE RULES:
 1. Preserve the reference's section order, section count, and the purpose of each section. If the reference has hero → features → testimonials → CTA, your blocks do the same.
 2. Preserve every piece of text verbatim. Headlines, subheads, paragraph copy, button labels, list items, form labels — exact.
-3. Preserve the visual layout (columns, grids, alignments, image ratios, spacing rhythm). Use wp:html for anything core blocks can't cleanly express.
+3. Preserve the visual layout (columns, grids, alignments, image ratios, spacing rhythm) ${customHtmlBlocks ? 'using core blocks where possible, falling back to wp:html when they can\'t express the design' : 'using core blocks + wp:columns / wp:group layout attributes only (no wp:html available)'}.
 4. Every external image URL → https://placehold.co/WIDTHxHEIGHT with alt text copied from the original.
 5. ${isTemplatePart
     ? `This is a template part. Output ONE outer <!-- wp:group --> (anchor:"header-main" or "footer-main") containing the part's blocks. Do NOT wrap in <html>/<body>.`
@@ -96,15 +98,13 @@ STRUCTURE RULES:
 FORBIDDEN:
 - Plain HTML output without block comments — every piece of the page must be inside a <!-- wp:... --> block.
 - <!doctype>, <html>, <head>, <body> — never emit these.
-- Any hardcoded hex / rgb / hsl color, or hardcoded font-family name (except inside Google Fonts <link> if you emit one in a wp:html — but the parent theme loads the fonts already, so you usually don't need to).
+- Any hardcoded hex / rgb / hsl color, or hardcoded font-family name. The parent theme handles fonts, so never emit a Google Fonts <link>.${customHtmlBlocks ? '' : '\n- ANY <!-- wp:html --> block. None. Core blocks only.'}
 - Paraphrasing or "improving" the reference's copy.
 - Reordering or dropping sections.
 - Markdown fences, explanations, comments outside block comments.
 
 The goal: the rendered result is pixel-close to the reference AND imports into WordPress as REAL editable blocks — not an HTML blob.`
-      : GENERATE_SYSTEM_PROMPT + (customHtmlBlocks
-          ? '\n\nCUSTOM HTML BLOCKS: ON — you MAY use <!-- wp:html --> blocks for bespoke design (custom CSS grids, SVG decoration, gradients, animations) inside section groups. Use them sparingly when core blocks can\'t express the design.'
-          : '\n\nCUSTOM HTML BLOCKS: OFF — do NOT emit any <!-- wp:html --> blocks. Use ONLY core Gutenberg blocks (wp:group, wp:heading, wp:paragraph, wp:buttons, wp:button, wp:columns, wp:column, wp:image, wp:cover, wp:list, wp:quote, wp:separator, wp:spacer, wp:media-text) and WooCommerce blocks. All styling comes from block attributes (backgroundColor, textColor, fontFamily, fontSize, style.spacing, style.color.gradient, align, etc.) — the theme handles the rest. The result must be fully editable as native Gutenberg blocks.');
+      : buildGenerateSystemPrompt({ customHtmlBlocks });
 
     const userMessage = referenceMode
       ? `ACTIVE GLOBAL STYLES — use these CSS variables in your block output. Don't hardcode hex.
