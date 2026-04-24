@@ -521,6 +521,7 @@ Feel: utilitarian but polished.`;
             onStyleChange={setStyleConfig}
             onPagesChange={setPages}
             onSelectPage={setSelectedPageId}
+            onBusinessInfoChange={setBusinessInfo}
             onContinue={() => setStep(3)}
           />
         )}

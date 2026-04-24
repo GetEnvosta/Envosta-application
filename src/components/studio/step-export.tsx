@@ -17,7 +17,7 @@ export function StepExport({
 }) {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
-  const [parentSlug, setParentSlug] = useState('Envosta-wordpress-theme');
+  const [parentSlug, setParentSlug] = useState('envosta');
   const [snippetCopied, setSnippetCopied] = useState(false);
   const slug = project.slug || 'site';
   const pagesWithContent = pages.filter(p => p.html);
@@ -118,21 +118,31 @@ function envosta_apply_studio_site_setup() {
     setExporting(true);
     setError('');
     try {
-      const siteName = (businessInfo?.businessName || styleConfig?.siteName || project?.name || 'Site').toString();
+      // Site Settings panel overrides win; otherwise fall back to the brief
+      // businessInfo and then to project metadata.
+      const siteName = (
+        businessInfo?.siteName ||
+        businessInfo?.businessName ||
+        styleConfig?.siteName ||
+        project?.name ||
+        'Site'
+      ).toString();
       const tagline = (businessInfo?.tagline || '').toString();
-      const hasBlogPage = pages.some((p: any) => p.title === 'Blog');
+      const homePageTitle = (businessInfo?.homePageTitle || 'Home').toString();
+      const blogPageTitle = (businessInfo?.blogPageTitle || (pages.some((p: any) => p.title === 'Blog') ? 'Blog' : '')).toString();
+      const menuName = (businessInfo?.menuName || 'Main Menu').toString();
 
       // WXR with site-settings meta on the Home page. The Envosta parent
       // theme's import_end hook reads these + applies them to options.
       const xml = buildWxrXml(siteName, pages, {
-        menuName: 'Main Menu',
+        menuName,
         siteSettings: {
           siteName,
           tagline,
-          homePageTitle: 'Home',
-          blogPageTitle: hasBlogPage ? 'Blog' : undefined,
+          homePageTitle,
+          blogPageTitle: blogPageTitle || undefined,
           styleVariation: styleConfig?.presetId ? String(styleConfig.presetId).replace(/^assembler-/, '') : undefined,
-          menuName: 'Main Menu',
+          menuName,
         },
       });
       const xmlBlob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
@@ -147,7 +157,7 @@ function envosta_apply_studio_site_setup() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             project, pages, styleConfig,
-            parentSlug: parentSlug.trim() || 'Envosta-wordpress-theme',
+            parentSlug: parentSlug.trim() || 'envosta',
             siteName, tagline,
           }),
         });
@@ -211,10 +221,10 @@ function envosta_apply_studio_site_setup() {
               value={parentSlug}
               onChange={e => setParentSlug(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm font-mono text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
-              placeholder="Envosta-wordpress-theme"
+              placeholder="envosta"
             />
             <p className="text-[11px] text-gray-500 mt-1.5 leading-snug">
-              Folder name of the parent theme inside <code className="bg-white px-1 rounded">wp-content/themes/</code>. Default is <code className="bg-white px-1 rounded">Envosta-wordpress-theme</code> (case-sensitive). Change to <code className="bg-white px-1 rounded">assembler</code> to run on stock Automattic Assembler instead.
+              Folder name of the parent theme inside <code className="bg-white px-1 rounded">wp-content/themes/</code>. Default is <code className="bg-white px-1 rounded">envosta</code>. Change to <code className="bg-white px-1 rounded">assembler</code> to run on stock Automattic Assembler instead.
             </p>
           </div>
         )}
@@ -299,7 +309,7 @@ function envosta_apply_studio_site_setup() {
         <div className="bg-blue-50 rounded-xl border border-blue-200 p-5">
           <h4 className="text-sm font-semibold text-blue-900 mb-2">Deployment to wp.cloud</h4>
           <ol className="text-xs text-blue-800 space-y-2 list-decimal list-inside">
-            <li>One-time: paste the <strong>Parent theme setup hook</strong> above into <code className="bg-blue-100 px-1 rounded">Envosta-wordpress-theme/functions.php</code>. This is a once-per-server step — every future studio export will be picked up by this hook.</li>
+            <li>One-time: paste the <strong>Parent theme setup hook</strong> above into <code className="bg-blue-100 px-1 rounded">envosta/functions.php</code>. This is a once-per-server step — every future studio export will be picked up by this hook.</li>
             <li>Confirm the Envosta parent theme is installed + active on the destination site.</li>
             {fullCustom && (
               <li>Upload <code className="bg-blue-100 px-1 rounded">envosta-child-{slug}.zip</code> via <strong>Appearance → Themes → Add New → Upload Theme</strong>, then <strong>Activate</strong> it.</li>

@@ -6,7 +6,7 @@ import {
   Sparkles, Loader2, Check, FileText, Palette, ArrowRight, Send,
   Monitor, Tablet, Smartphone, Eye, PanelLeftClose, PanelLeftOpen,
   PanelRightClose, PanelRightOpen, Plus, Trash2, LayoutTemplate,
-  Upload, X, Download, ShoppingBag, Newspaper, Wrench, RotateCcw, ChevronDown, ChevronUp, Pencil,
+  Upload, X, Download, ShoppingBag, Newspaper, Wrench, RotateCcw, ChevronDown, ChevronUp, Pencil, Settings,
 } from 'lucide-react';
 import { fetchWithRetry } from '@/lib/fetch-retry';
 import { ASSEMBLER_VARIATIONS, type StudioStylePreset } from '@/lib/studio-style-presets';
@@ -319,6 +319,7 @@ ${footerBody}
 export function StepDesign({
   projectId, brief, styleConfig, pages, selectedPageId, businessInfo,
   onStyleChange, onPagesChange, onSelectPage, onContinue, onAuthRequired,
+  onBusinessInfoChange,
 }: {
   projectId: string;
   brief?: string;
@@ -331,9 +332,11 @@ export function StepDesign({
   onSelectPage: (id: string) => void;
   onContinue: () => void;
   onAuthRequired?: () => void;
+  onBusinessInfoChange: (info: any) => void;
 }) {
   const [showPages, setShowPages] = useState(true);
   const [showStyles, setShowStyles] = useState(false);
+  const [showSiteSettings, setShowSiteSettings] = useState(false);
   const [generating, setGenerating] = useState<string | null>(null);
   const [previewSize, setPreviewSize] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
@@ -899,7 +902,18 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
                 </button>
               ))}
             </div>
-            <button onClick={() => setShowStyles(!showStyles)} className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100" title={showStyles ? 'Hide styles' : 'Show styles'}>
+            <button
+              onClick={() => { setShowSiteSettings(s => !s); if (!showSiteSettings) setShowStyles(false); }}
+              className={`p-1.5 rounded-md transition-colors ${showSiteSettings ? 'bg-indigo-50 text-indigo-700' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'}`}
+              title="Site settings — title, tagline, homepage, menu"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => { setShowStyles(s => !s); if (!showStyles) setShowSiteSettings(false); }}
+              className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+              title={showStyles ? 'Hide styles' : 'Show styles'}
+            >
               {showStyles ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
             </button>
             <button
@@ -1201,6 +1215,141 @@ You're welcome to customise the attributes: overlayMenu can be "mobile"|"always"
           </div>
         </div>
       </div>
+
+      {/* ═══ RIGHT: Site Settings slide-out ═══ */}
+      {showSiteSettings && (() => {
+        const contentPages = pages.filter(p => p.title && p.title !== 'Header' && p.title !== 'Footer');
+        const info = businessInfo || {};
+        const activeVariation = styleConfig?.presetId ? String(styleConfig.presetId).replace(/^assembler-/, '') : '';
+        const inputClass = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors';
+        function patch(key: string, value: string) {
+          (window as any).__envostaBiPatch?.(key, value);
+        }
+        // Direct update helper since we can't call a prop handler from inside IIFE closure over businessInfo.
+        // Assume parent passes onBusinessInfoChange on businessInfo via a mutable-seeming pattern — use prop.
+        return (
+          <div className="w-72 shrink-0 border-l border-gray-200 bg-white flex flex-col overflow-auto">
+            <div className="p-4 border-b border-gray-100 flex items-center gap-2">
+              <Settings className="w-3.5 h-3.5 text-indigo-500" />
+              <h3 className="text-xs font-semibold text-gray-900 flex-1">Site Settings</h3>
+              <button onClick={() => setShowSiteSettings(false)} className="p-0.5 text-gray-400 hover:text-gray-700" title="Close">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4 overflow-auto flex-1">
+              <p className="text-[10px] text-gray-500 leading-snug">
+                These values are embedded in the exported WXR. The Envosta parent theme's import hook applies them as WordPress site options on import.
+              </p>
+
+              <div>
+                <label className="block text-[10px] font-medium text-gray-600 mb-1">Site Title</label>
+                <input
+                  type="text"
+                  value={info.siteName ?? info.businessName ?? ''}
+                  onChange={e => onBusinessInfoChange({ ...info, siteName: e.target.value })}
+                  className={inputClass}
+                  placeholder="Your business name"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">→ WordPress <code className="bg-gray-100 px-1 rounded">blogname</code></p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-medium text-gray-600 mb-1">Tagline</label>
+                <input
+                  type="text"
+                  value={info.tagline ?? ''}
+                  onChange={e => onBusinessInfoChange({ ...info, tagline: e.target.value })}
+                  className={inputClass}
+                  placeholder="Short subtitle shown under the site title"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">→ WordPress <code className="bg-gray-100 px-1 rounded">blogdescription</code></p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-medium text-gray-600 mb-1">Homepage</label>
+                <select
+                  value={info.homePageTitle ?? 'Home'}
+                  onChange={e => onBusinessInfoChange({ ...info, homePageTitle: e.target.value })}
+                  className={inputClass + ' text-xs'}
+                >
+                  {!contentPages.some(p => p.title === (info.homePageTitle ?? 'Home')) && (
+                    <option value={info.homePageTitle ?? 'Home'}>{info.homePageTitle ?? 'Home'} (not created yet)</option>
+                  )}
+                  {contentPages.map(p => <option key={p.id} value={p.title}>{p.title}</option>)}
+                </select>
+                <p className="text-[10px] text-gray-400 mt-1">→ <code className="bg-gray-100 px-1 rounded">show_on_front=page</code> + <code className="bg-gray-100 px-1 rounded">page_on_front</code></p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-medium text-gray-600 mb-1">Blog / Posts page</label>
+                <select
+                  value={info.blogPageTitle ?? ''}
+                  onChange={e => onBusinessInfoChange({ ...info, blogPageTitle: e.target.value })}
+                  className={inputClass + ' text-xs'}
+                >
+                  <option value="">— none —</option>
+                  {contentPages.map(p => <option key={p.id} value={p.title}>{p.title}</option>)}
+                </select>
+                <p className="text-[10px] text-gray-400 mt-1">→ <code className="bg-gray-100 px-1 rounded">page_for_posts</code> (optional)</p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-medium text-gray-600 mb-1">Main menu name</label>
+                <input
+                  type="text"
+                  value={info.menuName ?? 'Main Menu'}
+                  onChange={e => onBusinessInfoChange({ ...info, menuName: e.target.value })}
+                  className={inputClass}
+                  placeholder="Main Menu"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">Auto-assigned to primary nav locations on import.</p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-medium text-gray-600 mb-1">Active style variation</label>
+                <input
+                  type="text"
+                  value={activeVariation || '(none — using parent default)'}
+                  readOnly
+                  className={inputClass + ' bg-gray-50 text-gray-500'}
+                />
+                <p className="text-[10px] text-gray-400 mt-1">Set via Global Styles → Envosta variation picker.</p>
+              </div>
+
+              <div className="pt-3 border-t border-gray-100 space-y-2">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Business info (brief)</p>
+                <div>
+                  <label className="block text-[10px] font-medium text-gray-600 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    value={info.phone ?? ''}
+                    onChange={e => onBusinessInfoChange({ ...info, phone: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-medium text-gray-600 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={info.email ?? ''}
+                    onChange={e => onBusinessInfoChange({ ...info, email: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-medium text-gray-600 mb-1">Address</label>
+                  <input
+                    type="text"
+                    value={info.address ?? ''}
+                    onChange={e => onBusinessInfoChange({ ...info, address: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ═══ RIGHT: Global Styles sidebar (toggleable) ═══ */}
       {showStyles && (
