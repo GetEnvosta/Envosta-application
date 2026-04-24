@@ -111,7 +111,7 @@ export async function getAllSubscriptionsAdmin() {
   const supabase = await createClient();
   const { data } = await supabase
     .from('subscriptions')
-    .select('*, products(name, slug, price_cad), users(full_name, email, usage_this_cycle, included_credits)')
+    .select('*, products(name, slug, price_cad), users(full_name, email)')
     .order('created_at', { ascending: false })
     .limit(200);
   return data ?? [];

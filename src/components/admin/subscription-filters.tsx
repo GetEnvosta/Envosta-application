@@ -10,7 +10,7 @@ interface Subscription {
   stripe_subscription_id: string;
   current_period_end: string | null;
   created_at: string;
-  users?: { full_name: string | null; email: string; usage_this_cycle?: number; included_credits?: number } | null;
+  users?: { full_name: string | null; email: string } | null;
 }
 
 const STATUS_FILTERS = [
@@ -65,8 +65,6 @@ export function SubscriptionFilters({ subscriptions }: { subscriptions: Subscrip
               <tr className="border-b border-gray-100 text-left">
                 <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                 <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider text-center">Usage</th>
-                <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Overage</th>
                 <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Renews</th>
                 <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Started</th>
               </tr>
@@ -74,10 +72,6 @@ export function SubscriptionFilters({ subscriptions }: { subscriptions: Subscrip
             <tbody className="divide-y divide-gray-100">
               {filtered.map(sub => {
                 const user = sub.users as any;
-                const usage = Number(user?.usage_this_cycle ?? 0);
-                const included = user?.included_credits ?? 36;
-                const overage = Math.max(0, Math.round((usage - included) * 100) / 100);
-                const pct = included > 0 ? Math.round((usage / included) * 100) : 0;
 
                 return (
                   <tr key={sub.id} className="hover:bg-gray-50 transition-colors">
@@ -89,18 +83,6 @@ export function SubscriptionFilters({ subscriptions }: { subscriptions: Subscrip
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[sub.status] ?? 'bg-gray-100 text-gray-600'}`}>
                         {sub.status}
                       </span>
-                    </td>
-                    <td className="px-5 py-3 text-center">
-                      <span className={`text-xs font-medium ${pct > 100 ? 'text-red-600' : pct >= 80 ? 'text-amber-600' : 'text-gray-600'}`}>
-                        {Math.round(usage)}/{included}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      {overage > 0 ? (
-                        <span className="text-xs font-medium text-red-600">${overage}</span>
-                      ) : (
-                        <span className="text-xs text-gray-300">—</span>
-                      )}
                     </td>
                     <td className="px-5 py-3 text-gray-500 text-xs">
                       {sub.current_period_end ? formatDate(sub.current_period_end) : '—'}

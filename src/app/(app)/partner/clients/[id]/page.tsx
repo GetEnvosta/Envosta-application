@@ -2,7 +2,7 @@ import { getCurrentUser } from '@/services/auth';
 import { getPartnerClientDetail } from '@/services/partners';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Globe, HardDrive, Coins } from 'lucide-react';
+import { ArrowLeft, Globe, HardDrive } from 'lucide-react';
 import { statusColor } from '@/lib/utils';
 
 export default async function PartnerClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -24,13 +24,7 @@ export default async function PartnerClientDetailPage({ params }: { params: Prom
         <h1 className="text-xl font-semibold text-gray-900 mb-1">{client.full_name ?? 'Unnamed Client'}</h1>
         <p className="text-sm text-gray-500 mb-4">{client.email}</p>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <p className="text-xs text-gray-500 mb-1">Usage</p>
-            <p className="text-lg font-semibold text-gray-900">
-              {Math.round(client.usage)}/{client.included}
-            </p>
-          </div>
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-xs text-gray-500 mb-1">Active Sites</p>
             <p className="text-lg font-semibold text-gray-900">{client.sites.length}</p>

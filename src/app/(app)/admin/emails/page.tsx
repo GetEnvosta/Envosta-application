@@ -9,6 +9,10 @@ const EMAIL_TEMPLATES = [
   { key: 'site_ready', name: 'Site Ready', trigger: 'After wp.cloud provisioning', description: 'Sent when the WordPress site is live. Includes site URL and WP Admin link.' },
   { key: 'domain_registered', name: 'Domain Registered', trigger: 'After OpenSRS registration', description: 'Sent when a domain is registered. Shows WHOIS privacy and auto-renew status.' },
   { key: 'invoice_paid', name: 'Invoice Receipt', trigger: 'After Stripe invoice.paid', description: 'Payment receipt with amount, description, and invoice link.' },
+  { key: 'payment_failed', name: 'Payment Failed', trigger: 'On Stripe invoice.payment_failed', description: 'First notice when a card is declined. Stripe will retry; this asks customer to update payment.' },
+  { key: 'sites_paused', name: 'Sites Paused', trigger: 'On Stripe subscription.deleted', description: 'After Stripe gives up retrying (~3 weeks). Sites flip to paused; customer can restart subscription.' },
+  { key: 'site_flagged_for_deletion', name: 'Site Flagged for Deletion', trigger: 'When admin flags a paused site in cleanup queue', description: 'Final warning before admin manually deletes. Customer can still restore by restarting subscription + contacting support.' },
+  { key: 'site_deleted', name: 'Site Deleted', trigger: 'When admin confirms permanent delete in cleanup queue', description: 'Confirmation that site files + database have been permanently removed.' },
   { key: 'domain_expiry', name: 'Domain Expiry Warning', trigger: 'Daily health check (30/14/7/1 days)', description: 'Warns customer their domain is expiring. Shows auto-renew status.' },
   { key: 'provisioning_failed', name: 'Provisioning Failed', trigger: 'When wp.cloud site creation fails', description: 'Notifies customer of setup issue and directs to support.' },
 ];

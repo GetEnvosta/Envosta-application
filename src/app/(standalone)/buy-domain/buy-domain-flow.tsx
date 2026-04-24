@@ -27,13 +27,16 @@ export function BuyDomainFlow() {
   const [error, setError] = useState('');
   const [price, setPrice] = useState<number | null>(null);
 
-  // Sign out any existing session
+  // If already signed in, send them to the dashboard's domain register flow with the domain pre-filled.
   useEffect(() => {
+    if (!domain) return;
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) supabase.auth.signOut();
+      if (user) {
+        window.location.href = `/dashboard/domains/register?q=${encodeURIComponent(domain)}`;
+      }
     });
-  }, []);
+  }, [domain]);
 
   // Fetch domain price
   useEffect(() => {

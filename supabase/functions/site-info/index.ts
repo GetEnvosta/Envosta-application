@@ -1,4 +1,7 @@
-import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, WPCLOUD_PROXY_URL, WPCLOUD_API_KEY, WPCLOUD_PROXY_SECRET, cors, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, WPCLOUD_PROXY_URL, WPCLOUD_API_KEY, WPCLOUD_PROXY_SECRET, runWpCli, manageSoftware, cors, json, error, log } from "../_shared/deps.ts";
+
+const ENVOSTA_PARENT_THEME_ZIP_URL = Deno.env.get("ENVOSTA_PARENT_THEME_ZIP_URL")
+  ?? "https://github.com/GetEnvosta/Envosta-Theme/releases/latest/download/envosta.zip";
 
 /**
  * Site management actions via wp.cloud Atomic API (routed through static IP proxy).
@@ -198,17 +201,19 @@ Deno.serve(async (req) => {
           }
         }
 
-        // 2. Soft-delete: mark as cancelled (hides from customer dashboard)
-        // wp.cloud site stays alive for 30-day recovery window
-        const recoveryDeadline = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        // 2. Send to the admin cleanup queue. Site stays live on wp.cloud
+        //    until an admin confirms the delete from /admin/sites/cleanup.
+        const now = new Date().toISOString();
         await sb.from("sites").update({
-          status: "cancelled",
+          status: "flagged_for_deletion",
+          flagged_for_deletion_at: now,
+          paused_at: now,
+          flag_reason: isServiceRole ? "deleted_by_service" : (user?.id === svc.user_id ? "deleted_by_owner" : "deleted_by_admin"),
           stripe_subscription_item_id: null,
           metadata: {
             ...(svc.metadata as any ?? {}),
-            soft_deleted_at: new Date().toISOString(),
+            soft_deleted_at: now,
             soft_deleted_by: user?.id ?? "service",
-            recovery_deadline: recoveryDeadline,
             previous_product_id: svc.product_id,
             previous_config: svc.config,
             subscription_paused: subscriptionPaused,
@@ -223,11 +228,11 @@ Deno.serve(async (req) => {
         await log({
           userId: svc.user_id, serviceId: svc.id,
           action: "hosting.soft_delete",
-          message: `Site "${svc.label}" deleted. Line item removed. wp.cloud preserved 30 days. ${subscriptionPaused ? "Subscription paused (no sites)." : "Subscription still active."}`,
+          message: `Site "${svc.label}" deleted by ${isServiceRole ? "service" : (user?.id === svc.user_id ? "owner" : "admin")}. Flagged for admin cleanup. ${subscriptionPaused ? "Subscription paused (no sites)." : "Subscription still active."}`,
         });
 
-        console.log("Site soft-deleted:", siteId, "Sub paused:", subscriptionPaused, "Recovery until:", recoveryDeadline);
-        return json({ deleted: true, recoverable: true, recoveryDays: 30, subscriptionPaused });
+        console.log("Site flagged for deletion:", siteId, "Sub paused:", subscriptionPaused);
+        return json({ deleted: true, queuedForCleanup: true, subscriptionPaused });
       }
 
       // Admin-only: permanently destroy site on wp.cloud (no recovery)
@@ -286,7 +291,7 @@ Deno.serve(async (req) => {
         if (!siteId) return error("siteId is required");
         if (!key || value === undefined) return error("key and value are required");
 
-        const allowedKeys = ["default_php_conns", "burst_php_conns", "php_memory_limit", "jetpack_backup", "page_optimize", "jetpack_waf", "has_staging"];
+        const allowedKeys = ["default_php_conns", "burst_php_conns", "php_memory_limit", "php_version", "jetpack_backup", "page_optimize", "jetpack_waf", "has_staging"];
         if (!allowedKeys.includes(key)) return error(`Invalid key: ${key}. Allowed: ${allowedKeys.join(", ")}`, 400);
 
         const sb = supabaseAdmin();
@@ -870,6 +875,41 @@ Deno.serve(async (req) => {
 
         await log({ userId: user!.id, serviceId: siteId, action: "wpcli.run", message: value as string, res: result });
         return json(result);
+      }
+
+      // ═══ Bootstrap software: parent theme + Akismet, unlock Jetpack/Akismet ═══
+      // Re-runnable on any existing site to bring it up to the current standard.
+      case "software-bootstrap": {
+        if (!siteId) return error("siteId is required");
+        const sb = supabaseAdmin();
+        const { data: svc } = await sb.from("sites").select("id, wp_cloud_site_id").eq("id", siteId).single();
+        if (!svc?.wp_cloud_site_id) return error("Site not found or no wp.cloud ID", 404);
+
+        if (!isServiceRole) {
+          const { data: p } = await sb.from("users").select("role").eq("id", user!.id).single();
+          if (!["admin", "staff"].includes(p?.role)) return error("Admin access required", 403);
+        }
+
+        const results: Record<string, any> = {};
+        try {
+          const r = await runWpCli(svc.wp_cloud_site_id, ["theme", "install", ENVOSTA_PARENT_THEME_ZIP_URL, "--activate", "--force"]);
+          results.parent_theme = { ok: r.ok, status: r.status, task_id: r.data?.task_id ?? r.data?.atomic_task_id };
+        } catch (e) { results.parent_theme = { ok: false, error: String(e) }; }
+        try {
+          const r = await runWpCli(svc.wp_cloud_site_id, ["plugin", "install", "akismet", "--activate"]);
+          results.akismet = { ok: r.ok, status: r.status, task_id: r.data?.task_id ?? r.data?.atomic_task_id };
+        } catch (e) { results.akismet = { ok: false, error: String(e) }; }
+        try {
+          const r = await manageSoftware("plugin", svc.wp_cloud_site_id, "unlock", { slug: "jetpack" });
+          results.jetpack_unlock = { ok: r.ok, status: r.status, message: r.data?.message };
+        } catch (e) { results.jetpack_unlock = { ok: false, error: String(e) }; }
+        try {
+          const r = await manageSoftware("plugin", svc.wp_cloud_site_id, "unlock", { slug: "akismet" });
+          results.akismet_unlock = { ok: r.ok, status: r.status, message: r.data?.message };
+        } catch (e) { results.akismet_unlock = { ok: false, error: String(e) }; }
+
+        await log({ userId: user!.id, serviceId: siteId, action: "site.software.bootstrap", message: "backfill", res: results });
+        return json(results);
       }
 
       default:

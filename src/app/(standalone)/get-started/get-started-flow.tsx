@@ -66,7 +66,7 @@ export function GetStartedFlow() {
                 14 days free on the Minimum plan. We&apos;ll set up a temporary domain for you instantly.
               </p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
-                {['No charge for 14 days', 'Instant setup', 'Cancel anytime'].map(text => (
+                {['Free for 14 days', 'Instant setup', 'Cancel anytime'].map(text => (
                   <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     <span style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.4)' }}>{text}</span>

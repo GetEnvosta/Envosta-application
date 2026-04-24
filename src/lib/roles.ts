@@ -50,7 +50,6 @@ export function canAccessAdminNav(role: string, href: string): boolean {
 const ADMIN_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/admin/billing':       ['admin'],
   '/admin/reporting':     ['admin'],
-  '/admin/credits':       ['admin'],
   '/admin/partners':      ['admin'],
   '/admin/products':      ['admin'],
   '/admin/subscriptions': ['admin'],
@@ -66,6 +65,7 @@ const ADMIN_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/studio':              ['admin', 'staff'],
   '/admin/services':      ['admin', 'staff'],
   '/admin/domains':       ['admin', 'staff'],
+  '/admin/sites/cleanup': ['admin'],
 };
 
 /**
@@ -104,9 +104,8 @@ export const API_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/api/admin/create-user':                ['admin'],
   '/api/admin/provision-site':             ['admin', 'staff'],
   '/api/admin/delete-site':                ['admin', 'staff'],
+  '/api/admin/cleanup-site':               ['admin'],
   '/api/admin/attach-domain-subscription': ['admin', 'staff'],
-  '/api/admin/credits/adjust':              ['admin'],
-  '/api/admin/credits/pricing':             ['admin'],
   '/api/admin/partners/review':             ['admin'],
   '/api/admin/partners/change-requests':    ['admin'],
   '/api/admin/create-unclaimed-account':    ['admin', 'staff'],

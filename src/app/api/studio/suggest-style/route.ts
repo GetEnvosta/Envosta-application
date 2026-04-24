@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
-import { checkAiTokenBudget } from '@/lib/ai-budget';
 import { STUDIO_PRESETS, getPresetById } from '@/lib/studio-style-presets';
 
 export const dynamic = 'force-dynamic';
@@ -10,13 +9,6 @@ export async function POST(req: Request) {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Please sign in' }, { status: 401 });
-
-  const budget = await checkAiTokenBudget(user.id);
-  if (!budget.allowed) {
-    return NextResponse.json({
-      error: `AI token limit reached. Used ${budget.dailyUsed.toLocaleString()} of ${budget.dailyLimit?.toLocaleString()} tokens today.`,
-    }, { status: 429 });
-  }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'AI not configured' }, { status: 503 });

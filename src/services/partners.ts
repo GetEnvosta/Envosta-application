@@ -87,7 +87,7 @@ export async function getPartnerClients(partnerId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('users')
-    .select('id, full_name, email, created_at, usage_this_cycle, included_credits')
+    .select('id, full_name, email, created_at')
     .eq('partner_id', partnerId)
     .order('created_at', { ascending: false });
 
@@ -107,8 +107,6 @@ export async function getPartnerClients(partnerId: string) {
         email: client.email,
         created_at: client.created_at,
         sites_count: count ?? 0,
-        usage: Number(client.usage_this_cycle ?? 0),
-        included: client.included_credits ?? 36,
       };
     }),
   );
@@ -121,7 +119,7 @@ export async function getPartnerClientDetail(partnerId: string, clientId: string
 
   const { data: client } = await supabase
     .from('users')
-    .select('id, full_name, email, created_at, usage_this_cycle, included_credits')
+    .select('id, full_name, email, created_at')
     .eq('id', clientId)
     .eq('partner_id', partnerId)
     .single();
@@ -145,8 +143,6 @@ export async function getPartnerClientDetail(partnerId: string, clientId: string
     ...client,
     sites: sites ?? [],
     domains: domains ?? [],
-    usage: Number(client.usage_this_cycle ?? 0),
-    included: client.included_credits ?? 36,
   };
 }
 

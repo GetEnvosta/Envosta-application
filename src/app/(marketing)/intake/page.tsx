@@ -47,20 +47,20 @@ const PLANS = [
     id: 'minimum',
     name: 'Minimum',
     price: '$36',
-    annual: '$30',
-    annualTotal: '$360/yr',
+    annual: '$27',
+    annualTotal: '$324/yr',
     currency: 'USD',
-    features: ['36 credits included', 'Up to 2 sites', '25 GB SSD', 'Daily backups', 'Staging env', 'Free migration'],
+    features: ['1 site', '25 GB SSD', 'Daily backups & auto-updates', 'Free SSL + global CDN', 'Email support'],
   },
   {
     id: 'growth',
     name: 'Growth',
     price: '$297',
-    annual: '$248',
-    annualTotal: '$2,970/yr',
+    annual: '$223',
+    annualTotal: '$2,676/yr',
     featured: true,
     currency: 'USD',
-    features: ['297 credits included', 'Up to 10 sites', '30 GB SSD', 'AI tools', 'SEO audit', 'WooCommerce setup'],
+    features: ['Up to 5 sites', 'Auto-scaling resources', 'Done-with-you onboarding', 'AI-powered SEO', 'WooCommerce ready', 'Priority support'],
   },
 ];
 
@@ -409,7 +409,7 @@ export default function IntakePage() {
                         {opt === 'monthly' ? 'Monthly' : 'Annual'}
                       </span>
                     ))}
-                    <span className="billing-save">2 months free</span>
+                    <span className="billing-save">Save 25%</span>
                   </div>
 
                   {/* Plan cards */}

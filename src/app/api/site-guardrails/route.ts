@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
   const { data: site } = await supabase
     .from('sites')
-    .select('id, product_id, max_php_workers, max_ssd_gb, bursting_enabled, monthly_ai_token_limit, config')
+    .select('id, product_id, max_php_workers, max_ssd_gb, bursting_enabled, config')
     .eq('id', siteId)
     .eq('user_id', userId)
     .maybeSingle();
@@ -30,7 +30,6 @@ export async function GET(req: Request) {
     php_workers: config.php_workers ?? 2,
     ssd_gb: config.storage_gb ?? 25,
     bursting_enabled: site.bursting_enabled ?? false,
-    monthly_ai_token_limit: site.monthly_ai_token_limit ?? null,
   });
 }
 
@@ -39,7 +38,7 @@ export async function PUT(req: Request) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
-  const { siteId, php_workers, ssd_gb, bursting_enabled, monthly_ai_token_limit } = body;
+  const { siteId, php_workers, ssd_gb, bursting_enabled } = body;
   if (!siteId) return NextResponse.json({ error: 'siteId is required' }, { status: 400 });
 
   const supabase = await createServerClient();
@@ -78,7 +77,6 @@ export async function PUT(req: Request) {
       max_php_workers: php_workers ?? site.max_php_workers,
       max_ssd_gb: ssd_gb ?? site.max_ssd_gb,
       bursting_enabled: newBursting,
-      monthly_ai_token_limit: monthly_ai_token_limit ?? null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', siteId);
@@ -125,6 +123,5 @@ export async function PUT(req: Request) {
     max_php_workers: php_workers ?? site.max_php_workers,
     max_ssd_gb: ssd_gb ?? site.max_ssd_gb,
     bursting_enabled: newBursting,
-    monthly_ai_token_limit: monthly_ai_token_limit ?? null,
   });
 }

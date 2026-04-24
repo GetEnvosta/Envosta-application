@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
-import { checkAiTokenBudget } from '@/lib/ai-budget';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -32,13 +31,6 @@ export async function POST(req: Request) {
   if (!apiKey) return NextResponse.json({ error: 'AI not configured' }, { status: 503 });
 
   try {
-    const budget = await checkAiTokenBudget(user.id);
-    if (!budget.allowed) {
-      return NextResponse.json({
-        error: `AI token limit reached. Used ${budget.dailyUsed.toLocaleString()} of ${budget.dailyLimit?.toLocaleString()} tokens today.`,
-      }, { status: 429 });
-    }
-
     const { style, pageName, pageContext, allSections, section, extraPrompt } = await req.json();
     const customHtmlBlocks = !!style?.customHtmlBlocks;
 

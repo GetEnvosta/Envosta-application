@@ -21,7 +21,6 @@ interface Product {
   stripe_price_id_3yr?: string | null;
   stripe_price_id_cad?: string | null;
   stripe_price_id_yearly_cad?: string | null;
-  monthly_credit_cost: number | null;
   metadata: any;
 }
 

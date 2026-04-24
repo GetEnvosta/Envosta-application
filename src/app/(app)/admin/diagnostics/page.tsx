@@ -13,6 +13,7 @@ import { AdminPhone } from '@/components/admin/admin-phone';
 import { CouponManager } from '@/components/admin/coupon-manager';
 import { StripeProducts } from '@/components/admin/stripe-products';
 import { SystemTabs } from './system-tabs';
+import { LifecycleReference } from './lifecycle-reference';
 import { formatDateTime } from '@/lib/utils';
 
 export default async function DiagnosticsPage() {
@@ -80,7 +81,7 @@ export default async function DiagnosticsPage() {
   const logs = await getAdminLogs({}, 50);
 
   // Fetch product data
-  const productCols = 'id, type, name, slug, billing, price_cad, price_usd, price_yearly_cad, price_yearly_usd, is_active, stripe_product_id, stripe_price_id, stripe_price_id_yearly, stripe_price_id_2yr, stripe_price_id_3yr, stripe_price_id_cad, stripe_price_id_yearly_cad, monthly_credit_cost, metadata';
+  const productCols = 'id, type, name, slug, billing, price_cad, price_usd, price_yearly_cad, price_yearly_usd, is_active, stripe_product_id, stripe_price_id, stripe_price_id_yearly, stripe_price_id_2yr, stripe_price_id_3yr, stripe_price_id_cad, stripe_price_id_yearly_cad, metadata';
   const { data: allProducts } = await supabase
     .from('products')
     .select(productCols)
@@ -210,6 +211,8 @@ export default async function DiagnosticsPage() {
 
             </div>
           ),
+
+          lifecycle: <LifecycleReference />,
 
           logs: (
             <div className="card overflow-hidden">

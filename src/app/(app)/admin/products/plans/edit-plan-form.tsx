@@ -13,6 +13,8 @@ export function EditPlanForm({ plan }: { plan: any }) {
 
   const [name, setName] = useState(plan.name);
   const [description, setDescription] = useState(plan.description ?? '');
+  const [priceUsd, setPriceUsd] = useState(plan.price_usd ?? 0);
+  const [priceYearlyUsd, setPriceYearlyUsd] = useState(plan.price_yearly_usd ?? 0);
   const [priceCad, setPriceCad] = useState(plan.price_cad ?? 0);
   const [priceYearlyCad, setPriceYearlyCad] = useState(plan.price_yearly_cad ?? 0);
   const [isActive, setIsActive] = useState(plan.is_active);
@@ -34,6 +36,8 @@ export function EditPlanForm({ plan }: { plan: any }) {
   const [stripeProductId, setStripeProductId] = useState(plan.stripe_product_id ?? '');
   const [stripePriceId, setStripePriceId] = useState(plan.stripe_price_id ?? '');
   const [stripePriceIdYearly, setStripePriceIdYearly] = useState(plan.stripe_price_id_yearly ?? '');
+  const [stripePriceIdCad, setStripePriceIdCad] = useState(plan.stripe_price_id_cad ?? '');
+  const [stripePriceIdYearlyCad, setStripePriceIdYearlyCad] = useState(plan.stripe_price_id_yearly_cad ?? '');
 
   async function handleSave() {
     setSaving(true);
@@ -59,12 +63,16 @@ export function EditPlanForm({ plan }: { plan: any }) {
       .update({
         name,
         description: description || null,
+        price_usd: priceUsd,
+        price_yearly_usd: priceYearlyUsd,
         price_cad: priceCad,
         price_yearly_cad: priceYearlyCad,
         is_active: isActive,
         stripe_product_id: stripeProductId || null,
         stripe_price_id: stripePriceId || null,
         stripe_price_id_yearly: stripePriceIdYearly || null,
+        stripe_price_id_cad: stripePriceIdCad || null,
+        stripe_price_id_yearly_cad: stripePriceIdYearlyCad || null,
         metadata,
       })
       .eq('id', plan.id);
@@ -84,7 +92,7 @@ export function EditPlanForm({ plan }: { plan: any }) {
         body: JSON.stringify({
           type: 'plan',
           id: plan.id,
-          data: { name, description, price_cad: priceCad, price_yearly_cad: priceYearlyCad, is_active: isActive, ...metadata },
+          data: { name, description, price_usd: priceUsd, price_yearly_usd: priceYearlyUsd, price_cad: priceCad, price_yearly_cad: priceYearlyCad, is_active: isActive, ...metadata },
         }),
       });
       const result = await res.json();
@@ -92,6 +100,8 @@ export function EditPlanForm({ plan }: { plan: any }) {
         setStripeProductId(result.stripe_product_id);
         setStripePriceId(result.stripe_price_id ?? '');
         setStripePriceIdYearly(result.stripe_price_id_yearly ?? '');
+        setStripePriceIdCad(result.stripe_price_id_cad ?? '');
+        setStripePriceIdYearlyCad(result.stripe_price_id_yearly_cad ?? '');
       }
     } catch {
       // Stripe sync failed, plan saved to DB
@@ -121,16 +131,31 @@ export function EditPlanForm({ plan }: { plan: any }) {
             <div><label className="label">Description</label><textarea className="input" rows={2} value={description} onChange={e => setDescription(e.target.value)} /></div>
           </div>
 
-          {/* Stripe — Billing */}
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-2">Stripe — Billing</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-            <div><label className="label">Monthly price (cents USD)</label><input type="number" className="input" value={priceCad} onChange={e => setPriceCad(Number(e.target.value))} /></div>
-            <div><label className="label">Yearly price (cents USD)</label><input type="number" className="input" value={priceYearlyCad} onChange={e => setPriceYearlyCad(Number(e.target.value))} /></div>
+          {/* Stripe — Billing (USD) */}
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-2">Stripe — USD prices</p>
+          <div className="grid grid-cols-2 gap-4 mb-3">
+            <div><label className="label">Monthly (cents USD)</label><input type="number" className="input" value={priceUsd} onChange={e => setPriceUsd(Number(e.target.value))} /></div>
+            <div><label className="label">Yearly total (cents USD)</label><input type="number" className="input" value={priceYearlyUsd} onChange={e => setPriceYearlyUsd(Number(e.target.value))} /></div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div><label className="label">Monthly Price ID</label><input type="text" className="input font-mono text-xs" value={stripePriceId} onChange={e => setStripePriceId(e.target.value)} placeholder="price_..." /></div>
-            <div><label className="label">Yearly Price ID</label><input type="text" className="input font-mono text-xs" value={stripePriceIdYearly} onChange={e => setStripePriceIdYearly(e.target.value)} placeholder="price_..." /></div>
-            <div><label className="label">Product ID</label><input type="text" className="input font-mono text-xs" value={stripeProductId} onChange={e => setStripeProductId(e.target.value)} placeholder="prod_..." /></div>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div><label className="label">Monthly Price ID (USD)</label><input type="text" className="input font-mono text-xs" value={stripePriceId} onChange={e => setStripePriceId(e.target.value)} placeholder="price_..." /></div>
+            <div><label className="label">Yearly Price ID (USD)</label><input type="text" className="input font-mono text-xs" value={stripePriceIdYearly} onChange={e => setStripePriceIdYearly(e.target.value)} placeholder="price_..." /></div>
+          </div>
+
+          {/* Stripe — Billing (CAD) */}
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-2">Stripe — CAD prices</p>
+          <div className="grid grid-cols-2 gap-4 mb-3">
+            <div><label className="label">Monthly (cents CAD)</label><input type="number" className="input" value={priceCad} onChange={e => setPriceCad(Number(e.target.value))} /></div>
+            <div><label className="label">Yearly total (cents CAD)</label><input type="number" className="input" value={priceYearlyCad} onChange={e => setPriceYearlyCad(Number(e.target.value))} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div><label className="label">Monthly Price ID (CAD)</label><input type="text" className="input font-mono text-xs" value={stripePriceIdCad} onChange={e => setStripePriceIdCad(e.target.value)} placeholder="price_..." /></div>
+            <div><label className="label">Yearly Price ID (CAD)</label><input type="text" className="input font-mono text-xs" value={stripePriceIdYearlyCad} onChange={e => setStripePriceIdYearlyCad(e.target.value)} placeholder="price_..." /></div>
+          </div>
+
+          <div className="mb-4">
+            <label className="label">Stripe Product ID (shared by all 4 prices)</label>
+            <input type="text" className="input font-mono text-xs" value={stripeProductId} onChange={e => setStripeProductId(e.target.value)} placeholder="prod_..." />
           </div>
 
           {/* wp.cloud — Infrastructure */}

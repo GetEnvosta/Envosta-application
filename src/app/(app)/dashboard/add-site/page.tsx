@@ -53,16 +53,16 @@ export default function AddSitePage() {
       // Load available hosting plans
       const { data: planRows } = await supabase
         .from('products')
-        .select('slug, name, price_cad, metadata')
+        .select('slug, name, price_usd, features, metadata')
         .eq('type', 'hosting_plan')
         .eq('is_active', true)
-        .order('price_cad', { ascending: true });
+        .order('price_usd', { ascending: true });
 
       setPlans((planRows ?? []).map((p: any) => ({
         slug: p.slug,
         name: p.name,
-        price: p.price_cad ? p.price_cad / 100 : 0,
-        features: p.metadata?.features ?? [],
+        price: p.price_usd ? p.price_usd / 100 : 0,
+        features: Array.isArray(p.features) ? p.features : [],
       })));
 
       setLoading(false);

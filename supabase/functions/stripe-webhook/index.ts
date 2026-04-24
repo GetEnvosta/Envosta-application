@@ -1,5 +1,5 @@
 import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, json, error, log } from "../_shared/deps.ts";
-import { sendEmail, welcomeEmail, invoicePaidEmail } from "../_shared/email.ts";
+import { sendEmail, welcomeEmail, invoicePaidEmail, paymentFailedEmail, sitesPausedEmail } from "../_shared/email.ts";
 import { opensrsRequest, parseResponse } from "../_shared/opensrs.ts";
 
 Deno.serve(async (req) => {
@@ -405,7 +405,7 @@ Deno.serve(async (req) => {
     else if (event.type === "customer.subscription.deleted") {
       const sub = event.data.object;
 
-      // 1. Mark subscription as cancelled
+      // 1. Mark subscription as cancelled in our DB.
       const { data: existSubDel } = await sb.from("subscriptions").select("id, metadata").eq("stripe_subscription_id", sub.id).maybeSingle();
       const { data: dbSub } = await sb.from("subscriptions").update({
         status: "cancelled",
@@ -413,25 +413,37 @@ Deno.serve(async (req) => {
       }).eq("stripe_subscription_id", sub.id).select("id").maybeSingle();
       console.log("Subscription cancelled:", sub.id);
 
-      // 2. Cancel ALL linked sites (multi-item: each site is a line item)
+      // 2. Sites stay 'paused' (NOT 'cancelled') so the admin can review before purge.
+      //    Stripe drives the timing — by the time this fires, dunning has already failed,
+      //    or the customer cancelled from the portal. Either way, sites get paused
+      //    (still live on wp.cloud) and a notification email is sent.
+      let pausedSiteCount = 0;
+      let ownerEmail: { id: string; email: string; full_name: string | null } | null = null;
       if (dbSub) {
         const { data: sites } = await sb.from("sites")
-          .select("id, label, status")
+          .select("id, label, status, user_id")
           .eq("subscription_id", dbSub.id)
           .in("status", ["active", "provisioning"]);
 
         for (const site of sites ?? []) {
           await sb.from("sites").update({
-            status: "cancelled",
-            metadata: { cancelled_at: new Date().toISOString(), cancelled_via: "stripe_portal", recovery_until: new Date(Date.now() + 30 * 86400000).toISOString() },
+            status: "paused",
+            paused_at: new Date().toISOString(),
+            flag_reason: "subscription_cancelled_via_stripe",
           }).eq("id", site.id);
 
-          // Unlink domains
-          await sb.from("domains").update({ site_id: null }).eq("site_id", site.id);
-
-          console.log("Site cancelled:", site.label);
-          await log({ serviceId: site.id, action: "site.cancelled_via_stripe", message: `${site.label} cancelled from Stripe billing portal` });
+          await log({ serviceId: site.id, action: "site.paused_via_stripe", message: `${site.label} paused after subscription cancelled in Stripe portal` });
+          pausedSiteCount++;
+          if (!ownerEmail && site.user_id) {
+            const { data: u } = await sb.from("users").select("id, email, full_name").eq("id", site.user_id).maybeSingle();
+            if (u) ownerEmail = u as any;
+          }
         }
+      }
+
+      if (pausedSiteCount > 0 && ownerEmail?.email) {
+        const email = sitesPausedEmail(ownerEmail.full_name ?? "there", pausedSiteCount);
+        await sendEmail({ to: ownerEmail.email, ...email });
       }
 
       // 3. If domain renewal subscription, disable auto-renew at OpenSRS
@@ -507,6 +519,24 @@ Deno.serve(async (req) => {
 
               await sb.from("invoices").update({
                 metadata: { ...(existingInv?.metadata as any ?? {}), email_sent: true },
+              }).eq("stripe_invoice_id", inv.id);
+            }
+          }
+        }
+
+        // Payment failed → notify customer (idempotent — once per invoice)
+        if (event.type === "invoice.payment_failed" && inv.amount_due > 0) {
+          const { data: existingInv } = await sb.from("invoices").select("metadata").eq("stripe_invoice_id", inv.id).maybeSingle();
+          const alreadySent = (existingInv?.metadata as any)?.failure_email_sent;
+
+          if (!alreadySent) {
+            const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.id).maybeSingle();
+            if (userProfile?.email) {
+              const amount = `$${(inv.amount_due / 100).toFixed(2)} ${(inv.currency ?? "USD").toUpperCase()}`;
+              const email = paymentFailedEmail(userProfile.full_name ?? "there", amount);
+              await sendEmail({ to: userProfile.email, ...email });
+              await sb.from("invoices").update({
+                metadata: { ...(existingInv?.metadata as any ?? {}), failure_email_sent: true },
               }).eq("stripe_invoice_id", inv.id);
             }
           }

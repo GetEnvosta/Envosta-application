@@ -3,10 +3,9 @@ export const dynamic = 'force-dynamic';
 import { getEffectiveUserId } from '@/services/auth';
 import { getUserDashboardCounts, getRecentUserServices, getRecentUserDomains } from '@/services/admin';
 import { getActiveSubscription } from '@/services/subscriptions';
-import { getUsageMeter } from '@/services/usage';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { Server, Globe, Globe2, CreditCard, Coins, Plus, Rocket, CheckCircle, ArrowRight, Sparkles, Shield, Zap } from 'lucide-react';
+import { Server, Globe, Globe2, Plus, Rocket, CheckCircle, ArrowRight, Sparkles, Shield, Zap } from 'lucide-react';
 
 export default async function DashboardPage() {
   const userId = await getEffectiveUserId();
@@ -16,13 +15,11 @@ export default async function DashboardPage() {
     services,
     domains,
     subscription,
-    usageMeter,
   ] = await Promise.all([
     getUserDashboardCounts(userId!),
     getRecentUserServices(userId!, 5),
     getRecentUserDomains(userId!, 5),
     getActiveSubscription(userId!),
-    getUsageMeter(userId!),
   ]);
 
   const isNew = !services || services.length === 0;
@@ -139,22 +136,9 @@ export default async function DashboardPage() {
   }
 
   // Existing user dashboard
-  const usagePct = usageMeter.usage_percent;
-  const isOver = usagePct > 100;
-  const isNear = usagePct >= 80;
-
-  // Only show usage stat when approaching or over limit — invisible otherwise
   const stats = [
     { label: 'Active sites', value: sitesCount, icon: Server, href: '/dashboard/sites', color: 'blue' },
     { label: 'Domains', value: domainsCount, icon: Globe, href: '/dashboard/domains', color: 'purple' },
-    ...(isNear || isOver ? [{
-      label: isOver ? 'Over limit' : 'Approaching limit',
-      value: `${Math.round(usageMeter.usage_this_cycle)}/${usageMeter.included_credits}`,
-      icon: Coins,
-      href: '/dashboard/billing',
-      color: isOver ? 'red' : 'amber',
-      sub: isOver ? `$${usageMeter.projected_overage} estimated overage` : 'Review your usage',
-    }] : []),
   ];
 
   const colorMap: Record<string, { bg: string; text: string; hover: string }> = {

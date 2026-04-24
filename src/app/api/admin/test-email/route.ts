@@ -49,6 +49,22 @@ const TEMPLATES: Record<string, { subject: string; html: string }> = {
     subject: 'Payment received — $129.00 CAD',
     html: template(`<h1>Payment received</h1><p>Hey Test User, we've received your payment. Here's your receipt:</p><div class="detail"><div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">$129.00 CAD</span></div><div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">Growth Plan — Monthly</span></div></div><a href="#" class="btn">View Invoice</a><p style="font-size:13px;color:#888;">You can view all invoices in your <a href="https://my.envosta.com/dashboard/billing">billing dashboard</a>.</p>`),
   },
+  payment_failed: {
+    subject: 'Payment failed — please update your card',
+    html: template(`<h1>We couldn't charge your card</h1><p>Hey Test User, your most recent payment of <strong>$36.00 USD</strong> didn't go through. We'll automatically retry over the next few weeks.</p><p>To avoid any service interruption, please update your payment method now.</p><a href="https://my.envosta.com/dashboard/billing" class="btn">Update Payment Method</a><p style="font-size:13px;color:#888;">If we can't collect after several attempts, your subscription will be cancelled and your sites will be paused. You'll have time to restore them before anything is removed.</p>`),
+  },
+  sites_paused: {
+    subject: 'Your 2 sites have been paused',
+    html: template(`<h1>Your sites are paused</h1><p>Hey Test User, your hosting subscription was cancelled because we weren't able to collect payment. We've paused <strong>2 sites</strong> on your account.</p><p>Your data is safe and untouched. Sign back in, restart your subscription, and your sites will be reactivated.</p><a href="https://my.envosta.com/dashboard/billing" class="btn">Restart Subscription</a><p style="font-size:13px;color:#888;">If you don't restore service, your sites may eventually be queued for deletion. We'll always notify you before anything is permanently removed.</p>`),
+  },
+  site_flagged_for_deletion: {
+    subject: 'Final notice — test-site queued for deletion',
+    html: template(`<h1>test-site is queued for deletion</h1><p>Hey Test User, your site <strong>test-site</strong> has been flagged for deletion. This is your last chance to restore it before it's permanently removed.</p><p>To save your site, restart your subscription and contact support so we can move it back out of the cleanup queue.</p><a href="https://my.envosta.com/dashboard/billing" class="btn">Restart Subscription</a><p style="font-size:13px;color:#888;">An admin will review and confirm the deletion. Once deleted, your site and its data cannot be recovered.</p>`),
+  },
+  site_deleted: {
+    subject: 'test-site has been permanently deleted',
+    html: template(`<h1>test-site has been deleted</h1><p>Hey Test User, your site <strong>test-site</strong> has been permanently removed from our servers. All site files and databases have been deleted.</p><p>If you'd like to start a new site, you can sign up again at any time. We're sorry to see you go.</p><a href="https://envosta.com/get-started" class="btn">Start a New Site</a><p style="font-size:13px;color:#888;">If you believe this was done in error, please contact <a href="https://envosta.com/support">support</a> immediately.</p>`),
+  },
   domain_expiry: {
     subject: 'Domain expiring soon: testdomain.com',
     html: template(`<h1>Domain expiring in 7 days</h1><p>Hey Test User, your domain <strong>testdomain.com</strong> expires in <strong>7 days</strong>.</p><p>Auto-renew is <strong>enabled</strong>, so it will renew automatically. No action needed.</p>`),

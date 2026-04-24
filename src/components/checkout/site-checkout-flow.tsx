@@ -19,6 +19,8 @@ interface Plan {
   stripe_price_id_yearly: string;
   price_cad: number;
   price_yearly_cad: number;
+  price_usd: number;
+  price_yearly_usd: number;
   features: string[] | any;
   metadata: any;
   sort_order: number;
@@ -459,7 +461,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
               }} />
             </button>
             <span style={{ fontSize: '.82rem', color: billingPeriod === 'annual' ? t.text : t.textMuted, fontWeight: billingPeriod === 'annual' ? 500 : 400 }}>
-              Annual <span style={{ fontSize: '.7rem', color: '#22c55e', fontWeight: 600 }}>2 months free</span>
+              Annual <span style={{ fontSize: '.7rem', color: '#22c55e', fontWeight: 600 }}>Save 25%</span>
             </span>
           </div>
 
@@ -489,13 +491,13 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                   </div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 4 }}>
                     <span style={{ fontSize: '2rem', fontWeight: 600, color: t.text, letterSpacing: '-1px' }}>
-                      ${billingPeriod === 'annual' ? ((plan.price_yearly_cad ?? 0) / 100 / 12).toFixed(0) : (plan.price_cad / 100).toFixed(0)}
+                      ${billingPeriod === 'annual' ? ((plan.price_yearly_usd ?? 0) / 100 / 12).toFixed(0) : ((plan.price_usd ?? 0) / 100).toFixed(0)}
                     </span>
                     <span style={{ fontSize: '.8rem', color: t.textMuted, fontWeight: 300 }}>
-                      USD/{billingPeriod === 'annual' ? 'mo' : 'mo'}
+                      USD/mo
                     </span>
                   </div>
-                  {isTrial && <p style={{ fontSize: '.72rem', color: '#22c55e', fontWeight: 500, marginBottom: 10 }}>Then ${(plan.price_cad / 100).toFixed(0)}/mo after trial</p>}
+                  {isTrial && <p style={{ fontSize: '.72rem', color: '#22c55e', fontWeight: 500, marginBottom: 10 }}>Then ${((plan.price_usd ?? 0) / 100).toFixed(0)}/mo after trial</p>}
                   {!isTrial && <div style={{ marginBottom: 10 }} />}
                   <p style={{ fontSize: '.78rem', color: t.textMuted, lineHeight: 1.6, fontWeight: 300, marginBottom: 16 }}>{plan.description}</p>
                   <div style={{ flex: 1 }}>

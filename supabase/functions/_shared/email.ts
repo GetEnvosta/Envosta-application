@@ -173,78 +173,58 @@ export function domainExpiryWarningEmail(name: string, domain: string, daysLeft:
 }
 
 // ════════════════════════════════════════
-// CREDIT EMAIL TEMPLATES
+// LIFECYCLE EMAIL TEMPLATES
 // ════════════════════════════════════════
 
-export function creditsLowEmail(name: string, remaining: number, threshold: number): { subject: string; html: string } {
+export function paymentFailedEmail(name: string, amount: string): { subject: string; html: string } {
   return {
-    subject: `Low credit balance — ${remaining} credits remaining`,
+    subject: `Payment failed — please update your card`,
     html: template(`
-      <h1>Your credits are running low</h1>
-      <p>Hey ${name}, your Envosta credit balance has dropped to <strong>${remaining} credits</strong>.</p>
-      <div class="detail">
-        <div class="detail-row"><span class="detail-label">Current Balance</span><span class="detail-value">${remaining} credits</span></div>
-        <div class="detail-row"><span class="detail-label">Alert Threshold</span><span class="detail-value">${threshold} credits</span></div>
-      </div>
-      <p>If your balance reaches zero, your services will continue but your account will carry a negative balance.</p>
-      <a href="https://my.envosta.com/dashboard/billing" class="btn">Buy Credits</a>
-      <p style="font-size:13px;color:#888;">You can enable auto-refill in your billing settings to avoid running out.</p>
+      <h1>We couldn't charge your card</h1>
+      <p>Hey ${name}, your most recent payment of <strong>${amount}</strong> didn't go through. We'll automatically retry over the next few weeks.</p>
+      <p>To avoid any service interruption, please update your payment method now.</p>
+      <a href="https://my.envosta.com/dashboard/billing" class="btn">Update Payment Method</a>
+      <p style="font-size:13px;color:#888;">If we can't collect after several attempts, your subscription will be cancelled and your sites will be paused. You'll have time to restore them before anything is removed.</p>
     `),
   };
 }
 
-export function creditsAutoRefillEmail(name: string, amount: number, newBalance: number): { subject: string; html: string } {
+export function sitesPausedEmail(name: string, siteCount: number): { subject: string; html: string } {
+  const sitesStr = siteCount === 1 ? '1 site' : `${siteCount} sites`;
   return {
-    subject: `Auto-refill: ${amount} credits added`,
+    subject: `Your ${sitesStr} ${siteCount === 1 ? 'has' : 'have'} been paused`,
     html: template(`
-      <h1>Credits auto-refilled</h1>
-      <p>Hey ${name}, your credit balance was running low so we automatically added <strong>${amount} credits</strong> to your account.</p>
-      <div class="detail">
-        <div class="detail-row"><span class="detail-label">Credits Added</span><span class="detail-value">${amount}</span></div>
-        <div class="detail-row"><span class="detail-label">Amount Charged</span><span class="detail-value">$${amount}.00 CAD</span></div>
-        <div class="detail-row"><span class="detail-label">New Balance</span><span class="detail-value">${newBalance} credits</span></div>
-      </div>
-      <a href="https://my.envosta.com/dashboard/billing" class="btn">View Billing</a>
-      <p style="font-size:13px;color:#888;">You can adjust auto-refill settings or disable it anytime from your <a href="https://my.envosta.com/dashboard/billing">billing dashboard</a>.</p>
+      <h1>Your sites are paused</h1>
+      <p>Hey ${name}, your hosting subscription was cancelled because we weren't able to collect payment. We've paused <strong>${sitesStr}</strong> on your account.</p>
+      <p>Your data is safe and untouched. Sign back in, restart your subscription, and your sites will be reactivated.</p>
+      <a href="https://my.envosta.com/dashboard/billing" class="btn">Restart Subscription</a>
+      <p style="font-size:13px;color:#888;">If you don't restore service, your sites may eventually be queued for deletion. We'll always notify you before anything is permanently removed.</p>
     `),
   };
 }
 
-export function creditsPurchasedEmail(name: string, amount: number, newBalance: number): { subject: string; html: string } {
+export function siteFlaggedForDeletionEmail(name: string, siteName: string): { subject: string; html: string } {
   return {
-    subject: `${amount} credits added to your account`,
+    subject: `Final notice — ${siteName} queued for deletion`,
     html: template(`
-      <h1>Credits purchased</h1>
-      <p>Hey ${name}, <strong>${amount} credits</strong> have been added to your account.</p>
-      <div class="detail">
-        <div class="detail-row"><span class="detail-label">Credits Added</span><span class="detail-value">${amount}</span></div>
-        <div class="detail-row"><span class="detail-label">Amount Charged</span><span class="detail-value">$${amount}.00 CAD</span></div>
-        <div class="detail-row"><span class="detail-label">New Balance</span><span class="detail-value">${newBalance} credits</span></div>
-      </div>
-      <a href="https://my.envosta.com/dashboard/billing" class="btn">View Billing</a>
+      <h1>${siteName} is queued for deletion</h1>
+      <p>Hey ${name}, your site <strong>${siteName}</strong> has been flagged for deletion. This is your last chance to restore it before it's permanently removed.</p>
+      <p>To save your site, restart your subscription and contact support so we can move it back out of the cleanup queue.</p>
+      <a href="https://my.envosta.com/dashboard/billing" class="btn">Restart Subscription</a>
+      <p style="font-size:13px;color:#888;">An admin will review and confirm the deletion. Once deleted, your site and its data cannot be recovered.</p>
     `),
   };
 }
 
-export function creditsNegativeEmail(name: string, balance: number): { subject: string; html: string } {
+export function siteDeletedEmail(name: string, siteName: string): { subject: string; html: string } {
   return {
-    subject: `Action needed — negative credit balance`,
+    subject: `${siteName} has been permanently deleted`,
     html: template(`
-      <h1>Your account has a negative balance</h1>
-      <p>Hey ${name}, your Envosta credit balance is <strong style="color:#dc2626;">${balance} credits</strong>. Your services are still running, but please add credits to bring your account current.</p>
-      <a href="https://my.envosta.com/dashboard/billing" class="btn">Add Credits Now</a>
-      <p style="font-size:13px;color:#888;">Enable auto-refill to prevent this in the future.</p>
-    `),
-  };
-}
-
-export function creditsDailySpendAlertEmail(userName: string, userEmail: string, dailySpend: number): { subject: string; html: string } {
-  return {
-    subject: `[Admin Alert] High daily credit spend: ${userEmail}`,
-    html: template(`
-      <h1>High daily credit spend detected</h1>
-      <p>User <strong>${userName}</strong> (${userEmail}) has spent <strong>${dailySpend} credits</strong> today. This may indicate unusual activity.</p>
-      <a href="https://my.envosta.com/admin/customers" class="btn">Review Account</a>
+      <h1>${siteName} has been deleted</h1>
+      <p>Hey ${name}, your site <strong>${siteName}</strong> has been permanently removed from our servers. All site files and databases have been deleted.</p>
+      <p>If you'd like to start a new site, you can sign up again at any time. We're sorry to see you go.</p>
+      <a href="https://envosta.com/get-started" class="btn">Start a New Site</a>
+      <p style="font-size:13px;color:#888;">If you believe this was done in error, please contact <a href="https://envosta.com/support">support</a> immediately.</p>
     `),
   };
 }

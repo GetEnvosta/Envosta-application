@@ -50,6 +50,32 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `Plan "${selectedPlan}" not found or not configured in Stripe` }, { status: 400 });
   }
 
+  // Enforce sites_allowed for the user's CURRENT plan (not the requested one — they
+  // can't escape the limit by passing a different planSlug; new sites always inherit
+  // the existing hosting subscription's plan if one exists).
+  const { data: existingSites } = await supabase
+    .from('sites')
+    .select('id, product_id')
+    .eq('user_id', user.id)
+    .not('status', 'in', '("cancelled","deleted","flagged_for_deletion")');
+
+  const sitesUsed = existingSites?.length ?? 0;
+  if (sitesUsed > 0) {
+    // Use the plan of an existing site to determine the cap
+    const referencePlanId = existingSites![0].product_id;
+    const { data: refPlan } = await supabase
+      .from('products')
+      .select('name, metadata')
+      .eq('id', referencePlanId)
+      .maybeSingle();
+    const sitesAllowed = Number((refPlan?.metadata as any)?.sites_allowed ?? 1);
+    if (sitesUsed >= sitesAllowed) {
+      return NextResponse.json({
+        error: `Your ${refPlan?.name ?? 'current'} plan allows ${sitesAllowed} site${sitesAllowed === 1 ? '' : 's'}. You're using ${sitesUsed}. Upgrade to add more sites.`,
+      }, { status: 403 });
+    }
+  }
+
   // Find user's existing hosting subscription — or create one
   let hostingSub = await findHostingSubscription(supabase, user.id);
 
