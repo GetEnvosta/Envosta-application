@@ -67,6 +67,51 @@ export async function wpcloudGet(path: string): Promise<{ ok: boolean; status: n
   return { ok: res.ok, status: res.status, data: json?.data ?? json };
 }
 
+/**
+ * Run a WP-CLI command on a wp.cloud site via task-create/run-wp-cli-command.
+ * Args are the tokens that would follow `wp` on the command line.
+ * e.g. runWpCli(wpSiteId, ["plugin", "install", "akismet", "--activate"])
+ * Returns the raw task response (task_id etc. — the command runs async).
+ */
+export async function runWpCli(wpCloudSiteId: string | number, args: string[]): Promise<{ ok: boolean; status: number; data: any }> {
+  const url = `${WPCLOUD_PROXY_URL}/api/v1.0/task-create/${WPCLOUD_CLIENT}/run-wp-cli-command`;
+  const formBody = new URLSearchParams();
+  formBody.append("site_ids[]", String(wpCloudSiteId));
+  args.forEach((arg) => formBody.append("args[]", arg));
+  console.log("runWpCli:", wpCloudSiteId, args.join(" "));
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Auth": WPCLOUD_API_KEY,
+      "X-Proxy-Secret": WPCLOUD_PROXY_SECRET,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: formBody.toString(),
+  });
+  const rawText = await res.text();
+  console.log("runWpCli response:", res.status, rawText);
+  let data: any;
+  try { data = JSON.parse(rawText); } catch { data = { raw: rawText }; }
+  return { ok: res.ok, status: res.status, data };
+}
+
+/**
+ * Manage a plugin or theme on a wp.cloud site via site-manage-software.
+ * Actions: install, activate, deactivate, remove, lock, unlock.
+ * For `install`, pass `slug` (wp.org slug) or `source_url` (zip URL).
+ */
+export async function manageSoftware(
+  type: "plugin" | "theme",
+  wpCloudSiteId: string | number,
+  action: "install" | "activate" | "deactivate" | "remove" | "lock" | "unlock",
+  opts: { slug?: string; source_url?: string } = {},
+): Promise<{ ok: boolean; status: number; data: any }> {
+  const body: Record<string, unknown> = { action };
+  if (opts.slug) body.slug = opts.slug;
+  if (opts.source_url) body.source_url = opts.source_url;
+  return wpcloudPost(`/api/v1.0/site-manage-software/${type}/${wpCloudSiteId}`, body);
+}
+
 export function supabaseAdmin() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false },

@@ -2,24 +2,30 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
-import { Save, Loader2, Zap, HardDrive, Cpu, MemoryStick } from 'lucide-react';
+import { Save, Loader2, Zap, HardDrive, Cpu, MemoryStick, Code2 } from 'lucide-react';
 
 interface Props {
   siteId: string;
   wpCloudSiteId: string | null;
   config: any;
   planMetadata: any;
+  phpVersion?: string | null;
 }
 
 const WORKER_OPTIONS = [2, 4, 6, 8, 12, 30];
 const MEMORY_OPTIONS = [512, 1024, 1536, 2048];
 const STORAGE_OPTIONS = [10, 25, 50, 75, 100, 200, 400, 600, 800, 1000];
+const PHP_VERSION_OPTIONS = ['8.3', '8.4'];
 
-export function ResourceControls({ siteId, wpCloudSiteId, config, planMetadata }: Props) {
+export function ResourceControls({ siteId, wpCloudSiteId, config, planMetadata, phpVersion }: Props) {
   const [phpWorkers, setPhpWorkers] = useState(config?.php_workers ?? planMetadata?.php_workers_default ?? 2);
   const [phpMemory, setPhpMemory] = useState(config?.php_memory_mb ?? planMetadata?.php_memory_mb ?? 512);
   const [storageGb, setStorageGb] = useState(config?.storage_gb ?? planMetadata?.storage_gb ?? 25);
   const [bursting, setBursting] = useState(config?.burst_php_conns === 1);
+  const [phpVer, setPhpVer] = useState(() => {
+    const v = phpVersion ?? '8.4';
+    return PHP_VERSION_OPTIONS.includes(v) ? v : '8.4';
+  });
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -37,11 +43,11 @@ export function ResourceControls({ siteId, wpCloudSiteId, config, planMetadata }
       burst_php_conns: bursting ? 1 : 0,
     };
 
-    // 1. Update sites.config in DB
+    // 1. Update sites.config + php_version in DB
     const supabase = createClient();
     const { error: dbErr } = await supabase
       .from('sites')
-      .update({ config: newConfig })
+      .update({ config: newConfig, php_version: phpVer })
       .eq('id', siteId);
 
     if (dbErr) {
@@ -57,6 +63,7 @@ export function ResourceControls({ siteId, wpCloudSiteId, config, planMetadata }
         { key: 'default_php_conns', value: phpWorkers },
         { key: 'php_memory_limit', value: phpMemory },
         { key: 'burst_php_conns', value: bursting ? 1 : 0 },
+        { key: 'php_version', value: phpVer },
       ];
 
       for (const { key, value } of updates) {
@@ -89,7 +96,19 @@ export function ResourceControls({ siteId, wpCloudSiteId, config, planMetadata }
 
   return (
     <div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
+        <div>
+          <label className="label flex items-center gap-1.5">
+            <Code2 className="w-3.5 h-3.5" /> PHP Version
+          </label>
+          <select className="input" value={phpVer} onChange={e => setPhpVer(e.target.value)}>
+            {PHP_VERSION_OPTIONS.map(v => (
+              <option key={v} value={v}>PHP {v}</option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-400 mt-1">8.1 EOL — use 8.3+</p>
+        </div>
+
         <div>
           <label className="label flex items-center gap-1.5">
             <Cpu className="w-3.5 h-3.5" /> PHP Workers

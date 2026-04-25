@@ -5,9 +5,9 @@ import JSZip from 'jszip';
 import { getAssemblerVariationById } from '@/lib/studio-style-presets';
 
 // Folder slug of the Envosta parent theme on the WordPress server.
-// Matches the GitHub repo name (case-sensitive) at
-// https://github.com/GetEnvosta/Envosta-wordpress-theme.
-const ENVOSTA_PARENT_SLUG = 'Envosta-wordpress-theme';
+// The release asset at https://github.com/GetEnvosta/Envosta-Theme unpacks
+// to `envosta/`, so that's the slug WordPress installs it under.
+const ENVOSTA_PARENT_SLUG = 'envosta';
 
 export const dynamic = 'force-dynamic';
 

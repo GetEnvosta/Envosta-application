@@ -1,6 +1,16 @@
-import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, cors, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, runWpCli, manageSoftware, cors, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, siteReadyEmail, provisioningFailedEmail } from "../_shared/email.ts";
 import { setDnsZone, buildWpCloudDnsRecords } from "../_shared/opensrs.ts";
+import { jetpackPartnerProvision } from "../_shared/jetpack.ts";
+
+// Parent theme bundled with every Envosta site. Configurable so we can point
+// at a pinned release tag instead of HEAD once we cut stable releases.
+// Default points at the Envosta parent theme release asset. Zip unpacks to
+// `envosta/` — WP uses that as the installed slug, which matches what
+// Studio-generated child themes declare as Template.
+// Override via env var to pin a specific tag or swap to a staging build.
+const ENVOSTA_PARENT_THEME_ZIP_URL = Deno.env.get("ENVOSTA_PARENT_THEME_ZIP_URL")
+  ?? "https://github.com/GetEnvosta/Envosta-Theme/releases/latest/download/envosta.zip";
 
 /**
  * Provision a WordPress site via wp.cloud Atomic API (routed through static IP proxy).
@@ -264,6 +274,113 @@ Deno.serve(async (req) => {
         max_ssd_gb: storageGb,
         bursting_enabled: false,
       }).eq("id", svc.id);
+
+      // ─── Install Envosta parent theme + bundled plugins, unlock Jetpack ───
+      // wp.cloud pre-installs Jetpack as a "hosting-managed" locked plugin.
+      // We want it installed (for partner features) but deletable — so after
+      // creation we explicitly unlock it, and we auto-install Akismet too.
+      // The parent theme is installed from a zip URL (GitHub main by default,
+      // overridable via ENVOSTA_PARENT_THEME_ZIP_URL).
+      const softwareResults: Record<string, any> = {};
+
+      // Install + activate the Envosta parent theme (fire-and-forget; WP-CLI
+      // tasks run async on wp.cloud).
+      try {
+        const themeRes = await runWpCli(wpSiteIdStr, [
+          "theme", "install", ENVOSTA_PARENT_THEME_ZIP_URL, "--activate", "--force",
+        ]);
+        softwareResults.parent_theme = { ok: themeRes.ok, status: themeRes.status, task_id: themeRes.data?.task_id ?? themeRes.data?.atomic_task_id };
+        console.log("Parent theme install:", softwareResults.parent_theme);
+      } catch (e) {
+        console.error("Parent theme install failed (non-fatal):", e);
+        softwareResults.parent_theme = { ok: false, error: String(e) };
+      }
+
+      // Install + activate Akismet (unlocked by default — user can remove it).
+      try {
+        const akismetRes = await runWpCli(wpSiteIdStr, [
+          "plugin", "install", "akismet", "--activate",
+        ]);
+        softwareResults.akismet = { ok: akismetRes.ok, status: akismetRes.status, task_id: akismetRes.data?.task_id ?? akismetRes.data?.atomic_task_id };
+        console.log("Akismet install:", softwareResults.akismet);
+      } catch (e) {
+        console.error("Akismet install failed (non-fatal):", e);
+        softwareResults.akismet = { ok: false, error: String(e) };
+      }
+
+      // Unlock Jetpack so users can deactivate/delete if they choose.
+      // (wp.cloud auto-locks it as "hosting-managed" on provisioning.)
+      try {
+        const unlockJp = await manageSoftware("plugin", wpSiteIdStr, "unlock", { slug: "jetpack" });
+        softwareResults.jetpack_unlock = { ok: unlockJp.ok, status: unlockJp.status, message: unlockJp.data?.message };
+        console.log("Jetpack unlock:", softwareResults.jetpack_unlock);
+      } catch (e) {
+        console.error("Jetpack unlock failed (non-fatal):", e);
+        softwareResults.jetpack_unlock = { ok: false, error: String(e) };
+      }
+
+      // Unlock Akismet too (in case wp.cloud auto-locks it similarly).
+      try {
+        const unlockAk = await manageSoftware("plugin", wpSiteIdStr, "unlock", { slug: "akismet" });
+        softwareResults.akismet_unlock = { ok: unlockAk.ok, status: unlockAk.status, message: unlockAk.data?.message };
+        console.log("Akismet unlock:", softwareResults.akismet_unlock);
+      } catch (e) {
+        console.error("Akismet unlock failed (non-fatal):", e);
+        softwareResults.akismet_unlock = { ok: false, error: String(e) };
+      }
+
+      await log({
+        userId, serviceId: svc.id,
+        action: "site.software.bootstrap",
+        message: "parent theme + Akismet installed, Jetpack/Akismet unlocked",
+        res: softwareResults,
+      });
+    }
+
+    // Register Envosta's Jetpack partner attribution on the new site.
+    // wp.cloud pre-installs Jetpack as a managed plugin; this ties it to our
+    // partner account. If Jetpack isn't connected yet, Jetpack creates a
+    // "Pending Activation" that attaches when the site connects (14-day TTL).
+    let jetpackAttribution: any = null;
+    if (wpUrl) {
+      try {
+        const jpUser = (wpBody.admin_user as string) ?? "envosta_admin";
+        const jpResult = await jetpackPartnerProvision(wpUrl, jpUser);
+        jetpackAttribution = {
+          ok: jpResult.ok,
+          status: jpResult.status,
+          success: jpResult.success,
+          error_code: jpResult.error_code,
+          error_message: jpResult.error_message,
+          attributed_at: new Date().toISOString(),
+        };
+        console.log("Jetpack partner attribution:", jetpackAttribution);
+        await log({
+          userId, serviceId: svc.id,
+          level: jpResult.ok ? "info" : "warn",
+          action: jpResult.ok ? "jetpack.partner.attributed" : "jetpack.partner.failed",
+          message: jpResult.error_message ?? `${wpUrl} → partner`,
+          res: jpResult.raw,
+        });
+        // Persist attribution status to site metadata for visibility
+        await sb.from("sites").update({
+          metadata: {
+            ...(svc.metadata as any ?? {}),
+            wp_cloud_response: wpResponse,
+            job_id: wpResponse?.job_id,
+            domain_name: domainName ?? null,
+            site_ip: siteIp,
+            wp_admin_user: (wpBody.admin_user as string) ?? "envosta_admin",
+            wp_admin_password: wpAdminPassword,
+            provisioned_at: new Date().toISOString(),
+            jetpack_attribution: jetpackAttribution,
+          },
+        }).eq("id", svc.id);
+      } catch (jpErr) {
+        // Non-fatal — site is still usable without partner attribution
+        console.error("Jetpack partner attribution error (non-fatal):", jpErr);
+        await log({ userId, serviceId: svc.id, level: "error", action: "jetpack.partner.error", message: String(jpErr) });
+      }
     }
 
     // Link domain if provided

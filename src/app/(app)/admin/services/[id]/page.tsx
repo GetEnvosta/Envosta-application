@@ -172,6 +172,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             wpCloudSiteId={service.wp_cloud_site_id}
             config={service.config ?? {}}
             planMetadata={{}}
+            phpVersion={service.php_version}
           />
         </div>
 
