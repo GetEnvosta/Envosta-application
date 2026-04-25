@@ -599,10 +599,3 @@ ${allowHtml
   : '6. NO wp:html blocks under any circumstance. Core Gutenberg + WooCommerce blocks only. If a design element can\'t be expressed with block attributes, drop or simplify it.'}
 7. No JavaScript.`;
 }
-
-/**
- * Back-compat export: the old constant name. Returns the ON variant for
- * any caller that hasn't been updated to use the builder. Prefer calling
- * buildGenerateSystemPrompt({ customHtmlBlocks }) directly.
- */
-export const GENERATE_SYSTEM_PROMPT = buildGenerateSystemPrompt({ customHtmlBlocks: true });
