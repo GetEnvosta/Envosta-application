@@ -588,18 +588,22 @@ export function StripeProducts({
                   className="input w-full" />
               </div>
 
-              {/* Billing + Credits row */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Billing Frequency</label>
-                  <select value={editFields.billing ?? 'one_time'} onChange={e => setEditFields(f => ({ ...f, billing: e.target.value }))}
-                    className="input w-full">
-                    <option value="monthly">Monthly</option>
-                    <option value="yearly">Yearly</option>
-                    <option value="one_time">One-time</option>
-                  </select>
+              {/* Billing frequency — only for non-hosting products. Hosting plans
+                  expose both monthly + annual price fields, so this selector
+                  would be redundant. */}
+              {editProduct.type !== 'hosting_plan' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Billing Frequency</label>
+                    <select value={editFields.billing ?? 'one_time'} onChange={e => setEditFields(f => ({ ...f, billing: e.target.value }))}
+                      className="input w-full">
+                      <option value="monthly">Monthly</option>
+                      <option value="yearly">Yearly</option>
+                      <option value="one_time">One-time</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Prices row — monthly */}
               <div className="grid grid-cols-2 gap-4">
