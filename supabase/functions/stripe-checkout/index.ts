@@ -129,17 +129,25 @@ Deno.serve(async (req) => {
     if (domainName && !priceId) {
       const tld = domainName.split(".").pop()?.toLowerCase() ?? "";
       const { data: tldProduct } = await sb.from("products")
-        .select("stripe_price_id, price_cad, metadata")
+        .select("stripe_price_id, price_usd, price_cad, metadata")
         .eq("type", "domain_tld")
         .eq("slug", `tld-${tld}`).maybeSingle();
 
+      // Always prefer the USD Stripe price ID. Fallback to inline price_data
+      // in USD using price_usd (then price_cad as last-resort if a TLD hasn't
+      // had USD pricing populated yet).
       if (tldProduct?.stripe_price_id) {
         line_items.push({ price: tldProduct.stripe_price_id, quantity: 1 });
       } else {
         line_items.push({
           price_data: {
             currency: "usd",
-            unit_amount: (tldProduct?.metadata as any)?.registration_price_cad ?? tldProduct?.price_cad ?? 1500,
+            unit_amount:
+              (tldProduct?.metadata as any)?.registration_price_usd
+              ?? tldProduct?.price_usd
+              ?? (tldProduct?.metadata as any)?.registration_price_cad
+              ?? tldProduct?.price_cad
+              ?? 1500,
             product_data: { name: `Domain Registration: ${domainName} (1 year)` },
           },
           quantity: 1,

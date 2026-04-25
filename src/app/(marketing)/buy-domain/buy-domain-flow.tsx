@@ -43,10 +43,10 @@ export function BuyDomainFlow() {
     if (!domain) return;
     const tld = domain.split('.').pop()?.toLowerCase() ?? '';
     const supabase = createClient();
-    supabase.from('products').select('price_cad, metadata')
+    supabase.from('products').select('price_usd, price_cad, metadata')
       .eq('type', 'domain_tld').eq('slug', `tld-${tld}`).maybeSingle()
       .then(({ data }) => {
-        if (data) setPrice(((data.metadata as any)?.registration_price_cad ?? data.price_cad ?? 0) / 100);
+        if (data) setPrice((((data.metadata as any)?.registration_price_usd ?? data.price_usd ?? data.price_cad ?? 0) / 100));
       });
   }, [domain]);
 

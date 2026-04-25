@@ -138,11 +138,13 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
         const tld = initialDomain.split('.').pop()?.toLowerCase() ?? '';
         const { data: pricing } = await supabase
           .from('products')
-          .select('price_cad, metadata')
+          .select('price_usd, price_cad, metadata')
           .eq('type', 'domain_tld')
           .eq('slug', `tld-${tld}`)
           .maybeSingle();
-        if (pricing) setDomainPriceCents((pricing.metadata as any)?.registration_price_cad ?? pricing.price_cad);
+        if (pricing) setDomainPriceCents(
+          (pricing.metadata as any)?.registration_price_usd ?? pricing.price_usd ?? pricing.price_cad
+        );
       }
 
       // Skip to the right step based on what's pre-filled
@@ -189,11 +191,11 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
           const tld = domain.split('.').pop()?.toLowerCase() ?? '';
           const { data: pricing } = await supabase
             .from('products')
-            .select('price_cad, metadata')
+            .select('price_usd, price_cad, metadata')
             .eq('type', 'domain_tld')
             .eq('slug', `tld-${tld}`)
             .maybeSingle();
-          setDomainPriceCents(pricing ? ((pricing.metadata as any)?.registration_price_cad ?? pricing.price_cad) : null);
+          setDomainPriceCents(pricing ? ((pricing.metadata as any)?.registration_price_usd ?? pricing.price_usd ?? pricing.price_cad) : null);
         }
       } else {
         setDomainError(data.error ?? 'Could not check availability');
@@ -767,8 +769,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 clientSecret={checkoutClientSecret}
                 type={checkoutType}
                 planName={`${selectedPlan.name} Plan${billingPeriod === 'annual' ? ' (Annual)' : ''}`}
-                planPrice={isTrial ? '$0 today' : billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_cad ?? 0) / 100).toFixed(0)} USD/yr` : `$${(selectedPlan.price_cad / 100).toFixed(0)} USD/mo`}
-                fullPrice={billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_cad ?? 0) / 100).toFixed(0)} USD/yr` : `$${(selectedPlan.price_cad / 100).toFixed(0)} USD/mo`}
+                planPrice={isTrial ? '$0 today' : billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_usd ?? selectedPlan.price_yearly_cad ?? 0) / 100).toFixed(0)} USD/yr` : `$${((selectedPlan.price_usd ?? selectedPlan.price_cad) / 100).toFixed(0)} USD/mo`}
+                fullPrice={billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_usd ?? selectedPlan.price_yearly_cad ?? 0) / 100).toFixed(0)} USD/yr` : `$${((selectedPlan.price_usd ?? selectedPlan.price_cad) / 100).toFixed(0)} USD/mo`}
                 domainName={selectedDomain && domainMode === 'new' ? selectedDomain : undefined}
                 domainPrice={selectedDomain && domainMode === 'new' && domainPriceCents ? `$${(domainPriceCents / 100).toFixed(0)} USD/yr` : undefined}
                 isTrial={isTrial ?? false}
