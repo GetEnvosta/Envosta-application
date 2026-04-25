@@ -15,6 +15,7 @@ import { StripeProducts } from '@/components/admin/stripe-products';
 import { SystemTabs } from './system-tabs';
 import { LifecycleReference } from './lifecycle-reference';
 import { ProvisionButton } from '@/components/admin/provision-button';
+import { UnlinkedStripeProducts } from '@/components/admin/unlinked-stripe-products';
 import { formatDateTime } from '@/lib/utils';
 
 export default async function DiagnosticsPage() {
@@ -182,6 +183,9 @@ export default async function DiagnosticsPage() {
           <StuckSiteRow key={s.id} site={s} />
         ))}
       </DiagCard>
+
+      {/* Stripe products not linked to a DB product */}
+      <UnlinkedStripeProducts />
 
       {/* Problem domains */}
       <DiagCard

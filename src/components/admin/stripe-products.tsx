@@ -504,64 +504,8 @@ export function StripeProducts({
         </Section>
       )}
 
-      {/* ═══ NOT IN PLATFORM ═══ */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Not in Platform</h3>
-            <p className="text-xs text-gray-500">Active products in Stripe that aren't linked to any product in the database.</p>
-          </div>
-        </div>
-        {loadingStripe ? (
-          <div className="card p-6 text-center text-sm text-gray-400">
-            <RefreshCw className="w-4 h-4 animate-spin inline mr-2" />Loading Stripe products...
-          </div>
-        ) : stripeOnly.length === 0 ? (
-          <div className="card p-6 text-center text-sm text-gray-400">All Stripe products are linked.</div>
-        ) : (
-          <div className="card overflow-hidden">
-            <table className="w-full table-fixed">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className={`${TH} ${COL.name}`}>Product</th>
-                  <th className={`${TH} ${COL.billing}`}>Billing</th>
-                  <th className={`${TH} ${COL.usd}`}>USD Price</th>
-                  <th className={`${TH} ${COL.cad}`}>CAD Price</th>
-                  <th className={`${TH} ${COL.db}`}>DB</th>
-                  <th className={`${TH} ${COL.stripe}`}>Stripe</th>
-                  <th className={`${TH} ${COL.actions}`}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {stripeOnly.map(p => (
-                  <tr key={p.stripe_id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                    <td className="px-4 py-2.5 text-sm font-medium text-gray-900 truncate" title={p.name}>{p.name}</td>
-                    <td className="px-4 py-2.5 text-xs text-gray-400">—</td>
-                    <td className="px-4 py-2.5 text-sm text-right text-gray-400">—</td>
-                    <td className="px-4 py-2.5 text-sm text-right text-gray-400">—</td>
-                    <td className="px-4 py-2.5 text-center">
-                      <span className="inline-flex items-center gap-1 text-xs text-gray-400"><Database className="w-3 h-3" /> <X className="w-3 h-3" /></span>
-                    </td>
-                    <td className="px-4 py-2.5 text-center">
-                      <a href={`https://dashboard.stripe.com/products/${p.stripe_id}`} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-emerald-600" title={p.stripe_id}>
-                        <CreditCard className="w-3 h-3" /> <Check className="w-3 h-3" />
-                      </a>
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <button onClick={() => importFromStripe(p.stripe_id)} disabled={importingId === p.stripe_id}
-                        className="btn-admin text-xs py-1 px-2.5 inline-flex items-center gap-1">
-                        {importingId === p.stripe_id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-                        Import
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* "Not in Platform" — orphaned active Stripe products — moved to
+          /admin/diagnostics Health tab so it sits with other sync drift. */}
 
       {/* ═══ EDIT MODAL ═══ */}
       {editProduct && (
