@@ -13,6 +13,7 @@ import {
 import { Avatar } from '@/components/ui/avatar';
 import { AttachDomainSubscription } from '@/components/admin/attach-domain-subscription';
 import { ImpersonateButton } from '@/components/admin/impersonate-button';
+import { PlanSwitcher } from '@/components/sites/plan-switcher';
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -160,53 +161,55 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           </div>
         </div>
 
-        {/* Subscription band — every plan/billing-related fact lives here so
-            the per-site rows below can stay clean. */}
+        {/* Subscription band — plan, status, price, plan switcher, Stripe link.
+            Slot allotment ("X of Y sites used") moved to the table header on
+            the right so it visually anchors the SITE list it constrains. */}
         {hostingSubs.length > 0 ? (() => {
           const sub = hostingSubs[0] as any;
           const planName = (sub.products as any)?.name;
+          const firstActiveSite = activeSites[0];
           return (
-            <div className="px-5 py-4 bg-gray-50/60 border-b border-gray-100 flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Server className="w-4 h-4 text-gray-400 shrink-0" />
-                <span className="text-sm font-semibold text-gray-900">Subscription</span>
+            <div className="px-5 py-4 bg-gray-50/60 border-b border-gray-100">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Server className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span className="text-sm font-semibold text-gray-900">Subscription</span>
+                </div>
+                {planName && (
+                  <span className="text-xs font-medium text-gray-700 bg-white border border-gray-200 px-2 py-0.5 rounded">{planName}</span>
+                )}
+                <span className={statusColor(sub.status)}>{sub.status}</span>
+                {sub.status === 'paused' && (
+                  <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                    <PauseCircle className="w-3 h-3" /> Paused
+                  </span>
+                )}
+                <span className="text-sm font-semibold text-gray-900">
+                  {formatCents(hostingPrice, 'cad')}{periodLabel}
+                </span>
+                {sub.stripe_subscription_id && (
+                  <a
+                    href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-auto inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-admin-600 font-mono"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    {sub.stripe_subscription_id.slice(-8)}
+                  </a>
+                )}
               </div>
-              {planName && (
-                <span className="text-xs font-medium text-gray-700 bg-white border border-gray-200 px-2 py-0.5 rounded">{planName}</span>
-              )}
-              <span className={statusColor(sub.status)}>{sub.status}</span>
-              {sub.status === 'paused' && (
-                <span className="inline-flex items-center gap-1 text-xs text-amber-600">
-                  <PauseCircle className="w-3 h-3" /> Paused
-                </span>
-              )}
-              <span className="text-sm font-semibold text-gray-900">
-                {formatCents(hostingPrice, 'cad')}{periodLabel}
-              </span>
-              {sitesAllowed != null && (
-                <span
-                  className={`text-xs font-medium ${
-                    sitesUsed >= sitesAllowed ? 'text-amber-600' : 'text-gray-600'
-                  }`}
-                  title={
-                    sitesUsed >= sitesAllowed
-                      ? `Plan limit reached`
-                      : `Plan allows ${sitesAllowed} site${sitesAllowed === 1 ? '' : 's'}`
-                  }
-                >
-                  {sitesUsed} <span className="text-gray-300">of</span> {sitesAllowed} sites
-                </span>
-              )}
-              {sub.stripe_subscription_id && (
-                <a
-                  href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-auto inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-admin-600 font-mono"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  {sub.stripe_subscription_id.slice(-8)}
-                </a>
+              {/* Plan switcher — operates on the first active site (all sites
+                  on a single subscription share the plan via the sub's
+                  product_id, so changing it propagates). */}
+              {firstActiveSite && (
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Change plan</span>
+                  <PlanSwitcher
+                    siteId={firstActiveSite.id}
+                    currentPlanId={firstActiveSite.product_id ?? sub.product_id ?? null}
+                  />
+                </div>
               )}
             </div>
           );
@@ -218,9 +221,25 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           </div>
         )}
 
-        {/* Compact section header — just a count above the rows. */}
+        {/* Section header: count on left, plan-allotment indicator on right. */}
         <div className="section-card-header">
           <h2 className="section-card-title">Sites ({activeSites.length})</h2>
+          {sitesAllowed != null && (
+            <span
+              className={`ml-auto text-xs font-medium px-2.5 py-1 rounded-full ${
+                sitesUsed >= sitesAllowed
+                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              }`}
+              title={
+                sitesUsed >= sitesAllowed
+                  ? `Plan limit reached — upgrade for more sites`
+                  : `Plan allows ${sitesAllowed} site${sitesAllowed === 1 ? '' : 's'}`
+              }
+            >
+              {sitesUsed} <span className="opacity-50">of</span> {sitesAllowed} sites used
+            </span>
+          )}
         </div>
 
         {/* Site list */}
@@ -280,29 +299,32 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
       {/* ── Domains & Renewals ── */}
       <div className="card overflow-hidden mb-6">
-        <div className="section-card-header">
-          <Globe className="w-4 h-4 text-gray-400" />
-          <h2 className="section-card-title">Domains ({domains.length})</h2>
-          <div className="ml-auto flex items-center gap-3 flex-wrap">
-            {domainSubs.length > 0 ? (
-              <>
-                {(() => {
-                  const activeCount = domainSubs.filter((s: any) => s.status === 'active' || s.status === 'trialing').length;
-                  return (
-                    <span className="text-xs text-gray-500">
-                      {activeCount} of {domainSubs.length} renewing
-                    </span>
-                  );
-                })()}
-                {annualDomainTotal > 0 && (
-                  <span className="text-sm font-semibold text-gray-900">{formatCents(annualDomainTotal, 'cad')}/yr</span>
-                )}
-              </>
-            ) : (
-              domains.length > 0 && <span className="text-xs text-gray-400">No renewals attached</span>
-            )}
+        {/* Renewals band — domain-side equivalent of the subscription band on
+            the Sites card. Aggregates renewal stats + total annual revenue
+            so per-row clutter can be minimal. */}
+        <div className="px-5 py-4 bg-gray-50/60 border-b border-gray-100 flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-gray-400 shrink-0" />
+            <span className="text-sm font-semibold text-gray-900">Domain Renewals</span>
           </div>
+          {domainSubs.length > 0 ? (
+            <>
+              <span className="text-xs text-gray-600">
+                {domainSubs.filter((s: any) => s.status === 'active' || s.status === 'trialing').length} <span className="text-gray-300">of</span> {domainSubs.length} renewing
+              </span>
+              {annualDomainTotal > 0 && (
+                <span className="text-sm font-semibold text-gray-900">{formatCents(annualDomainTotal, 'cad')}/yr</span>
+              )}
+            </>
+          ) : (
+            <span className="text-xs text-gray-400">— No renewal subscriptions attached</span>
+          )}
         </div>
+
+        <div className="section-card-header">
+          <h2 className="section-card-title">Domains ({domains.length})</h2>
+        </div>
+
         {domains.length === 0 && domainSubs.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-400">No domains.</div>
         ) : (
@@ -316,15 +338,15 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               const linkedSite = services.find((s: any) => s.id === d.site_id);
               const domainPrice = (linkedSub?.products as any)?.price_cad ?? 0;
               return (
-                <div key={d.id} className="px-5 py-3">
+                <Link key={d.id} href={`/admin/domains/${d.id}`} className="block px-5 py-3 hover:bg-gray-50/50 transition-colors">
                   <div className="flex items-center gap-3 flex-wrap">
                     <Globe className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                    <p className="text-sm font-medium text-gray-900">{d.domain_name}</p>
+                    <p className="text-sm font-medium text-admin-600">{d.domain_name}</p>
                     <span className={statusColor(d.status)}>{d.status}</span>
                     {linkedSite && (
-                      <Link href={`/admin/services/${linkedSite.id}`} className="text-xs text-admin-600 hover:text-admin-700 inline-flex items-center gap-1">
+                      <span className="text-xs text-gray-500 inline-flex items-center gap-1">
                         <Server className="w-3 h-3" /> {linkedSite.label}
-                      </Link>
+                      </span>
                     )}
                     {d.expires_at && <span className="text-xs text-gray-400">Exp {formatDate(d.expires_at)}</span>}
                     {d.auto_renew === false && <span className="text-xs text-amber-600">Auto-renew off</span>}
@@ -333,11 +355,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                         <Link2 className="w-3 h-3" /> Renewal {linkedSub.status}
                       </span>
                     ) : (
-                      <AttachDomainSubscription domainName={d.domain_name} domainId={d.id} userId={user.id} renewalSubId={null} compact />
-                    )}
-                    {linkedSub?.stripe_subscription_id && (
-                      <a href={`https://dashboard.stripe.com/subscriptions/${linkedSub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
-                        className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{linkedSub.stripe_subscription_id.slice(-8)}</a>
+                      <span onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+                        <AttachDomainSubscription domainName={d.domain_name} domainId={d.id} userId={user.id} renewalSubId={null} compact />
+                      </span>
                     )}
                     <div className="ml-auto shrink-0">
                       {domainPrice > 0 && (
@@ -347,7 +367,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                       )}
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
 
