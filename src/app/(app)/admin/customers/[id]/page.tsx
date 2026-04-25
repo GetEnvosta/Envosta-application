@@ -42,9 +42,23 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   });
   const domainSubs = subscriptions.filter((s: any) => s.products?.type === 'domain_tld' || (s.metadata as any)?.type === 'domain_renewal');
 
-  // Calculate monthly total from sites
+  // The subscription covers an allotment of sites; price is the sub's billing
+  // period price, not a per-site sum.
   const activeSites = services.filter((s: any) => s.status === 'active' || s.status === 'provisioning');
-  const monthlyTotal = activeSites.reduce((sum: number, s: any) => sum + ((s.products as any)?.price_cad ?? 0), 0);
+  const primaryHostingSub = (hostingSubs[0] as any) ?? null;
+  const hostingPlan = primaryHostingSub?.products as any;
+  const hostingPeriod: string = primaryHostingSub?.billing_period ?? 'monthly';
+  const periodLabel = hostingPeriod === 'yearly' ? '/yr'
+    : hostingPeriod === '2yr' ? '/2yr'
+    : hostingPeriod === '3yr' ? '/3yr'
+    : '/mo';
+  const hostingPrice = hostingPeriod === 'yearly'
+    ? (hostingPlan?.price_yearly_cad ?? (hostingPlan?.price_cad ? hostingPlan.price_cad * 12 : 0))
+    : hostingPeriod === '2yr'
+      ? (hostingPlan?.price_cad ? hostingPlan.price_cad * 24 : 0)
+      : hostingPeriod === '3yr'
+        ? (hostingPlan?.price_cad ? hostingPlan.price_cad * 36 : 0)
+        : (hostingPlan?.price_cad ?? 0);
 
   // Calculate annual total from domain subscriptions
   const annualDomainTotal = domainSubs.reduce((sum: number, sub: any) => sum + ((sub.products as any)?.price_cad ?? 0), 0);
@@ -99,9 +113,14 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
   return (
     <div>
-      <Link href="/admin/customers" className="inline-flex items-center gap-1.5 text-sm text-admin-600 hover:text-admin-700 font-medium mb-6">
-        <ArrowLeft className="w-4 h-4" /> Back to Customers
-      </Link>
+      <div className="flex items-center justify-between mb-6">
+        <Link href="/admin/customers" className="inline-flex items-center gap-1.5 text-sm text-admin-600 hover:text-admin-700 font-medium">
+          <ArrowLeft className="w-4 h-4" /> Back to Customers
+        </Link>
+        {user.role !== 'admin' && (
+          <ImpersonateButton userId={id} label={user.full_name || user.email} />
+        )}
+      </div>
 
       {/* ── Sites (with customer identity hero) ── */}
       <div className="card overflow-hidden mb-6">
@@ -117,9 +136,6 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               <p className="text-sm text-gray-500">{user.email}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {user.role !== 'admin' && (
-                <ImpersonateButton userId={id} label={user.full_name || user.email} />
-              )}
               {user.stripe_customer_id && (
                 <>
                   <ChargeCard customerId={id} customerName={user.full_name || user.email} />
@@ -157,7 +173,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                       <PauseCircle className="w-3 h-3" /> Paused
                     </span>
                   )}
-                  <span className="text-sm font-semibold text-gray-900">{formatCents(monthlyTotal, 'cad')}/mo</span>
+                  <span className="text-sm font-semibold text-gray-900">{formatCents(hostingPrice, 'cad')}{periodLabel}</span>
                   {sub.stripe_subscription_id && (
                     <a href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
                       className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{sub.stripe_subscription_id.slice(-8)}</a>
@@ -216,14 +232,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                             </span>
                           </>
                         )}
-                        <div className="ml-auto flex items-center gap-3 shrink-0">
-                          <p className="text-sm font-semibold text-gray-900 whitespace-nowrap">
-                            {plan?.price_cad ? formatCents(plan.price_cad, 'cad') : '—'}<span className="text-xs font-normal text-gray-400">/mo</span>
-                          </p>
-                          <Link href={`/admin/services/${s.id}`} className="text-gray-400 hover:text-admin-600 transition-colors">
-                            <ArrowUpRight className="w-4 h-4" />
-                          </Link>
-                        </div>
+                        <Link href={`/admin/services/${s.id}`} className="ml-auto text-gray-400 hover:text-admin-600 transition-colors shrink-0">
+                          <ArrowUpRight className="w-4 h-4" />
+                        </Link>
                       </div>
                     </div>
                   );

@@ -168,7 +168,7 @@ export async function getCustomerRelatedData(userId: string) {
       .order('created_at', { ascending: false }),
     supabase
       .from('subscriptions')
-      .select('*, products(name, price_cad, type)')
+      .select('*, products(name, price_cad, price_yearly_cad, type)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false }),
     supabase

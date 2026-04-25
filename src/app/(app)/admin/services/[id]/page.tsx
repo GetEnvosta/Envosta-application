@@ -19,7 +19,6 @@ import { AdminErrorLogs } from '@/components/admin/admin-error-logs';
 import { AdminWpUser } from '@/components/admin/admin-wp-user';
 import { SiteIp } from '@/components/sites/site-ip';
 import { SiteOwnerAssign } from '@/components/admin/site-owner-assign';
-import { ImpersonateButton } from '@/components/admin/impersonate-button';
 
 export default async function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -88,7 +87,6 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {owner?.id && <ImpersonateButton userId={owner.id} label={owner.full_name || owner.email} />}
               {service.wp_cloud_url && (
                 <>
                   <a href={`${service.wp_cloud_url}/wp-admin`} target="_blank" rel="noopener noreferrer" className="btn-admin text-sm py-2 px-4">
@@ -136,24 +134,6 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
 
-          {/* Resources & Credits */}
-          <div className="border-t border-gray-100 pt-5">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Resources & Credits</p>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">PHP Workers</span>
-                <span className="text-gray-900 font-medium">{(service.config as any)?.php_workers ?? 2} ({((service.config as any)?.php_workers ?? 2) * 8} cr/mo)</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">SSD Storage</span>
-                <span className="text-gray-900 font-medium">{(service.config as any)?.storage_gb ?? 25}GB ({((service.config as any)?.storage_gb ?? 25) * 0.8} cr/mo)</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Bursting</span>
-                <span className="text-gray-900 font-medium">{service.bursting_enabled ? 'On (10 cr/mo)' : 'Off'}</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
