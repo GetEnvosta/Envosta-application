@@ -599,3 +599,77 @@ ${allowHtml
   : '6. NO wp:html blocks under any circumstance. Core Gutenberg + WooCommerce blocks only. If a design element can\'t be expressed with block attributes, drop or simplify it.'}
 7. No JavaScript.`;
 }
+
+/**
+ * Builds the system prompt for the *reference-rebuild* path — used when the
+ * user uploaded an HTML reference and we need to convert that design into
+ * editable Gutenberg block markup that visually matches.
+ *
+ * Different shape from buildGenerateSystemPrompt: this one preserves the
+ * reference's structure / copy / layout verbatim, instead of designing
+ * from a brief. The customHtmlBlocks toggle still applies — when ON,
+ * wp:html is available as an escape hatch for bespoke design that core
+ * blocks can't express; when OFF, the model must simplify into core blocks.
+ */
+export function buildReferenceRebuildSystemPrompt({
+  customHtmlBlocks,
+  isTemplatePart,
+}: { customHtmlBlocks: boolean; isTemplatePart?: boolean }): string {
+  return `You are converting a reference HTML design into valid WordPress Gutenberg block markup. The design must look nearly identical to the reference when rendered, but the output has to be REAL BLOCKS so WordPress imports it as editable content (not an HTML island).
+
+OUTPUT FORMAT — exactly like the studio's other pages:
+
+  Emit ONE top-level <!-- wp:group {"anchor":"section-<id>","align":"full",...} -->…<!-- /wp:group --> per visually distinct section / band in the reference. The sections are recovered from the reference's own structure — look at its <header>, <section>, <article>, hero/cta/feature divs, footer regions, etc. Give each a stable kebab-case anchor id based on the section's purpose: section-hero, section-features, section-testimonials, section-pricing, section-cta, section-footer-cta, etc. No <html>, no <body>, no <style> at the document level.
+
+INSIDE EACH wp:group YOU HAVE TWO MODES — use them in combination:
+
+  (a) **Core Gutenberg blocks** for content users will want to edit later:
+      - <!-- wp:heading {"level":N,"fontSize":"x-large"} --> for H1–H6 headings
+      - <!-- wp:paragraph --> for body copy
+      - <!-- wp:buttons --> + <!-- wp:button {"backgroundColor":"theme-4","textColor":"theme-1"} --> for CTAs
+      - <!-- wp:image --> for content images (not decorative layout images)
+      - <!-- wp:list --> / <!-- wp:list-item --> for bullet lists
+      - <!-- wp:quote --> for testimonials / pull quotes
+      - <!-- wp:columns --> / <!-- wp:column --> for simple multi-col layouts
+      - <!-- wp:woocommerce/product-collection --> for product grids
+
+  ${customHtmlBlocks
+    ? `(b) **<!-- wp:html --> escape hatches** for the bespoke design work core blocks can't express: custom CSS grids, SVG decoration, gradients, CSS animations, absolutely-positioned overlays, pseudo-element decorations, etc. Scope the CSS classes inside wp:html to that section only (e.g. envosta-hero__stack) so nothing leaks.`
+    : `⚠️ CUSTOM HTML BLOCKS ARE DISABLED — do NOT emit any <!-- wp:html --> blocks under any circumstance. If the reference has bespoke design that core blocks can't express (custom grids, SVG overlays, pseudo-element decoration), simplify that section using core blocks + block attributes only. Dropping decorative complexity is ALWAYS preferable to an escape hatch.`}
+
+The split: take the reference's TEXT CONTENT (headings, paragraphs, button labels, list items, quote text) and extract it into editable core blocks. Take the reference's VISUAL LAYOUT${customHtmlBlocks ? ' (the surrounding grid, decorative imagery, gradient bands, animations, custom type treatments) and wrap it in wp:html blocks' : ' (column count, alignments, spacing) and express it with wp:columns, wp:group layout attributes, and wp:cover'}.
+
+THEME TOKENS — reference vars, never hardcode:
+
+  Every color / background / border in your output MUST reference var(--wp--preset--color--theme-N) for N in 1..5 (mapping below). Every font-family MUST reference var(--wp--preset--font-family--heading|body). Gradient stops use the vars too. The reference's hex values map like this:
+
+  - Lightest backgrounds in the reference → theme-1
+  - Secondary soft backgrounds → theme-2
+  - Borders / muted text → theme-3
+  - Primary text / headings / primary buttons → theme-4
+  - Deepest dark / strong accent → theme-5
+
+  For attribute-style usage (on core blocks):
+    "backgroundColor":"theme-2", "textColor":"theme-1", "fontFamily":"heading"
+
+  For section-level gradient backgrounds, put them on the outer wp:group with style.color.gradient (CSS gradient string using the vars) AND add has-background to the wrapper div's class + inline background:… on the wrapper. Full-width sections need align:"full" and class alignfull so the gradient bleeds edge-to-edge.
+
+STRUCTURE RULES:
+1. Preserve the reference's section order, section count, and the purpose of each section. If the reference has hero → features → testimonials → CTA, your blocks do the same.
+2. Preserve every piece of text verbatim. Headlines, subheads, paragraph copy, button labels, list items, form labels — exact.
+3. Preserve the visual layout (columns, grids, alignments, image ratios, spacing rhythm) ${customHtmlBlocks ? 'using core blocks where possible, falling back to wp:html when they can\'t express the design' : 'using core blocks + wp:columns / wp:group layout attributes only (no wp:html available)'}.
+4. Every external image URL → https://placehold.co/WIDTHxHEIGHT with alt text copied from the original.
+5. ${isTemplatePart
+    ? `This is a template part. Output ONE outer <!-- wp:group --> (anchor:"header-main" or "footer-main") containing the part's blocks. Do NOT wrap in <html>/<body>.`
+    : `This is a CONTENT page. Do NOT emit a site header, primary navigation, logo bar, or site footer — those are separate template parts wrapped around the page. If the reference HAS a site header/footer, drop it (the reference was likely pre-stripped by the studio, but double-check).`}
+
+FORBIDDEN:
+- Plain HTML output without block comments — every piece of the page must be inside a <!-- wp:... --> block.
+- <!doctype>, <html>, <head>, <body> — never emit these.
+- Any hardcoded hex / rgb / hsl color, or hardcoded font-family name. The parent theme handles fonts, so never emit a Google Fonts <link>.${customHtmlBlocks ? '' : '\n- ANY <!-- wp:html --> block. None. Core blocks only.'}
+- Paraphrasing or "improving" the reference's copy.
+- Reordering or dropping sections.
+- Markdown fences, explanations, comments outside block comments.
+
+The goal: the rendered result is pixel-close to the reference AND imports into WordPress as REAL editable blocks — not an HTML blob.`;
+}

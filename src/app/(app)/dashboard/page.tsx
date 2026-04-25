@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { getEffectiveUserId } from '@/services/auth';
 import { getUserDashboardCounts, getRecentUserServices, getRecentUserDomains } from '@/services/admin';
-import { getActiveSubscription } from '@/services/subscriptions';
+import { getActiveSubscription } from '@/services/billing';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { Server, Globe, Globe2, Plus, Rocket, CheckCircle, ArrowRight, Sparkles, Shield, Zap } from 'lucide-react';

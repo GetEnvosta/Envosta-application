@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { getAllCustomersWithUsers } from '@/services/billing';
-import { CreateInvoiceForm } from '@/components/admin/create-invoice';
+import { InvoiceForm } from '@/components/admin/invoice-form';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
@@ -19,7 +19,7 @@ export default async function CustomInvoicesPage() {
         <p className="text-sm text-gray-500 mt-0.5">Send one-time invoices to customers for custom work, consultations, or any other charges.</p>
       </div>
 
-      <CreateInvoiceForm customers={customers as any} />
+      <InvoiceForm mode="full" customers={customers as any} />
     </div>
   );
 }

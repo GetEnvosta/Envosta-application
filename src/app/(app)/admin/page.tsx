@@ -1,6 +1,6 @@
 export const revalidate = 5;
 import { getDashboardCounts, getRecentCustomers, getRecentActivity } from '@/services/admin';
-import { getAllActiveSubscriptions, getAbandonedCheckoutCount, toMonthly } from '@/services/subscriptions';
+import { getAllActiveSubscriptions, getAbandonedCheckoutCount, toMonthly } from '@/services/billing';
 import { getRecentTicketsByType } from '@/services/tickets';
 import { formatCents, formatDate } from '@/lib/utils';
 import Link from 'next/link';

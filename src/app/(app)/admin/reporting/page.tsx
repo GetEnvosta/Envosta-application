@@ -1,7 +1,7 @@
 export const revalidate = 60;
 
 import { createClient } from '@/lib/supabase-server';
-import { getAllActiveSubscriptions, toMonthly, getAbandonedCheckouts } from '@/services/subscriptions';
+import { getAllActiveSubscriptions, toMonthly, getAbandonedCheckouts } from '@/services/billing';
 import { formatCents } from '@/lib/utils';
 import Link from 'next/link';
 import { DollarSign, Users, Server, Phone, Globe, ShoppingCart, ExternalLink } from 'lucide-react';

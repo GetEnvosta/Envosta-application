@@ -62,7 +62,7 @@ const SECTIONS: Section[] = [
         { path: 'lib/stripe-subscription.ts', purpose: 'Helpers to add/remove subscription items, swap prices, compute proration.' },
       ]},
       { label: 'Studio toolkit', files: [
-        { path: 'lib/studio-prompts.ts', purpose: 'System prompts for /api/studio/* — buildGenerateSystemPrompt({ customHtmlBlocks }) factory, BRIEF_SYSTEM_PROMPT, and the gradient/layout contracts.' },
+        { path: 'lib/studio-prompts.ts', purpose: 'System prompts for /api/studio/* — buildGenerateSystemPrompt + buildReferenceRebuildSystemPrompt factories, BRIEF_SYSTEM_PROMPT, and the gradient/layout contracts.' },
         { path: 'lib/studio-style-presets.ts', purpose: 'Curated palette/font/spacing presets used as starting points before AI customization.' },
         { path: 'lib/studio-page-templates.ts', purpose: 'Default page outlines (Home / About / Services / Contact / etc) used when planning new sites.' },
         { path: 'lib/studio-wxr.ts', purpose: 'Builds the WXR XML export — pages, menus, _envosta_* post-meta.' },
@@ -85,8 +85,7 @@ const SECTIONS: Section[] = [
       { label: 'Domain services', files: [
         { path: 'services/auth.ts', purpose: 'getCurrentUser, getUserProfile, role lookups, impersonation helpers.' },
         { path: 'services/sites.ts', purpose: 'CRUD for the sites table + wp.cloud provisioning glue.' },
-        { path: 'services/billing.ts', purpose: 'Invoices, charges, payment method sync.' },
-        { path: 'services/subscriptions.ts', purpose: 'Active subscription queries, MRR rollups, abandoned-checkout count, toMonthly() normalization.' },
+        { path: 'services/billing.ts', purpose: 'All billing-domain queries: subscriptions, invoices, charges, payment method sync, MRR rollups, abandoned-checkout count, toMonthly() normalization.' },
         { path: 'services/domains.ts', purpose: 'Domain records + OpenSRS state sync.' },
         { path: 'services/partners.ts', purpose: 'Partner/affiliate program data.' },
         { path: 'services/commissions.ts', purpose: 'Commission calculation + payout state.' },
@@ -226,9 +225,10 @@ const SECTIONS: Section[] = [
       'Components are grouped by audience (admin/, partner/, marketing/) plus shared primitives (ui/, layout/). Studio is its own folder because the builder is large enough to warrant its own design vocabulary. We deliberately avoid a single mega-`components/` flat dir — finding "the impersonate button" in admin/ is faster than scrolling 200 files.',
     groups: [
       { label: 'Shells & primitives', files: [
-        { path: 'components/layout/admin-shell.tsx', purpose: 'Admin sidebar nav + header. Owns the System link → /admin/diagnostics.' },
-        { path: 'components/layout/dashboard-shell.tsx', purpose: 'Customer dashboard shell.' },
-        { path: 'components/layout/partner-shell.tsx', purpose: 'Partner shell.' },
+        { path: 'components/layout/layout-shell.tsx', purpose: 'Generic <LayoutShell> + <ShellAvatarDropdown>. Owns sidebar/mobile-overlay/header/active-link mechanics for all three audience shells.' },
+        { path: 'components/layout/admin-shell.tsx', purpose: 'Admin shell — dark sidebar, sidebar-footer user/sign-out, /admin nav. Thin wrapper around LayoutShell.' },
+        { path: 'components/layout/dashboard-shell.tsx', purpose: 'Customer shell — light sidebar, header avatar dropdown with Settings + (staff) Staff Panel, partner secondary nav.' },
+        { path: 'components/layout/partner-shell.tsx', purpose: 'Partner shell — light sidebar, sky-600 active accent, dropdown with Customer View link.' },
         { path: 'components/layout/impersonation-banner.tsx', purpose: 'Banner shown when an admin is impersonating a customer.' },
         { path: 'components/ui/*', purpose: 'Buttons, inputs, modals, avatars, toasts. Tailwind-styled, no UI lib dependency.' },
       ]},
@@ -236,7 +236,7 @@ const SECTIONS: Section[] = [
         { path: 'components/admin/stat-card.tsx', purpose: 'The colored stat card used across admin dashboards.' },
         { path: 'components/admin/impersonate-button.tsx', purpose: 'Starts an impersonation session for a customer.' },
         { path: 'components/admin/charge-card.tsx', purpose: 'Charge a saved Stripe card immediately.' },
-        { path: 'components/admin/quick-invoice.tsx / create-invoice.tsx', purpose: 'Invoice creation modals — quick=preset, create=full form.' },
+        { path: 'components/admin/invoice-form.tsx', purpose: 'Custom Stripe invoice creator. mode="quick" for inline (single customer), mode="full" for the standalone /admin/products/invoices page.' },
         { path: 'components/admin/attach-domain-subscription.tsx', purpose: 'Links an existing Stripe sub to a domain record.' },
         { path: 'components/admin/admin-site-actions.tsx', purpose: 'Per-site admin controls: restart, backup, SSH, suspend.' },
         { path: 'components/admin/resource-controls.tsx', purpose: 'PHP workers, storage, bandwidth controls.' },

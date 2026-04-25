@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { getCustomerById, getCustomerRelatedData } from '@/services/admin';
 import { formatDate, formatDateTime, formatCents, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { QuickInvoice } from '@/components/admin/quick-invoice';
+import { InvoiceForm } from '@/components/admin/invoice-form';
 import { ChargeCard } from '@/components/admin/charge-card';
 import {
   ArrowLeft, Building2, Clock, ExternalLink, Globe,
@@ -89,7 +89,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               {user.stripe_customer_id && (
                 <>
                   <ChargeCard customerId={id} customerName={user.full_name || user.email} />
-                  <QuickInvoice stripeCustomerId={user.stripe_customer_id} customerName={user.full_name || user.email} />
+                  <InvoiceForm mode="quick" stripeCustomerId={user.stripe_customer_id} customerName={user.full_name || user.email} />
                   <a href={`https://dashboard.stripe.com/customers/${user.stripe_customer_id}`} target="_blank" rel="noopener noreferrer"
                     className="btn-secondary text-xs py-1.5 px-3 inline-flex items-center gap-1.5">
                     <ExternalLink className="w-3 h-3" /> Stripe
