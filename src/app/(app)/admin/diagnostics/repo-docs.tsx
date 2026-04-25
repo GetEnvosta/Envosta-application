@@ -154,6 +154,8 @@ const SECTIONS: Section[] = [
         { path: 'app/(marketing)/careers/page.tsx', purpose: 'Careers page.' },
         { path: 'app/(marketing)/support/page.tsx', purpose: 'Support entry / contact.' },
         { path: 'app/(marketing)/blog/*', purpose: 'Marketing blog index + post pages.' },
+        { path: 'app/(marketing)/get-started/*', purpose: 'Anonymous hosting checkout — plan selection → Stripe checkout → provisioning.' },
+        { path: 'app/(marketing)/buy-domain/*', purpose: 'Anonymous domain purchase flow via OpenSRS.' },
         { path: 'app/(marketing)/intake/*', purpose: 'Pre-onboarding intake form for new clients.' },
         { path: 'app/(marketing)/onboarding/*', purpose: 'Post-signup onboarding wizard.' },
         { path: 'app/(marketing)/legal/*', purpose: 'Terms, privacy, AUP.' },
@@ -163,15 +165,13 @@ const SECTIONS: Section[] = [
 
   {
     id: 'app-studio',
-    title: 'src/app/(studio) & (standalone)',
+    title: 'src/app/(studio) — full-screen builder',
     icon: Sparkles,
     reasoning:
-      'Studio runs at /studio with no dashboard chrome — it\'s a full-screen builder. (standalone) is for flows that look like marketing but mutate state (get-started checkout, buy-domain). Both groups skip the shell wrappers used elsewhere.',
+      'Studio runs at /studio with no dashboard chrome — staff-only AI page builder. The previous (standalone) group has been folded into (marketing): /get-started and /buy-domain are anonymous-friendly checkout flows that share the marketing nav/footer rather than living in their own shell.',
     groups: [
-      { label: 'Studio + standalone flows', files: [
+      { label: 'Studio', files: [
         { path: 'app/(studio)/studio/page.tsx', purpose: 'Loads StudioTool. The actual UI lives in components/studio/* so it can be embedded inside admin too.' },
-        { path: 'app/(standalone)/get-started/*', purpose: 'Plan selection → checkout → provisioning.' },
-        { path: 'app/(standalone)/buy-domain/*', purpose: 'Standalone domain purchase flow.' },
       ]},
     ],
   },
