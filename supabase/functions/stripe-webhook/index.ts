@@ -483,10 +483,28 @@ Deno.serve(async (req) => {
       const custStripeId = typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
       const { data: cust } = await sb.from("users").select("id, full_name, email").eq("stripe_customer_id", custStripeId).maybeSingle();
       if (cust) {
+        // Resolve the underlying subscription so we can categorize the invoice
+        // (domain renewal vs hosting) when rendering on the customer page.
+        const stripeSubId = typeof inv.subscription === "string" ? inv.subscription : (inv.subscription as any)?.id ?? null;
+        let subscriptionId: string | null = null;
+        let productType: string | null = null;
+        if (stripeSubId) {
+          const { data: linkedSub } = await sb
+            .from("subscriptions")
+            .select("id, products(type)")
+            .eq("stripe_subscription_id", stripeSubId)
+            .maybeSingle();
+          if (linkedSub) {
+            subscriptionId = linkedSub.id;
+            productType = (linkedSub.products as any)?.type ?? null;
+          }
+        }
+
         // Upsert invoice
         const invStatus = inv.status === "paid" ? "paid" : inv.status === "open" ? "open" : inv.status === "void" ? "void" : inv.status === "uncollectible" ? "uncollectible" : "draft";
         await sb.from("invoices").upsert({
           user_id: cust.id,
+          subscription_id: subscriptionId,
           stripe_invoice_id: inv.id,
           status: invStatus,
           amount_cad: inv.amount_paid ?? inv.amount_due ?? 0,
@@ -497,12 +515,14 @@ Deno.serve(async (req) => {
             amount_due: inv.amount_due,
             amount_paid: inv.amount_paid,
             invoice_pdf: inv.invoice_pdf,
+            stripe_subscription_id: stripeSubId,
+            product_type: productType,
             period_start: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
             period_end: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
             paid_at: inv.status === "paid" ? new Date().toISOString() : null,
           },
         }, { onConflict: "stripe_invoice_id" });
-        console.log("Invoice:", inv.id, invStatus);
+        console.log("Invoice:", inv.id, invStatus, productType ? `(${productType})` : "");
 
         // Send invoice receipt email (idempotent)
         if (event.type === "invoice.paid" && inv.amount_paid > 0) {

@@ -49,19 +49,53 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   // Calculate annual total from domain subscriptions
   const annualDomainTotal = domainSubs.reduce((sum: number, sub: any) => sum + ((sub.products as any)?.price_cad ?? 0), 0);
 
-  // Split invoices: domain renewals vs hosting/everything else
+  // Split invoices: domain renewals vs hosting. The Stripe webhook doesn't
+  // currently store a strong link between invoice → subscription, so this is
+  // best-effort. Signals (any one matches → domain):
+  //   - invoice.subscription_id matches a domain sub's DB id
+  //   - metadata.stripe_subscription_id matches a domain sub's stripe id
+  //   - metadata.product_type === 'domain_tld' (set by newer webhook)
+  //   - metadata flags from older code (type === 'domain_renewal', etc)
+  //   - description contains the word "domain" or any of this customer's
+  //     actual registered domain names
+  //   - amount matches a known domain TLD product price for this customer
+  const domainSubDbIds = new Set(domainSubs.map((s: any) => s.id).filter(Boolean));
   const domainSubStripeIds = new Set(
     domainSubs.map((s: any) => s.stripe_subscription_id).filter(Boolean)
   );
-  const domainInvoices = invoices.filter((inv: any) => {
+  const domainAmounts = new Set(
+    domainSubs.map((s: any) => (s.products as any)?.price_cad).filter((n: any) => typeof n === 'number' && n > 0)
+  );
+  const domainNames = (domains ?? []).map((d: any) => String(d.domain_name || '').toLowerCase()).filter(Boolean);
+
+  function isDomainInvoice(inv: any): boolean {
     const meta = (inv.metadata as any) ?? {};
+    if (inv.subscription_id && domainSubDbIds.has(inv.subscription_id)) return true;
+    if (meta.stripe_subscription_id && domainSubStripeIds.has(meta.stripe_subscription_id)) return true;
+    if (meta.product_type === 'domain_tld' || meta.product_type === 'domain') return true;
     if (meta.type === 'domain_renewal') return true;
     if (meta.is_domain_purchase === 'true' || meta.is_domain_purchase === true) return true;
     if (meta.domain_name) return true;
-    if (inv.stripe_subscription_id && domainSubStripeIds.has(inv.stripe_subscription_id)) return true;
+
+    const desc = String(inv.description || '').toLowerCase();
+    if (desc) {
+      if (/\bdomain\b/.test(desc)) return true;
+      if (/\b(?:com|ca|net|org|io|co|app|dev|store|shop|xyz|me|tech)\b/i.test(desc) && /\./.test(desc)) {
+        // Has a TLD-looking token AND a dot — likely "<name>.<tld>"
+        return true;
+      }
+      if (domainNames.some(d => d && desc.includes(d))) return true;
+    }
+
+    // Last resort: amount matches a known domain TLD price for this customer.
+    if (domainAmounts.size > 0 && typeof inv.amount_cad === 'number' && domainAmounts.has(inv.amount_cad)) {
+      return true;
+    }
     return false;
-  });
-  const hostingInvoices = invoices.filter((inv: any) => !domainInvoices.includes(inv));
+  }
+
+  const domainInvoices = invoices.filter(isDomainInvoice);
+  const hostingInvoices = invoices.filter((inv: any) => !isDomainInvoice(inv));
 
   return (
     <div>
