@@ -605,115 +605,60 @@ export function StripeProducts({
                 </div>
               )}
 
-              {/* Prices row — monthly */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
-                    {editProduct.type === 'hosting_plan' ? 'USD Monthly' : 'USD Price'}
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                    <input value={editFields.price_usd ?? ''} onChange={e => setEditFields(f => ({ ...f, price_usd: e.target.value }))}
-                      type="number" step="0.01" min="0" className="input w-full pl-7" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
-                    {editProduct.type === 'hosting_plan' ? 'CAD Monthly' : 'CAD Price'}
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                    <input value={editFields.price_cad ?? ''} onChange={e => setEditFields(f => ({ ...f, price_cad: e.target.value }))}
-                      type="number" step="0.01" min="0" className="input w-full pl-7" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Hosting-only: yearly prices */}
-              {editProduct.type === 'hosting_plan' && (
+              {/* Prices grouped with their corresponding Stripe price ID. */}
+              {editProduct.type === 'hosting_plan' ? (
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">USD Annual</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                      <input value={editFields.price_yearly_usd ?? ''} onChange={e => setEditFields(f => ({ ...f, price_yearly_usd: e.target.value }))}
-                        type="number" step="0.01" min="0" className="input w-full pl-7" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">CAD Annual</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                      <input value={editFields.price_yearly_cad ?? ''} onChange={e => setEditFields(f => ({ ...f, price_yearly_cad: e.target.value }))}
-                        type="number" step="0.01" min="0" className="input w-full pl-7" />
-                    </div>
-                  </div>
+                  <PriceWithIdField
+                    label="USD Monthly" amountKey="price_usd" idKey="stripe_price_id"
+                    fields={editFields} setFields={setEditFields}
+                  />
+                  <PriceWithIdField
+                    label="CAD Monthly" amountKey="price_cad" idKey="stripe_price_id_cad"
+                    fields={editFields} setFields={setEditFields}
+                  />
+                  <PriceWithIdField
+                    label="USD Annual" amountKey="price_yearly_usd" idKey="stripe_price_id_yearly"
+                    fields={editFields} setFields={setEditFields}
+                  />
+                  <PriceWithIdField
+                    label="CAD Annual" amountKey="price_yearly_cad" idKey="stripe_price_id_yearly_cad"
+                    fields={editFields} setFields={setEditFields}
+                  />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <PriceWithIdField
+                    label="USD Price" amountKey="price_usd" idKey="stripe_price_id"
+                    fields={editFields} setFields={setEditFields}
+                  />
+                  <PriceWithIdField
+                    label="CAD Price" amountKey="price_cad" idKey="stripe_price_id_cad"
+                    fields={editFields} setFields={setEditFields}
+                  />
                 </div>
               )}
 
-              {/* Stripe IDs section — editable */}
+              {/* Stripe Product ID — shared by all prices, kept separate. */}
               <div className="pt-3 border-t border-gray-100">
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Stripe IDs</h4>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Product ID</label>
-                    <input value={editFields.stripe_product_id ?? ''} onChange={e => setEditFields(f => ({ ...f, stripe_product_id: e.target.value }))}
-                      placeholder="prod_..." className="input w-full font-mono text-xs" />
+                <label className="block text-xs font-medium text-gray-500 mb-1">Stripe Product ID</label>
+                <input value={editFields.stripe_product_id ?? ''} onChange={e => setEditFields(f => ({ ...f, stripe_product_id: e.target.value }))}
+                  placeholder="prod_..." className="input w-full font-mono text-xs" />
+                {editFields.stripe_product_id && (
+                  <a href={`https://dashboard.stripe.com/products/${editFields.stripe_product_id}`} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-admin-600 hover:text-admin-700 mt-2">
+                    <ExternalLink className="w-3 h-3" /> Open product in Stripe
+                  </a>
+                )}
+                {(editProduct.stripe_price_id_2yr || editProduct.stripe_price_id_3yr) && (
+                  <div className="pt-3 mt-3 border-t border-gray-100 space-y-2">
+                    {editProduct.stripe_price_id_2yr && (
+                      <StripeIdRow label="2-Year Price ID" value={editProduct.stripe_price_id_2yr} type="prices" />
+                    )}
+                    {editProduct.stripe_price_id_3yr && (
+                      <StripeIdRow label="3-Year Price ID" value={editProduct.stripe_price_id_3yr} type="prices" />
+                    )}
                   </div>
-                  {editProduct.type === 'hosting_plan' ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">USD Monthly Price ID</label>
-                        <input value={editFields.stripe_price_id ?? ''} onChange={e => setEditFields(f => ({ ...f, stripe_price_id: e.target.value }))}
-                          placeholder="price_..." className="input w-full font-mono text-xs" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">USD Annual Price ID</label>
-                        <input value={editFields.stripe_price_id_yearly ?? ''} onChange={e => setEditFields(f => ({ ...f, stripe_price_id_yearly: e.target.value }))}
-                          placeholder="price_..." className="input w-full font-mono text-xs" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">CAD Monthly Price ID</label>
-                        <input value={editFields.stripe_price_id_cad ?? ''} onChange={e => setEditFields(f => ({ ...f, stripe_price_id_cad: e.target.value }))}
-                          placeholder="price_..." className="input w-full font-mono text-xs" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">CAD Annual Price ID</label>
-                        <input value={editFields.stripe_price_id_yearly_cad ?? ''} onChange={e => setEditFields(f => ({ ...f, stripe_price_id_yearly_cad: e.target.value }))}
-                          placeholder="price_..." className="input w-full font-mono text-xs" />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">USD Price ID</label>
-                        <input value={editFields.stripe_price_id ?? ''} onChange={e => setEditFields(f => ({ ...f, stripe_price_id: e.target.value }))}
-                          placeholder="price_..." className="input w-full font-mono text-xs" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">CAD Price ID</label>
-                        <input value={editFields.stripe_price_id_cad ?? ''} onChange={e => setEditFields(f => ({ ...f, stripe_price_id_cad: e.target.value }))}
-                          placeholder="price_..." className="input w-full font-mono text-xs" />
-                      </div>
-                    </div>
-                  )}
-                  {(editProduct.stripe_price_id_2yr || editProduct.stripe_price_id_3yr) && (
-                    <div className="pt-2 border-t border-gray-100 space-y-2">
-                      {editProduct.stripe_price_id_2yr && (
-                        <StripeIdRow label="2-Year Price ID" value={editProduct.stripe_price_id_2yr} type="prices" />
-                      )}
-                      {editProduct.stripe_price_id_3yr && (
-                        <StripeIdRow label="3-Year Price ID" value={editProduct.stripe_price_id_3yr} type="prices" />
-                      )}
-                    </div>
-                  )}
-                  {editFields.stripe_product_id && (
-                    <a href={`https://dashboard.stripe.com/products/${editFields.stripe_product_id}`} target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-admin-600 hover:text-admin-700 mt-1">
-                      <ExternalLink className="w-3 h-3" /> Open product in Stripe
-                    </a>
-                  )}
-                </div>
+                )}
               </div>
             </div>
 
@@ -755,6 +700,42 @@ export function StripeProducts({
 }
 
 // ─── Sub-components ──────────────────────────────
+
+/**
+ * Paired amount + Stripe price-ID input. Keeps the two fields visually
+ * coupled so it's obvious which price ID corresponds to which currency/period.
+ */
+function PriceWithIdField({
+  label, amountKey, idKey, fields, setFields,
+}: {
+  label: string;
+  amountKey: string;
+  idKey: string;
+  fields: Record<string, string>;
+  setFields: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+}) {
+  return (
+    <div className="rounded-lg border border-gray-200 p-3 space-y-2 bg-gray-50/50">
+      <label className="block text-xs font-semibold text-gray-700">{label}</label>
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+        <input
+          value={fields[amountKey] ?? ''}
+          onChange={e => setFields(f => ({ ...f, [amountKey]: e.target.value }))}
+          type="number" step="0.01" min="0"
+          className="input w-full pl-7 bg-white"
+          placeholder="0.00"
+        />
+      </div>
+      <input
+        value={fields[idKey] ?? ''}
+        onChange={e => setFields(f => ({ ...f, [idKey]: e.target.value }))}
+        placeholder="price_..."
+        className="input w-full font-mono text-xs bg-white"
+      />
+    </div>
+  );
+}
 
 function Section({ title, subtitle, children }: {
   title: string; subtitle: string; children: React.ReactNode;
