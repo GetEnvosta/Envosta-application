@@ -48,17 +48,10 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const primaryHostingSub = (hostingSubs[0] as any) ?? null;
   const hostingPlan = primaryHostingSub?.products as any;
   const hostingPeriod: string = primaryHostingSub?.billing_period ?? 'monthly';
-  const periodLabel = hostingPeriod === 'yearly' ? '/yr'
-    : hostingPeriod === '2yr' ? '/2yr'
-    : hostingPeriod === '3yr' ? '/3yr'
-    : '/mo';
+  const periodLabel = hostingPeriod === 'yearly' ? '/yr' : '/mo';
   const hostingPrice = hostingPeriod === 'yearly'
     ? (hostingPlan?.price_yearly_cad ?? (hostingPlan?.price_cad ? hostingPlan.price_cad * 12 : 0))
-    : hostingPeriod === '2yr'
-      ? (hostingPlan?.price_cad ? hostingPlan.price_cad * 24 : 0)
-      : hostingPeriod === '3yr'
-        ? (hostingPlan?.price_cad ? hostingPlan.price_cad * 36 : 0)
-        : (hostingPlan?.price_cad ?? 0);
+    : (hostingPlan?.price_cad ?? 0);
 
   // Calculate annual total from domain subscriptions
   const annualDomainTotal = domainSubs.reduce((sum: number, sub: any) => sum + ((sub.products as any)?.price_cad ?? 0), 0);

@@ -242,7 +242,7 @@ Deno.serve(async (req) => {
               let plan: any = null;
               if (priceId) {
                 const { data: p } = await sb.from("products").select("id")
-                  .or(`stripe_price_id.eq.${priceId},stripe_price_id_yearly.eq.${priceId},stripe_price_id_2yr.eq.${priceId},stripe_price_id_3yr.eq.${priceId}`)
+                  .or(`stripe_price_id.eq.${priceId},stripe_price_id_yearly.eq.${priceId},stripe_price_id_cad.eq.${priceId},stripe_price_id_yearly_cad.eq.${priceId}`)
                   .maybeSingle();
                 plan = p;
               }

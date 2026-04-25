@@ -48,16 +48,15 @@ Deno.serve(async (req) => {
       let primaryPlan: any = null;
       if (firstPriceId) {
         const { data: p } = await sb.from("products").select("id,slug,type,metadata")
-          .or(`stripe_price_id.eq.${firstPriceId},stripe_price_id_yearly.eq.${firstPriceId},stripe_price_id_2yr.eq.${firstPriceId},stripe_price_id_3yr.eq.${firstPriceId},stripe_price_id_cad.eq.${firstPriceId}`)
+          .or(`stripe_price_id.eq.${firstPriceId},stripe_price_id_yearly.eq.${firstPriceId},stripe_price_id_cad.eq.${firstPriceId},stripe_price_id_yearly_cad.eq.${firstPriceId}`)
           .maybeSingle();
         primaryPlan = p;
       }
 
       // Determine billing period from first item
       const interval = firstItem?.price?.recurring?.interval;
-      const intervalCount = firstItem?.price?.recurring?.interval_count ?? 1;
       let billingPeriod = "monthly";
-      if (interval === "year") billingPeriod = intervalCount >= 3 ? "3yr" : intervalCount >= 2 ? "2yr" : "yearly";
+      if (interval === "year") billingPeriod = "yearly";
 
       // Upsert subscription
       const { data: existingSub } = await sb.from("subscriptions").select("metadata").eq("stripe_subscription_id", sub.id).maybeSingle();

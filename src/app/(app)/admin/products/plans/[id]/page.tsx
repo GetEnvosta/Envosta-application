@@ -50,13 +50,9 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
         slug: plan.slug,
         price_cad: plan.price_cad,
         price_yearly_cad: plan.price_yearly_cad,
-        price_2yr_cad: plan.price_2yr_cad || 0,
-        price_3yr_cad: plan.price_3yr_cad || 0,
         stripe_product_id: plan.stripe_product_id || null,
         stripe_price_id: plan.stripe_price_id || null,
         stripe_price_id_yearly: plan.stripe_price_id_yearly || null,
-        stripe_price_id_2yr: plan.stripe_price_id_2yr || null,
-        stripe_price_id_3yr: plan.stripe_price_id_3yr || null,
         is_active: plan.is_active,
         description: plan.description,
         features: plan.features,
@@ -116,8 +112,6 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
           stripe_product_id: syncData.stripe_product_id,
           stripe_price_id: syncData.stripe_price_id,
           stripe_price_id_yearly: syncData.stripe_price_id_yearly,
-          stripe_price_id_2yr: syncData.stripe_price_id_2yr,
-          stripe_price_id_3yr: syncData.stripe_price_id_3yr,
         }));
         setSuccess('Product saved & synced to Stripe');
       } else {
@@ -240,24 +234,6 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
                     <span className="text-xs text-gray-400 whitespace-nowrap">
                       {(() => { const yr = plan.billing === 'yearly' ? plan.price_cad : plan.price_yearly_cad; return yr > 0 ? `$${(yr / 100).toFixed(2)}/yr` : '—'; })()}
                     </span>
-                  </div>
-                </div>
-                {/* 2 Years */}
-                <div className="grid grid-cols-[140px_1fr_1fr] items-center">
-                  <div className="px-4 py-3 text-sm font-medium text-gray-700">2 Years</div>
-                  <div className="px-4 py-2"><input className="input font-mono text-xs" value={plan.stripe_price_id_2yr ?? ''} onChange={e => update('stripe_price_id_2yr', e.target.value)} placeholder="price_..." /></div>
-                  <div className="px-4 py-2 flex items-center gap-2">
-                    <input type="number" className="input w-28" value={plan.price_2yr_cad ?? 0} onChange={e => update('price_2yr_cad', parseInt(e.target.value) || 0)} />
-                    <span className="text-xs text-gray-400 whitespace-nowrap">{plan.price_2yr_cad > 0 ? `$${(plan.price_2yr_cad / 100).toFixed(2)}/2yr` : '—'}</span>
-                  </div>
-                </div>
-                {/* 3 Years */}
-                <div className="grid grid-cols-[140px_1fr_1fr] items-center">
-                  <div className="px-4 py-3 text-sm font-medium text-gray-700">3 Years</div>
-                  <div className="px-4 py-2"><input className="input font-mono text-xs" value={plan.stripe_price_id_3yr ?? ''} onChange={e => update('stripe_price_id_3yr', e.target.value)} placeholder="price_..." /></div>
-                  <div className="px-4 py-2 flex items-center gap-2">
-                    <input type="number" className="input w-28" value={plan.price_3yr_cad ?? 0} onChange={e => update('price_3yr_cad', parseInt(e.target.value) || 0)} />
-                    <span className="text-xs text-gray-400 whitespace-nowrap">{plan.price_3yr_cad > 0 ? `$${(plan.price_3yr_cad / 100).toFixed(2)}/3yr` : '—'}</span>
                   </div>
                 </div>
               </div>

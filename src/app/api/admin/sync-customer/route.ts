@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     if (planPriceId) {
       const { data: product } = await sb.from('products')
         .select('id')
-        .or(`stripe_price_id.eq.${planPriceId},stripe_price_id_yearly.eq.${planPriceId},stripe_price_id_2yr.eq.${planPriceId},stripe_price_id_3yr.eq.${planPriceId}`)
+        .or(`stripe_price_id.eq.${planPriceId},stripe_price_id_yearly.eq.${planPriceId},stripe_price_id_cad.eq.${planPriceId},stripe_price_id_yearly_cad.eq.${planPriceId}`)
         .maybeSingle();
       productId = product?.id ?? null;
     }

@@ -68,7 +68,7 @@ export async function getAllActiveSubscriptions() {
 export function toMonthly(sub: any): number {
   const price = sub.products?.price_cad ?? 0;
   const period = sub.billing_period ?? 'monthly';
-  const divisors: Record<string, number> = { monthly: 1, yearly: 12, '2yr': 24, '3yr': 36 };
+  const divisors: Record<string, number> = { monthly: 1, yearly: 12 };
   return Math.round(price / (divisors[period] ?? 1));
 }
 

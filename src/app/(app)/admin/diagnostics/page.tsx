@@ -82,7 +82,7 @@ export default async function DiagnosticsPage() {
   const logs = await getAdminLogs({}, 50);
 
   // Fetch product data
-  const productCols = 'id, type, name, slug, billing, price_cad, price_usd, price_yearly_cad, price_yearly_usd, is_active, stripe_product_id, stripe_price_id, stripe_price_id_yearly, stripe_price_id_2yr, stripe_price_id_3yr, stripe_price_id_cad, stripe_price_id_yearly_cad, metadata';
+  const productCols = 'id, type, name, slug, billing, price_cad, price_usd, price_yearly_cad, price_yearly_usd, is_active, stripe_product_id, stripe_price_id, stripe_price_id_yearly, stripe_price_id_cad, stripe_price_id_yearly_cad, metadata';
   const { data: allProducts } = await supabase
     .from('products')
     .select(productCols)

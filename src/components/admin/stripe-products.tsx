@@ -17,8 +17,6 @@ interface Product {
   stripe_product_id: string | null;
   stripe_price_id: string | null;
   stripe_price_id_yearly?: string | null;
-  stripe_price_id_2yr?: string | null;
-  stripe_price_id_3yr?: string | null;
   stripe_price_id_cad?: string | null;
   stripe_price_id_yearly_cad?: string | null;
   metadata: any;
@@ -303,8 +301,6 @@ export function StripeProducts({
           stripe_product_id: null,
           stripe_price_id: null,
           stripe_price_id_yearly: null,
-          stripe_price_id_2yr: null,
-          stripe_price_id_3yr: null,
           stripe_price_id_cad: null,
           stripe_price_id_yearly_cad: null,
         }),
@@ -312,7 +308,7 @@ export function StripeProducts({
       if (res.ok) {
         const updateFn = (p: any) => p.id === editProduct.id ? {
           ...p, stripe_product_id: null, stripe_price_id: null,
-          stripe_price_id_yearly: null, stripe_price_id_2yr: null, stripe_price_id_3yr: null,
+          stripe_price_id_yearly: null,
           stripe_price_id_cad: null, stripe_price_id_yearly_cad: null,
         } : p;
         setPlans(prev => prev.map(updateFn));
@@ -322,7 +318,7 @@ export function StripeProducts({
         setOther(prev => prev.map(updateFn));
         setEditProduct(prev => prev ? {
           ...prev, stripe_product_id: null, stripe_price_id: null,
-          stripe_price_id_yearly: null, stripe_price_id_2yr: null, stripe_price_id_3yr: null,
+          stripe_price_id_yearly: null,
           stripe_price_id_cad: null, stripe_price_id_yearly_cad: null,
         } : null);
         setVerification(prev => {
@@ -605,36 +601,45 @@ export function StripeProducts({
                 </div>
               )}
 
-              {/* Prices grouped with their corresponding Stripe price ID. */}
+              {/* Prices: one bordered column per currency so it's obvious which
+                  Stripe price ID belongs to which currency. */}
               {editProduct.type === 'hosting_plan' ? (
                 <div className="grid grid-cols-2 gap-4">
-                  <PriceWithIdField
-                    label="USD Monthly" amountKey="price_usd" idKey="stripe_price_id"
-                    fields={editFields} setFields={setEditFields}
-                  />
-                  <PriceWithIdField
-                    label="CAD Monthly" amountKey="price_cad" idKey="stripe_price_id_cad"
-                    fields={editFields} setFields={setEditFields}
-                  />
-                  <PriceWithIdField
-                    label="USD Annual" amountKey="price_yearly_usd" idKey="stripe_price_id_yearly"
-                    fields={editFields} setFields={setEditFields}
-                  />
-                  <PriceWithIdField
-                    label="CAD Annual" amountKey="price_yearly_cad" idKey="stripe_price_id_yearly_cad"
-                    fields={editFields} setFields={setEditFields}
-                  />
+                  <CurrencyColumn currency="USD" flag="🇺🇸">
+                    <PriceWithIdField
+                      label="Monthly" amountKey="price_usd" idKey="stripe_price_id"
+                      fields={editFields} setFields={setEditFields}
+                    />
+                    <PriceWithIdField
+                      label="Annual" amountKey="price_yearly_usd" idKey="stripe_price_id_yearly"
+                      fields={editFields} setFields={setEditFields}
+                    />
+                  </CurrencyColumn>
+                  <CurrencyColumn currency="CAD" flag="🇨🇦">
+                    <PriceWithIdField
+                      label="Monthly" amountKey="price_cad" idKey="stripe_price_id_cad"
+                      fields={editFields} setFields={setEditFields}
+                    />
+                    <PriceWithIdField
+                      label="Annual" amountKey="price_yearly_cad" idKey="stripe_price_id_yearly_cad"
+                      fields={editFields} setFields={setEditFields}
+                    />
+                  </CurrencyColumn>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-4">
-                  <PriceWithIdField
-                    label="USD Price" amountKey="price_usd" idKey="stripe_price_id"
-                    fields={editFields} setFields={setEditFields}
-                  />
-                  <PriceWithIdField
-                    label="CAD Price" amountKey="price_cad" idKey="stripe_price_id_cad"
-                    fields={editFields} setFields={setEditFields}
-                  />
+                  <CurrencyColumn currency="USD" flag="🇺🇸">
+                    <PriceWithIdField
+                      label="Price" amountKey="price_usd" idKey="stripe_price_id"
+                      fields={editFields} setFields={setEditFields}
+                    />
+                  </CurrencyColumn>
+                  <CurrencyColumn currency="CAD" flag="🇨🇦">
+                    <PriceWithIdField
+                      label="Price" amountKey="price_cad" idKey="stripe_price_id_cad"
+                      fields={editFields} setFields={setEditFields}
+                    />
+                  </CurrencyColumn>
                 </div>
               )}
 
@@ -648,16 +653,6 @@ export function StripeProducts({
                     className="inline-flex items-center gap-1 text-[11px] text-admin-600 hover:text-admin-700 mt-2">
                     <ExternalLink className="w-3 h-3" /> Open product in Stripe
                   </a>
-                )}
-                {(editProduct.stripe_price_id_2yr || editProduct.stripe_price_id_3yr) && (
-                  <div className="pt-3 mt-3 border-t border-gray-100 space-y-2">
-                    {editProduct.stripe_price_id_2yr && (
-                      <StripeIdRow label="2-Year Price ID" value={editProduct.stripe_price_id_2yr} type="prices" />
-                    )}
-                    {editProduct.stripe_price_id_3yr && (
-                      <StripeIdRow label="3-Year Price ID" value={editProduct.stripe_price_id_3yr} type="prices" />
-                    )}
-                  </div>
                 )}
               </div>
             </div>
@@ -702,8 +697,28 @@ export function StripeProducts({
 // ─── Sub-components ──────────────────────────────
 
 /**
- * Paired amount + Stripe price-ID input. Keeps the two fields visually
- * coupled so it's obvious which price ID corresponds to which currency/period.
+ * Currency column wrapper. Wraps all prices (monthly + annual) for a single
+ * currency in one bordered card with a clear "USD"/"CAD" header so it's
+ * impossible to confuse which Stripe price ID belongs to which currency.
+ */
+function CurrencyColumn({ currency, flag, children }: {
+  currency: 'USD' | 'CAD'; flag: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border-2 border-gray-200 bg-white overflow-hidden">
+      <div className="px-3 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+        <span className="text-base leading-none">{flag}</span>
+        <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">{currency}</span>
+      </div>
+      <div className="p-3 space-y-3">{children}</div>
+    </div>
+  );
+}
+
+/**
+ * Paired amount + Stripe price-ID input. Lives inside a <CurrencyColumn>
+ * so the surrounding card already conveys USD vs CAD — the label here
+ * just identifies the period (Monthly / Annual / Price).
  */
 function PriceWithIdField({
   label, amountKey, idKey, fields, setFields,
@@ -715,15 +730,15 @@ function PriceWithIdField({
   setFields: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 p-3 space-y-2 bg-gray-50/50">
-      <label className="block text-xs font-semibold text-gray-700">{label}</label>
+    <div className="space-y-1.5">
+      <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider">{label}</label>
       <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
         <input
           value={fields[amountKey] ?? ''}
           onChange={e => setFields(f => ({ ...f, [amountKey]: e.target.value }))}
           type="number" step="0.01" min="0"
-          className="input w-full pl-7 bg-white"
+          className="input w-full pl-7"
           placeholder="0.00"
         />
       </div>
@@ -731,7 +746,7 @@ function PriceWithIdField({
         value={fields[idKey] ?? ''}
         onChange={e => setFields(f => ({ ...f, [idKey]: e.target.value }))}
         placeholder="price_..."
-        className="input w-full font-mono text-xs bg-white"
+        className="input w-full font-mono text-xs"
       />
     </div>
   );
