@@ -14,7 +14,6 @@ import { CouponManager } from '@/components/admin/coupon-manager';
 import { StripeProducts } from '@/components/admin/stripe-products';
 import { SystemTabs } from './system-tabs';
 import { LifecycleReference } from './lifecycle-reference';
-import { RepoDocs } from './repo-docs';
 import { formatDateTime } from '@/lib/utils';
 
 export default async function DiagnosticsPage() {
@@ -253,8 +252,6 @@ export default async function DiagnosticsPage() {
           ),
 
           promotions: <CouponManager />,
-
-          repo: <RepoDocs />,
         }}
       </SystemTabs>
     </div>
