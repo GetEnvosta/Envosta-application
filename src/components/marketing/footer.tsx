@@ -1,4 +1,10 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+// Mirrors nav.tsx — checkout flows hide the marketing footer too.
+const HIDE_ON = ['/get-started', '/buy-domain'];
 
 function LogoSvg() {
   return (
@@ -64,6 +70,9 @@ const socialLinks = [
 ];
 
 export function MarketingFooter() {
+  const pathname = usePathname();
+  if (HIDE_ON.some(p => pathname === p || pathname.startsWith(p + '/'))) return null;
+
   return (
     <footer>
       <div className="c">

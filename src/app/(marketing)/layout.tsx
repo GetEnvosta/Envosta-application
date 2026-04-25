@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { MarketingNav } from '@/components/marketing/nav';
 import { MarketingFooter } from '@/components/marketing/footer';
+import { CheckoutHeader } from '@/components/marketing/checkout-header';
 import './marketing.css';
 
 const inter = Inter({
@@ -64,6 +65,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
     <div className={`marketing-site ${inter.variable}`}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <MarketingNav />
+      <CheckoutHeader />
       <main>{children}</main>
       <MarketingFooter />
     </div>

@@ -35,9 +35,15 @@ function LogoSvg() {
   );
 }
 
+// Checkout flows live in (marketing) for code-org reasons but should NOT
+// inherit the marketing nav — distraction-free funnel.
+const HIDE_ON = ['/get-started', '/buy-domain'];
+
 export function MarketingNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+
+  if (HIDE_ON.some(p => pathname === p || pathname.startsWith(p + '/'))) return null;
 
   function isActive(href: string) {
     if (href === '/') return pathname === '/';
