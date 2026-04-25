@@ -1,41 +1,16 @@
 'use client';
 
-import { useState } from 'react';
 import { Receipt, Banknote, Users } from 'lucide-react';
+import { UrlSyncedTabs, type TabSpec } from '@/components/admin/url-synced-tabs';
 
 const TABS = [
   { id: 'subscriptions', label: 'Subscriptions', icon: Users },
   { id: 'commissions', label: 'Commissions', icon: Banknote },
   { id: 'invoices', label: 'Invoices', icon: Receipt },
-] as const;
+] as const satisfies readonly TabSpec[];
 
 type TabId = typeof TABS[number]['id'];
 
-export function BillingTabs({ children }: { children: Record<string, React.ReactNode> }) {
-  const [active, setActive] = useState<TabId>('subscriptions');
-
-  return (
-    <div>
-      {/* Tab bar */}
-      <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 mb-6">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActive(tab.id)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium transition-all ${
-              active === tab.id
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <tab.icon className="w-3.5 h-3.5" />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Active content */}
-      {children[active]}
-    </div>
-  );
+export function BillingTabs({ children }: { children: Record<TabId, React.ReactNode> }) {
+  return <UrlSyncedTabs tabs={TABS} defaultTab="subscriptions" children={children} />;
 }
