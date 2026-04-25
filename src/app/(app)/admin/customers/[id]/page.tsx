@@ -8,7 +8,7 @@ import { ChargeCard } from '@/components/admin/charge-card';
 import {
   ArrowLeft, Building2, Clock, ExternalLink, Globe,
   Phone, Server, Shield, User, FileText, Download,
-  AlertTriangle, Link2, Zap, HardDrive, ArrowUpRight, PauseCircle,
+  AlertTriangle, Link2, Zap, HardDrive, PauseCircle,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { AttachDomainSubscription } from '@/components/admin/attach-domain-subscription';
@@ -160,33 +160,67 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           </div>
         </div>
 
-        {/* Sites section header — subscription status + revenue */}
-        <div className="section-card-header">
-          <Server className="w-4 h-4 text-gray-400" />
-          <h2 className="section-card-title">Sites ({activeSites.length})</h2>
-          <div className="ml-auto flex items-center gap-3 flex-wrap">
-            {hostingSubs.length > 0 && (() => {
-              const sub = hostingSubs[0] as any;
-              return (
-                <>
-                  <span className={statusColor(sub.status)}>{sub.status}</span>
-                  {sub.status === 'paused' && (
-                    <span className="inline-flex items-center gap-1 text-xs text-amber-600">
-                      <PauseCircle className="w-3 h-3" /> Paused
-                    </span>
-                  )}
-                  <span className="text-sm font-semibold text-gray-900">{formatCents(hostingPrice, 'cad')}{periodLabel}</span>
-                  {sub.stripe_subscription_id && (
-                    <a href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
-                      className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{sub.stripe_subscription_id.slice(-8)}</a>
-                  )}
-                </>
-              );
-            })()}
-            {hostingSubs.length === 0 && (
-              <span className="text-xs text-gray-400">No subscription</span>
-            )}
+        {/* Subscription band — every plan/billing-related fact lives here so
+            the per-site rows below can stay clean. */}
+        {hostingSubs.length > 0 ? (() => {
+          const sub = hostingSubs[0] as any;
+          const planName = (sub.products as any)?.name;
+          return (
+            <div className="px-5 py-4 bg-gray-50/60 border-b border-gray-100 flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Server className="w-4 h-4 text-gray-400 shrink-0" />
+                <span className="text-sm font-semibold text-gray-900">Subscription</span>
+              </div>
+              {planName && (
+                <span className="text-xs font-medium text-gray-700 bg-white border border-gray-200 px-2 py-0.5 rounded">{planName}</span>
+              )}
+              <span className={statusColor(sub.status)}>{sub.status}</span>
+              {sub.status === 'paused' && (
+                <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                  <PauseCircle className="w-3 h-3" /> Paused
+                </span>
+              )}
+              <span className="text-sm font-semibold text-gray-900">
+                {formatCents(hostingPrice, 'cad')}{periodLabel}
+              </span>
+              {sitesAllowed != null && (
+                <span
+                  className={`text-xs font-medium ${
+                    sitesUsed >= sitesAllowed ? 'text-amber-600' : 'text-gray-600'
+                  }`}
+                  title={
+                    sitesUsed >= sitesAllowed
+                      ? `Plan limit reached`
+                      : `Plan allows ${sitesAllowed} site${sitesAllowed === 1 ? '' : 's'}`
+                  }
+                >
+                  {sitesUsed} <span className="text-gray-300">of</span> {sitesAllowed} sites
+                </span>
+              )}
+              {sub.stripe_subscription_id && (
+                <a
+                  href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-admin-600 font-mono"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  {sub.stripe_subscription_id.slice(-8)}
+                </a>
+              )}
+            </div>
+          );
+        })() : (
+          <div className="px-5 py-3 bg-gray-50/60 border-b border-gray-100 flex items-center gap-2">
+            <Server className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-semibold text-gray-900">Subscription</span>
+            <span className="text-xs text-gray-400">— No active subscription</span>
           </div>
+        )}
+
+        {/* Compact section header — just a count above the rows. */}
+        <div className="section-card-header">
+          <h2 className="section-card-title">Sites ({activeSites.length})</h2>
         </div>
 
         {/* Site list */}
@@ -202,29 +236,21 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                   const isCancelled = s.status === 'cancelled';
                   const recoveryDeadline = siteMeta.recovery_deadline ? new Date(siteMeta.recovery_deadline) : null;
                   const daysLeft = recoveryDeadline ? Math.max(0, Math.ceil((recoveryDeadline.getTime() - Date.now()) / 86400000)) : 0;
-                  // Slot index — only counts toward the plan limit if the site
-                  // is "live" (active or provisioning). Cancelled / deleted /
-                  // failed sites display "—" since they don't consume a slot.
-                  const isLive = s.status === 'active' || s.status === 'provisioning';
-                  const slotIndex = isLive
-                    ? activeSites.findIndex((a: any) => a.id === s.id) + 1
-                    : null;
 
                   return (
-                    <div key={s.id} className={`px-5 py-3 ${isCancelled ? 'bg-red-50/30' : 'hover:bg-gray-50/50'} transition-colors`}>
+                    <Link
+                      key={s.id}
+                      href={`/admin/services/${s.id}`}
+                      className={`block px-5 py-3 transition-colors ${isCancelled ? 'bg-red-50/30 hover:bg-red-50/50' : 'hover:bg-gray-50/50'}`}
+                    >
                       <div className="flex items-center gap-3">
                         <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isCancelled ? 'bg-red-50' : 'bg-blue-50'}`}>
                           <Server className={`w-3.5 h-3.5 ${isCancelled ? 'text-red-400' : 'text-blue-600'}`} />
                         </div>
-                        <Link href={`/admin/services/${s.id}`} className="text-sm font-medium text-admin-600 hover:text-admin-700 truncate">
-                          {s.label}
-                        </Link>
+                        <span className="text-sm font-medium text-admin-600 truncate">{s.label}</span>
                         <span className={statusColor(s.status)}>{s.status}</span>
                         {isCancelled && daysLeft > 0 && (
                           <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">{daysLeft}d recovery</span>
-                        )}
-                        {plan && (
-                          <span className="text-xs font-medium text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">{plan.name}</span>
                         )}
                         {siteDomain && (
                           <span className="text-xs text-gray-400 inline-flex items-center gap-1 truncate">
@@ -241,29 +267,8 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                             </span>
                           </>
                         )}
-                        <div className="ml-auto flex items-center gap-3 shrink-0">
-                          {sitesAllowed != null && slotIndex != null ? (
-                            <span
-                              className={`text-xs font-medium whitespace-nowrap ${
-                                slotIndex > sitesAllowed ? 'text-amber-600' : 'text-gray-500'
-                              }`}
-                              title={
-                                slotIndex > sitesAllowed
-                                  ? `Over plan limit (${sitesAllowed} allowed)`
-                                  : `Site ${slotIndex} of ${sitesAllowed} allowed by the plan`
-                              }
-                            >
-                              {slotIndex} <span className="text-gray-300">/</span> {sitesAllowed}
-                            </span>
-                          ) : !isLive ? (
-                            <span className="text-xs text-gray-300">—</span>
-                          ) : null}
-                          <Link href={`/admin/services/${s.id}`} className="text-gray-400 hover:text-admin-600 transition-colors">
-                            <ArrowUpRight className="w-4 h-4" />
-                          </Link>
-                        </div>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })
               )}
