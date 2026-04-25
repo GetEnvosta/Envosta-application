@@ -14,6 +14,7 @@ import { CouponManager } from '@/components/admin/coupon-manager';
 import { StripeProducts } from '@/components/admin/stripe-products';
 import { SystemTabs } from './system-tabs';
 import { LifecycleReference } from './lifecycle-reference';
+import { ProvisionButton } from '@/components/admin/provision-button';
 import { formatDateTime } from '@/lib/utils';
 
 export default async function DiagnosticsPage() {
@@ -55,14 +56,14 @@ export default async function DiagnosticsPage() {
   // 3. Sites stuck in provisioning > 1 hour
   const { data: stuckSites } = await supabase
     .from('sites')
-    .select('id, label, status, created_at, users(email)')
+    .select('id, label, status, created_at, metadata, users(email)')
     .eq('status', 'provisioning')
     .lt('created_at', new Date(Date.now() - 3600000).toISOString());
 
   // 4. Sites marked "failed"
   const { data: failedSites } = await supabase
     .from('sites')
-    .select('id, label, status, created_at, users(email)')
+    .select('id, label, status, created_at, metadata, users(email)')
     .eq('status', 'failed')
     .order('created_at', { ascending: false })
     .limit(20);
@@ -163,15 +164,10 @@ export default async function DiagnosticsPage() {
         icon={<Server className="w-4 h-4" />}
         title="Stuck Provisioning (> 1 hour)"
         count={stuckSites?.length ?? 0}
-        description="Sites that started provisioning but never completed. May need manual intervention."
+        description="Sites that started provisioning but never completed. The cron auto-retries with backoff (5/10/20/40/80 min, max 5 attempts). Use Retry to force another attempt."
       >
         {(stuckSites ?? []).map((s: any) => (
-          <DiagRow key={s.id}
-            primary={s.label}
-            secondary={(s.users as any)?.email ?? 'Unknown'}
-            date={s.created_at}
-            link={`/admin/services/${s.id}`}
-          />
+          <StuckSiteRow key={s.id} site={s} />
         ))}
       </DiagCard>
 
@@ -183,12 +179,7 @@ export default async function DiagnosticsPage() {
         description="Sites where provisioning failed entirely."
       >
         {(failedSites ?? []).map((s: any) => (
-          <DiagRow key={s.id}
-            primary={s.label}
-            secondary={(s.users as any)?.email ?? 'Unknown'}
-            date={s.created_at}
-            link={`/admin/services/${s.id}`}
-          />
+          <StuckSiteRow key={s.id} site={s} />
         ))}
       </DiagCard>
 
@@ -281,6 +272,40 @@ function DiagCard({ icon, title, count, description, severity = 'normal', childr
           <div className="divide-y divide-gray-100">{children}</div>
         </div>
       )}
+    </div>
+  );
+}
+
+function StuckSiteRow({ site }: { site: any }) {
+  const meta = (site.metadata as any) ?? {};
+  const attempts = meta.provision_attempts ?? 0;
+  const givingUp = !!meta.provision_giving_up;
+  const lastAt = meta.provision_last_attempt_at ? formatDate(meta.provision_last_attempt_at) : null;
+
+  return (
+    <div className="px-5 py-3 flex items-center justify-between gap-4 hover:bg-gray-50 transition-colors">
+      <div className="min-w-0 flex-1">
+        <Link href={`/admin/services/${site.id}`} className="text-sm font-medium text-gray-900 hover:text-admin-700 truncate block">
+          {site.label || '(unnamed)'}
+        </Link>
+        <p className="text-xs text-gray-500 truncate">
+          {(site.users as any)?.email ?? 'Unknown'}
+          {attempts > 0 && (
+            <>
+              {' · '}
+              <span className={givingUp ? 'text-red-600 font-medium' : 'text-amber-600'}>
+                {attempts} auto-retr{attempts === 1 ? 'y' : 'ies'}
+                {givingUp && ' · gave up'}
+              </span>
+              {lastAt && <span className="text-gray-400"> · last {lastAt}</span>}
+            </>
+          )}
+        </p>
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <span className="text-xs text-gray-400 whitespace-nowrap">{formatDate(site.created_at)}</span>
+        <ProvisionButton siteId={site.id} label={site.label || 'site'} />
+      </div>
     </div>
   );
 }

@@ -36,6 +36,19 @@ export function ProvisionButton({ siteId, label }: { siteId: string; label: stri
       const userEmail = (service as any).users?.email ?? 'admin@envosta.com';
       const domainName = (service as any).metadata?.domain_name ?? null;
 
+      // Admin retry resets the auto-retry counter so the cron starts fresh
+      // if this attempt also fails. metadata is otherwise preserved.
+      const existingMeta = (service as any).metadata ?? {};
+      await supabase.from('sites').update({
+        metadata: {
+          ...existingMeta,
+          provision_attempts: 0,
+          provision_giving_up: false,
+          provision_last_attempt_at: new Date().toISOString(),
+          provision_manual_retry_at: new Date().toISOString(),
+        },
+      }).eq('id', siteId);
+
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/provision-hosting`,
         {

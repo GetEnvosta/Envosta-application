@@ -5,16 +5,16 @@
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/credit-deductions",
-      "schedule": "0 7 * * *"
-    },
-    {
       "path": "/api/cron/cleanup-unclaimed",
       "schedule": "0 5 * * *"
     },
     {
       "path": "/api/cron/payment-enforcement",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/retry-stuck-provisions",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
