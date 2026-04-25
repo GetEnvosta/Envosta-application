@@ -53,6 +53,15 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     ? (hostingPlan?.price_yearly_cad ?? (hostingPlan?.price_cad ? hostingPlan.price_cad * 12 : 0))
     : (hostingPlan?.price_cad ?? 0);
 
+  // How many sites this plan allows. Pulled from product metadata; falls back
+  // to the first site's own product metadata if the subscription hasn't
+  // resolved a hostingPlan yet.
+  const sitesAllowed: number =
+    (hostingPlan?.metadata as any)?.sites_allowed
+    ?? ((activeSites[0]?.products as any)?.metadata as any)?.sites_allowed
+    ?? null;
+  const sitesUsed = activeSites.length;
+
   // Calculate annual total from domain subscriptions
   const annualDomainTotal = domainSubs.reduce((sum: number, sub: any) => sum + ((sub.products as any)?.price_cad ?? 0), 0);
 
@@ -193,6 +202,13 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                   const isCancelled = s.status === 'cancelled';
                   const recoveryDeadline = siteMeta.recovery_deadline ? new Date(siteMeta.recovery_deadline) : null;
                   const daysLeft = recoveryDeadline ? Math.max(0, Math.ceil((recoveryDeadline.getTime() - Date.now()) / 86400000)) : 0;
+                  // Slot index — only counts toward the plan limit if the site
+                  // is "live" (active or provisioning). Cancelled / deleted /
+                  // failed sites display "—" since they don't consume a slot.
+                  const isLive = s.status === 'active' || s.status === 'provisioning';
+                  const slotIndex = isLive
+                    ? activeSites.findIndex((a: any) => a.id === s.id) + 1
+                    : null;
 
                   return (
                     <div key={s.id} className={`px-5 py-3 ${isCancelled ? 'bg-red-50/30' : 'hover:bg-gray-50/50'} transition-colors`}>
@@ -225,9 +241,27 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                             </span>
                           </>
                         )}
-                        <Link href={`/admin/services/${s.id}`} className="ml-auto text-gray-400 hover:text-admin-600 transition-colors shrink-0">
-                          <ArrowUpRight className="w-4 h-4" />
-                        </Link>
+                        <div className="ml-auto flex items-center gap-3 shrink-0">
+                          {sitesAllowed != null && slotIndex != null ? (
+                            <span
+                              className={`text-xs font-medium whitespace-nowrap ${
+                                slotIndex > sitesAllowed ? 'text-amber-600' : 'text-gray-500'
+                              }`}
+                              title={
+                                slotIndex > sitesAllowed
+                                  ? `Over plan limit (${sitesAllowed} allowed)`
+                                  : `Site ${slotIndex} of ${sitesAllowed} allowed by the plan`
+                              }
+                            >
+                              {slotIndex} <span className="text-gray-300">/</span> {sitesAllowed}
+                            </span>
+                          ) : !isLive ? (
+                            <span className="text-xs text-gray-300">—</span>
+                          ) : null}
+                          <Link href={`/admin/services/${s.id}`} className="text-gray-400 hover:text-admin-600 transition-colors">
+                            <ArrowUpRight className="w-4 h-4" />
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   );
