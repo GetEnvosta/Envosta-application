@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { QuickInvoice } from '@/components/admin/quick-invoice';
 import { ChargeCard } from '@/components/admin/charge-card';
 import {
-  ArrowLeft, Building2, Clock, CreditCard, ExternalLink, Globe,
-  Mail, Phone, Server, Shield, User, FileText, Download, Layers,
+  ArrowLeft, Building2, Clock, ExternalLink, Globe,
+  Phone, Server, Shield, User, FileText, Download,
   AlertTriangle, Link2, Zap, HardDrive, ArrowUpRight, PauseCircle,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
@@ -46,62 +46,73 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const activeSites = services.filter((s: any) => s.status === 'active' || s.status === 'provisioning');
   const monthlyTotal = activeSites.reduce((sum: number, s: any) => sum + ((s.products as any)?.price_cad ?? 0), 0);
 
+  // Calculate annual total from domain subscriptions
+  const annualDomainTotal = domainSubs.reduce((sum: number, sub: any) => sum + ((sub.products as any)?.price_cad ?? 0), 0);
+
+  // Split invoices: domain renewals vs hosting/everything else
+  const domainSubStripeIds = new Set(
+    domainSubs.map((s: any) => s.stripe_subscription_id).filter(Boolean)
+  );
+  const domainInvoices = invoices.filter((inv: any) => {
+    const meta = (inv.metadata as any) ?? {};
+    if (meta.type === 'domain_renewal') return true;
+    if (meta.is_domain_purchase === 'true' || meta.is_domain_purchase === true) return true;
+    if (meta.domain_name) return true;
+    if (inv.stripe_subscription_id && domainSubStripeIds.has(inv.stripe_subscription_id)) return true;
+    return false;
+  });
+  const hostingInvoices = invoices.filter((inv: any) => !domainInvoices.includes(inv));
+
   return (
     <div>
       <Link href="/admin/customers" className="inline-flex items-center gap-1.5 text-sm text-admin-600 hover:text-admin-700 font-medium mb-6">
         <ArrowLeft className="w-4 h-4" /> Back to Customers
       </Link>
 
-      {/* ── Customer Overview + Billing Actions ── */}
-      <div className="card p-6 mb-6">
-        <div className="flex items-start gap-4 mb-5">
-          <Avatar name={user.full_name || user.email} size="lg" />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-xl font-semibold text-gray-900">{user.full_name || 'Unnamed'}</h1>
-              <span className={user.role === 'admin' ? 'badge-indigo' : 'badge-gray'}>{user.role}</span>
-            </div>
-            <p className="text-sm text-gray-500">{user.email}</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {user.role !== 'admin' && (
-              <ImpersonateButton userId={id} label={user.full_name || user.email} />
-            )}
-            {user.stripe_customer_id && (
-              <>
-                <ChargeCard customerId={id} customerName={user.full_name || user.email} />
-                <QuickInvoice stripeCustomerId={user.stripe_customer_id} customerName={user.full_name || user.email} />
-                <a href={`https://dashboard.stripe.com/customers/${user.stripe_customer_id}`} target="_blank" rel="noopener noreferrer"
-                  className="btn-secondary text-xs py-1.5 px-3 inline-flex items-center gap-1.5">
-                  <ExternalLink className="w-3 h-3" /> Stripe
-                </a>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-          <InfoPill icon={<Mail className="w-3.5 h-3.5" />} label="Email" value={user.email} />
-          {user.company_name && <InfoPill icon={<Building2 className="w-3.5 h-3.5" />} label="Company" value={user.company_name} />}
-          {user.phone && <InfoPill icon={<Phone className="w-3.5 h-3.5" />} label="Phone" value={user.phone} />}
-          {user.timezone && <InfoPill icon={<Clock className="w-3.5 h-3.5" />} label="Timezone" value={user.timezone} />}
-          <InfoPill icon={<Shield className="w-3.5 h-3.5" />} label="Joined" value={formatDate(user.created_at)} />
-        </div>
-
-        <div className="grid grid-cols-3 gap-3">
-          <CountPill label="Sites" count={activeSites.length} />
-          <CountPill label="Domains" count={domains.length} />
-          <CountPill label="Monthly" value={formatCents(monthlyTotal, 'cad')} />
-        </div>
-      </div>
-
-      {/* ── Sites ── */}
+      {/* ── Sites (with customer identity hero) ── */}
       <div className="card overflow-hidden mb-6">
-        {/* Single header with subscription status */}
+        {/* Hero: identity + actions */}
+        <div className="px-5 py-5 border-b border-gray-100">
+          <div className="flex items-start gap-4">
+            <Avatar name={user.full_name || user.email} size="lg" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-1 flex-wrap">
+                <h1 className="text-xl font-semibold text-gray-900">{user.full_name || 'Unnamed'}</h1>
+                <span className={user.role === 'admin' ? 'badge-indigo' : 'badge-gray'}>{user.role}</span>
+              </div>
+              <p className="text-sm text-gray-500">{user.email}</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {user.role !== 'admin' && (
+                <ImpersonateButton userId={id} label={user.full_name || user.email} />
+              )}
+              {user.stripe_customer_id && (
+                <>
+                  <ChargeCard customerId={id} customerName={user.full_name || user.email} />
+                  <QuickInvoice stripeCustomerId={user.stripe_customer_id} customerName={user.full_name || user.email} />
+                  <a href={`https://dashboard.stripe.com/customers/${user.stripe_customer_id}`} target="_blank" rel="noopener noreferrer"
+                    className="btn-secondary text-xs py-1.5 px-3 inline-flex items-center gap-1.5">
+                    <ExternalLink className="w-3 h-3" /> Stripe
+                  </a>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Contact pills */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
+            {user.company_name && <InfoPill icon={<Building2 className="w-3.5 h-3.5" />} label="Company" value={user.company_name} />}
+            {user.phone && <InfoPill icon={<Phone className="w-3.5 h-3.5" />} label="Phone" value={user.phone} />}
+            {user.timezone && <InfoPill icon={<Clock className="w-3.5 h-3.5" />} label="Timezone" value={user.timezone} />}
+            <InfoPill icon={<Shield className="w-3.5 h-3.5" />} label="Joined" value={formatDate(user.created_at)} />
+          </div>
+        </div>
+
+        {/* Sites section header — subscription status + revenue */}
         <div className="section-card-header">
           <Server className="w-4 h-4 text-gray-400" />
           <h2 className="section-card-title">Sites ({activeSites.length})</h2>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-3 flex-wrap">
             {hostingSubs.length > 0 && (() => {
               const sub = hostingSubs[0] as any;
               return (
@@ -141,76 +152,53 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                   const daysLeft = recoveryDeadline ? Math.max(0, Math.ceil((recoveryDeadline.getTime() - Date.now()) / 86400000)) : 0;
 
                   return (
-                    <div key={s.id} className={`px-5 py-4 ${isCancelled ? 'bg-red-50/30' : 'hover:bg-gray-50/50'} transition-colors`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isCancelled ? 'bg-red-50' : 'bg-blue-50'}`}>
-                            <Server className={`w-4 h-4 ${isCancelled ? 'text-red-400' : 'text-blue-600'}`} />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <Link href={`/admin/services/${s.id}`} className="text-sm font-medium text-admin-600 hover:text-admin-700">
-                                {s.label}
-                              </Link>
-                              <span className={statusColor(s.status)}>{s.status}</span>
-                              {isCancelled && daysLeft > 0 && (
-                                <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">{daysLeft}d recovery</span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              {plan && (
-                                <span className="text-xs font-medium text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
-                                  {plan.name}
-                                </span>
-                              )}
-                              {siteDomain && (
-                                <span className="text-xs text-gray-400 inline-flex items-center gap-1">
-                                  <Globe className="w-3 h-3" /> {siteDomain.domain_name}
-                                </span>
-                              )}
-                              {s.server_region && <span className="text-xs text-gray-400">{s.server_region}</span>}
-                            </div>
-                          </div>
+                    <div key={s.id} className={`px-5 py-3 ${isCancelled ? 'bg-red-50/30' : 'hover:bg-gray-50/50'} transition-colors`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isCancelled ? 'bg-red-50' : 'bg-blue-50'}`}>
+                          <Server className={`w-3.5 h-3.5 ${isCancelled ? 'text-red-400' : 'text-blue-600'}`} />
                         </div>
-
-                        <div className="flex items-center gap-3">
-                          {/* Plan price */}
-                          <div className="text-right">
-                            <p className="text-sm font-semibold text-gray-900">
-                              {plan?.price_cad ? formatCents(plan.price_cad, 'cad') : '—'}<span className="text-xs font-normal text-gray-400">/mo</span>
-                            </p>
-                          </div>
-                          {/* Link to admin site detail */}
+                        <Link href={`/admin/services/${s.id}`} className="text-sm font-medium text-admin-600 hover:text-admin-700 truncate">
+                          {s.label}
+                        </Link>
+                        <span className={statusColor(s.status)}>{s.status}</span>
+                        {isCancelled && daysLeft > 0 && (
+                          <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">{daysLeft}d recovery</span>
+                        )}
+                        {plan && (
+                          <span className="text-xs font-medium text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">{plan.name}</span>
+                        )}
+                        {siteDomain && (
+                          <span className="text-xs text-gray-400 inline-flex items-center gap-1 truncate">
+                            <Globe className="w-3 h-3" /> {siteDomain.domain_name}
+                          </span>
+                        )}
+                        {plan && !isCancelled && (
+                          <>
+                            <span className="text-[11px] text-gray-400 inline-flex items-center gap-1">
+                              <Zap className="w-3 h-3" /> {planMeta.php_workers_default ?? (s.config as any)?.php_workers ?? 2}w
+                            </span>
+                            <span className="text-[11px] text-gray-400 inline-flex items-center gap-1">
+                              <HardDrive className="w-3 h-3" /> {planMeta.storage_gb ?? (s.config as any)?.storage_gb ?? 25}GB
+                            </span>
+                          </>
+                        )}
+                        <div className="ml-auto flex items-center gap-3 shrink-0">
+                          <p className="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                            {plan?.price_cad ? formatCents(plan.price_cad, 'cad') : '—'}<span className="text-xs font-normal text-gray-400">/mo</span>
+                          </p>
                           <Link href={`/admin/services/${s.id}`} className="text-gray-400 hover:text-admin-600 transition-colors">
                             <ArrowUpRight className="w-4 h-4" />
                           </Link>
                         </div>
                       </div>
-
-                      {/* Resource specs from plan */}
-                      {plan && !isCancelled && (
-                        <div className="ml-11 flex items-center gap-4 flex-wrap">
-                          <span className="text-[11px] text-gray-400 inline-flex items-center gap-1">
-                            <Zap className="w-3 h-3" /> {planMeta.php_workers_default ?? (s.config as any)?.php_workers ?? 2} workers
-                          </span>
-                          <span className="text-[11px] text-gray-400 inline-flex items-center gap-1">
-                            <HardDrive className="w-3 h-3" /> {planMeta.storage_gb ?? (s.config as any)?.storage_gb ?? 25} GB
-                          </span>
-                          {s.stripe_subscription_item_id && (
-                            <span className="text-[10px] text-gray-300 font-mono">item: {s.stripe_subscription_item_id.slice(-8)}</span>
-                          )}
-                          {s.wp_cloud_url && (
-                            <a href={s.wp_cloud_url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-gray-400 hover:text-admin-600 inline-flex items-center gap-1">
-                              <ExternalLink className="w-3 h-3" /> {s.wp_cloud_url.replace('https://', '')}
-                            </a>
-                          )}
-                        </div>
-                      )}
                     </div>
                   );
                 })
               )}
             </div>
+
+        {/* Hosting invoices — collapsible */}
+        <InvoicesDropdown title="Hosting invoices" invoices={hostingInvoices} />
       </div>
 
       {/* ── Domains & Renewals ── */}
@@ -218,6 +206,25 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         <div className="section-card-header">
           <Globe className="w-4 h-4 text-gray-400" />
           <h2 className="section-card-title">Domains ({domains.length})</h2>
+          <div className="ml-auto flex items-center gap-3 flex-wrap">
+            {domainSubs.length > 0 ? (
+              <>
+                {(() => {
+                  const activeCount = domainSubs.filter((s: any) => s.status === 'active' || s.status === 'trialing').length;
+                  return (
+                    <span className="text-xs text-gray-500">
+                      {activeCount} of {domainSubs.length} renewing
+                    </span>
+                  );
+                })()}
+                {annualDomainTotal > 0 && (
+                  <span className="text-sm font-semibold text-gray-900">{formatCents(annualDomainTotal, 'cad')}/yr</span>
+                )}
+              </>
+            ) : (
+              domains.length > 0 && <span className="text-xs text-gray-400">No renewals attached</span>
+            )}
+          </div>
         </div>
         {domains.length === 0 && domainSubs.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-400">No domains.</div>
@@ -232,19 +239,11 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               const linkedSite = services.find((s: any) => s.id === d.site_id);
               const domainPrice = (linkedSub?.products as any)?.price_cad ?? 0;
               return (
-                <div key={d.id} className="px-5 py-4">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-gray-900">{d.domain_name}</p>
-                      <span className={statusColor(d.status)}>{d.status}</span>
-                    </div>
-                    {domainPrice > 0 && (
-                      <p className="text-sm font-semibold text-gray-900">
-                        {formatCents(domainPrice, 'cad')}<span className="text-xs font-normal text-gray-400">/yr</span>
-                      </p>
-                    )}
-                  </div>
+                <div key={d.id} className="px-5 py-3">
                   <div className="flex items-center gap-3 flex-wrap">
+                    <Globe className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <p className="text-sm font-medium text-gray-900">{d.domain_name}</p>
+                    <span className={statusColor(d.status)}>{d.status}</span>
                     {linkedSite && (
                       <Link href={`/admin/services/${linkedSite.id}`} className="text-xs text-admin-600 hover:text-admin-700 inline-flex items-center gap-1">
                         <Server className="w-3 h-3" /> {linkedSite.label}
@@ -254,17 +253,22 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                     {d.auto_renew === false && <span className="text-xs text-amber-600">Auto-renew off</span>}
                     {linkedSub ? (
                       <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">
-                        <Link2 className="w-3 h-3" />
-                        Renewal {linkedSub.status}
+                        <Link2 className="w-3 h-3" /> Renewal {linkedSub.status}
                       </span>
                     ) : (
-                      <AttachDomainSubscription domainName={d.domain_name} domainId={d.id} userId={user.id}
-                        renewalSubId={null} compact />
+                      <AttachDomainSubscription domainName={d.domain_name} domainId={d.id} userId={user.id} renewalSubId={null} compact />
                     )}
                     {linkedSub?.stripe_subscription_id && (
                       <a href={`https://dashboard.stripe.com/subscriptions/${linkedSub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
                         className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{linkedSub.stripe_subscription_id.slice(-8)}</a>
                     )}
+                    <div className="ml-auto shrink-0">
+                      {domainPrice > 0 && (
+                        <p className="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                          {formatCents(domainPrice, 'cad')}<span className="text-xs font-normal text-gray-400">/yr</span>
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -281,18 +285,17 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             }).map((sub: any) => {
               const dn = (sub.metadata as any)?.domain_name;
               return (
-                <div key={sub.id} className="px-5 py-4 bg-amber-50/30">
-                  <div className="flex items-center justify-between mb-1.5">
+                <div key={sub.id} className="px-5 py-3 bg-amber-50/30">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Globe className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                     <p className="text-sm font-medium text-gray-900">{dn ?? sub.products?.name ?? 'Domain renewal'}</p>
                     <span className={statusColor(sub.status)}>{sub.status}</span>
-                  </div>
-                  <div className="flex items-center gap-3 flex-wrap">
                     <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
                       <AlertTriangle className="w-3 h-3" /> No domain linked
                     </span>
                     {sub.stripe_subscription_id && (
                       <a href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
-                        className="text-[11px] text-gray-400 hover:text-admin-600 font-mono">{sub.stripe_subscription_id.slice(-8)}</a>
+                        className="text-[11px] text-gray-400 hover:text-admin-600 font-mono ml-auto">{sub.stripe_subscription_id.slice(-8)}</a>
                     )}
                   </div>
                 </div>
@@ -300,53 +303,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             })}
           </div>
         )}
-      </div>
 
-      {/* ── Invoices ── */}
-      <div className="card overflow-hidden mb-6">
-        <div className="section-card-header">
-          <FileText className="w-4 h-4 text-gray-400" />
-          <h2 className="section-card-title">Invoices ({invoices.length})</h2>
-        </div>
-        {invoices.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-400">No invoices.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-left">
-                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {invoices.map((inv: any) => {
-                  const meta = (inv.metadata as any) ?? {};
-                  const pdfUrl = meta.invoice_pdf ?? null;
-                  const viewUrl = inv.hosted_invoice_url ?? null;
-                  return (
-                    <tr key={inv.id} className="hover:bg-gray-50/50">
-                      <td className="px-5 py-3 text-gray-500 whitespace-nowrap">{formatDate(inv.created_at)}</td>
-                      <td className="px-5 py-3 text-gray-900">{inv.description || meta.description || 'Invoice'}</td>
-                      <td className="px-5 py-3 font-medium text-gray-900 whitespace-nowrap">{formatCents(inv.amount_cad ?? 0, 'cad')}</td>
-                      <td className="px-5 py-3"><span className={statusColor(inv.status)}>{inv.status}</span></td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2">
-                          {pdfUrl && <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-admin-600 hover:text-admin-700 inline-flex items-center gap-1 text-xs font-medium"><Download className="w-3 h-3" /> PDF</a>}
-                          {viewUrl && <a href={viewUrl} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-700 inline-flex items-center gap-1 text-xs"><FileText className="w-3 h-3" /> View</a>}
-                          {!pdfUrl && !viewUrl && <span className="text-gray-400">&mdash;</span>}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {/* Domain invoices — collapsible */}
+        <InvoicesDropdown title="Domain invoices" invoices={domainInvoices} />
       </div>
 
       {/* ── Recent Activity ── */}
@@ -374,6 +333,70 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   );
 }
 
+function InvoicesDropdown({ title, invoices }: { title: string; invoices: any[] }) {
+  if (!invoices || invoices.length === 0) {
+    return (
+      <details className="border-t border-gray-100">
+        <summary className="px-5 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-2 text-sm text-gray-500 select-none">
+          <FileText className="w-3.5 h-3.5 text-gray-400" />
+          <span className="font-medium">{title}</span>
+          <span className="ml-auto text-xs text-gray-400">No invoices</span>
+        </summary>
+      </details>
+    );
+  }
+  const totalPaid = invoices
+    .filter((inv: any) => inv.status === 'paid')
+    .reduce((sum: number, inv: any) => sum + (inv.amount_cad ?? 0), 0);
+  return (
+    <details className="border-t border-gray-100 group">
+      <summary className="px-5 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-2 text-sm select-none">
+        <FileText className="w-3.5 h-3.5 text-gray-400" />
+        <span className="font-medium text-gray-900">{title}</span>
+        <span className="text-xs text-gray-500">({invoices.length})</span>
+        <span className="ml-auto text-xs text-gray-500">
+          {formatCents(totalPaid, 'cad')} paid
+        </span>
+      </summary>
+      <div className="overflow-x-auto border-t border-gray-100 bg-gray-50/30">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 text-left">
+              <th className="px-5 py-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider">Date</th>
+              <th className="px-5 py-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider">Description</th>
+              <th className="px-5 py-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+              <th className="px-5 py-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-5 py-2 text-[10px] font-medium text-gray-500 uppercase tracking-wider">Invoice</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {invoices.map((inv: any) => {
+              const meta = (inv.metadata as any) ?? {};
+              const pdfUrl = meta.invoice_pdf ?? null;
+              const viewUrl = inv.hosted_invoice_url ?? null;
+              return (
+                <tr key={inv.id} className="hover:bg-white">
+                  <td className="px-5 py-2.5 text-gray-500 whitespace-nowrap text-xs">{formatDate(inv.created_at)}</td>
+                  <td className="px-5 py-2.5 text-gray-900 text-xs">{inv.description || meta.description || 'Invoice'}</td>
+                  <td className="px-5 py-2.5 font-medium text-gray-900 whitespace-nowrap text-xs">{formatCents(inv.amount_cad ?? 0, 'cad')}</td>
+                  <td className="px-5 py-2.5"><span className={statusColor(inv.status)}>{inv.status}</span></td>
+                  <td className="px-5 py-2.5">
+                    <div className="flex items-center gap-2">
+                      {pdfUrl && <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-admin-600 hover:text-admin-700 inline-flex items-center gap-1 text-xs font-medium"><Download className="w-3 h-3" /> PDF</a>}
+                      {viewUrl && <a href={viewUrl} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-700 inline-flex items-center gap-1 text-xs"><FileText className="w-3 h-3" /> View</a>}
+                      {!pdfUrl && !viewUrl && <span className="text-gray-400">&mdash;</span>}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  );
+}
+
 function InfoPill({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2.5">
@@ -386,11 +409,3 @@ function InfoPill({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
-function CountPill({ label, count, value }: { label: string; count?: number; value?: string }) {
-  return (
-    <div className="rounded-lg bg-gray-50 px-3.5 py-3 text-center">
-      <p className="text-lg font-semibold text-gray-900">{value ?? count ?? 0}</p>
-      <p className="text-[11px] text-gray-500 uppercase tracking-wider">{label}</p>
-    </div>
-  );
-}

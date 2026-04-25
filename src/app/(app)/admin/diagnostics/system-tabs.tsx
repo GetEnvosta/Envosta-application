@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Activity, ScrollText, Mail, Phone, CreditCard, Percent, BookOpen } from 'lucide-react';
+import { Activity, ScrollText, Mail, Phone, CreditCard, Percent, BookOpen, FolderTree } from 'lucide-react';
 
 const TABS = [
   { id: 'health', label: 'Health', icon: Activity },
@@ -11,6 +11,7 @@ const TABS = [
   { id: 'phone', label: 'Phone & SMS', icon: Phone },
   { id: 'stripe', label: 'Stripe', icon: CreditCard },
   { id: 'promotions', label: 'Promotions', icon: Percent },
+  { id: 'repo', label: 'Repo', icon: FolderTree },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
