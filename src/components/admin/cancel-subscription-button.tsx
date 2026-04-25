@@ -10,7 +10,7 @@ export function CancelSubscriptionButton({ siteId, siteName }: { siteId: string;
   const router = useRouter();
 
   async function handleCancel() {
-    if (!confirm(`Cancel the subscription for "${siteName}"?\n\nThis will:\n• Stop billing immediately\n• Keep the site accessible for 30 days\n• Unlink all domains\n\nThis cannot be undone.`)) return;
+    if (!confirm(`Cancel the subscription for "${siteName}"?\n\nThis will:\n• Pause billing immediately (the subscription stays in Stripe so you can resume later)\n• Flag every site on this subscription for deletion at the end of the current billing period\n• Unlink all domains\n\nIf the customer doesn't resume before the period ends, all attached sites will be permanently deleted.`)) return;
 
     setLoading(true);
     setError('');

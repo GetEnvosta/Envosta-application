@@ -4,7 +4,7 @@ import { getAllActiveSubscriptions, getAbandonedCheckoutCount, toMonthly } from 
 import { getRecentTicketsByType } from '@/services/tickets';
 import { formatCents, formatDate } from '@/lib/utils';
 import Link from 'next/link';
-import { Users, Server, Globe, DollarSign, ArrowRight, MessageSquare, Sparkles, Phone, ShoppingCart, Paintbrush } from 'lucide-react';
+import { Users, Server, Globe, DollarSign, ArrowRight, MessageSquare, Sparkles, Phone, ShoppingCart, Paintbrush, UserPlus } from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
 import { getCurrentUser, getUserProfile } from '@/services/auth';
 import { AffiliateReferralCard } from '@/components/admin/affiliate-referral-card';
@@ -65,7 +65,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Quick actions */}
-      <div className="mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         <Link href="/studio" className="card p-4 hover:shadow-md transition-all flex items-center gap-4 group">
           <div className="w-10 h-10 rounded-xl bg-purple-50 group-hover:bg-purple-100 flex items-center justify-center transition-colors">
             <Paintbrush className="w-5 h-5 text-purple-600" />
@@ -75,6 +75,17 @@ export default async function AdminDashboardPage() {
             <p className="text-xs text-gray-500">Design WordPress themes with AI</p>
           </div>
           <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-purple-600 transition-colors" />
+        </Link>
+
+        <Link href="/admin/customers?create-for-client=1" className="card p-4 hover:shadow-md transition-all flex items-center gap-4 group">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 group-hover:bg-indigo-100 flex items-center justify-center transition-colors">
+            <UserPlus className="w-5 h-5 text-indigo-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-gray-900">Create for Client</p>
+            <p className="text-xs text-gray-500">Set up an account + site for a client to claim</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-600 transition-colors" />
         </Link>
       </div>
 

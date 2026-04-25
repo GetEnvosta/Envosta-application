@@ -1,15 +1,24 @@
 'use client';
 
-import { useState } from 'react';
-import { UserPlus, Gift } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { UserPlus } from 'lucide-react';
 import { CreateUserModal } from '@/components/admin/create-user-modal';
 import { CreateUnclaimedAccount } from '@/components/admin/create-unclaimed-account';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export function CustomersHeader({ isAdmin }: { isAdmin: boolean }) {
   const [showModal, setShowModal] = useState(false);
   const [showUnclaimed, setShowUnclaimed] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Auto-open the Create-for-Client form when navigated from /admin's
+  // dashboard quick action (?create-for-client=1).
+  useEffect(() => {
+    if (isAdmin && searchParams.get('create-for-client') === '1') {
+      setShowUnclaimed(true);
+    }
+  }, [isAdmin, searchParams]);
 
   return (
     <div className="space-y-4 mb-6">
@@ -26,7 +35,6 @@ export function CustomersHeader({ isAdmin }: { isAdmin: boolean }) {
               onClick={() => setShowUnclaimed(!showUnclaimed)}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
             >
-              <Gift className="w-4 h-4" />
               Create for Client
             </button>
             <button

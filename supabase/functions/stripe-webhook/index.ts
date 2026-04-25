@@ -319,6 +319,84 @@ Deno.serve(async (req) => {
         }
       }
 
+      // ── Subscription paused / resumed → cascade to attached sites ──
+      // Policy: subscriptions are NEVER fully deleted, only paused. When a
+      // sub pauses (status='paused' OR pause_collection set), every attached
+      // site is flagged for deletion at current_period_end. When the sub
+      // resumes, the flag is cleared.
+      if (event.type === "customer.subscription.updated" && dbSub) {
+        const isPaused = sub.status === "paused"
+          || (sub.pause_collection && sub.pause_collection.behavior);
+        const periodEndIso = sub.current_period_end
+          ? new Date(sub.current_period_end * 1000).toISOString()
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+        if (isPaused) {
+          const { data: sitesToFlag } = await sb.from("sites")
+            .select("id, label, status, metadata, user_id")
+            .eq("subscription_id", dbSub.id)
+            .in("status", ["active", "provisioning", "paused"]);
+
+          let flagged = 0;
+          let ownerEmail: { email: string; full_name: string | null } | null = null;
+          for (const site of sitesToFlag ?? []) {
+            const meta = (site.metadata as any) ?? {};
+            // Don't reset deadline if already flagged (idempotent on repeated webhooks).
+            if (site.status === "cancelled" && meta.recovery_deadline) continue;
+
+            await sb.from("sites").update({
+              status: "cancelled",
+              paused_at: new Date().toISOString(),
+              flag_reason: "subscription_paused",
+              metadata: {
+                ...meta,
+                recovery_deadline: periodEndIso,
+                cancelled_at: new Date().toISOString(),
+              },
+            }).eq("id", site.id);
+
+            await log({ serviceId: site.id, action: "site.flagged_for_deletion",
+              message: `${site.label} flagged for deletion at ${periodEndIso} (subscription paused)` });
+            flagged++;
+
+            if (!ownerEmail && site.user_id) {
+              const { data: u } = await sb.from("users").select("email, full_name").eq("id", site.user_id).maybeSingle();
+              if (u) ownerEmail = u as any;
+            }
+          }
+
+          if (flagged > 0 && ownerEmail?.email) {
+            try {
+              const email = sitesPausedEmail(ownerEmail.full_name ?? "there", flagged);
+              await sendEmail({ to: ownerEmail.email, ...email });
+            } catch (e) { console.error("pause email failed (non-fatal):", e); }
+          }
+          console.log(`Subscription paused: ${sub.id}, flagged ${flagged} site(s) for deletion at ${periodEndIso}`);
+        } else if (sub.status === "active" && !sub.pause_collection) {
+          // Sub resumed — restore any sites we flagged with reason='subscription_paused'.
+          const { data: flagged } = await sb.from("sites")
+            .select("id, label, metadata")
+            .eq("subscription_id", dbSub.id)
+            .eq("status", "cancelled")
+            .eq("flag_reason", "subscription_paused");
+
+          for (const site of flagged ?? []) {
+            const meta = (site.metadata as any) ?? {};
+            const { recovery_deadline, cancelled_at, ...keptMeta } = meta;
+            await sb.from("sites").update({
+              status: "active",
+              paused_at: null,
+              flag_reason: null,
+              metadata: { ...keptMeta, restored_at: new Date().toISOString() },
+            }).eq("id", site.id);
+            await log({ serviceId: site.id, action: "site.restored", message: `${site.label} restored after subscription resumed` });
+          }
+          if ((flagged ?? []).length > 0) {
+            console.log(`Subscription resumed: ${sub.id}, restored ${flagged?.length} site(s)`);
+          }
+        }
+      }
+
       // Handle standalone domain purchases (no site creation)
       if ((isDomainPurchase || isDomainTld) && dbSub && (sub.status === "active" || sub.status === "trialing")) {
         const domainFromMeta = sub.metadata?.domain_name ?? null;
