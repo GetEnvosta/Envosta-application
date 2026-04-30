@@ -246,9 +246,9 @@ export default async function PricingPage() {
           <h1 className="rv">Simple, transparent <em>pricing</em></h1>
           <p className="rv">Every plan starts with a personal consultation. Pick the foundation that fits — we&apos;ll help you build from there.</p>
           <div className="toggle-wrap rv" style={{ marginBottom: 44 }}>
-            <span id="lbl-monthly" className="toggle-label active">Monthly</span>
-            <div id="billing-toggle" className="toggle" role="switch" aria-label="Toggle annual billing"></div>
-            <span id="lbl-annual" className="toggle-label">
+            <span id="lbl-monthly" className="toggle-label">Monthly</span>
+            <div id="billing-toggle" className="toggle on" role="switch" aria-label="Toggle annual billing" aria-checked="true"></div>
+            <span id="lbl-annual" className="toggle-label active">
               Annual{overallSavings ? <span className="save-badge">Save {overallSavings}%</span> : null}
             </span>
           </div>
@@ -294,11 +294,12 @@ export default async function PricingPage() {
                         data-monthly={dollars(monthly)}
                         data-annual={yearlyDisplayPerMonth}
                       >
-                        {dollars(monthly)}
+                        {/* Annual is the default selection */}
+                        {yearly ? yearlyDisplayPerMonth : dollars(monthly)}
                       </span>
                     </div>
                     <div className="p-card-period">USD/month</div>
-                    <div className="annual-note" style={{ display: 'none' }}>
+                    <div className="annual-note" style={{ display: yearly ? 'block' : 'none' }}>
                       ${dollars(yearly)}/yr{savings ? ` · save ${savings}%` : ''}
                     </div>
                   </div>
@@ -307,7 +308,7 @@ export default async function PricingPage() {
                 <p className="p-card-tag">{tagline}</p>
 
                 <a
-                  href={`/get-started?plan=${plan.slug}`}
+                  href={`/get-started?plan=${plan.slug}&billing=annual`}
                   className={isFeatured ? 'bp blue' : 'bp ghost'}
                 >
                   Start free trial

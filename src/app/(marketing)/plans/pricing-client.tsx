@@ -14,8 +14,10 @@ export default function PricingClient() {
       ).observe(el);
     });
 
-    // Billing toggle
-    let annual = false;
+    // Billing toggle — annual is the default selection (server renders
+    // with .on / Annual labelled active / annual prices visible). The
+    // toggleBilling handler flips between annual and monthly from there.
+    let annual = true;
     const toggle = document.getElementById('billing-toggle');
     const lblMonthly = document.getElementById('lbl-monthly');
     const lblAnnual = document.getElementById('lbl-annual');
@@ -23,6 +25,7 @@ export default function PricingClient() {
     function toggleBilling() {
       annual = !annual;
       toggle?.classList.toggle('on', annual);
+      toggle?.setAttribute('aria-checked', annual ? 'true' : 'false');
       lblMonthly?.classList.toggle('active', !annual);
       lblAnnual?.classList.toggle('active', annual);
       // Update displayed prices (per-month equivalent on annual)
@@ -35,7 +38,7 @@ export default function PricingClient() {
       document.querySelectorAll('.annual-note').forEach((el) => {
         (el as HTMLElement).style.display = annual ? 'block' : 'none';
       });
-      // Update Get Started links to include billing period
+      // Update Get Started links to reflect billing period
       document.querySelectorAll<HTMLAnchorElement>('a[href*="/get-started?plan="]').forEach((a) => {
         const url = new URL(a.href);
         if (annual) {
