@@ -188,8 +188,6 @@ export default async function PricingPage() {
         /* — Highlights / feature list — */
         .p-card-highlights{margin-top:28px;padding-top:24px;border-top:1px solid var(--bdr);flex:1;display:flex;flex-direction:column}
         .p-card-highlights-label{font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--t2);margin-bottom:14px}
-        .p-card-prev{font-size:.82rem;color:var(--t2);font-weight:400;margin-bottom:14px;line-height:1.5}
-        .p-card-prev strong{color:var(--t1);font-weight:500}
         .p-card ul{list-style:none;margin:0;padding:0}
         .p-card li{display:flex;align-items:flex-start;gap:10px;font-size:.86rem;color:var(--t2);padding:7px 0;font-weight:300;line-height:1.5;border:none}
         .p-card li .ck{width:16px;height:16px;flex-shrink:0;color:var(--grn);margin-top:3px}
@@ -311,12 +309,10 @@ export default async function PricingPage() {
 
                 <div className="p-card-highlights">
                   <div className="p-card-highlights-label">Highlights</div>
-                  {previousPlan && (
-                    <p className="p-card-prev">
-                      Everything in <strong>{previousPlan.name}</strong>, plus:
-                    </p>
-                  )}
                   <ul>
+                    {previousPlan && (
+                      <li>{check()}Everything in {previousPlan.name}, plus:</li>
+                    )}
                     {features.map((f, i) => (
                       <li key={i}>{check()}{f}</li>
                     ))}
