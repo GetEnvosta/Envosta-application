@@ -50,27 +50,67 @@ async function upsertProduct(
   return product.id;
 }
 
-/** Create or update a Stripe price. Stripe prices are immutable so we create new + deactivate old. */
+/**
+ * Create or update a Stripe price.
+ *
+ * Stripe prices are immutable, so to "update" we deactivate the old one
+ * and create a new one. To prevent duplicate prices when the DB is missing
+ * the stripe_price_id but Stripe already has a matching price on the
+ * product (common after a manual import or a DB row that lost its
+ * stripe_price_id_*_cad), we always scan the product's active prices for
+ * an exact match before falling back to create.
+ *
+ * Match criteria:
+ *   - unit_amount equal
+ *   - currency equal (lowercase)
+ *   - interval + interval_count equal (or both null for one-time)
+ *   - price is active
+ */
 async function upsertPrice(
   stripe: Stripe, priceId: string | null, productId: string,
   amount: number, interval: 'month' | 'year' | null, metadata: Record<string, string> = {},
   intervalCount = 1, currency: 'usd' | 'cad' = 'usd',
+  knownPrices?: Stripe.Price[],
 ): Promise<string | null> {
   if (amount <= 0) return priceId;
 
+  const matchesSpec = (p: Stripe.Price): boolean => {
+    if (!p.active) return false;
+    if (p.unit_amount !== amount) return false;
+    if (p.currency !== currency) return false;
+    if (interval) {
+      return p.recurring?.interval === interval
+        && (p.recurring?.interval_count ?? 1) === intervalCount;
+    }
+    return !p.recurring;
+  };
+
+  // 1. If the DB has a price ID, try it first.
   if (priceId) {
     try {
       const existing = await stripe.prices.retrieve(priceId);
-      // If price matches (amount, interval, AND currency), keep it
-      if (existing.unit_amount === amount && existing.currency === currency &&
-          (interval ? existing.recurring?.interval === interval && existing.recurring?.interval_count === intervalCount : !existing.recurring)) {
-        return priceId;
-      }
-      // Price changed — deactivate old
-      await stripe.prices.update(priceId, { active: false });
-    } catch { /* price doesn't exist in Stripe, create new */ }
+      if (matchesSpec(existing)) return priceId;
+      // Spec changed — deactivate the old price; we'll either find/create
+      // a replacement below.
+      if (existing.active) await stripe.prices.update(priceId, { active: false });
+    } catch { /* price doesn't exist in Stripe, fall through */ }
   }
 
+  // 2. Search the product's active prices for one already matching the spec.
+  //    This is the duplicate-prevention layer.
+  let pool = knownPrices;
+  if (!pool) {
+    pool = [];
+    try {
+      for await (const p of stripe.prices.list({ product: productId, active: true, limit: 100 })) {
+        pool.push(p);
+      }
+    } catch { /* fall through to create */ }
+  }
+  const reuse = pool.find(matchesSpec);
+  if (reuse) return reuse.id;
+
+  // 3. No match anywhere — create a new price.
   const params: Stripe.PriceCreateParams = {
     product: productId, unit_amount: amount, currency, metadata,
   };
@@ -212,19 +252,30 @@ async function syncProduct(stripe: Stripe, supabase: any, product: any) {
   let yearlyPriceIdCad = product.stripe_price_id_yearly_cad;
   const pMeta = { envosta_product_id: product.id };
 
+  // Fetch the product's active prices ONCE up front so each upsertPrice
+  // call can do an in-memory duplicate check instead of hitting Stripe
+  // four separate times. Critical for not creating duplicate prices when
+  // the DB has missing/stale stripe_price_id_* fields.
+  const knownPrices: Stripe.Price[] = [];
+  try {
+    for await (const p of stripe.prices.list({ product: productId, active: true, limit: 100 })) {
+      knownPrices.push(p);
+    }
+  } catch { /* if Stripe list fails, upsertPrice falls back to its own fetch */ }
+
   if (product.billing === 'monthly') {
     // USD prices
-    if (priceUsd > 0) priceId = await upsertPrice(stripe, priceId, productId, priceUsd, 'month', pMeta, 1, 'usd');
-    if (yearlyPriceUsd > 0) yearlyPriceId = await upsertPrice(stripe, yearlyPriceId, productId, yearlyPriceUsd, 'year', { ...pMeta, tier: '1yr' }, 1, 'usd');
+    if (priceUsd > 0) priceId = await upsertPrice(stripe, priceId, productId, priceUsd, 'month', pMeta, 1, 'usd', knownPrices);
+    if (yearlyPriceUsd > 0) yearlyPriceId = await upsertPrice(stripe, yearlyPriceId, productId, yearlyPriceUsd, 'year', { ...pMeta, tier: '1yr' }, 1, 'usd', knownPrices);
     // CAD prices
-    if (priceCad > 0) priceIdCad = await upsertPrice(stripe, priceIdCad, productId, priceCad, 'month', { ...pMeta, currency: 'cad' }, 1, 'cad');
-    if (yearlyPriceCad > 0) yearlyPriceIdCad = await upsertPrice(stripe, yearlyPriceIdCad, productId, yearlyPriceCad, 'year', { ...pMeta, tier: '1yr', currency: 'cad' }, 1, 'cad');
+    if (priceCad > 0) priceIdCad = await upsertPrice(stripe, priceIdCad, productId, priceCad, 'month', { ...pMeta, currency: 'cad' }, 1, 'cad', knownPrices);
+    if (yearlyPriceCad > 0) yearlyPriceIdCad = await upsertPrice(stripe, yearlyPriceIdCad, productId, yearlyPriceCad, 'year', { ...pMeta, tier: '1yr', currency: 'cad' }, 1, 'cad', knownPrices);
   } else if (product.billing === 'yearly') {
-    if (priceUsd > 0) priceId = await upsertPrice(stripe, priceId, productId, priceUsd, 'year', pMeta, 1, 'usd');
-    if (priceCad > 0) priceIdCad = await upsertPrice(stripe, priceIdCad, productId, priceCad, 'year', { ...pMeta, currency: 'cad' }, 1, 'cad');
+    if (priceUsd > 0) priceId = await upsertPrice(stripe, priceId, productId, priceUsd, 'year', pMeta, 1, 'usd', knownPrices);
+    if (priceCad > 0) priceIdCad = await upsertPrice(stripe, priceIdCad, productId, priceCad, 'year', { ...pMeta, currency: 'cad' }, 1, 'cad', knownPrices);
   } else if (product.billing === 'one_time') {
-    if (priceUsd > 0) priceId = await upsertPrice(stripe, priceId, productId, priceUsd, null, pMeta, 1, 'usd');
-    if (priceCad > 0) priceIdCad = await upsertPrice(stripe, priceIdCad, productId, priceCad, null, { ...pMeta, currency: 'cad' }, 1, 'cad');
+    if (priceUsd > 0) priceId = await upsertPrice(stripe, priceId, productId, priceUsd, null, pMeta, 1, 'usd', knownPrices);
+    if (priceCad > 0) priceIdCad = await upsertPrice(stripe, priceIdCad, productId, priceCad, null, { ...pMeta, currency: 'cad' }, 1, 'cad', knownPrices);
   }
 
   // Save Stripe IDs back to DB
