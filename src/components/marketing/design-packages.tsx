@@ -26,14 +26,14 @@ const PACKAGES: Pkg[] = [
     name: 'Studio Lite',
     price: '$500',
     blurb: 'Curated wireframing, a setup-ready template tailored to your brand, performance tuning, and an SEO baseline — built specifically for small businesses and solo entrepreneurs ready to launch fast.',
-    cta: 'Get in touch',
+    cta: 'Submit studio request',
   },
   {
     id: 'premium',
     name: 'Studio Premium',
     price: '$15,000',
     blurb: 'The whole everything for established brands. Industry-specific design, deep competitor analysis, full brand strategy, custom illustration, advanced integrations, ongoing performance + SEO work, and a dedicated team that ships until it ships.',
-    cta: 'Get in touch',
+    cta: 'Join the waitlist',
   },
 ];
 
@@ -69,16 +69,19 @@ export function DesignPackages() {
 
     setSending(true);
     setError('');
+    const isWaitlist = activePkg.id === 'premium';
     try {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'sales',
-          subject: `${activePkg.name} (${activePkg.price}) inquiry`,
+          subject: isWaitlist
+            ? `${activePkg.name} (${activePkg.price}) waitlist signup`
+            : `${activePkg.name} (${activePkg.price}) studio request`,
           name: name.trim() || undefined,
           email: email.trim(),
-          message: `Package: ${activePkg.name} (${activePkg.price})\n\n${message.trim()}`,
+          message: `Package: ${activePkg.name} (${activePkg.price})\nIntent: ${isWaitlist ? 'Waitlist (currently full)' : 'Studio request'}\n\n${message.trim()}`,
         }),
       });
       const data = await res.json();
@@ -153,9 +156,9 @@ export function DesignPackages() {
             {PACKAGES.map((pkg) => (
               <div key={pkg.id} className={pkg.id === 'premium' ? 'dp-card premium' : 'dp-card'}>
                 {pkg.id === 'premium' && (
-                  <div className="dp-eyebrow" aria-label="Limited spots each month">
+                  <div className="dp-eyebrow" aria-label="Currently full">
                     <span className="dp-eyebrow-dot" />
-                    Limited spots each month
+                    Currently full
                   </div>
                 )}
                 <div className="dp-head">
@@ -198,10 +201,15 @@ export function DesignPackages() {
                   <circle cx="12" cy="12" r="10" />
                   <path d="M7 12l3.5 3.5L17 9" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                <h3 id="dp-modal-title">Got it — we&rsquo;ll be in touch</h3>
+                <h3 id="dp-modal-title">
+                  {activePkg.id === 'premium' ? "You're on the waitlist" : "Got it — we'll be in touch"}
+                </h3>
                 <p>
-                  Your inquiry about the <strong style={{ color: 'var(--t1)' }}>{activePkg.name}</strong> package
-                  has been submitted. Expect a reply from our team within one business day.
+                  {activePkg.id === 'premium' ? (
+                    <>You&rsquo;re on the <strong style={{ color: 'var(--t1)' }}>{activePkg.name}</strong> waitlist. We&rsquo;ll reach out as soon as a slot opens up.</>
+                  ) : (
+                    <>Your <strong style={{ color: 'var(--t1)' }}>{activePkg.name}</strong> studio request has been submitted. Expect a reply from our team within one business day.</>
+                  )}
                 </p>
                 <div className="dp-modal-actions" style={{ marginTop: 24 }}>
                   <button type="button" className="bp ghost" onClick={reset} style={{ flex: 1 }}>Close</button>
@@ -211,7 +219,11 @@ export function DesignPackages() {
               <form onSubmit={submit}>
                 <h3 id="dp-modal-title">{activePkg.name}</h3>
                 <p className="dp-modal-sub">
-                  Tell us about your project and we&rsquo;ll send a tailored quote for the <strong>{activePkg.name}</strong> package ({activePkg.price}).
+                  {activePkg.id === 'premium' ? (
+                    <><strong>{activePkg.name}</strong> is currently full. Drop your details and we&rsquo;ll let you know the moment a slot opens.</>
+                  ) : (
+                    <>Tell us about your project and we&rsquo;ll send a tailored quote for the <strong>{activePkg.name}</strong> package ({activePkg.price}).</>
+                  )}
                 </p>
 
                 <div className="dp-modal-field">
@@ -257,7 +269,11 @@ export function DesignPackages() {
                 <div className="dp-modal-actions">
                   <button type="button" className="ghost-btn" onClick={reset}>Cancel</button>
                   <button type="submit" className="bp blue" disabled={sending}>
-                    {sending ? 'Sending…' : 'Send inquiry'}
+                    {sending
+                      ? 'Sending…'
+                      : activePkg.id === 'premium'
+                        ? 'Join the waitlist'
+                        : 'Submit request'}
                   </button>
                 </div>
               </form>
