@@ -29,7 +29,7 @@ const footerColumns = [
     links: [
       { label: 'WordPress Hosting', href: '/pricing' },
       { label: 'WooCommerce Hosting', href: '/pricing' },
-      { label: 'Enterprise Hosting', href: '/features' },
+      { label: 'Enterprise Hosting', href: '/products' },
       { label: 'Plans & Pricing', href: '/pricing' },
     ],
   },
@@ -48,7 +48,7 @@ const footerColumns = [
     links: [
       { label: 'Blog', href: '/blog' },
       { label: 'Support Center', href: '/support' },
-      { label: 'Features', href: '/features' },
+      { label: 'Products', href: '/products' },
     ],
   },
   {

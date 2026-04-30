@@ -148,7 +148,7 @@ const pageStyles = `
 }
 `;
 
-export default function FeaturesPage() {
+export default function ProductsPage() {
   const searchDomain = useCallback(() => {
     const input = document.getElementById('dom-input') as HTMLInputElement | null;
     const result = document.getElementById('dom-result');
