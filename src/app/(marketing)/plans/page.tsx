@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import PricingClient from './pricing-client';
 import { createClient } from '@/lib/supabase-server';
+import { DesignPackages } from '@/components/marketing/design-packages';
 
 export const metadata: Metadata = {
   title: 'Hosting Plans — Envosta Managed WordPress Hosting',
@@ -394,6 +395,9 @@ export default async function PricingPage() {
 
         </div>
       </div></section>
+
+      {/* MORE OPTIONS — design packages with email-quote CTAs */}
+      <DesignPackages />
 
       {/* FEATURE COMPARISON — header pulled live; per-feature rows hardcoded */}
       <section className="compare rv"><div className="c">
