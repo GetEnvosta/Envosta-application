@@ -103,18 +103,53 @@ export default function IntakePage() {
     const supabase = createClient();
     supabase
       .from('products')
-      .select('slug, name, description, price_usd, price_yearly_usd, price_cad, price_yearly_cad, sort_order, features, metadata')
+      .select('slug, name, description, price_usd, price_yearly_usd, price_cad, price_yearly_cad, features, metadata')
       .eq('type', 'hosting_plan')
       .eq('is_active', true)
-      .order('sort_order', { ascending: true, nullsFirst: false })
-      .order('price_usd', { ascending: true })
       .then(({ data }) => {
-        const rows = (data ?? []) as any[];
+        // Sort by USD price so order is deterministic regardless of the
+        // sort_order field state in the DB.
+        const rows = ((data ?? []) as any[])
+          .slice()
+          .sort((a, b) => (a.price_usd ?? a.price_cad ?? 0) - (b.price_usd ?? b.price_cad ?? 0));
         const featuredSlug = rows.length >= 3
           ? rows[Math.floor(rows.length / 2)]?.slug
           : rows[rows.length - 1]?.slug;
         const dollars = (cents: number | null | undefined) =>
           cents ? `$${Math.round(cents / 100)}` : '$0';
+
+        // Same fallback ladder as the public pricing page — synthesize a
+        // feature list from metadata when features[] is empty so plans
+        // don't render with zero bullets.
+        const buildFeatures = (p: any): string[] => {
+          if (Array.isArray(p.features) && p.features.length > 0) return p.features;
+          const meta = p.metadata ?? {};
+          const out: string[] = [];
+          const sites = meta.sites_allowed;
+          if (typeof sites === 'number') {
+            out.push(sites <= 1 ? '1 site' : `Up to ${sites} sites`);
+          }
+          if (meta.storage_gb) out.push(`${meta.storage_gb} GB SSD`);
+          out.push('Free SSL + CDN');
+          if (meta.has_backups !== false) out.push('Daily backups & auto-updates');
+          if (meta.has_staging) out.push('Staging environment');
+          if (meta.onboarding_type === 'guided') out.push('Guided onboarding');
+          else if (meta.onboarding_type === 'concierge' || meta.onboarding_type === 'white_glove') {
+            out.push('Done-with-you onboarding');
+          }
+          out.push(meta.support_type === 'priority' ? 'Priority support'
+            : meta.support_type === 'dedicated' ? 'Dedicated support'
+            : 'Email support');
+          const slug = String(p.slug || '').toLowerCase();
+          if (slug.includes('growth')) {
+            if (!out.some(f => /seo/i.test(f))) out.push('SEO optimization with AI');
+            if (!out.some(f => /woo/i.test(f))) out.push('WooCommerce ready');
+          } else if (slug.includes('standard') && !out.some(f => /woo/i.test(f))) {
+            out.push('WooCommerce ready');
+          }
+          return out;
+        };
+
         const formatted: IntakePlan[] = rows.map((p) => {
           const monthly = p.price_usd ?? p.price_cad ?? 0;
           const yearly = p.price_yearly_usd ?? p.price_yearly_cad ?? 0;
@@ -125,7 +160,7 @@ export default function IntakePage() {
             annual: dollars(yearly ? Math.round(yearly / 12) : 0),
             annualTotal: yearly ? `$${Math.round(yearly / 100).toLocaleString()}/yr` : '',
             currency: 'USD',
-            features: Array.isArray(p.features) ? (p.features as string[]) : [],
+            features: buildFeatures(p),
             featured: p.slug === featuredSlug,
           };
         });

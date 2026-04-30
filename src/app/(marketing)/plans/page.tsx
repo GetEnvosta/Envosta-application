@@ -62,17 +62,72 @@ function check() {
   );
 }
 
+/**
+ * Build a feature bullet list for a plan. If the DB has features populated
+ * we use them verbatim; otherwise we synthesize a sensible list from the
+ * plan's metadata + slug-keyed defaults so a plan never renders empty even
+ * if admin hasn't filled features[] in.
+ */
+function deriveFeatures(plan: HostingPlan): string[] {
+  if (Array.isArray(plan.features) && plan.features.length > 0) return plan.features;
+
+  const meta = (plan.metadata as any) ?? {};
+  const out: string[] = [];
+
+  // Sites allotted
+  const sites = meta.sites_allowed;
+  if (typeof sites === 'number') {
+    out.push(sites <= 1 ? '1 managed WordPress site' : `Up to ${sites} managed WordPress sites`);
+  }
+
+  // Storage
+  if (meta.storage_gb) out.push(`${meta.storage_gb} GB SSD storage`);
+
+  // Always-on essentials
+  out.push('Free SSL + global CDN');
+  if (meta.has_backups !== false) out.push('Daily backups & auto-updates');
+  if (meta.has_staging) out.push('Staging environment');
+  if (meta.has_waf) out.push('Web application firewall');
+
+  // Onboarding tier
+  if (meta.onboarding_type === 'guided') out.push('Guided onboarding');
+  else if (meta.onboarding_type === 'concierge' || meta.onboarding_type === 'white_glove') {
+    out.push('Done-with-you concierge onboarding');
+  }
+
+  // Support tier
+  if (meta.support_type === 'priority') out.push('Priority support');
+  else if (meta.support_type === 'dedicated') out.push('Dedicated support');
+  else out.push('Email support');
+
+  // Slug-specific extras for the marquee plans, in case metadata is sparse.
+  const slug = (plan.slug || '').toLowerCase();
+  if (slug.includes('growth')) {
+    if (!out.some(f => /seo/i.test(f))) out.push('SEO optimization with AI');
+    if (!out.some(f => /woo/i.test(f))) out.push('WooCommerce ready');
+    if (!out.some(f => /strategy/i.test(f))) out.push('1-on-1 strategy consultation');
+  } else if (slug.includes('standard')) {
+    if (!out.some(f => /woo/i.test(f))) out.push('WooCommerce ready');
+    if (!out.some(f => /onboarding/i.test(f))) out.push('Guided onboarding');
+  }
+
+  return out;
+}
+
 export default async function PricingPage() {
   const supabase = await createClient();
+  // Pull every active hosting plan. We sort client-side by USD price so the
+  // order is deterministic — sort_order in the DB is unreliable (often left
+  // at 0/NULL when a new plan is added).
   const { data: rawPlans } = await supabase
     .from('products')
     .select('id, name, slug, description, price_usd, price_yearly_usd, price_cad, price_yearly_cad, sort_order, features, metadata')
     .eq('type', 'hosting_plan')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true, nullsFirst: false })
-    .order('price_usd', { ascending: true });
+    .eq('is_active', true);
 
-  const plans: HostingPlan[] = (rawPlans ?? []) as any;
+  const plans: HostingPlan[] = ((rawPlans ?? []) as any[])
+    .slice()
+    .sort((a, b) => (a.price_usd ?? a.price_cad ?? 0) - (b.price_usd ?? b.price_cad ?? 0));
 
   // Mark the middle plan featured if there are 3+, else the most expensive.
   const featuredSlug = plans.length >= 3
@@ -196,7 +251,7 @@ export default async function PricingPage() {
             const yearly = plan.price_yearly_usd ?? plan.price_yearly_cad ?? 0;
             const yearlyDisplayPerMonth = annualMonthly(yearly);
             const savings = annualSavings(monthly, yearly);
-            const features: string[] = Array.isArray(plan.features) ? plan.features : [];
+            const features = deriveFeatures(plan);
             return (
               <div key={plan.id} className={isFeatured ? 'p-card featured' : 'p-card'}>
                 <div className="p-card-name">{plan.name}</div>
