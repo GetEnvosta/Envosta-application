@@ -25,7 +25,7 @@ const PACKAGES: Pkg[] = [
     id: 'starter',
     name: 'Studio Lite',
     price: '$500',
-    blurb: 'A custom-designed website built by our team — perfect for solo operators and new brands ready to launch.',
+    blurb: 'Hands-on onboarding, performance tuning, and a curated template tailored to your brand — built specifically for small businesses and solo entrepreneurs ready to launch fast.',
     cta: 'Request a quote',
   },
   {
