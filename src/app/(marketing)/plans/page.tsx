@@ -202,10 +202,17 @@ export default async function PricingPage() {
         .ap-icon svg{width:20px;height:20px}
         .ap-card h4{font-size:.88rem;font-weight:500;margin-bottom:6px}
         .ap-card p{font-size:.76rem;color:var(--t3);line-height:1.6;font-weight:300}
-        .compare{padding:0 0 100px}
-        .compare-header{text-align:center;margin-bottom:56px}
-        .compare-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
-        .compare-header p{font-size:.92rem;color:var(--t3);font-weight:300;max-width:480px;margin:0 auto;line-height:1.7}
+        /* Collapsible "Compare every feature" sits below the pricing grid */
+        .compare-toggle{max-width:${gridMaxWidth};margin:36px auto 0;text-align:center}
+        .compare-toggle summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:10px;padding:12px 22px;border:1px solid var(--bdr);border-radius:100px;background:var(--card);color:var(--t1);font-size:.86rem;font-weight:500;transition:border-color .2s,background .2s,color .2s;user-select:none}
+        .compare-toggle summary::-webkit-details-marker{display:none}
+        .compare-toggle summary:hover{border-color:var(--gold);color:var(--gold)}
+        .compare-toggle[open] summary{border-color:var(--gold);color:var(--gold);background:rgba(201,164,92,.04)}
+        .compare-toggle .ct-arrow{display:inline-block;transition:transform .25s ease;width:14px;height:14px}
+        .compare-toggle[open] .ct-arrow{transform:rotate(180deg)}
+        .compare-toggle-wrap{display:flex;justify-content:center}
+        .compare-table-wrap{margin-top:36px;overflow-x:auto;animation:ctSlide .35s ease}
+        @keyframes ctSlide{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
         .compare-table{width:100%;border-collapse:collapse}
         .compare-table thead th{padding:16px 20px;font-size:.72rem;font-weight:500;text-transform:uppercase;letter-spacing:2px;color:var(--t2);text-align:center;border-bottom:1px solid var(--bdr)}
         .compare-table thead th:first-child{text-align:left;color:var(--t3)}
@@ -322,9 +329,80 @@ export default async function PricingPage() {
             );
           })}
         </div>
-        <p style={{ textAlign: 'center', marginTop: 28, fontSize: '.82rem', color: 'var(--t3)', fontWeight: 300 }}>
-          Need a dedicated team or custom build? <a href="/support" style={{ color: 'var(--gold)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>Get in touch</a>.
-        </p>
+
+        {/* Comparison table — collapsed by default, sits below the plans
+            in place of the old "Need a dedicated team — Get in touch"
+            line. Native <details> so no client component required. */}
+        <details className="compare-toggle">
+          <summary>
+            Compare every feature
+            <svg className="ct-arrow" viewBox="0 0 16 16" fill="none">
+              <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </summary>
+          <div className="compare-table-wrap">
+            <table className="compare-table">
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  {plans.map((plan) => (
+                    <th key={plan.id} className={plan.slug === featuredSlug ? 'feat' : ''}>
+                      {plan.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Price</td>
+                  {plans.map((plan) => (
+                    <td key={plan.id}>${dollars(plan.price_usd ?? plan.price_cad)} USD/mo</td>
+                  ))}
+                </tr>
+                <tr>
+                  <td>Sites included</td>
+                  {plans.map((plan) => {
+                    const allowed = (plan.metadata as any)?.sites_allowed ?? 1;
+                    return <td key={plan.id}>{allowed === 1 ? '1' : `Up to ${allowed}`}</td>;
+                  })}
+                </tr>
+                <tr>
+                  <td>SSD storage</td>
+                  {plans.map((plan) => {
+                    const gb = (plan.metadata as any)?.storage_gb;
+                    return <td key={plan.id}>{gb ? `${gb} GB` : 'Auto-scaling'}</td>;
+                  })}
+                </tr>
+                <tr><td>WordPress on WP.Cloud</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+                <tr><td>Free SSL + global CDN</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+                <tr><td>Daily backups</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+                <tr><td>Automatic updates</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+                <tr>
+                  <td>Support</td>
+                  {plans.map((plan) => {
+                    const s = (plan.metadata as any)?.support_type;
+                    const label = s === 'priority' ? 'Priority' : s === 'dedicated' ? 'Dedicated' : 'Email';
+                    return <td key={plan.id}>{label}</td>;
+                  })}
+                </tr>
+                <tr><td>Staging environment</td>{plans.map(p => {
+                  const has = (p.metadata as any)?.has_staging;
+                  return <td key={p.id} className={has ? 'check' : 'dash'}>{has ? '✓' : '—'}</td>;
+                })}</tr>
+                <tr><td>Full onboarding by our team</td>{plans.map(p => {
+                  const t = (p.metadata as any)?.onboarding_type;
+                  const has = t && t !== 'standard';
+                  return <td key={p.id} className={has ? 'check' : 'dash'}>{has ? '✓' : '—'}</td>;
+                })}</tr>
+                <tr><td>Free site migration</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+                <tr><td>WooCommerce ready</td>{plans.map(p => {
+                  const isCheapest = p.slug === plans[0]?.slug;
+                  return <td key={p.id} className={isCheapest ? 'dash' : 'check'}>{isCheapest ? '—' : '✓'}</td>;
+                })}</tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
       </section>
 
       {/* ALL PLANS INCLUDE */}
@@ -395,74 +473,9 @@ export default async function PricingPage() {
       {/* MORE OPTIONS — design packages with email-quote CTAs */}
       <DesignPackages />
 
-      {/* FEATURE COMPARISON — header pulled live; per-feature rows hardcoded */}
-      <section className="compare rv"><div className="c">
-        <div className="compare-header">
-          <h2>Compare every feature</h2>
-          <p>A side-by-side breakdown so you can pick the plan that works best for your needs.</p>
-        </div>
-        <table className="compare-table">
-          <thead>
-            <tr>
-              <th>Feature</th>
-              {plans.map((plan) => (
-                <th key={plan.id} className={plan.slug === featuredSlug ? 'feat' : ''}>
-                  {plan.name}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Price</td>
-              {plans.map((plan) => (
-                <td key={plan.id}>${dollars(plan.price_usd ?? plan.price_cad)} USD/mo</td>
-              ))}
-            </tr>
-            <tr>
-              <td>Sites included</td>
-              {plans.map((plan) => {
-                const allowed = (plan.metadata as any)?.sites_allowed ?? 1;
-                return <td key={plan.id}>{allowed === 1 ? '1' : `Up to ${allowed}`}</td>;
-              })}
-            </tr>
-            <tr>
-              <td>SSD storage</td>
-              {plans.map((plan) => {
-                const gb = (plan.metadata as any)?.storage_gb;
-                return <td key={plan.id}>{gb ? `${gb} GB` : 'Auto-scaling'}</td>;
-              })}
-            </tr>
-            <tr><td>WordPress on WP.Cloud</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
-            <tr><td>Free SSL + global CDN</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
-            <tr><td>Daily backups</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
-            <tr><td>Automatic updates</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
-            <tr>
-              <td>Support</td>
-              {plans.map((plan) => {
-                const s = (plan.metadata as any)?.support_type;
-                const label = s === 'priority' ? 'Priority' : s === 'dedicated' ? 'Dedicated' : 'Email';
-                return <td key={plan.id}>{label}</td>;
-              })}
-            </tr>
-            <tr><td>Staging environment</td>{plans.map(p => {
-              const has = (p.metadata as any)?.has_staging;
-              return <td key={p.id} className={has ? 'check' : 'dash'}>{has ? '✓' : '—'}</td>;
-            })}</tr>
-            <tr><td>Full onboarding by our team</td>{plans.map(p => {
-              const t = (p.metadata as any)?.onboarding_type;
-              const has = t && t !== 'standard';
-              return <td key={p.id} className={has ? 'check' : 'dash'}>{has ? '✓' : '—'}</td>;
-            })}</tr>
-            <tr><td>Free site migration</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
-            <tr><td>WooCommerce ready</td>{plans.map(p => {
-              // Heuristic: anything beyond the cheapest plan can run WooCommerce.
-              const isCheapest = p.slug === plans[0]?.slug;
-              return <td key={p.id} className={isCheapest ? 'dash' : 'check'}>{isCheapest ? '—' : '✓'}</td>;
-            })}</tr>
-          </tbody>
-        </table>
-      </div></section>
+      {/* Compare-every-feature section moved into the collapsible <details>
+          underneath the pricing grid (replacing the old "Need a dedicated
+          team — Get in touch" line). No standalone section here anymore. */}
 
       {/* FAQ */}
       <section className="faq rv"><div className="c">

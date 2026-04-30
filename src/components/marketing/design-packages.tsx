@@ -17,7 +17,6 @@ type Pkg = {
   name: string;
   price: string;
   blurb: string;
-  features: string[];
   cta: string;
 };
 
@@ -26,31 +25,14 @@ const PACKAGES: Pkg[] = [
     id: 'starter',
     name: 'Studio Lite',
     price: '$500',
-    blurb: 'A custom-designed website built on your hosting plan. We handle the design, you handle the content.',
-    features: [
-      'Custom homepage design',
-      'Up to 5 inner page templates',
-      'Mobile + tablet responsive',
-      'Brand-aligned typography & colors',
-      'Stock imagery sourced for you',
-      'One round of revisions',
-    ],
+    blurb: 'A custom-designed website built by our team — perfect for solo operators and new brands ready to launch.',
     cta: 'Request a quote',
   },
   {
     id: 'premium',
     name: 'Studio Premium',
     price: '$15,000',
-    blurb: 'White-glove design + build for established brands. Strategy, custom illustration, complex integrations, and unlimited rounds.',
-    features: [
-      'Brand strategy + visual identity',
-      'Unlimited custom page designs',
-      'Custom illustration & motion',
-      'WooCommerce / membership / booking flows',
-      'Third-party integrations (CRM, ERP, AI)',
-      'Unlimited revision rounds',
-      'Dedicated project manager',
-    ],
+    blurb: 'White-glove design + build for established brands. Strategy, custom illustration, complex integrations.',
     cta: 'Talk to our team',
   },
 ];
@@ -130,11 +112,7 @@ export function DesignPackages() {
         .dp-name{font-size:1.35rem;font-weight:600;color:var(--t1);letter-spacing:-.4px;line-height:1.2}
         .dp-price{flex-shrink:0;text-align:right;font-size:1.8rem;font-weight:700;letter-spacing:-1px;color:var(--t1);line-height:1}
         .dp-price .dp-price-period{display:block;font-size:.7rem;color:var(--t3);font-weight:400;margin-top:6px;letter-spacing:.2px;text-transform:uppercase}
-        .dp-blurb{font-size:.88rem;color:var(--t3);font-weight:300;line-height:1.6;margin-bottom:24px;min-height:3.2em}
-        .dp-feat-label{font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--t2);margin-bottom:14px;padding-top:24px;border-top:1px solid var(--bdr)}
-        .dp-card ul{list-style:none;margin:0 0 28px;padding:0;flex:1}
-        .dp-card li{display:flex;align-items:flex-start;gap:10px;font-size:.86rem;color:var(--t2);padding:7px 0;font-weight:300;line-height:1.5}
-        .dp-card li svg{width:16px;height:16px;flex-shrink:0;color:var(--grn);margin-top:3px}
+        .dp-blurb{font-size:.92rem;color:var(--t3);font-weight:300;line-height:1.7;margin-bottom:28px;flex:1}
         .dp-card .bp{width:100%;justify-content:center;padding:14px 24px;font-size:.92rem;font-weight:500;cursor:pointer;border:none;font-family:inherit}
         @media(max-width:768px){.design-packages-grid{grid-template-columns:1fr}.dp-card{padding:32px 28px}}
 
@@ -186,17 +164,6 @@ export function DesignPackages() {
                   </div>
                 </div>
                 <p className="dp-blurb">{pkg.blurb}</p>
-                <div className="dp-feat-label">What&rsquo;s included</div>
-                <ul>
-                  {pkg.features.map((f) => (
-                    <li key={f}>
-                      <svg viewBox="0 0 16 16" fill="none">
-                        <path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
                 <button
                   type="button"
                   onClick={() => { reset(); setActivePkg(pkg); }}
