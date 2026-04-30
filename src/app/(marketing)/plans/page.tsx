@@ -1,22 +1,93 @@
 import type { Metadata } from 'next';
 import PricingClient from './pricing-client';
+import { createClient } from '@/lib/supabase-server';
 
 export const metadata: Metadata = {
   title: 'Hosting Plans — Envosta Managed WordPress Hosting',
-  description: 'Two simple plans: Minimum at $36 USD/mo for managed WordPress hosting, or Growth at $297 USD/mo with AI tools, full onboarding, and up to 5 sites.',
+  description: 'Managed WordPress hosting plans. Pick the foundation that fits — every plan starts with a personal consultation.',
   alternates: { canonical: 'https://envosta.com/plans' },
   openGraph: {
     title: 'Plans & Pricing — Envosta Managed WordPress Hosting',
-    description: 'Managed WordPress hosting from $36 USD/mo. Growth plan at $297 USD/mo with AI tools, onboarding, free SSL, CDN, and up to 5 sites.',
+    description: 'Managed WordPress hosting with personal onboarding, AI tools, and free SSL, CDN, and backups on every plan.',
     url: 'https://envosta.com/pricing',
   },
   twitter: {
     title: 'Envosta Pricing — Managed WordPress Hosting',
-    description: 'Managed WordPress hosting from $36 USD/mo. Growth at $297 USD/mo with AI tools, full onboarding, and up to 5 sites.',
+    description: 'Managed WordPress hosting with personal onboarding, AI tools, and the essentials baked in.',
   },
 };
 
-export default function PricingPage() {
+// Re-render whenever the underlying products change. 60s is plenty for a
+// public marketing page and avoids hammering Supabase on every visit.
+export const revalidate = 60;
+
+interface HostingPlan {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  price_usd: number | null;
+  price_yearly_usd: number | null;
+  price_cad: number | null;
+  price_yearly_cad: number | null;
+  sort_order: number | null;
+  features: string[] | null;
+  metadata: any;
+}
+
+function dollars(cents: number | null | undefined): string {
+  if (!cents) return '0';
+  return Math.round(cents / 100).toString();
+}
+
+/** Annual displayed as a per-month equivalent (yearly / 12). */
+function annualMonthly(yearlyCents: number | null | undefined): string {
+  if (!yearlyCents) return '0';
+  return Math.round(yearlyCents / 12 / 100).toString();
+}
+
+/** % savings of yearly vs (monthly * 12). */
+function annualSavings(monthly: number | null, yearly: number | null): number | null {
+  if (!monthly || !yearly) return null;
+  const fullYear = monthly * 12;
+  if (yearly >= fullYear) return null;
+  return Math.round(((fullYear - yearly) / fullYear) * 100);
+}
+
+function check() {
+  return (
+    <svg className="ck" viewBox="0 0 16 16" fill="none">
+      <path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export default async function PricingPage() {
+  const supabase = await createClient();
+  const { data: rawPlans } = await supabase
+    .from('products')
+    .select('id, name, slug, description, price_usd, price_yearly_usd, price_cad, price_yearly_cad, sort_order, features, metadata')
+    .eq('type', 'hosting_plan')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('price_usd', { ascending: true });
+
+  const plans: HostingPlan[] = (rawPlans ?? []) as any;
+
+  // Mark the middle plan featured if there are 3+, else the most expensive.
+  const featuredSlug = plans.length >= 3
+    ? plans[Math.floor(plans.length / 2)]?.slug
+    : plans[plans.length - 1]?.slug;
+
+  const gridCols = plans.length >= 3 ? 'repeat(3,1fr)' : 'repeat(2,1fr)';
+  const gridMaxWidth = plans.length >= 3 ? '1200px' : '860px';
+
+  const overallSavings = (() => {
+    // Use the cheapest plan's savings as the badge anchor.
+    const cheapest = [...plans].sort((a, b) => (a.price_usd ?? 0) - (b.price_usd ?? 0))[0];
+    return annualSavings(cheapest?.price_usd ?? null, cheapest?.price_yearly_usd ?? null);
+  })();
+
   return (
     <>
       <PricingClient />
@@ -36,7 +107,7 @@ export default function PricingPage() {
         .toggle.on{background:var(--gold);border-color:var(--gold)}.toggle.on::after{transform:translateX(24px)}
         .save-badge{display:inline-block;background:rgba(34,197,94,.12);color:#22c55e;font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:100px;margin-left:4px}
         .pricing-grid{padding:0 0 100px}
-        .pricing-grid .c{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;max-width:860px;margin:0 auto}
+        .pricing-grid .c{display:grid;grid-template-columns:${gridCols};gap:20px;max-width:${gridMaxWidth};margin:0 auto}
         .p-card{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:40px 32px;position:relative;transition:transform .3s,border-color .3s;display:flex;flex-direction:column}
         .p-card:hover{transform:translateY(-4px);border-color:var(--bdr2)}
         .p-card.featured{border-color:var(--gold);background:linear-gradient(180deg,rgba(37,99,235,.06),var(--card) 50%)}
@@ -49,46 +120,11 @@ export default function PricingPage() {
         .annual-note{font-size:.75rem;color:#22c55e;font-weight:500;margin:-2px 0 8px;letter-spacing:.2px}
         .p-card-desc{font-size:.82rem;color:var(--t3);margin-bottom:28px;line-height:1.7;font-weight:300}
         .p-card ul{list-style:none;margin-bottom:32px;flex:1}
-        .p-card li{display:flex;align-items:center;gap:10px;font-size:.88rem;color:var(--t2);font-weight:300;padding:6px 0}
-        .p-card li .ck{width:16px;height:16px;flex-shrink:0;color:var(--grn)}
-        .p-card li{font-size:.84rem;color:var(--t2);padding:8px 0;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px;font-weight:300}
+        .p-card li{display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--t2);padding:8px 0;border-bottom:1px solid var(--bdr);font-weight:300}
         .p-card li:last-child{border:none}
-        .p-card .feat-label{font-size:.68rem;font-weight:500;text-transform:uppercase;letter-spacing:2px;color:var(--gold);padding:14px 0 6px;border-bottom:none;display:block}
-        .p-card-highlight{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:linear-gradient(135deg,rgba(201,164,92,.1),rgba(37,99,235,.04));border:1px solid rgba(201,164,92,.22);border-radius:12px;margin-bottom:24px}
-        .p-card-highlight .hl-icon{font-size:1rem;color:#c9a45c;line-height:1.2;flex-shrink:0;margin-top:2px}
-        .p-card-highlight .hl-text{display:flex;flex-direction:column;gap:2px}
-        .p-card-highlight .hl-text strong{font-size:.82rem;font-weight:500;color:var(--t1)}
-        .p-card-highlight .hl-text span{font-size:.74rem;color:var(--t3);font-weight:300;line-height:1.5}
+        .p-card li .ck{width:16px;height:16px;flex-shrink:0;color:var(--grn)}
         .p-card .bp{width:100%;justify-content:center;padding:14px 24px;font-size:.88rem;margin-top:auto}
         .trial-note{font-size:.72rem;color:#22c55e;text-align:center;margin-top:10px;font-weight:400;letter-spacing:.2px}
-        .studio{padding:0 0 100px}
-        .studio-card{background:linear-gradient(180deg,rgba(201,164,92,.04),rgba(255,255,255,.01));border:1px solid rgba(201,164,92,.15);border-radius:24px;padding:64px 56px;position:relative;overflow:hidden;display:grid;grid-template-columns:1.2fr 1fr;gap:56px;align-items:center}
-        .studio-card::before{content:'';position:absolute;top:-40%;right:-20%;width:500px;height:500px;background:radial-gradient(circle,rgba(201,164,92,.08),transparent 60%);pointer-events:none}
-        .studio-card::after{content:'';position:absolute;bottom:-30%;left:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(37,99,235,.06),transparent 60%);pointer-events:none}
-        .studio-left{position:relative;z-index:1}
-        .studio-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(201,164,92,.1);border:1px solid rgba(201,164,92,.2);border-radius:100px;padding:6px 16px;font-size:.68rem;font-weight:600;color:#c9a45c;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:24px}
-        .studio-badge-dot{width:6px;height:6px;border-radius:50%;background:#c9a45c;animation:sbpulse 2s ease-in-out infinite}
-        @keyframes sbpulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(201,164,92,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(201,164,92,0)}}
-        .studio-left h3{font-family:'Inter',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:500;letter-spacing:-.5px;line-height:1.15;margin-bottom:16px}
-        .studio-left h3 span{background:linear-gradient(135deg,#c9a45c,#e6c46e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-        .studio-left>p{font-size:.92rem;color:var(--t2);line-height:1.75;font-weight:300;margin-bottom:32px;max-width:480px}
-        .studio-price{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}
-        .studio-price strong{font-size:2rem;font-weight:600;background:linear-gradient(135deg,#c9a45c,#e6c46e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-        .studio-price span{font-size:.82rem;color:var(--t3);font-weight:300}
-        .studio-price-note{font-size:.76rem;color:var(--t3);font-weight:300;margin-bottom:32px}
-        .studio-cta{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-        .studio-cta .bp{background:linear-gradient(135deg,#c9a45c,#b8943f);color:#0a0e1a;font-weight:600;pointer-events:none;opacity:.7}
-        .studio-cta .waitlist-note{font-size:.76rem;color:#c9a45c;font-weight:500}
-        .studio-right{position:relative;z-index:1}
-        .studio-features{display:flex;flex-direction:column;gap:14px}
-        .studio-feat{display:flex;align-items:flex-start;gap:14px;padding:16px 20px;background:rgba(201,164,92,.04);border:1px solid rgba(201,164,92,.08);border-radius:14px;transition:border-color .3s}
-        .studio-feat:hover{border-color:rgba(201,164,92,.18)}
-        .studio-feat-icon{width:36px;height:36px;border-radius:10px;background:rgba(201,164,92,.1);border:1px solid rgba(201,164,92,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#c9a45c}
-        .studio-feat-icon svg{width:18px;height:18px}
-        .studio-feat-text h4{font-size:.86rem;font-weight:500;color:var(--t1);margin-bottom:2px}
-        .studio-feat-text p{font-size:.76rem;color:var(--t3);line-height:1.5;font-weight:300}
-        .studio-limit{margin-top:20px;font-size:.76rem;color:var(--t3);font-weight:300}
-        .studio-limit strong{color:#c9a45c;font-weight:500}
         .all-plans{padding:0 0 100px}
         .all-plans-header{text-align:center;margin-bottom:56px}
         .all-plans-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
@@ -127,8 +163,8 @@ export default function PricingPage() {
         .faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .4s ease}
         .faq-item.open .faq-a{max-height:300px;padding-bottom:20px}
         .faq-a p{font-size:.84rem;color:var(--t2);line-height:1.7;font-weight:300}
-        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:14px}.p-card{padding:32px 20px}.p-card-price .amount{font-size:2.4rem}.studio-card{grid-template-columns:1fr;gap:40px}.all-plans-grid{grid-template-columns:repeat(3,1fr)}}
-        @media(max-width:768px){.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:40px 32px}.p-card-price .amount{font-size:3rem}.studio-card{padding:40px 28px}.all-plans-grid{grid-template-columns:1fr}}
+        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:14px}.p-card{padding:32px 20px}.p-card-price .amount{font-size:2.4rem}.all-plans-grid{grid-template-columns:repeat(3,1fr)}}
+        @media(max-width:768px){.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:40px 32px}.p-card-price .amount{font-size:3rem}.all-plans-grid{grid-template-columns:1fr}}
       `}</style>
 
       {/* PRICING HERO */}
@@ -139,62 +175,65 @@ export default function PricingPage() {
           <div className="toggle-wrap rv" style={{ marginBottom: 44 }}>
             <span id="lbl-monthly" className="toggle-label active">Monthly</span>
             <div id="billing-toggle" className="toggle" role="switch" aria-label="Toggle annual billing"></div>
-            <span id="lbl-annual" className="toggle-label">Annual <span className="save-badge">Save 25%</span></span>
+            <span id="lbl-annual" className="toggle-label">
+              Annual{overallSavings ? <span className="save-badge">Save {overallSavings}%</span> : null}
+            </span>
           </div>
         </div>
       </section>
 
-      {/* PRICING CARDS */}
-      <section className="pricing-grid rv"><div className="c">
-
-        {/* Minimum */}
-        <div className="p-card">
-          <div className="p-card-name">Minimum</div>
-          <div className="p-card-price">
-            <span className="currency">$</span>
-            <span className="amount price-val" data-monthly="36" data-annual="27">36</span>
-            <span className="period">USD/mo</span>
-          </div>
-          <div className="annual-note" style={{ display: 'none' }}>$324/year · save 25%</div>
-          <p className="p-card-desc">Fast, secure WordPress hosting — fully managed, hands-off.</p>
-          <ul>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>1 managed WordPress site on WP.Cloud</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>25 GB SSD storage</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Free SSL + global CDN</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Daily backups &amp; auto-updates</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Email support</li>
-          </ul>
-          <a href="/get-started?plan=minimum" className="bp ghost">Try for free</a>
-          <p className="trial-note">14 days free · cancel anytime</p>
+      {/* PRICING CARDS — rendered live from products table */}
+      <section className="pricing-grid rv">
+        <div className="c">
+          {plans.length === 0 && (
+            <p style={{ textAlign: 'center', color: 'var(--t3)', gridColumn: '1 / -1' }}>
+              Plans are being updated — please check back shortly.
+            </p>
+          )}
+          {plans.map((plan) => {
+            const isFeatured = plan.slug === featuredSlug;
+            const monthly = plan.price_usd ?? plan.price_cad ?? 0;
+            const yearly = plan.price_yearly_usd ?? plan.price_yearly_cad ?? 0;
+            const yearlyDisplayPerMonth = annualMonthly(yearly);
+            const savings = annualSavings(monthly, yearly);
+            const features: string[] = Array.isArray(plan.features) ? plan.features : [];
+            return (
+              <div key={plan.id} className={isFeatured ? 'p-card featured' : 'p-card'}>
+                <div className="p-card-name">{plan.name}</div>
+                <div className="p-card-price">
+                  <span className="currency">$</span>
+                  <span
+                    className="amount price-val"
+                    data-monthly={dollars(monthly)}
+                    data-annual={yearlyDisplayPerMonth}
+                  >
+                    {dollars(monthly)}
+                  </span>
+                  <span className="period">USD/mo</span>
+                </div>
+                <div className="annual-note" style={{ display: 'none' }}>
+                  ${dollars(yearly)}/year{savings ? ` · save ${savings}%` : ''}
+                </div>
+                {plan.description && <p className="p-card-desc">{plan.description}</p>}
+                <ul>
+                  {features.map((f, i) => (
+                    <li key={i}>{check()}{f}</li>
+                  ))}
+                </ul>
+                <a
+                  href={`/get-started?plan=${plan.slug}`}
+                  className={isFeatured ? 'bp blue' : 'bp ghost'}
+                >
+                  Try for free
+                </a>
+                <p className="trial-note">14 days free · cancel anytime</p>
+              </div>
+            );
+          })}
         </div>
-
-        {/* Growth (Featured) */}
-        <div className="p-card featured">
-          <div className="p-card-name">Growth</div>
-          <div className="p-card-price">
-            <span className="currency">$</span>
-            <span className="amount price-val" data-monthly="297" data-annual="223">297</span>
-            <span className="period">USD/mo</span>
-          </div>
-          <div className="annual-note" style={{ display: 'none' }}>$2,676/year · save 25%</div>
-          <p className="p-card-desc">WordPress hosting plus onboarding, AI tools, and the essentials to grow.</p>
-          <ul>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Everything in Minimum, up to 5 sites</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Auto-scaling resources (SSD &amp; more)</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Done-with-you onboarding</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>1-on-1 strategy consultation</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>SEO optimization (includes AI)</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>WooCommerce ready</li>
-            <li><svg className="ck" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Priority support</li>
-          </ul>
-          <a href="/get-started?plan=growth" className="bp blue">Try for free</a>
-          <p className="trial-note">14 days free · cancel anytime</p>
-        </div>
-
-      </div>
-      <p style={{ textAlign: 'center', marginTop: 28, fontSize: '.82rem', color: 'var(--t3)', fontWeight: 300 }}>
-        Need a dedicated team or custom build? <a href="/support" style={{ color: 'var(--gold)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>Get in touch</a>.
-      </p>
+        <p style={{ textAlign: 'center', marginTop: 28, fontSize: '.82rem', color: 'var(--t3)', fontWeight: 300 }}>
+          Need a dedicated team or custom build? <a href="/support" style={{ color: 'var(--gold)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>Get in touch</a>.
+        </p>
       </section>
 
       {/* ALL PLANS INCLUDE */}
@@ -262,7 +301,7 @@ export default function PricingPage() {
         </div>
       </div></section>
 
-      {/* FEATURE COMPARISON */}
+      {/* FEATURE COMPARISON — header pulled live; per-feature rows hardcoded */}
       <section className="compare rv"><div className="c">
         <div className="compare-header">
           <h2>Compare every feature</h2>
@@ -272,32 +311,61 @@ export default function PricingPage() {
           <thead>
             <tr>
               <th>Feature</th>
-              <th>Minimum</th>
-              <th className="feat">Growth</th>
+              {plans.map((plan) => (
+                <th key={plan.id} className={plan.slug === featuredSlug ? 'feat' : ''}>
+                  {plan.name}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            <tr><td>Price</td><td>$36 USD/mo</td><td>$297 USD/mo</td></tr>
-            <tr><td>SSD storage</td><td>25 GB</td><td>Auto-scaling</td></tr>
-            <tr><td>Sites included</td><td>1</td><td>Up to 5</td></tr>
-            <tr><td>WordPress on WP.Cloud</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Free SSL + global CDN</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Daily backups</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Automatic updates</td><td className="check">{'\u2713'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Support</td><td>Email</td><td>Priority</td></tr>
-            <tr><td>Staging environment</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Full onboarding by our team</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>1-on-1 strategy consultation</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Free site migration</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Monthly site health report</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>SEO optimization with AI</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>AI content &amp; copy assistant</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Google Analytics setup</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Performance monitoring</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>WooCommerce ready</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Stripe &amp; payment integration</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Lead capture forms</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
-            <tr><td>Branded business email</td><td className="dash">{'\u2014'}</td><td className="check">{'\u2713'}</td></tr>
+            <tr>
+              <td>Price</td>
+              {plans.map((plan) => (
+                <td key={plan.id}>${dollars(plan.price_usd ?? plan.price_cad)} USD/mo</td>
+              ))}
+            </tr>
+            <tr>
+              <td>Sites included</td>
+              {plans.map((plan) => {
+                const allowed = (plan.metadata as any)?.sites_allowed ?? 1;
+                return <td key={plan.id}>{allowed === 1 ? '1' : `Up to ${allowed}`}</td>;
+              })}
+            </tr>
+            <tr>
+              <td>SSD storage</td>
+              {plans.map((plan) => {
+                const gb = (plan.metadata as any)?.storage_gb;
+                return <td key={plan.id}>{gb ? `${gb} GB` : 'Auto-scaling'}</td>;
+              })}
+            </tr>
+            <tr><td>WordPress on WP.Cloud</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+            <tr><td>Free SSL + global CDN</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+            <tr><td>Daily backups</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+            <tr><td>Automatic updates</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+            <tr>
+              <td>Support</td>
+              {plans.map((plan) => {
+                const s = (plan.metadata as any)?.support_type;
+                const label = s === 'priority' ? 'Priority' : s === 'dedicated' ? 'Dedicated' : 'Email';
+                return <td key={plan.id}>{label}</td>;
+              })}
+            </tr>
+            <tr><td>Staging environment</td>{plans.map(p => {
+              const has = (p.metadata as any)?.has_staging;
+              return <td key={p.id} className={has ? 'check' : 'dash'}>{has ? '✓' : '—'}</td>;
+            })}</tr>
+            <tr><td>Full onboarding by our team</td>{plans.map(p => {
+              const t = (p.metadata as any)?.onboarding_type;
+              const has = t && t !== 'standard';
+              return <td key={p.id} className={has ? 'check' : 'dash'}>{has ? '✓' : '—'}</td>;
+            })}</tr>
+            <tr><td>Free site migration</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+            <tr><td>WooCommerce ready</td>{plans.map(p => {
+              // Heuristic: anything beyond the cheapest plan can run WooCommerce.
+              const isCheapest = p.slug === plans[0]?.slug;
+              return <td key={p.id} className={isCheapest ? 'dash' : 'check'}>{isCheapest ? '—' : '✓'}</td>;
+            })}</tr>
           </tbody>
         </table>
       </div></section>
@@ -347,7 +415,7 @@ export default function PricingPage() {
               <h4>What kind of support can I expect?</h4>
               <svg className="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </div>
-            <div className="faq-a"><p>Both plans include email support with a typical response time under 4 hours. Growth plan customers get priority response with faster turnaround.</p></div>
+            <div className="faq-a"><p>Every plan includes email support with a fast response window. Higher tiers add priority support with quicker turnaround and more hands-on guidance.</p></div>
           </div>
 
           <div className="faq-item">
