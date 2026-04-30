@@ -269,7 +269,7 @@ export default function OnboardingPage() {
                 </div>
                 <p>You pick a plan and we schedule a short kickoff call. We&apos;ll talk through your goals, your current site (if you have one), and exactly what you need from your hosting.</p>
                 <ul>
-                  <li><CheckIcon />Choose your plan (Minimum or Growth)</li>
+                  <li><CheckIcon />Choose the hosting plan that fits your goals</li>
                   <li><CheckIcon />15-minute kickoff call to understand your goals</li>
                   <li><CheckIcon />Share logins for any existing site or domain registrar</li>
                 </ul>

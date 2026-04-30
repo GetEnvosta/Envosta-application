@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AiIntakeSummary } from '@/components/admin/ai-intake-summary';
+import { createClient } from '@/lib/supabase-browser';
 
 const INDUSTRIES = [
   'Restaurant / Food Service',
@@ -42,27 +43,16 @@ const TIMELINES = [
   'No rush',
 ];
 
-const PLANS = [
-  {
-    id: 'minimum',
-    name: 'Minimum',
-    price: '$36',
-    annual: '$27',
-    annualTotal: '$324/yr',
-    currency: 'USD',
-    features: ['1 site', '25 GB SSD', 'Daily backups & auto-updates', 'Free SSL + global CDN', 'Email support'],
-  },
-  {
-    id: 'growth',
-    name: 'Growth',
-    price: '$297',
-    annual: '$223',
-    annualTotal: '$2,676/yr',
-    featured: true,
-    currency: 'USD',
-    features: ['Up to 5 sites', 'Auto-scaling resources', 'Done-with-you onboarding', 'AI-powered SEO', 'WooCommerce ready', 'Priority support'],
-  },
-];
+interface IntakePlan {
+  id: string;        // slug — used as form.plan value
+  name: string;
+  price: string;     // monthly $X (USD)
+  annual: string;    // annual displayed per-month $X (USD)
+  annualTotal: string; // annual full charge "$Y/yr"
+  currency: 'USD';
+  features: string[];
+  featured?: boolean;
+}
 
 const BILLING_OPTIONS = ['monthly', 'annual'] as const;
 
@@ -105,6 +95,43 @@ export default function IntakePage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [aiSummary, setAiSummary] = useState('');
+  const [PLANS, setPlans] = useState<IntakePlan[]>([]);
+
+  // Fetch live plan data — keeps the intake form in sync with admin pricing
+  // changes instead of namedropping fixed dollar amounts that drift.
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from('products')
+      .select('slug, name, description, price_usd, price_yearly_usd, price_cad, price_yearly_cad, sort_order, features, metadata')
+      .eq('type', 'hosting_plan')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('price_usd', { ascending: true })
+      .then(({ data }) => {
+        const rows = (data ?? []) as any[];
+        const featuredSlug = rows.length >= 3
+          ? rows[Math.floor(rows.length / 2)]?.slug
+          : rows[rows.length - 1]?.slug;
+        const dollars = (cents: number | null | undefined) =>
+          cents ? `$${Math.round(cents / 100)}` : '$0';
+        const formatted: IntakePlan[] = rows.map((p) => {
+          const monthly = p.price_usd ?? p.price_cad ?? 0;
+          const yearly = p.price_yearly_usd ?? p.price_yearly_cad ?? 0;
+          return {
+            id: p.slug,
+            name: p.name,
+            price: dollars(monthly),
+            annual: dollars(yearly ? Math.round(yearly / 12) : 0),
+            annualTotal: yearly ? `$${Math.round(yearly / 100).toLocaleString()}/yr` : '',
+            currency: 'USD',
+            features: Array.isArray(p.features) ? (p.features as string[]) : [],
+            featured: p.slug === featuredSlug,
+          };
+        });
+        setPlans(formatted);
+      });
+  }, []);
 
   useEffect(() => {
     document.querySelectorAll('.rv').forEach((el) => {
@@ -425,7 +452,7 @@ export default function IntakePage() {
                           {form.billing === 'annual' ? plan.annual : plan.price}
                         </div>
                         <div className="plan-period">
-                          CAD/mo {form.billing === 'annual' && `\u00b7 ${plan.annualTotal}`}
+                          USD/mo {form.billing === 'annual' && plan.annualTotal && `\u00b7 ${plan.annualTotal}`}
                         </div>
                         <ul className="plan-features">
                           {plan.features.map(f => <li key={f}>{f}</li>)}
@@ -438,7 +465,7 @@ export default function IntakePage() {
                   <div className="design-note">
                     <div className="design-note-icon">{'\u270E'}</div>
                     <div>
-                      <h4>Design Fee: $500 CAD</h4>
+                      <h4>Design Fee: $500 USD</h4>
                       <p>
                         The design fee covers custom theme design and development. It is <strong>not charged today</strong> — the
                         customer will be invoiced $500 only after they approve the design. Hosting starts immediately on the selected plan.
