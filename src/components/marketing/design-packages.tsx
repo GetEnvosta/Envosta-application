@@ -25,14 +25,14 @@ const PACKAGES: Pkg[] = [
     id: 'starter',
     name: 'Studio Lite',
     price: '$500',
-    blurb: 'Hands-on onboarding, performance tuning, and a curated template tailored to your brand — built specifically for small businesses and solo entrepreneurs ready to launch fast.',
+    blurb: 'Curated wireframing, a setup-ready template tailored to your brand, performance tuning, and an SEO baseline — built specifically for small businesses and solo entrepreneurs ready to launch fast.',
     cta: 'Get in touch',
   },
   {
     id: 'premium',
     name: 'Studio Premium',
     price: '$15,000',
-    blurb: 'White-glove design + build for established brands. Strategy, custom illustration, complex integrations.',
+    blurb: 'The whole everything for established brands. Industry-specific design, deep competitor analysis, full brand strategy, custom illustration, advanced integrations, ongoing performance + SEO work, and a dedicated team that ships until it ships.',
     cta: 'Get in touch',
   },
 ];
@@ -152,10 +152,12 @@ export function DesignPackages() {
           <div className="design-packages-grid">
             {PACKAGES.map((pkg) => (
               <div key={pkg.id} className={pkg.id === 'premium' ? 'dp-card premium' : 'dp-card'}>
-                <div className="dp-eyebrow" aria-label="Limited spots each month">
-                  <span className="dp-eyebrow-dot" />
-                  Limited spots each month
-                </div>
+                {pkg.id === 'premium' && (
+                  <div className="dp-eyebrow" aria-label="Limited spots each month">
+                    <span className="dp-eyebrow-dot" />
+                    Limited spots each month
+                  </div>
+                )}
                 <div className="dp-head">
                   <h3 className="dp-name">{pkg.name}</h3>
                   <div className="dp-price">
