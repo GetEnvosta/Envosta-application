@@ -24,7 +24,7 @@ type Pkg = {
 const PACKAGES: Pkg[] = [
   {
     id: 'starter',
-    name: 'Design Starter',
+    name: 'Studio Lite',
     price: '$500',
     blurb: 'A custom-designed website built on your hosting plan. We handle the design, you handle the content.',
     features: [
@@ -39,7 +39,7 @@ const PACKAGES: Pkg[] = [
   },
   {
     id: 'premium',
-    name: 'Design Premium',
+    name: 'Studio Premium',
     price: '$15,000',
     blurb: 'White-glove design + build for established brands. Strategy, custom illustration, complex integrations, and unlimited rounds.',
     features: [
@@ -117,8 +117,11 @@ export function DesignPackages() {
       <style>{`
         .design-packages{padding:0 0 100px}
         .design-packages-header{text-align:center;margin-bottom:56px}
-        .design-packages-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
-        .design-packages-header p{font-size:.95rem;color:var(--t3);font-weight:300;max-width:560px;margin:0 auto;line-height:1.7}
+        .dp-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(201,164,92,.08);border:1px solid rgba(201,164,92,.22);border-radius:100px;padding:6px 14px;font-size:.7rem;font-weight:500;color:#c9a45c;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:18px}
+        .dp-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:#c9a45c;animation:dpPulse 2s ease-in-out infinite}
+        @keyframes dpPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(201,164,92,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(201,164,92,0)}}
+        .design-packages-header h2{font-size:clamp(2rem,4vw,3rem);font-weight:600;letter-spacing:-1.5px;line-height:1.15;margin-bottom:14px}
+        .design-packages-header p{font-size:.95rem;color:var(--t3);font-weight:300;max-width:580px;margin:0 auto;line-height:1.7}
         .design-packages-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;max-width:920px;margin:0 auto}
         .dp-card{background:var(--card);border:1px solid var(--bdr);border-radius:18px;padding:36px 32px;display:flex;flex-direction:column;transition:border-color .3s,transform .3s}
         .dp-card:hover{transform:translateY(-4px);border-color:var(--bdr2)}
@@ -164,8 +167,12 @@ export function DesignPackages() {
       <section className="design-packages rv">
         <div className="c">
           <div className="design-packages-header">
-            <h2>More options for your business</h2>
-            <p>Beyond hosting — get a complete custom-designed website built by our team. Two packages depending on the scope.</p>
+            <div className="dp-eyebrow">
+              <span className="dp-eyebrow-dot" />
+              Limited spots — only a few onboarded each month
+            </div>
+            <h2>Studio</h2>
+            <p>Beyond hosting — a complete custom-designed website built by our team. To keep quality high we only accept a limited number of new Studio clients every month.</p>
           </div>
 
           <div className="design-packages-grid">
