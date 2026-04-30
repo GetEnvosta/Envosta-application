@@ -33,7 +33,7 @@ const PACKAGES: Pkg[] = [
     name: 'Studio Premium',
     price: '$15,000',
     blurb: 'The whole everything for established brands. Industry-specific design, deep competitor analysis, full brand strategy, custom illustration, advanced integrations, ongoing performance + SEO work, and a dedicated team that ships until it ships.',
-    cta: 'Join the waitlist',
+    cta: 'Apply for Studio Premium →',
   },
 ];
 
@@ -69,19 +69,19 @@ export function DesignPackages() {
 
     setSending(true);
     setError('');
-    const isWaitlist = activePkg.id === 'premium';
+    const isApplication = activePkg.id === 'premium';
     try {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'sales',
-          subject: isWaitlist
-            ? `${activePkg.name} (${activePkg.price}) waitlist signup`
+          subject: isApplication
+            ? `${activePkg.name} (${activePkg.price}) application`
             : `${activePkg.name} (${activePkg.price}) studio request`,
           name: name.trim() || undefined,
           email: email.trim(),
-          message: `Package: ${activePkg.name} (${activePkg.price})\nIntent: ${isWaitlist ? 'Waitlist (currently full)' : 'Studio request'}\n\n${message.trim()}`,
+          message: `Package: ${activePkg.name} (${activePkg.price})\nIntent: ${isApplication ? 'Application (limited quarterly intake)' : 'Studio request'}\n\n${message.trim()}`,
         }),
       });
       const data = await res.json();
@@ -117,6 +117,15 @@ export function DesignPackages() {
         .dp-price .dp-price-period{display:block;font-size:.7rem;color:var(--t3);font-weight:400;margin-top:6px;letter-spacing:.2px;text-transform:uppercase}
         .dp-blurb{font-size:.92rem;color:var(--t3);font-weight:300;line-height:1.7;margin-bottom:28px;flex:1}
         .dp-card .bp{width:100%;justify-content:center;padding:14px 24px;font-size:.92rem;font-weight:500;cursor:pointer;border:none;font-family:inherit}
+        /* — Distinct CTA styling per tier — */
+        /* Lite: solid, eye-catching, productized "buy now" feel */
+        .dp-cta-submit{letter-spacing:.2px}
+        /* Premium: outlined gold "apply" treatment — feels considered,
+           exclusive, the way high-ticket offers signal qualification
+           rather than impulse */
+        .dp-cta-apply{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:14px 24px;font-size:.92rem;font-weight:600;letter-spacing:.4px;cursor:pointer;font-family:inherit;background:transparent;color:#c9a45c;border:1.5px solid rgba(201,164,92,.5);border-radius:12px;transition:background .25s,border-color .25s,color .25s,transform .15s}
+        .dp-cta-apply:hover{background:rgba(201,164,92,.1);border-color:#c9a45c;color:#e6c46e;transform:translateY(-1px)}
+        .dp-cta-apply:active{transform:translateY(0)}
         @media(max-width:768px){.design-packages-grid{grid-template-columns:1fr}.dp-card{padding:32px 28px}}
 
         /* — Modal — */
@@ -156,9 +165,9 @@ export function DesignPackages() {
             {PACKAGES.map((pkg) => (
               <div key={pkg.id} className={pkg.id === 'premium' ? 'dp-card premium' : 'dp-card'}>
                 {pkg.id === 'premium' && (
-                  <div className="dp-eyebrow" aria-label="Currently full">
+                  <div className="dp-eyebrow" aria-label="By application only">
                     <span className="dp-eyebrow-dot" />
-                    Currently full
+                    By application · Limited quarterly intake
                   </div>
                 )}
                 <div className="dp-head">
@@ -172,7 +181,7 @@ export function DesignPackages() {
                 <button
                   type="button"
                   onClick={() => { reset(); setActivePkg(pkg); }}
-                  className={pkg.id === 'premium' ? 'bp blue' : 'bp ghost'}
+                  className={pkg.id === 'premium' ? 'dp-cta dp-cta-apply' : 'bp blue dp-cta-submit'}
                 >
                   {pkg.cta}
                 </button>
@@ -202,11 +211,11 @@ export function DesignPackages() {
                   <path d="M7 12l3.5 3.5L17 9" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <h3 id="dp-modal-title">
-                  {activePkg.id === 'premium' ? "You're on the waitlist" : "Got it — we'll be in touch"}
+                  {activePkg.id === 'premium' ? 'Application received' : "Got it — we'll be in touch"}
                 </h3>
                 <p>
                   {activePkg.id === 'premium' ? (
-                    <>You&rsquo;re on the <strong style={{ color: 'var(--t1)' }}>{activePkg.name}</strong> waitlist. We&rsquo;ll reach out as soon as a slot opens up.</>
+                    <>Your <strong style={{ color: 'var(--t1)' }}>{activePkg.name}</strong> application is in review. If your business is a fit for the next intake, our team will reach out personally within 2 business days.</>
                   ) : (
                     <>Your <strong style={{ color: 'var(--t1)' }}>{activePkg.name}</strong> studio request has been submitted. Expect a reply from our team within one business day.</>
                   )}
@@ -220,7 +229,7 @@ export function DesignPackages() {
                 <h3 id="dp-modal-title">{activePkg.name}</h3>
                 <p className="dp-modal-sub">
                   {activePkg.id === 'premium' ? (
-                    <><strong>{activePkg.name}</strong> is currently full. Drop your details and we&rsquo;ll let you know the moment a slot opens.</>
+                    <><strong>{activePkg.name}</strong> is application-only — we accept a limited number of brands each quarter. Tell us a bit about your business and we&rsquo;ll review for fit.</>
                   ) : (
                     <>Tell us about your project and we&rsquo;ll send a tailored quote for the <strong>{activePkg.name}</strong> package ({activePkg.price}).</>
                   )}
@@ -272,7 +281,7 @@ export function DesignPackages() {
                     {sending
                       ? 'Sending…'
                       : activePkg.id === 'premium'
-                        ? 'Join the waitlist'
+                        ? 'Submit application'
                         : 'Submit request'}
                   </button>
                 </div>
