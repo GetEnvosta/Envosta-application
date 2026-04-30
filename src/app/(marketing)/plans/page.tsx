@@ -168,18 +168,21 @@ export default async function PricingPage() {
         .p-card.featured{border-color:var(--gold);background:linear-gradient(180deg,rgba(37,99,235,.05),var(--card) 60%)}
         .p-card.featured::before{content:'Most Popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#fff;font-size:.66rem;font-weight:600;padding:5px 18px;border-radius:100px;letter-spacing:1px;text-transform:uppercase}
 
-        /* — Shopify-style header: big name + tagline, then giant price — */
-        .p-card-name{font-size:1.05rem;font-weight:600;color:var(--t1);margin-bottom:8px;letter-spacing:-.2px}
-        .p-card-tag{font-size:.84rem;color:var(--t3);font-weight:300;line-height:1.5;margin-bottom:24px;min-height:2.6em}
-        .p-card-price{display:flex;align-items:flex-start;gap:6px;margin-bottom:0;line-height:1}
-        .p-card-price .currency{font-size:1.6rem;font-weight:500;color:var(--t1);margin-top:.3em}
-        .p-card-price .amount{font-size:4.4rem;font-weight:700;letter-spacing:-3px;line-height:1;color:var(--t1)}
-        .p-card-period{font-size:.82rem;color:var(--t3);font-weight:400;margin-top:6px}
-        .annual-note{font-size:.78rem;color:#22c55e;font-weight:500;margin-top:6px;letter-spacing:.1px}
-        .p-card-trial{font-size:.78rem;color:var(--t3);font-weight:300;margin-top:18px;line-height:1.5}
+        /* — Shopify-style header: name top-left, price top-right on same row — */
+        .p-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:14px}
+        .p-card-head-left{flex:1;min-width:0}
+        .p-card-name{font-size:1.35rem;font-weight:600;color:var(--t1);letter-spacing:-.4px;line-height:1.2}
+        .p-card-price{flex-shrink:0;text-align:right;line-height:1}
+        .p-card-price .price-row{display:flex;align-items:baseline;justify-content:flex-end;gap:2px;line-height:1}
+        .p-card-price .currency{font-size:1.05rem;font-weight:500;color:var(--t1)}
+        .p-card-price .amount{font-size:2.6rem;font-weight:700;letter-spacing:-1.5px;line-height:1;color:var(--t1)}
+        .p-card-period{font-size:.72rem;color:var(--t3);font-weight:400;margin-top:4px;text-align:right}
+        .annual-note{font-size:.72rem;color:#22c55e;font-weight:500;margin-top:3px;letter-spacing:.1px;text-align:right}
+        .p-card-tag{font-size:.86rem;color:var(--t3);font-weight:300;line-height:1.55;margin-bottom:22px;min-height:2.6em}
+        .p-card-trial{font-size:.78rem;color:var(--t3);font-weight:300;margin-top:18px;line-height:1.5;text-align:center}
 
         /* — CTA — */
-        .p-card .bp{width:100%;justify-content:center;padding:14px 24px;font-size:.92rem;font-weight:500;margin-top:20px}
+        .p-card .bp{width:100%;justify-content:center;padding:14px 24px;font-size:.92rem;font-weight:500;margin-top:6px}
 
         /* — Highlights / feature list — */
         .p-card-highlights{margin-top:28px;padding-top:24px;border-top:1px solid var(--bdr);flex:1;display:flex;flex-direction:column}
@@ -227,8 +230,8 @@ export default async function PricingPage() {
         .faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .4s ease}
         .faq-item.open .faq-a{max-height:300px;padding-bottom:20px}
         .faq-a p{font-size:.84rem;color:var(--t2);line-height:1.7;font-weight:300}
-        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:18px}.p-card{padding:32px 24px}.p-card-price .amount{font-size:3.4rem;letter-spacing:-2px}.all-plans-grid{grid-template-columns:repeat(3,1fr)}}
-        @media(max-width:768px){.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:36px 28px}.p-card-price .amount{font-size:4rem}.all-plans-grid{grid-template-columns:1fr}}
+        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:18px}.p-card{padding:32px 24px}.p-card-price .amount{font-size:2.2rem;letter-spacing:-1px}.p-card-name{font-size:1.2rem}.all-plans-grid{grid-template-columns:repeat(3,1fr)}}
+        @media(max-width:768px){.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:32px 28px}.p-card-price .amount{font-size:2.4rem}.p-card-name{font-size:1.3rem}.all-plans-grid{grid-template-columns:1fr}}
       `}</style>
 
       {/* PRICING HERO */}
@@ -272,25 +275,30 @@ export default async function PricingPage() {
                   : 'A balanced plan for businesses ready to scale.');
             return (
               <div key={plan.id} className={isFeatured ? 'p-card featured' : 'p-card'}>
-                <div className="p-card-name">{plan.name}</div>
-                <p className="p-card-tag">{tagline}</p>
+                {/* Shopify-style header: plan name top-left, price top-right */}
+                <div className="p-card-head">
+                  <div className="p-card-head-left">
+                    <h3 className="p-card-name">{plan.name}</h3>
+                  </div>
+                  <div className="p-card-price">
+                    <div className="price-row">
+                      <span className="currency">$</span>
+                      <span
+                        className="amount price-val"
+                        data-monthly={dollars(monthly)}
+                        data-annual={yearlyDisplayPerMonth}
+                      >
+                        {dollars(monthly)}
+                      </span>
+                    </div>
+                    <div className="p-card-period">USD/month</div>
+                    <div className="annual-note" style={{ display: 'none' }}>
+                      ${dollars(yearly)}/yr{savings ? ` · save ${savings}%` : ''}
+                    </div>
+                  </div>
+                </div>
 
-                {/* Giant Shopify-style price — front and center. */}
-                <div className="p-card-price">
-                  <span className="currency">$</span>
-                  <span
-                    className="amount price-val"
-                    data-monthly={dollars(monthly)}
-                    data-annual={yearlyDisplayPerMonth}
-                  >
-                    {dollars(monthly)}
-                  </span>
-                </div>
-                <div className="p-card-period">USD/month</div>
-                <div className="annual-note" style={{ display: 'none' }}>
-                  ${dollars(yearly)}/year{savings ? ` · save ${savings}%` : ''}
-                </div>
-                <p className="p-card-trial">Try free for 14 days. Cancel anytime.</p>
+                <p className="p-card-tag">{tagline}</p>
 
                 <a
                   href={`/get-started?plan=${plan.slug}`}
@@ -298,6 +306,7 @@ export default async function PricingPage() {
                 >
                   Start free trial
                 </a>
+                <p className="p-card-trial">Try free for 14 days. Cancel anytime.</p>
 
                 <div className="p-card-highlights">
                   <div className="p-card-highlights-label">Highlights</div>
