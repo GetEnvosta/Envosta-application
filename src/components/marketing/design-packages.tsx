@@ -26,14 +26,14 @@ const PACKAGES: Pkg[] = [
     name: 'Studio Lite',
     price: '$500',
     blurb: 'Hands-on onboarding, performance tuning, and a curated template tailored to your brand — built specifically for small businesses and solo entrepreneurs ready to launch fast.',
-    cta: 'Request a quote',
+    cta: 'Get in touch',
   },
   {
     id: 'premium',
     name: 'Studio Premium',
     price: '$15,000',
     blurb: 'White-glove design + build for established brands. Strategy, custom illustration, complex integrations.',
-    cta: 'Talk to our team',
+    cta: 'Get in touch',
   },
 ];
 
@@ -99,8 +99,8 @@ export function DesignPackages() {
       <style>{`
         .design-packages{padding:0 0 100px}
         .design-packages-header{text-align:center;margin-bottom:56px}
-        .dp-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(201,164,92,.08);border:1px solid rgba(201,164,92,.22);border-radius:100px;padding:6px 14px;font-size:.7rem;font-weight:500;color:#c9a45c;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:18px}
-        .dp-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:#c9a45c;animation:dpPulse 2s ease-in-out infinite}
+        .dp-eyebrow{display:inline-flex;align-items:center;gap:7px;background:rgba(201,164,92,.08);border:1px solid rgba(201,164,92,.22);border-radius:100px;padding:5px 12px;font-size:.66rem;font-weight:500;color:#c9a45c;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:20px;align-self:flex-start}
+        .dp-eyebrow-dot{width:5px;height:5px;border-radius:50%;background:#c9a45c;animation:dpPulse 2s ease-in-out infinite}
         @keyframes dpPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(201,164,92,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(201,164,92,0)}}
         .design-packages-header h2{font-size:clamp(2rem,4vw,3rem);font-weight:600;letter-spacing:-1.5px;line-height:1.15;margin-bottom:14px}
         .design-packages-header p{font-size:.95rem;color:var(--t3);font-weight:300;max-width:580px;margin:0 auto;line-height:1.7}
@@ -145,10 +145,6 @@ export function DesignPackages() {
       <section className="design-packages rv">
         <div className="c">
           <div className="design-packages-header">
-            <div className="dp-eyebrow">
-              <span className="dp-eyebrow-dot" />
-              Limited spots — only a few onboarded each month
-            </div>
             <h2>Studio</h2>
             <p>Beyond hosting — a complete custom-designed website built by our team. To keep quality high we only accept a limited number of new Studio clients every month.</p>
           </div>
@@ -156,6 +152,10 @@ export function DesignPackages() {
           <div className="design-packages-grid">
             {PACKAGES.map((pkg) => (
               <div key={pkg.id} className={pkg.id === 'premium' ? 'dp-card premium' : 'dp-card'}>
+                <div className="dp-eyebrow" aria-label="Limited spots each month">
+                  <span className="dp-eyebrow-dot" />
+                  Limited spots each month
+                </div>
                 <div className="dp-head">
                   <h3 className="dp-name">{pkg.name}</h3>
                   <div className="dp-price">
