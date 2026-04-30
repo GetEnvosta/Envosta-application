@@ -25,16 +25,13 @@ export default function PricingClient() {
       toggle?.classList.toggle('on', annual);
       lblMonthly?.classList.toggle('active', !annual);
       lblAnnual?.classList.toggle('active', annual);
-      // Update displayed prices
+      // Update displayed prices (per-month equivalent on annual)
       document.querySelectorAll('.price-val').forEach((el) => {
         const e = el as HTMLElement;
         e.textContent = annual ? e.dataset.annual! : e.dataset.monthly!;
       });
-      // Update period labels
-      document.querySelectorAll('.period').forEach((el) => {
-        el.textContent = annual ? 'USD/mo' : 'USD/mo';
-      });
-      // Show/hide "billed annually" note
+      // Show/hide "billed annually" note (period label "USD/month" stays
+      // because we display the per-month equivalent on annual too).
       document.querySelectorAll('.annual-note').forEach((el) => {
         (el as HTMLElement).style.display = annual ? 'block' : 'none';
       });

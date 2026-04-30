@@ -162,24 +162,33 @@ export default async function PricingPage() {
         .toggle.on{background:var(--gold);border-color:var(--gold)}.toggle.on::after{transform:translateX(24px)}
         .save-badge{display:inline-block;background:rgba(34,197,94,.12);color:#22c55e;font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:100px;margin-left:4px}
         .pricing-grid{padding:0 0 100px}
-        .pricing-grid .c{display:grid;grid-template-columns:${gridCols};gap:20px;max-width:${gridMaxWidth};margin:0 auto}
-        .p-card{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:40px 32px;position:relative;transition:transform .3s,border-color .3s;display:flex;flex-direction:column}
+        .pricing-grid .c{display:grid;grid-template-columns:${gridCols};gap:24px;max-width:${gridMaxWidth};margin:0 auto;align-items:stretch}
+        .p-card{background:var(--card);border:1px solid var(--bdr);border-radius:18px;padding:36px 32px;position:relative;transition:transform .3s,border-color .3s;display:flex;flex-direction:column}
         .p-card:hover{transform:translateY(-4px);border-color:var(--bdr2)}
-        .p-card.featured{border-color:var(--gold);background:linear-gradient(180deg,rgba(37,99,235,.06),var(--card) 50%)}
-        .p-card.featured::before{content:'Most Popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#fff;font-size:.68rem;font-weight:600;padding:4px 16px;border-radius:100px;letter-spacing:.5px;text-transform:uppercase}
-        .p-card-name{font-size:.72rem;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--gold);margin-bottom:10px}
-        .p-card-price{display:flex;align-items:baseline;gap:4px;margin-bottom:6px}
-        .p-card-price .currency{font-size:1.2rem;font-weight:500;color:var(--t2)}
-        .p-card-price .amount{font-size:3rem;font-weight:600;letter-spacing:-1px;line-height:1}
-        .p-card-price .period{font-size:.82rem;color:var(--t3);font-weight:400}
-        .annual-note{font-size:.75rem;color:#22c55e;font-weight:500;margin:-2px 0 8px;letter-spacing:.2px}
-        .p-card-desc{font-size:.82rem;color:var(--t3);margin-bottom:28px;line-height:1.7;font-weight:300}
-        .p-card ul{list-style:none;margin-bottom:32px;flex:1}
-        .p-card li{display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--t2);padding:8px 0;border-bottom:1px solid var(--bdr);font-weight:300}
-        .p-card li:last-child{border:none}
-        .p-card li .ck{width:16px;height:16px;flex-shrink:0;color:var(--grn)}
-        .p-card .bp{width:100%;justify-content:center;padding:14px 24px;font-size:.88rem;margin-top:auto}
-        .trial-note{font-size:.72rem;color:#22c55e;text-align:center;margin-top:10px;font-weight:400;letter-spacing:.2px}
+        .p-card.featured{border-color:var(--gold);background:linear-gradient(180deg,rgba(37,99,235,.05),var(--card) 60%)}
+        .p-card.featured::before{content:'Most Popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#fff;font-size:.66rem;font-weight:600;padding:5px 18px;border-radius:100px;letter-spacing:1px;text-transform:uppercase}
+
+        /* — Shopify-style header: big name + tagline, then giant price — */
+        .p-card-name{font-size:1.05rem;font-weight:600;color:var(--t1);margin-bottom:8px;letter-spacing:-.2px}
+        .p-card-tag{font-size:.84rem;color:var(--t3);font-weight:300;line-height:1.5;margin-bottom:24px;min-height:2.6em}
+        .p-card-price{display:flex;align-items:flex-start;gap:6px;margin-bottom:0;line-height:1}
+        .p-card-price .currency{font-size:1.6rem;font-weight:500;color:var(--t1);margin-top:.3em}
+        .p-card-price .amount{font-size:4.4rem;font-weight:700;letter-spacing:-3px;line-height:1;color:var(--t1)}
+        .p-card-period{font-size:.82rem;color:var(--t3);font-weight:400;margin-top:6px}
+        .annual-note{font-size:.78rem;color:#22c55e;font-weight:500;margin-top:6px;letter-spacing:.1px}
+        .p-card-trial{font-size:.78rem;color:var(--t3);font-weight:300;margin-top:18px;line-height:1.5}
+
+        /* — CTA — */
+        .p-card .bp{width:100%;justify-content:center;padding:14px 24px;font-size:.92rem;font-weight:500;margin-top:20px}
+
+        /* — Highlights / feature list — */
+        .p-card-highlights{margin-top:28px;padding-top:24px;border-top:1px solid var(--bdr);flex:1;display:flex;flex-direction:column}
+        .p-card-highlights-label{font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--t2);margin-bottom:14px}
+        .p-card-prev{font-size:.82rem;color:var(--t2);font-weight:400;margin-bottom:14px;line-height:1.5}
+        .p-card-prev strong{color:var(--t1);font-weight:500}
+        .p-card ul{list-style:none;margin:0;padding:0}
+        .p-card li{display:flex;align-items:flex-start;gap:10px;font-size:.86rem;color:var(--t2);padding:7px 0;font-weight:300;line-height:1.5;border:none}
+        .p-card li .ck{width:16px;height:16px;flex-shrink:0;color:var(--grn);margin-top:3px}
         .all-plans{padding:0 0 100px}
         .all-plans-header{text-align:center;margin-bottom:56px}
         .all-plans-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
@@ -218,8 +227,8 @@ export default async function PricingPage() {
         .faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .4s ease}
         .faq-item.open .faq-a{max-height:300px;padding-bottom:20px}
         .faq-a p{font-size:.84rem;color:var(--t2);line-height:1.7;font-weight:300}
-        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:14px}.p-card{padding:32px 20px}.p-card-price .amount{font-size:2.4rem}.all-plans-grid{grid-template-columns:repeat(3,1fr)}}
-        @media(max-width:768px){.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:40px 32px}.p-card-price .amount{font-size:3rem}.all-plans-grid{grid-template-columns:1fr}}
+        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:18px}.p-card{padding:32px 24px}.p-card-price .amount{font-size:3.4rem;letter-spacing:-2px}.all-plans-grid{grid-template-columns:repeat(3,1fr)}}
+        @media(max-width:768px){.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:36px 28px}.p-card-price .amount{font-size:4rem}.all-plans-grid{grid-template-columns:1fr}}
       `}</style>
 
       {/* PRICING HERO */}
@@ -245,16 +254,28 @@ export default async function PricingPage() {
               Plans are being updated — please check back shortly.
             </p>
           )}
-          {plans.map((plan) => {
+          {plans.map((plan, idx) => {
             const isFeatured = plan.slug === featuredSlug;
             const monthly = plan.price_usd ?? plan.price_cad ?? 0;
             const yearly = plan.price_yearly_usd ?? plan.price_yearly_cad ?? 0;
             const yearlyDisplayPerMonth = annualMonthly(yearly);
             const savings = annualSavings(monthly, yearly);
             const features = deriveFeatures(plan);
+            const previousPlan = idx > 0 ? plans[idx - 1] : null;
+            // Short tagline — use description if set, else a sensible default
+            // keyed off plan position in the ladder.
+            const tagline = plan.description
+              || (idx === 0
+                ? 'Fast, secure WordPress hosting — fully managed, hands-off.'
+                : idx === plans.length - 1
+                  ? 'Everything you need to grow — onboarding, AI tools, and priority support.'
+                  : 'A balanced plan for businesses ready to scale.');
             return (
               <div key={plan.id} className={isFeatured ? 'p-card featured' : 'p-card'}>
                 <div className="p-card-name">{plan.name}</div>
+                <p className="p-card-tag">{tagline}</p>
+
+                {/* Giant Shopify-style price — front and center. */}
                 <div className="p-card-price">
                   <span className="currency">$</span>
                   <span
@@ -264,24 +285,33 @@ export default async function PricingPage() {
                   >
                     {dollars(monthly)}
                   </span>
-                  <span className="period">USD/mo</span>
                 </div>
+                <div className="p-card-period">USD/month</div>
                 <div className="annual-note" style={{ display: 'none' }}>
                   ${dollars(yearly)}/year{savings ? ` · save ${savings}%` : ''}
                 </div>
-                {plan.description && <p className="p-card-desc">{plan.description}</p>}
-                <ul>
-                  {features.map((f, i) => (
-                    <li key={i}>{check()}{f}</li>
-                  ))}
-                </ul>
+                <p className="p-card-trial">Try free for 14 days. Cancel anytime.</p>
+
                 <a
                   href={`/get-started?plan=${plan.slug}`}
                   className={isFeatured ? 'bp blue' : 'bp ghost'}
                 >
-                  Try for free
+                  Start free trial
                 </a>
-                <p className="trial-note">14 days free · cancel anytime</p>
+
+                <div className="p-card-highlights">
+                  <div className="p-card-highlights-label">Highlights</div>
+                  {previousPlan && (
+                    <p className="p-card-prev">
+                      Everything in <strong>{previousPlan.name}</strong>, plus:
+                    </p>
+                  )}
+                  <ul>
+                    {features.map((f, i) => (
+                      <li key={i}>{check()}{f}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             );
           })}
