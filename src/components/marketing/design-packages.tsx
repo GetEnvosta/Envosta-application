@@ -102,15 +102,23 @@ export function DesignPackages() {
       <style>{`
         .design-packages{padding:0 0 100px}
         .design-packages-header{text-align:center;margin-bottom:56px}
-        .dp-eyebrow{display:inline-flex;align-items:center;gap:7px;background:rgba(201,164,92,.08);border:1px solid rgba(201,164,92,.22);border-radius:100px;padding:5px 12px;font-size:.66rem;font-weight:500;color:#c9a45c;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:20px;align-self:flex-start}
-        .dp-eyebrow-dot{width:5px;height:5px;border-radius:50%;background:#c9a45c;animation:dpPulse 2s ease-in-out infinite}
-        @keyframes dpPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(201,164,92,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(201,164,92,0)}}
+        .dp-eyebrow{display:inline-flex;align-items:center;gap:7px;border-radius:100px;padding:5px 12px;font-size:.66rem;font-weight:500;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:20px;align-self:flex-start;border:1px solid transparent}
+        .dp-eyebrow-gold{background:rgba(201,164,92,.08);border-color:rgba(201,164,92,.22);color:#c9a45c}
+        .dp-eyebrow-gold .dp-eyebrow-dot{background:#c9a45c;animation:dpPulseGold 2s ease-in-out infinite}
+        .dp-eyebrow-green{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.22);color:#22c55e}
+        .dp-eyebrow-green .dp-eyebrow-dot{background:#22c55e;animation:dpPulseGreen 2s ease-in-out infinite}
+        .dp-eyebrow-dot{width:5px;height:5px;border-radius:50%}
+        @keyframes dpPulseGold{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(201,164,92,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(201,164,92,0)}}
+        @keyframes dpPulseGreen{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(34,197,94,0)}}
         .design-packages-header h2{font-size:clamp(2rem,4vw,3rem);font-weight:600;letter-spacing:-1.5px;line-height:1.15;margin-bottom:14px}
         .design-packages-header p{font-size:.95rem;color:var(--t3);font-weight:300;max-width:580px;margin:0 auto;line-height:1.7}
         .design-packages-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;max-width:920px;margin:0 auto}
-        .dp-card{background:var(--card);border:1px solid var(--bdr);border-radius:18px;padding:36px 32px;display:flex;flex-direction:column;transition:border-color .3s,transform .3s}
+        .dp-card{background:var(--card);border:1px solid var(--bdr);border-radius:18px;padding:36px 32px;display:flex;flex-direction:column;transition:border-color .3s,transform .3s,box-shadow .3s}
         .dp-card:hover{transform:translateY(-4px);border-color:var(--bdr2)}
+        .dp-card.lite{border-color:rgba(34,197,94,.18);background:linear-gradient(180deg,rgba(34,197,94,.025),var(--card) 60%)}
+        .dp-card.lite:hover{border-color:rgba(34,197,94,.4);box-shadow:0 8px 28px -12px rgba(34,197,94,.18)}
         .dp-card.premium{border-color:rgba(201,164,92,.35);background:linear-gradient(180deg,rgba(201,164,92,.04),var(--card) 60%)}
+        .dp-card.premium:hover{border-color:rgba(201,164,92,.55);box-shadow:0 8px 28px -12px rgba(201,164,92,.22)}
         .dp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:14px}
         .dp-name{font-size:1.35rem;font-weight:600;color:var(--t1);letter-spacing:-.4px;line-height:1.2}
         .dp-price{flex-shrink:0;text-align:right;font-size:1.8rem;font-weight:700;letter-spacing:-1px;color:var(--t1);line-height:1}
@@ -163,11 +171,19 @@ export function DesignPackages() {
 
           <div className="design-packages-grid">
             {PACKAGES.map((pkg) => (
-              <div key={pkg.id} className={pkg.id === 'premium' ? 'dp-card premium' : 'dp-card'}>
-                {pkg.id === 'premium' && (
-                  <div className="dp-eyebrow" aria-label="By application only">
+              <div key={pkg.id} className={pkg.id === 'premium' ? 'dp-card premium' : 'dp-card lite'}>
+                {/* Eyebrow row renders on BOTH cards so the head (name + price)
+                    aligns to the same vertical position across the two tiers,
+                    even though the eyebrow content differs. */}
+                {pkg.id === 'premium' ? (
+                  <div className="dp-eyebrow dp-eyebrow-gold" aria-label="By application only">
                     <span className="dp-eyebrow-dot" />
                     By application · Limited quarterly intake
+                  </div>
+                ) : (
+                  <div className="dp-eyebrow dp-eyebrow-green" aria-label="Available now">
+                    <span className="dp-eyebrow-dot" />
+                    Available now · Launch in 7 days
                   </div>
                 )}
                 <div className="dp-head">
