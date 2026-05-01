@@ -238,11 +238,11 @@ export default async function PricingPage() {
         /* — Shopify-style header: name top-left, price top-right on same row — */
         .p-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:14px}
         .p-card-head-left{flex:1;min-width:0}
-        .p-card-name{font-size:1.35rem;font-weight:600;color:var(--t1);letter-spacing:-.4px;line-height:1.2}
+        .p-card-name{font-size:1.85rem;font-weight:600;color:var(--t1);letter-spacing:-.6px;line-height:1.15}
         .p-card-price{flex-shrink:0;text-align:right;line-height:1}
         .p-card-price .price-row{display:flex;align-items:baseline;justify-content:flex-end;gap:2px;line-height:1}
-        .p-card-price .currency{font-size:1.05rem;font-weight:500;color:var(--t1)}
-        .p-card-price .amount{font-size:2.6rem;font-weight:700;letter-spacing:-1.5px;line-height:1;color:var(--t1)}
+        .p-card-price .currency{font-size:1.15rem;font-weight:500;color:var(--t1)}
+        .p-card-price .amount{font-size:2.3rem;font-weight:700;letter-spacing:-1.2px;line-height:1;color:var(--t1)}
         .p-card-period{font-size:.72rem;color:var(--t3);font-weight:400;margin-top:4px;text-align:right}
         .annual-note{font-size:.72rem;color:#22c55e;font-weight:500;margin-top:3px;letter-spacing:.1px;text-align:right}
         .p-card-tag{font-size:.86rem;color:var(--t3);font-weight:300;line-height:1.55;margin-bottom:22px;min-height:2.6em}
@@ -302,8 +302,8 @@ export default async function PricingPage() {
         .faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .4s ease}
         .faq-item.open .faq-a{max-height:300px;padding-bottom:20px}
         .faq-a p{font-size:.84rem;color:var(--t2);line-height:1.7;font-weight:300}
-        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:18px}.p-card{padding:32px 24px}.p-card-price .amount{font-size:2.2rem;letter-spacing:-1px}.p-card-name{font-size:1.2rem}.all-plans-grid{grid-template-columns:repeat(2,1fr)}}
-        @media(max-width:768px){.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:32px 28px}.p-card-price .amount{font-size:2.4rem}.p-card-name{font-size:1.3rem}.all-plans-grid{grid-template-columns:1fr}}
+        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:18px}.p-card{padding:32px 24px}.p-card-price .amount{font-size:2rem;letter-spacing:-1px}.p-card-name{font-size:1.6rem}.all-plans-grid{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:768px){.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:32px 28px}.p-card-price .amount{font-size:2.2rem}.p-card-name{font-size:1.7rem}.all-plans-grid{grid-template-columns:1fr}}
       `}</style>
 
       {/* PRICING HERO */}
@@ -342,10 +342,10 @@ export default async function PricingPage() {
             // keyed off plan position in the ladder.
             const tagline = plan.description
               || (idx === 0
-                ? 'Fast, secure WordPress hosting — fully managed, hands-off.'
+                ? 'Hosting that just works. Set it once, never think about your stack again.'
                 : idx === plans.length - 1
-                  ? 'Everything you need to grow — onboarding, AI tools, and priority support.'
-                  : 'A balanced plan for businesses ready to scale.');
+                  ? 'The full growth stack for serious businesses ready to outpace their category.'
+                  : 'For the businesses with momentum. More speed, more tools, more room to grow.');
             return (
               <div key={plan.id} className={isFeatured ? 'p-card featured' : 'p-card'}>
                 {/* Shopify-style header: plan name top-left, price top-right */}
