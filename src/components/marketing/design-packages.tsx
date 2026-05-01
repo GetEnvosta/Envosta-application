@@ -113,27 +113,18 @@ export function DesignPackages() {
         .design-packages-header h2{font-size:clamp(2rem,4vw,3rem);font-weight:600;letter-spacing:-1.5px;line-height:1.15;margin-bottom:14px}
         .design-packages-header p{font-size:.95rem;color:var(--t3);font-weight:300;max-width:580px;margin:0 auto;line-height:1.7}
         .design-packages-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;max-width:1200px;margin:0 auto}
-        .dp-card{background:var(--card);border:1px solid var(--bdr);border-radius:18px;padding:36px 32px;display:flex;flex-direction:column;transition:border-color .3s,transform .3s,box-shadow .3s}
+        .dp-card{background:var(--card);border:1px solid var(--bdr);border-radius:18px;padding:36px 32px;display:flex;flex-direction:column;transition:border-color .3s,transform .3s}
         .dp-card:hover{transform:translateY(-4px);border-color:var(--bdr2)}
-        .dp-card.lite{border-color:rgba(34,197,94,.18);background:linear-gradient(180deg,rgba(34,197,94,.025),var(--card) 60%)}
-        .dp-card.lite:hover{border-color:rgba(34,197,94,.4);box-shadow:0 8px 28px -12px rgba(34,197,94,.18)}
-        .dp-card.premium{border-color:rgba(201,164,92,.35);background:linear-gradient(180deg,rgba(201,164,92,.04),var(--card) 60%)}
-        .dp-card.premium:hover{border-color:rgba(201,164,92,.55);box-shadow:0 8px 28px -12px rgba(201,164,92,.22)}
         .dp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:14px}
         .dp-name{font-size:1.35rem;font-weight:600;color:var(--t1);letter-spacing:-.4px;line-height:1.2}
         .dp-price{flex-shrink:0;text-align:right;font-size:1.8rem;font-weight:700;letter-spacing:-1px;color:var(--t1);line-height:1}
         .dp-price .dp-price-period{display:block;font-size:.7rem;color:var(--t3);font-weight:400;margin-top:6px;letter-spacing:.2px;text-transform:uppercase}
         .dp-blurb{font-size:.92rem;color:var(--t3);font-weight:300;line-height:1.7;margin-bottom:28px;flex:1}
-        .dp-card .bp{width:100%;justify-content:center;padding:14px 24px;font-size:.92rem;font-weight:500;cursor:pointer;border:none;font-family:inherit}
-        /* — Distinct CTA styling per tier — */
-        /* Lite: solid, eye-catching, productized "buy now" feel */
-        .dp-cta-submit{letter-spacing:.2px}
-        /* Premium: outlined gold "apply" treatment — feels considered,
-           exclusive, the way high-ticket offers signal qualification
-           rather than impulse */
-        .dp-cta-apply{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:14px 24px;font-size:.92rem;font-weight:600;letter-spacing:.4px;cursor:pointer;font-family:inherit;background:transparent;color:#c9a45c;border:1.5px solid rgba(201,164,92,.5);border-radius:12px;transition:background .25s,border-color .25s,color .25s,transform .15s}
-        .dp-cta-apply:hover{background:rgba(201,164,92,.1);border-color:#c9a45c;color:#e6c46e;transform:translateY(-1px)}
-        .dp-cta-apply:active{transform:translateY(0)}
+        /* Unified neutral outline CTA — the card itself stays neutral,
+           the colored eyebrow badge above carries the tier signal. */
+        .dp-cta{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:14px 24px;font-size:.92rem;font-weight:600;letter-spacing:.3px;cursor:pointer;font-family:inherit;background:transparent;color:var(--t1);border:1.5px solid var(--bdr2);border-radius:12px;transition:background .2s,border-color .2s,color .2s,transform .15s;text-decoration:none}
+        .dp-cta:hover{background:rgba(255,255,255,.03);border-color:var(--t2);color:#fff;transform:translateY(-1px)}
+        .dp-cta:active{transform:translateY(0)}
         @media(max-width:768px){.design-packages-grid{grid-template-columns:1fr}.dp-card{padding:32px 28px}}
 
         /* — Modal — */
@@ -171,7 +162,7 @@ export function DesignPackages() {
 
           <div className="design-packages-grid">
             {PACKAGES.map((pkg) => (
-              <div key={pkg.id} className={pkg.id === 'premium' ? 'dp-card premium' : 'dp-card lite'}>
+              <div key={pkg.id} className="dp-card">
                 {/* Eyebrow row renders on BOTH cards so the head (name + price)
                     aligns to the same vertical position across the two tiers,
                     even though the eyebrow content differs. */}
@@ -197,7 +188,7 @@ export function DesignPackages() {
                 <button
                   type="button"
                   onClick={() => { reset(); setActivePkg(pkg); }}
-                  className={pkg.id === 'premium' ? 'dp-cta dp-cta-apply' : 'bp blue dp-cta-submit'}
+                  className="dp-cta"
                 >
                   {pkg.cta}
                 </button>
