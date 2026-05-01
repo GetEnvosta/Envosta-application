@@ -57,9 +57,11 @@ function annualSavings(monthly: number | null, yearly: number | null): number | 
 
 function check() {
   return (
-    <svg className="ck" viewBox="0 0 16 16" fill="none">
-      <path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <span className="ck-wrap">
+      <svg className="ck" viewBox="0 0 12 12" fill="none">
+        <path d="M2.5 6.5l2.5 2.5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
   );
 }
 
@@ -98,6 +100,7 @@ function deriveFullFeatures(plan: HostingPlan): string[] {
 
   const meta = (plan.metadata as any) ?? {};
   const out: string[] = [];
+  const slug = (plan.slug || '').toLowerCase();
 
   // Sites allotted
   const sites = meta.sites_allowed;
@@ -108,41 +111,45 @@ function deriveFullFeatures(plan: HostingPlan): string[] {
   // Storage
   if (meta.storage_gb) out.push(`${meta.storage_gb} GB SSD storage`);
 
-  // (Staging + WAF are universal — they live in the "Included with every
-  // plan" grid below the cards, so they don't need to be listed per-tier.)
-
   // Onboarding tier
-  if (meta.onboarding_type === 'guided') out.push('Guided onboarding');
+  if (meta.onboarding_type === 'guided') out.push('Guided onboarding call');
   else if (meta.onboarding_type === 'concierge' || meta.onboarding_type === 'white_glove') {
     out.push('Done-with-you concierge onboarding');
   }
 
-  // Support tier — only call out if it beats the baseline (email)
-  if (meta.support_type === 'priority') out.push('Priority support');
-  else if (meta.support_type === 'dedicated') out.push('Dedicated support');
+  // Support tier — only call out when it beats baseline email
+  if (meta.support_type === 'priority') out.push('Priority support · 4-hr response');
+  else if (meta.support_type === 'dedicated') out.push('Dedicated account manager');
+  else if (slug.includes('minimum') || slug.includes('starter')) {
+    out.push('Email support');
+  }
 
-  // Slug-specific extras for the marquee plans. These keep the cards
-  // substantive even when admin hasn't fully populated metadata, and
-  // they're idempotent — won't duplicate anything already added above.
-  const slug = (plan.slug || '').toLowerCase();
+  // Slug-keyed defaults — fill in the gaps so each tier reads as a clear
+  // upgrade. Idempotent (won't duplicate).
   const has = (re: RegExp) => out.some(f => re.test(f));
 
-  if (slug.includes('growth')) {
-    if (!has(/onboarding/i)) out.push('Done-with-you concierge onboarding');
-    if (!has(/priority|dedicated/i)) out.push('Priority support');
-    if (!has(/seo/i)) out.push('SEO optimization with AI');
-    if (!has(/ai (?!seo)|content assistant/i)) out.push('AI content & copy assistant');
-    if (!has(/woo/i)) out.push('WooCommerce ready');
-    if (!has(/strategy/i)) out.push('1-on-1 strategy consultation');
-    if (!has(/migration/i)) out.push('Free WordPress migration');
-    if (!has(/integration|stripe/i)) out.push('Stripe & payment integration');
+  if (slug.includes('minimum') || slug.includes('starter')) {
+    if (!out.some(f => /\bsite\b/i.test(f))) out.push('1 managed WordPress site');
+    if (!has(/storage|ssd/i)) out.push('25 GB SSD storage');
   } else if (slug.includes('standard')) {
-    if (!has(/onboarding/i)) out.push('Guided onboarding');
-    if (!has(/priority|dedicated/i)) out.push('Priority support');
+    if (!out.some(f => /\bsite\b/i.test(f))) out.push('Up to 3 managed sites');
+    if (!has(/storage|ssd/i)) out.push('50 GB SSD storage');
+    if (!has(/onboarding/i)) out.push('Guided onboarding call');
+    if (!has(/priority|dedicated|response/i)) out.push('Priority support · 4-hr response');
     if (!has(/woo/i)) out.push('WooCommerce ready');
-    if (!has(/seo/i)) out.push('Monthly SEO + performance report');
-    if (!has(/migration/i)) out.push('Free WordPress migration');
+    if (!has(/seo|report/i)) out.push('Monthly SEO + performance report');
     if (!has(/forms?|capture/i)) out.push('Lead capture forms');
+  } else if (slug.includes('growth')) {
+    if (!out.some(f => /\bsite\b/i.test(f))) out.push('Up to 10 managed sites');
+    if (!has(/storage|ssd|scaling/i)) out.push('Auto-scaling storage');
+    if (!has(/onboarding/i)) out.push('Done-with-you concierge onboarding');
+    if (!has(/priority|dedicated|response/i)) out.push('Dedicated account manager');
+    if (!has(/seo/i)) out.push('AI-powered SEO optimization');
+    if (!has(/content|assistant/i)) out.push('AI content & copy assistant');
+    if (!has(/woo/i)) out.push('WooCommerce ready');
+    if (!has(/strategy|consult/i)) out.push('Quarterly strategy consultations');
+    if (!has(/integration|stripe/i)) out.push('Stripe & payment integrations');
+    if (!has(/analytics/i)) out.push('Google Analytics + tag manager setup');
   }
 
   return out;
@@ -229,34 +236,49 @@ export default async function PricingPage() {
         .toggle.on{background:var(--gold);border-color:var(--gold)}.toggle.on::after{transform:translateX(24px)}
         .save-badge{display:inline-block;background:rgba(34,197,94,.12);color:#22c55e;font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:100px;margin-left:4px}
         .pricing-grid{padding:0 0 100px}
-        .pricing-grid .c{display:grid;grid-template-columns:${gridCols};gap:24px;max-width:${gridMaxWidth};margin:0 auto;align-items:stretch}
-        .p-card{background:var(--card);border:1px solid var(--bdr);border-radius:18px;padding:36px 32px;position:relative;transition:transform .3s,border-color .3s;display:flex;flex-direction:column}
+        .pricing-grid .c{display:grid;grid-template-columns:${gridCols};gap:20px;max-width:${gridMaxWidth};margin:0 auto;align-items:stretch}
+
+        /* — Card shell — */
+        .p-card{background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:40px 36px 32px;position:relative;display:flex;flex-direction:column;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
         .p-card:hover{transform:translateY(-4px);border-color:var(--bdr2)}
-        .p-card.featured{border-color:var(--gold);background:linear-gradient(180deg,rgba(37,99,235,.05),var(--card) 60%)}
-        .p-card.featured::before{content:'Most Popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#fff;font-size:.66rem;font-weight:600;padding:5px 18px;border-radius:100px;letter-spacing:1px;text-transform:uppercase}
+        .p-card.featured{
+          border-color:rgba(201,164,92,.55);
+          background:
+            linear-gradient(180deg,rgba(201,164,92,.06),transparent 50%),
+            radial-gradient(circle at 50% 0%,rgba(201,164,92,.08),transparent 60%),
+            var(--card);
+          box-shadow:0 0 0 1px rgba(201,164,92,.18),0 24px 48px -24px rgba(201,164,92,.25);
+        }
+        .p-card.featured:hover{box-shadow:0 0 0 1px rgba(201,164,92,.3),0 28px 56px -22px rgba(201,164,92,.35)}
+        .p-card.featured::before{content:'Most Popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#c9a45c,#b8943f);color:#0a0e1a;font-size:.65rem;font-weight:700;padding:6px 18px;border-radius:100px;letter-spacing:1.4px;text-transform:uppercase;box-shadow:0 6px 20px -6px rgba(201,164,92,.6)}
 
-        /* — Shopify-style header: name top-left, price top-right on same row — */
-        .p-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:14px}
-        .p-card-head-left{flex:1;min-width:0}
-        .p-card-name{font-size:1.85rem;font-weight:600;color:var(--t1);letter-spacing:-.6px;line-height:1.15}
-        .p-card-price{flex-shrink:0;text-align:right;line-height:1}
-        .p-card-price .price-row{display:flex;align-items:baseline;justify-content:flex-end;gap:2px;line-height:1}
-        .p-card-price .currency{font-size:1.15rem;font-weight:500;color:var(--t1)}
-        .p-card-price .amount{font-size:2.3rem;font-weight:700;letter-spacing:-1.2px;line-height:1;color:var(--t1)}
-        .p-card-period{font-size:.72rem;color:var(--t3);font-weight:400;margin-top:4px;text-align:right}
-        .annual-note{font-size:.72rem;color:#22c55e;font-weight:500;margin-top:3px;letter-spacing:.1px;text-align:right}
-        .p-card-tag{font-size:.86rem;color:var(--t3);font-weight:300;line-height:1.55;margin-bottom:22px;min-height:2.6em}
-        .pricing-trial-note{font-size:.82rem;color:var(--t3);font-weight:300;text-align:center;margin:14px 0 44px;letter-spacing:.1px}
+        /* — Header: balanced name + price hierarchy — */
+        .p-card-name{font-size:1.5rem;font-weight:600;color:var(--t1);letter-spacing:-.5px;line-height:1.2;margin-bottom:14px}
+        .p-card-price{display:flex;align-items:baseline;gap:4px;line-height:1;margin-bottom:6px}
+        .p-card-price .currency{font-size:1.25rem;font-weight:500;color:var(--t1);letter-spacing:-.3px}
+        .p-card-price .amount{font-size:2.85rem;font-weight:700;letter-spacing:-1.8px;line-height:1;color:var(--t1);font-variant-numeric:tabular-nums}
+        .p-card-period{font-size:.84rem;color:var(--t3);font-weight:400;margin-top:8px;letter-spacing:.1px}
+        .annual-note{display:inline-flex;align-items:center;gap:6px;font-size:.74rem;color:#22c55e;font-weight:600;margin-top:10px;letter-spacing:.2px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:100px;padding:3px 10px;align-self:flex-start;width:fit-content}
+        .annual-note::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:#22c55e}
 
-        /* — CTA — */
-        .p-card .bp{width:100%;justify-content:center;padding:14px 24px;font-size:.92rem;font-weight:500;margin-top:6px}
+        /* — Tagline (Hormozi-shaped, longer) — */
+        .p-card-tag{font-size:.95rem;color:var(--t2);font-weight:300;line-height:1.65;margin:24px 0 28px;min-height:4.8em}
 
-        /* — Highlights / feature list — */
-        .p-card-highlights{margin-top:28px;padding-top:24px;border-top:1px solid var(--bdr);flex:1;display:flex;flex-direction:column}
-        .p-card-highlights-label{font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--t2);margin-bottom:14px}
+        /* — CTA: outline on every plan, accent ramps with tier — */
+        .p-card .p-cta{display:block;width:100%;text-align:center;padding:14px 24px;font-size:.9rem;font-weight:600;letter-spacing:.3px;border-radius:12px;background:transparent;border:1.5px solid var(--bdr2);color:var(--t1);text-decoration:none;transition:background .2s,border-color .2s,color .2s,transform .15s}
+        .p-card .p-cta:hover{background:rgba(255,255,255,.03);border-color:var(--t2);color:#fff;transform:translateY(-1px)}
+        .p-card.featured .p-cta{border-color:rgba(201,164,92,.5);color:#c9a45c}
+        .p-card.featured .p-cta:hover{background:rgba(201,164,92,.1);border-color:#c9a45c;color:#e6c46e}
+
+        /* — Divider + feature list — */
+        .p-card-highlights{margin-top:32px;padding-top:28px;border-top:1px solid var(--bdr);flex:1;display:flex;flex-direction:column}
+        .p-card-highlights-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:var(--t3);margin-bottom:16px}
         .p-card ul{list-style:none;margin:0;padding:0}
-        .p-card li{display:flex;align-items:flex-start;gap:10px;font-size:.86rem;color:var(--t2);padding:7px 0;font-weight:300;line-height:1.5;border:none}
-        .p-card li .ck{width:16px;height:16px;flex-shrink:0;color:var(--grn);margin-top:3px}
+        .p-card li{display:flex;align-items:flex-start;gap:11px;font-size:.88rem;color:var(--t2);padding:8px 0;font-weight:400;line-height:1.5;border:none}
+        .p-card li .ck-wrap{flex-shrink:0;width:18px;height:18px;border-radius:50%;background:rgba(34,197,94,.12);display:inline-flex;align-items:center;justify-content:center;margin-top:2px}
+        .p-card li .ck{width:10px;height:10px;color:#22c55e}
+        .p-card.featured li .ck-wrap{background:rgba(201,164,92,.15)}
+        .p-card.featured li .ck{color:#c9a45c}
         .all-plans{padding:0 0 100px}
         .all-plans-header{text-align:center;margin-bottom:56px}
         .all-plans-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
@@ -302,8 +324,8 @@ export default async function PricingPage() {
         .faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .4s ease}
         .faq-item.open .faq-a{max-height:300px;padding-bottom:20px}
         .faq-a p{font-size:.84rem;color:var(--t2);line-height:1.7;font-weight:300}
-        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:18px}.p-card{padding:32px 24px}.p-card-price .amount{font-size:2rem;letter-spacing:-1px}.p-card-name{font-size:1.6rem}.all-plans-grid{grid-template-columns:repeat(2,1fr)}}
-        @media(max-width:768px){.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:32px 28px}.p-card-price .amount{font-size:2.2rem}.p-card-name{font-size:1.7rem}.all-plans-grid{grid-template-columns:1fr}}
+        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:16px}.p-card{padding:36px 28px 28px}.p-card-name{font-size:1.35rem}.p-card-price .amount{font-size:2.5rem;letter-spacing:-1.5px}.all-plans-grid{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:768px){.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:40px 32px 32px}.p-card-name{font-size:1.45rem}.p-card-price .amount{font-size:2.7rem;letter-spacing:-1.7px}.all-plans-grid{grid-template-columns:1fr}}
       `}</style>
 
       {/* PRICING HERO */}
@@ -342,41 +364,35 @@ export default async function PricingPage() {
             // keyed off plan position in the ladder.
             const tagline = plan.description
               || (idx === 0
-                ? 'Hosting that just works. Set it once, never think about your stack again.'
+                ? 'Get a fast, secure WordPress site online today — no servers to manage, no plugins to babysit, no hosting decisions to second-guess.'
                 : idx === plans.length - 1
-                  ? 'The full growth stack for serious businesses ready to outpace their category.'
-                  : 'For the businesses with momentum. More speed, more tools, more room to grow.');
+                  ? 'The full growth stack 7-figure brands run on. Every tool, every service, and a dedicated team — so the only thing standing between you and #1 is the work.'
+                  : 'When "just hosting" stops moving the needle. Multiple sites, AI-powered SEO, priority support, and the tools to compound — without jumping to enterprise pricing.');
             return (
               <div key={plan.id} className={isFeatured ? 'p-card featured' : 'p-card'}>
-                {/* Shopify-style header: plan name top-left, price top-right */}
-                <div className="p-card-head">
-                  <div className="p-card-head-left">
-                    <h3 className="p-card-name">{plan.name}</h3>
-                  </div>
-                  <div className="p-card-price">
-                    <div className="price-row">
-                      <span className="currency">$</span>
-                      <span
-                        className="amount price-val"
-                        data-monthly={dollars(monthly)}
-                        data-annual={yearlyDisplayPerMonth}
-                      >
-                        {/* Annual is the default selection */}
-                        {yearly ? yearlyDisplayPerMonth : dollars(monthly)}
-                      </span>
-                    </div>
-                    <div className="p-card-period">USD/month</div>
-                    <div className="annual-note" style={{ display: yearly ? 'block' : 'none' }}>
-                      ${dollars(yearly)}/yr{savings ? ` · save ${savings}%` : ''}
-                    </div>
-                  </div>
+                {/* Stacked header: small uppercase plan name → BIG price → period */}
+                <h3 className="p-card-name">{plan.name}</h3>
+                <div className="p-card-price">
+                  <span className="currency">$</span>
+                  <span
+                    className="amount price-val"
+                    data-monthly={dollars(monthly)}
+                    data-annual={yearlyDisplayPerMonth}
+                  >
+                    {/* Annual is the default selection */}
+                    {yearly ? yearlyDisplayPerMonth : dollars(monthly)}
+                  </span>
+                </div>
+                <div className="p-card-period">USD per month</div>
+                <div className="annual-note" style={{ display: yearly ? 'inline-flex' : 'none' }}>
+                  Billed annually · ${dollars(yearly)}/yr{savings ? ` · save ${savings}%` : ''}
                 </div>
 
                 <p className="p-card-tag">{tagline}</p>
 
                 <a
                   href={`/get-started?plan=${plan.slug}&billing=annual`}
-                  className={isFeatured ? 'bp blue' : 'bp ghost'}
+                  className="p-cta"
                 >
                   Try for free
                 </a>
