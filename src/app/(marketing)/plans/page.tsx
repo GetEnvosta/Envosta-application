@@ -66,44 +66,62 @@ function check() {
 }
 
 /**
- * Hardcoded feature bullets per plan slug. Edit the strings here.
+ * Hardcoded feature bullets per plan slug. Each tier deliberately shows
+ * what's gained at that level — universal essentials (SSL, CDN, daily
+ * backups, WAF, uptime SLA, free migration) live in the bottom grid and
+ * are NOT repeated here, so each card reads as a clear value-add.
  */
 const FEATURES_BY_SLUG: Record<string, string[]> = {
+  // — MINIMUM —
+  // Solo entrepreneurs and one-page businesses. Get online, stay online,
+  // self-serve everything.
   minimum: [
     '1 managed WordPress site',
     '25 GB SSD storage',
-    'Email support',
-    'Free SSL + global CDN',
-    'Daily automated backups',
-    'WordPress auto-updates',
+    '2 PHP workers',
+    'Email support · 24-hr response',
+    'Self-serve admin dashboard',
+    '1-click plugin & theme installs',
+    'WordPress core + plugin auto-updates',
   ],
+
+  // — STANDARD —
+  // Growing small businesses. Multiple sites, real growth tools, a real
+  // human who picks up when they call.
   standard: [
     'Up to 3 managed WordPress sites',
     '50 GB SSD storage',
-    '1-click staging clones',
-    'Guided onboarding call',
+    '4 PHP workers',
+    '1-click staging environment per site',
+    'Guided onboarding call (60 min)',
     'Priority support · 4-hr response',
-    'WooCommerce ready',
-    'Monthly SEO + performance report',
+    'WooCommerce-ready provisioning',
+    'Branded business email (Google Workspace setup)',
     'Lead capture forms',
-    'Branded business email',
-    'Google Analytics setup',
+    'Google Analytics + conversion goals setup',
+    'Monthly performance & SEO report',
+    'Studio Lite discount (–$100)',
   ],
+
+  // — GROWTH —
+  // Established brands. Full growth stack — capacity, AI, integrations,
+  // strategy, and a dedicated team.
   growth: [
     'Up to 10 managed WordPress sites',
     'Auto-scaling SSD storage',
-    'Auto-scaling PHP workers',
+    'Auto-scaling PHP workers + burst capacity',
     'Done-with-you concierge onboarding',
-    'Dedicated account manager',
-    'AI-powered SEO optimization',
+    'Dedicated account manager + 24/7 emergency line',
+    'AI-powered SEO suite (keywords, content, schema)',
     'AI content & copy assistant',
-    'WooCommerce + subscription tools',
-    'Quarterly strategy consultations',
-    'Stripe & payment integrations',
-    'Google Analytics + Tag Manager setup',
+    'WooCommerce + subscriptions + memberships',
+    'Stripe & payment gateway integrations',
+    'Google Analytics + Tag Manager pro setup',
+    'A/B testing & conversion tracking',
+    'Cloudflare Pro CDN with edge caching',
     'Quarterly site + security audits',
-    'A/B testing tools included',
-    'Cloudflare Pro CDN + edge caching',
+    'Quarterly 1-on-1 strategy consultations',
+    'Studio Premium priority intake',
   ],
 };
 
