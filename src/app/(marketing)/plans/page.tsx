@@ -67,7 +67,7 @@ function check() {
  * Universal-plan features that already appear in the "Included with every
  * plan" grid below the cards. We strip these from per-card feature lists
  * to avoid stating the same thing twice. The customer reads "Everything
- * in <previous plan>, plus:" and trusts that includes them.
+ * in <previous plan>" and trusts that includes them.
  */
 const UNIVERSAL_PATTERNS: RegExp[] = [
   /\bssl\b/i,
@@ -120,15 +120,30 @@ function deriveFullFeatures(plan: HostingPlan): string[] {
   if (meta.support_type === 'priority') out.push('Priority support');
   else if (meta.support_type === 'dedicated') out.push('Dedicated support');
 
-  // Slug-specific extras for the marquee plans, in case metadata is sparse.
+  // Slug-specific extras for the marquee plans. These keep the cards
+  // substantive even when admin hasn't fully populated metadata, and
+  // they're idempotent — won't duplicate anything already added above.
   const slug = (plan.slug || '').toLowerCase();
+  const has = (re: RegExp) => out.some(f => re.test(f));
+
   if (slug.includes('growth')) {
-    if (!out.some(f => /seo/i.test(f))) out.push('SEO optimization with AI');
-    if (!out.some(f => /woo/i.test(f))) out.push('WooCommerce ready');
-    if (!out.some(f => /strategy/i.test(f))) out.push('1-on-1 strategy consultation');
+    if (!has(/staging/i)) out.push('Staging environment');
+    if (!has(/onboarding/i)) out.push('Done-with-you concierge onboarding');
+    if (!has(/priority|dedicated/i)) out.push('Priority support');
+    if (!has(/seo/i)) out.push('SEO optimization with AI');
+    if (!has(/ai (?!seo)|content assistant/i)) out.push('AI content & copy assistant');
+    if (!has(/woo/i)) out.push('WooCommerce ready');
+    if (!has(/strategy/i)) out.push('1-on-1 strategy consultation');
+    if (!has(/migration/i)) out.push('Free WordPress migration');
+    if (!has(/integration|stripe/i)) out.push('Stripe & payment integration');
   } else if (slug.includes('standard')) {
-    if (!out.some(f => /woo/i.test(f))) out.push('WooCommerce ready');
-    if (!out.some(f => /onboarding/i.test(f))) out.push('Guided onboarding');
+    if (!has(/staging/i)) out.push('Staging environment');
+    if (!has(/onboarding/i)) out.push('Guided onboarding');
+    if (!has(/priority|dedicated/i)) out.push('Priority support');
+    if (!has(/woo/i)) out.push('WooCommerce ready');
+    if (!has(/seo/i)) out.push('Monthly SEO + performance report');
+    if (!has(/migration/i)) out.push('Free WordPress migration');
+    if (!has(/forms?|capture/i)) out.push('Lead capture forms');
   }
 
   return out;
@@ -139,8 +154,8 @@ function deriveFullFeatures(plan: HostingPlan): string[] {
  * lists what's NEW relative to the cheaper plans below it — so the
  * cards stagger as a clean ladder of additive value:
  *   Minimum   → its own essentials
- *   Standard  → "Everything in Minimum, plus:" + only the deltas
- *   Growth    → "Everything in Standard, plus:" + only the deltas
+ *   Standard  → "Everything in Minimum" + only the deltas
+ *   Growth    → "Everything in Standard" + only the deltas
  *
  * Even though Minimum technically also gets things like staging if
  * its metadata has them set, we don't enumerate every essential —
@@ -371,7 +386,7 @@ export default async function PricingPage() {
                   <div className="p-card-highlights-label">Highlights</div>
                   <ul>
                     {previousPlan && (
-                      <li>{check()}Everything in {previousPlan.name}, plus:</li>
+                      <li>{check()}Everything in {previousPlan.name}</li>
                     )}
                     {features.map((f, i) => (
                       <li key={i}>{check()}{f}</li>
