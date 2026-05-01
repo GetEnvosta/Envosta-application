@@ -72,11 +72,8 @@ function check() {
  * are NOT repeated here, so each card reads as a clear value-add.
  */
 const FEATURES_BY_SLUG: Record<string, string[]> = {
-  // — MINIMUM —
-  // Solo entrepreneurs and one-page businesses. Get online, stay online,
-  // self-serve everything.
+  // — MINIMUM (6 features, no site count) —
   minimum: [
-    '1 managed WordPress site',
     '25 GB SSD storage',
     '2 PHP workers',
     'Email support · 24-hr response',
@@ -85,43 +82,26 @@ const FEATURES_BY_SLUG: Record<string, string[]> = {
     'WordPress core + plugin auto-updates',
   ],
 
-  // — STANDARD —
-  // Growing small businesses. Multiple sites, real growth tools, a real
-  // human who picks up when they call.
+  // — STANDARD (7 features, inherits Minimum) —
   standard: [
-    'Up to 3 managed WordPress sites',
-    '50 GB SSD storage',
-    '4 PHP workers',
-    '1-click staging environment per site',
+    'Everything in Minimum',
+    '50 GB SSD storage + 4 PHP workers',
     'Guided onboarding call (60 min)',
     'Priority support · 4-hr response',
     'WooCommerce-ready provisioning',
-    'Branded business email (Google Workspace setup)',
-    'Lead capture forms',
-    'Google Analytics + conversion goals setup',
+    'Lead capture forms + Google Analytics',
     'Monthly performance & SEO report',
-    'Studio Lite discount (–$100)',
   ],
 
-  // — GROWTH —
-  // Established brands. Full growth stack — capacity, AI, integrations,
-  // strategy, and a dedicated team.
+  // — GROWTH (7 features, inherits Standard) —
   growth: [
-    'Up to 10 managed WordPress sites',
-    'Auto-scaling SSD storage',
-    'Auto-scaling PHP workers + burst capacity',
+    'Everything in Standard',
+    'Auto-scaling SSD + PHP workers + burst capacity',
     'Done-with-you concierge onboarding',
     'Dedicated account manager + 24/7 emergency line',
-    'AI-powered SEO suite (keywords, content, schema)',
-    'AI content & copy assistant',
-    'WooCommerce + subscriptions + memberships',
-    'Stripe & payment gateway integrations',
-    'Google Analytics + Tag Manager pro setup',
-    'A/B testing & conversion tracking',
-    'Cloudflare Pro CDN with edge caching',
-    'Quarterly site + security audits',
-    'Quarterly 1-on-1 strategy consultations',
-    'Studio Premium priority intake',
+    'AI-powered SEO + content suite',
+    'WooCommerce + subscriptions + Stripe integrations',
+    'Quarterly site audits + strategy consultations',
   ],
 };
 
