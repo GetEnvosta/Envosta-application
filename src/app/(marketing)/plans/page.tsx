@@ -232,7 +232,7 @@ export default async function PricingPage() {
         .p-card-period{font-size:.72rem;color:var(--t3);font-weight:400;margin-top:4px;text-align:right}
         .annual-note{font-size:.72rem;color:#22c55e;font-weight:500;margin-top:3px;letter-spacing:.1px;text-align:right}
         .p-card-tag{font-size:.86rem;color:var(--t3);font-weight:300;line-height:1.55;margin-bottom:22px;min-height:2.6em}
-        .p-card-trial{font-size:.78rem;color:var(--t3);font-weight:300;margin-top:18px;line-height:1.5;text-align:center}
+        .pricing-trial-note{font-size:.82rem;color:var(--t3);font-weight:300;text-align:center;margin:14px 0 44px;letter-spacing:.1px}
 
         /* — CTA — */
         .p-card .bp{width:100%;justify-content:center;padding:14px 24px;font-size:.92rem;font-weight:500;margin-top:6px}
@@ -297,13 +297,14 @@ export default async function PricingPage() {
         <div className="c">
           <h1 className="rv">Simple, transparent <em>pricing</em></h1>
           <p className="rv">Every plan starts with a personal consultation. Pick the foundation that fits — we&apos;ll help you build from there.</p>
-          <div className="toggle-wrap rv" style={{ marginBottom: 44 }}>
+          <div className="toggle-wrap rv">
             <span id="lbl-monthly" className="toggle-label">Monthly</span>
             <div id="billing-toggle" className="toggle on" role="switch" aria-label="Toggle annual billing" aria-checked="true"></div>
             <span id="lbl-annual" className="toggle-label active">
               Annual{overallSavings ? <span className="save-badge">Save {overallSavings}%</span> : null}
             </span>
           </div>
+          <p className="rv pricing-trial-note">Try free for 14 days. Cancel anytime.</p>
         </div>
       </section>
 
@@ -363,9 +364,8 @@ export default async function PricingPage() {
                   href={`/get-started?plan=${plan.slug}&billing=annual`}
                   className={isFeatured ? 'bp blue' : 'bp ghost'}
                 >
-                  Start free trial
+                  Try for free
                 </a>
-                <p className="p-card-trial">Try free for 14 days. Cancel anytime.</p>
 
                 <div className="p-card-highlights">
                   <div className="p-card-highlights-label">Highlights</div>
