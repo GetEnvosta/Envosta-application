@@ -41,6 +41,7 @@ export function DesignPackages() {
   const [activePkg, setActivePkg] = useState<Pkg | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
@@ -57,13 +58,14 @@ export function DesignPackages() {
 
   function reset() {
     setActivePkg(null);
-    setName(''); setEmail(''); setMessage('');
+    setName(''); setEmail(''); setPhone(''); setMessage('');
     setSending(false); setDone(false); setError('');
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !email.includes('@')) { setError('Valid email required'); return; }
+    if (!phone.trim()) { setError('Phone number is required'); return; }
     if (!message.trim()) { setError('Tell us a bit about your project'); return; }
     if (!activePkg) return;
 
@@ -81,7 +83,7 @@ export function DesignPackages() {
             : `${activePkg.name} (${activePkg.price}) studio request`,
           name: name.trim() || undefined,
           email: email.trim(),
-          message: `Package: ${activePkg.name} (${activePkg.price})\nIntent: ${isApplication ? 'Application (limited quarterly intake)' : 'Studio request'}\n\n${message.trim()}`,
+          message: `Package: ${activePkg.name} (${activePkg.price})\nIntent: ${isApplication ? 'Application (limited quarterly intake)' : 'Studio request'}\nPhone: ${phone.trim()}\n\n${message.trim()}`,
         }),
       });
       const data = await res.json();
@@ -265,6 +267,19 @@ export function DesignPackages() {
                     autoComplete="email"
                     required
                     maxLength={320}
+                  />
+                </div>
+                <div className="dp-modal-field">
+                  <label htmlFor="dp-phone">Phone *</label>
+                  <input
+                    id="dp-phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="(555) 123-4567"
+                    autoComplete="tel"
+                    required
+                    maxLength={32}
                   />
                 </div>
                 <div className="dp-modal-field">
