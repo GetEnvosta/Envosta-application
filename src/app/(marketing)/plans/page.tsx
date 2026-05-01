@@ -66,132 +66,11 @@ function check() {
 }
 
 /**
- * Universal-plan features that already appear in the "Included with every
- * plan" grid below the cards. We strip these from per-card feature lists
- * to avoid stating the same thing twice. The customer reads "Everything
- * in <previous plan>" and trusts that includes them.
+ * Get the plan's feature bullets. plan.features is plain text rows from
+ * the DB — we render them verbatim, in order, no transformation.
  */
-const UNIVERSAL_PATTERNS: RegExp[] = [
-  /\bssl\b/i,
-  /\bcdn\b/i,
-  /daily backups/i,
-  /auto[- ]?updates/i,
-  /uptime/i,
-  /free site migration|free wordpress migration|free migration/i,
-  /\bwhois\b/i,
-  /performance monitoring/i,
-  /\bwaf\b|web application firewall/i,
-  /\bstaging\b/i,
-];
-
-function isUniversalFeature(f: string): boolean {
-  return UNIVERSAL_PATTERNS.some(re => re.test(f));
-}
-
-/**
- * Synthesize a plan's full feature list from its metadata. Universal
- * essentials (SSL, CDN, backups, etc.) are intentionally excluded —
- * they live in the "Included with every plan" section.
- */
-function deriveFullFeatures(plan: HostingPlan): string[] {
-  const meta = (plan.metadata as any) ?? {};
-  const slug = (plan.slug || '').toLowerCase();
-
-  // Start with anything admin populated in features[] (after stripping
-  // universal essentials so we don't repeat what's in the bottom grid).
-  // Then we'll layer slug-keyed defaults on top so cards are always full
-  // even when DB metadata is sparse.
-  const out: string[] = Array.isArray(plan.features)
-    ? plan.features.filter(f => !isUniversalFeature(f))
-    : [];
-
-  // Sites allotted
-  const sites = meta.sites_allowed;
-  if (typeof sites === 'number') {
-    out.push(sites <= 1 ? '1 managed WordPress site' : `Up to ${sites} managed WordPress sites`);
-  }
-
-  // Storage
-  if (meta.storage_gb) out.push(`${meta.storage_gb} GB SSD storage`);
-
-  // Onboarding tier
-  if (meta.onboarding_type === 'guided') out.push('Guided onboarding call');
-  else if (meta.onboarding_type === 'concierge' || meta.onboarding_type === 'white_glove') {
-    out.push('Done-with-you concierge onboarding');
-  }
-
-  // Support tier — only call out when it beats baseline email
-  if (meta.support_type === 'priority') out.push('Priority support · 4-hr response');
-  else if (meta.support_type === 'dedicated') out.push('Dedicated account manager');
-  else if (slug.includes('minimum') || slug.includes('starter')) {
-    out.push('Email support');
-  }
-
-  // Slug-keyed defaults — fill in the gaps so each tier reads as a clear
-  // upgrade. Idempotent (won't duplicate).
-  const has = (re: RegExp) => out.some(f => re.test(f));
-
-  if (slug.includes('minimum') || slug.includes('starter')) {
-    if (!out.some(f => /\bsite\b/i.test(f))) out.push('1 managed WordPress site');
-    if (!has(/storage|ssd/i)) out.push('25 GB SSD storage');
-  } else if (slug.includes('standard')) {
-    if (!out.some(f => /\bsite\b/i.test(f))) out.push('Up to 3 managed sites');
-    if (!has(/storage|ssd/i)) out.push('50 GB SSD storage');
-    if (!has(/staging|clone/i)) out.push('1-click staging clones');
-    if (!has(/onboarding/i)) out.push('Guided onboarding call');
-    if (!has(/priority|dedicated|response/i)) out.push('Priority support · 4-hr response');
-    if (!has(/woo/i)) out.push('WooCommerce ready');
-    if (!has(/seo|report/i)) out.push('Monthly SEO + performance report');
-    if (!has(/forms?|capture/i)) out.push('Lead capture forms');
-    if (!has(/email|inbox|workspace/i)) out.push('Branded business email');
-    if (!has(/analytics|google/i)) out.push('Google Analytics setup');
-  } else if (slug.includes('growth')) {
-    if (!out.some(f => /\bsite\b/i.test(f))) out.push('Up to 10 managed sites');
-    if (!has(/storage|ssd|scaling/i)) out.push('Auto-scaling storage');
-    if (!has(/php|workers|compute/i)) out.push('Auto-scaling PHP workers');
-    if (!has(/onboarding/i)) out.push('Done-with-you concierge onboarding');
-    if (!has(/priority|dedicated|response/i)) out.push('Dedicated account manager');
-    if (!has(/\bseo\b/i)) out.push('AI-powered SEO optimization');
-    if (!has(/content|assistant/i)) out.push('AI content & copy assistant');
-    if (!has(/woo/i)) out.push('WooCommerce + subscription tools');
-    if (!has(/strategy|consult/i)) out.push('Quarterly strategy consultations');
-    if (!has(/integration|stripe/i)) out.push('Stripe & payment integrations');
-    if (!has(/analytics|google/i)) out.push('Google Analytics + Tag Manager setup');
-    if (!has(/audit|review/i)) out.push('Quarterly site + security audits');
-    if (!has(/a\/?b|test/i)) out.push('A/B testing tools included');
-    if (!has(/cdn|cloudflare/i)) out.push('Cloudflare Pro CDN + edge caching');
-  }
-
-  return out;
-}
-
-/**
- * Builds the per-tier feature list shown on each card. Each plan only
- * lists what's NEW relative to the cheaper plans below it — so the
- * cards stagger as a clean ladder of additive value:
- *   Minimum   → its own essentials
- *   Standard  → "Everything in Minimum" + only the deltas
- *   Growth    → "Everything in Standard" + only the deltas
- *
- * Even though Minimum technically also gets things like staging if
- * its metadata has them set, we don't enumerate every essential —
- * that's covered by the "Included with every plan" grid below.
- */
-function buildTierFeatures(plans: HostingPlan[]): Record<string, string[]> {
-  const result: Record<string, string[]> = {};
-  const seenLower = new Set<string>();
-  for (const plan of plans) {
-    const full = deriveFullFeatures(plan);
-    const fresh: string[] = [];
-    for (const f of full) {
-      const key = f.toLowerCase().trim();
-      if (seenLower.has(key)) continue;
-      fresh.push(f);
-      seenLower.add(key);
-    }
-    result[plan.id] = fresh;
-  }
-  return result;
+function getFeatures(plan: HostingPlan): string[] {
+  return Array.isArray(plan.features) ? plan.features.filter(f => typeof f === 'string' && f.trim()) : [];
 }
 
 export default async function PricingPage() {
@@ -208,10 +87,6 @@ export default async function PricingPage() {
   const plans: HostingPlan[] = ((rawPlans ?? []) as any[])
     .slice()
     .sort((a, b) => (a.price_usd ?? a.price_cad ?? 0) - (b.price_usd ?? b.price_cad ?? 0));
-
-  // Compute per-tier feature lists once, here, so each card only renders
-  // what's NEW relative to cheaper tiers. Cleaner ladder, less repetition.
-  const tierFeatures = buildTierFeatures(plans);
 
   // Mark the middle plan featured if there are 3+, else the most expensive.
   const featuredSlug = plans.length >= 3
@@ -359,8 +234,7 @@ export default async function PricingPage() {
             const yearly = plan.price_yearly_usd ?? plan.price_yearly_cad ?? 0;
             const yearlyDisplayPerMonth = annualMonthly(yearly);
             const savings = annualSavings(monthly, yearly);
-            const features = tierFeatures[plan.id] ?? [];
-            const previousPlan = idx > 0 ? plans[idx - 1] : null;
+            const features = getFeatures(plan);
             // Short tagline — use description if set, else a sensible default
             // keyed off plan position in the ladder.
             const tagline = plan.description
@@ -401,9 +275,6 @@ export default async function PricingPage() {
                 <div className="p-card-highlights">
                   <div className="p-card-highlights-label">Highlights</div>
                   <ul>
-                    {previousPlan && (
-                      <li>{check()}Everything in {previousPlan.name}</li>
-                    )}
                     {features.map((f, i) => (
                       <li key={i}>{check()}{f}</li>
                     ))}
