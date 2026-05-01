@@ -362,10 +362,10 @@ export default async function PricingPage() {
             // keyed off plan position in the ladder.
             const tagline = plan.description
               || (idx === 0
-                ? 'Get a fast, secure WordPress site online today — no servers to manage, no plugins to babysit, no hosting decisions to second-guess.'
+                ? 'Get online today with a fast, secure WordPress site that just works. No servers to manage, no plugins to babysit, no hosting decisions to second-guess.'
                 : idx === plans.length - 1
-                  ? 'The full growth stack 7-figure brands run on. Every tool, every service, and a dedicated team — so the only thing standing between you and #1 is the work.'
-                  : 'When "just hosting" stops moving the needle. Multiple sites, AI-powered SEO, priority support, and the tools to compound — without jumping to enterprise pricing.');
+                  ? 'The full stack seven-figure brands run on. Every tool, every service, and a dedicated team that handles the work that builds your category.'
+                  : 'For businesses ready to compound. More sites, AI-powered SEO, priority support, and the growth tools you need — without paying enterprise prices.');
             return (
               <div key={plan.id} className={isFeatured ? 'p-card featured' : 'p-card'}>
                 {/* Stacked header: small uppercase plan name → BIG price → period */}
