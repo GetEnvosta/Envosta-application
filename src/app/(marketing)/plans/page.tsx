@@ -134,22 +134,29 @@ function deriveFullFeatures(plan: HostingPlan): string[] {
   } else if (slug.includes('standard')) {
     if (!out.some(f => /\bsite\b/i.test(f))) out.push('Up to 3 managed sites');
     if (!has(/storage|ssd/i)) out.push('50 GB SSD storage');
+    if (!has(/staging|clone/i)) out.push('1-click staging clones');
     if (!has(/onboarding/i)) out.push('Guided onboarding call');
     if (!has(/priority|dedicated|response/i)) out.push('Priority support · 4-hr response');
     if (!has(/woo/i)) out.push('WooCommerce ready');
     if (!has(/seo|report/i)) out.push('Monthly SEO + performance report');
     if (!has(/forms?|capture/i)) out.push('Lead capture forms');
+    if (!has(/email|inbox|workspace/i)) out.push('Branded business email');
+    if (!has(/analytics|google/i)) out.push('Google Analytics setup');
   } else if (slug.includes('growth')) {
     if (!out.some(f => /\bsite\b/i.test(f))) out.push('Up to 10 managed sites');
     if (!has(/storage|ssd|scaling/i)) out.push('Auto-scaling storage');
+    if (!has(/php|workers|compute/i)) out.push('Auto-scaling PHP workers');
     if (!has(/onboarding/i)) out.push('Done-with-you concierge onboarding');
     if (!has(/priority|dedicated|response/i)) out.push('Dedicated account manager');
-    if (!has(/seo/i)) out.push('AI-powered SEO optimization');
+    if (!has(/\bseo\b/i)) out.push('AI-powered SEO optimization');
     if (!has(/content|assistant/i)) out.push('AI content & copy assistant');
-    if (!has(/woo/i)) out.push('WooCommerce ready');
+    if (!has(/woo/i)) out.push('WooCommerce + subscription tools');
     if (!has(/strategy|consult/i)) out.push('Quarterly strategy consultations');
     if (!has(/integration|stripe/i)) out.push('Stripe & payment integrations');
-    if (!has(/analytics/i)) out.push('Google Analytics + tag manager setup');
+    if (!has(/analytics|google/i)) out.push('Google Analytics + Tag Manager setup');
+    if (!has(/audit|review/i)) out.push('Quarterly site + security audits');
+    if (!has(/a\/?b|test/i)) out.push('A/B testing tools included');
+    if (!has(/cdn|cloudflare/i)) out.push('Cloudflare Pro CDN + edge caching');
   }
 
   return out;
@@ -242,15 +249,10 @@ export default async function PricingPage() {
         .p-card{background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:40px 36px 32px;position:relative;display:flex;flex-direction:column;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
         .p-card:hover{transform:translateY(-4px);border-color:var(--bdr2)}
         .p-card.featured{
-          border-color:rgba(201,164,92,.55);
-          background:
-            linear-gradient(180deg,rgba(201,164,92,.06),transparent 50%),
-            radial-gradient(circle at 50% 0%,rgba(201,164,92,.08),transparent 60%),
-            var(--card);
-          box-shadow:0 0 0 1px rgba(201,164,92,.18),0 24px 48px -24px rgba(201,164,92,.25);
+          border-color:var(--gold);
+          background:linear-gradient(180deg,rgba(37,99,235,.06),var(--card) 55%);
         }
-        .p-card.featured:hover{box-shadow:0 0 0 1px rgba(201,164,92,.3),0 28px 56px -22px rgba(201,164,92,.35)}
-        .p-card.featured::before{content:'Most Popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#c9a45c,#b8943f);color:#0a0e1a;font-size:.65rem;font-weight:700;padding:6px 18px;border-radius:100px;letter-spacing:1.4px;text-transform:uppercase;box-shadow:0 6px 20px -6px rgba(201,164,92,.6)}
+        .p-card.featured::before{content:'Most Popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#fff;font-size:.66rem;font-weight:600;padding:5px 18px;border-radius:100px;letter-spacing:1px;text-transform:uppercase}
 
         /* — Header: balanced name + price hierarchy — */
         .p-card-name{font-size:1.5rem;font-weight:600;color:var(--t1);letter-spacing:-.5px;line-height:1.2;margin-bottom:14px}
@@ -267,8 +269,8 @@ export default async function PricingPage() {
         /* — CTA: outline on every plan, accent ramps with tier — */
         .p-card .p-cta{display:block;width:100%;text-align:center;padding:14px 24px;font-size:.9rem;font-weight:600;letter-spacing:.3px;border-radius:12px;background:transparent;border:1.5px solid var(--bdr2);color:var(--t1);text-decoration:none;transition:background .2s,border-color .2s,color .2s,transform .15s}
         .p-card .p-cta:hover{background:rgba(255,255,255,.03);border-color:var(--t2);color:#fff;transform:translateY(-1px)}
-        .p-card.featured .p-cta{border-color:rgba(201,164,92,.5);color:#c9a45c}
-        .p-card.featured .p-cta:hover{background:rgba(201,164,92,.1);border-color:#c9a45c;color:#e6c46e}
+        .p-card.featured .p-cta{border-color:rgba(37,99,235,.6);color:var(--gold-bright)}
+        .p-card.featured .p-cta:hover{background:rgba(37,99,235,.08);border-color:var(--gold);color:#fff}
 
         /* — Divider + feature list — */
         .p-card-highlights{margin-top:32px;padding-top:28px;border-top:1px solid var(--bdr);flex:1;display:flex;flex-direction:column}
@@ -277,8 +279,6 @@ export default async function PricingPage() {
         .p-card li{display:flex;align-items:flex-start;gap:11px;font-size:.88rem;color:var(--t2);padding:8px 0;font-weight:400;line-height:1.5;border:none}
         .p-card li .ck-wrap{flex-shrink:0;width:18px;height:18px;border-radius:50%;background:rgba(34,197,94,.12);display:inline-flex;align-items:center;justify-content:center;margin-top:2px}
         .p-card li .ck{width:10px;height:10px;color:#22c55e}
-        .p-card.featured li .ck-wrap{background:rgba(201,164,92,.15)}
-        .p-card.featured li .ck{color:#c9a45c}
         .all-plans{padding:0 0 100px}
         .all-plans-header{text-align:center;margin-bottom:56px}
         .all-plans-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
