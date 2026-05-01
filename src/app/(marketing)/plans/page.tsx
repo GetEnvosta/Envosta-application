@@ -75,9 +75,11 @@ const UNIVERSAL_PATTERNS: RegExp[] = [
   /daily backups/i,
   /auto[- ]?updates/i,
   /uptime/i,
-  /free site migration/i,
+  /free site migration|free wordpress migration|free migration/i,
   /\bwhois\b/i,
   /performance monitoring/i,
+  /\bwaf\b|web application firewall/i,
+  /\bstaging\b/i,
 ];
 
 function isUniversalFeature(f: string): boolean {
@@ -106,9 +108,8 @@ function deriveFullFeatures(plan: HostingPlan): string[] {
   // Storage
   if (meta.storage_gb) out.push(`${meta.storage_gb} GB SSD storage`);
 
-  // Tier-distinguishing infrastructure
-  if (meta.has_staging) out.push('Staging environment');
-  if (meta.has_waf) out.push('Web application firewall');
+  // (Staging + WAF are universal — they live in the "Included with every
+  // plan" grid below the cards, so they don't need to be listed per-tier.)
 
   // Onboarding tier
   if (meta.onboarding_type === 'guided') out.push('Guided onboarding');
@@ -127,7 +128,6 @@ function deriveFullFeatures(plan: HostingPlan): string[] {
   const has = (re: RegExp) => out.some(f => re.test(f));
 
   if (slug.includes('growth')) {
-    if (!has(/staging/i)) out.push('Staging environment');
     if (!has(/onboarding/i)) out.push('Done-with-you concierge onboarding');
     if (!has(/priority|dedicated/i)) out.push('Priority support');
     if (!has(/seo/i)) out.push('SEO optimization with AI');
@@ -137,7 +137,6 @@ function deriveFullFeatures(plan: HostingPlan): string[] {
     if (!has(/migration/i)) out.push('Free WordPress migration');
     if (!has(/integration|stripe/i)) out.push('Stripe & payment integration');
   } else if (slug.includes('standard')) {
-    if (!has(/staging/i)) out.push('Staging environment');
     if (!has(/onboarding/i)) out.push('Guided onboarding');
     if (!has(/priority|dedicated/i)) out.push('Priority support');
     if (!has(/woo/i)) out.push('WooCommerce ready');
@@ -262,7 +261,7 @@ export default async function PricingPage() {
         .all-plans-header{text-align:center;margin-bottom:56px}
         .all-plans-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
         .all-plans-header p{font-size:.92rem;color:var(--t3);font-weight:300;max-width:520px;margin:0 auto;line-height:1.7}
-        .all-plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+        .all-plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1080px;margin:0 auto}
         .ap-card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:28px 24px;transition:border-color .3s}
         .ap-card:hover{border-color:var(--bdr2)}
         .ap-icon{width:40px;height:40px;border-radius:10px;background:rgba(37,99,235,.1);display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:var(--gold)}
@@ -303,7 +302,7 @@ export default async function PricingPage() {
         .faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .4s ease}
         .faq-item.open .faq-a{max-height:300px;padding-bottom:20px}
         .faq-a p{font-size:.84rem;color:var(--t2);line-height:1.7;font-weight:300}
-        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:18px}.p-card{padding:32px 24px}.p-card-price .amount{font-size:2.2rem;letter-spacing:-1px}.p-card-name{font-size:1.2rem}.all-plans-grid{grid-template-columns:repeat(3,1fr)}}
+        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:18px}.p-card{padding:32px 24px}.p-card-price .amount{font-size:2.2rem;letter-spacing:-1px}.p-card-name{font-size:1.2rem}.all-plans-grid{grid-template-columns:repeat(2,1fr)}}
         @media(max-width:768px){.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:32px 28px}.p-card-price .amount{font-size:2.4rem}.p-card-name{font-size:1.3rem}.all-plans-grid{grid-template-columns:1fr}}
       `}</style>
 
@@ -453,10 +452,6 @@ export default async function PricingPage() {
                     return <td key={plan.id}>{label}</td>;
                   })}
                 </tr>
-                <tr><td>Staging environment</td>{plans.map(p => {
-                  const has = (p.metadata as any)?.has_staging;
-                  return <td key={p.id} className={has ? 'check' : 'dash'}>{has ? '✓' : '—'}</td>;
-                })}</tr>
                 <tr><td>Full onboarding by our team</td>{plans.map(p => {
                   const t = (p.metadata as any)?.onboarding_type;
                   const has = t && t !== 'standard';
@@ -494,21 +489,15 @@ export default async function PricingPage() {
           </div>
 
           <div className="ap-card">
-            <div className="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg></div>
-            <h4>Personal Onboarding</h4>
-            <p>A one-on-one consultation to set up your site, configure your environment, and launch with confidence.</p>
+            <div className="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg></div>
+            <h4>Daily Backups</h4>
+            <p>Automatic daily backups with one-click restore, so your site is always protected and recoverable.</p>
           </div>
 
           <div className="ap-card">
-            <div className="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg></div>
-            <h4>Free Site Migration</h4>
-            <p>Our team handles your entire migration — files, database, DNS — with zero downtime.</p>
-          </div>
-
-          <div className="ap-card">
-            <div className="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg></div>
-            <h4>WordPress Auto-Updates</h4>
-            <p>Core, plugin, and theme updates handled automatically so your site stays secure.</p>
+            <div className="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 5l9-3 9 3v6c0 5.5-3.5 10-9 12-5.5-2-9-6.5-9-12V5z" /><path d="M9 12l2 2 4-4" /></svg></div>
+            <h4>Web Application Firewall</h4>
+            <p>Always-on WAF blocks bots, brute-force attempts, and OWASP Top 10 threats before they hit your site.</p>
           </div>
 
           <div className="ap-card">
@@ -518,21 +507,9 @@ export default async function PricingPage() {
           </div>
 
           <div className="ap-card">
-            <div className="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg></div>
-            <h4>Performance Monitoring</h4>
-            <p>Real-time site speed and uptime monitoring with alerts built into your dashboard.</p>
-          </div>
-
-          <div className="ap-card">
-            <div className="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg></div>
-            <h4>Daily Backups</h4>
-            <p>Automatic daily backups with one-click restore, so your site is always protected and recoverable.</p>
-          </div>
-
-          <div className="ap-card">
-            <div className="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /><line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round" /></svg></div>
-            <h4>WHOIS Privacy</h4>
-            <p>Your personal information stays hidden on every domain — included free with all plans.</p>
+            <div className="ap-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg></div>
+            <h4>Free Site Migration</h4>
+            <p>Our team handles your entire migration — files, database, DNS — with zero downtime.</p>
           </div>
 
         </div>
