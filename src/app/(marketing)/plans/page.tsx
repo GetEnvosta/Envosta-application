@@ -269,8 +269,6 @@ export default async function PricingPage() {
         /* — CTA: outline on every plan, accent ramps with tier — */
         .p-card .p-cta{display:block;width:100%;text-align:center;padding:14px 24px;font-size:.9rem;font-weight:600;letter-spacing:.3px;border-radius:12px;background:transparent;border:1.5px solid var(--bdr2);color:var(--t1);text-decoration:none;transition:background .2s,border-color .2s,color .2s,transform .15s}
         .p-card .p-cta:hover{background:rgba(255,255,255,.03);border-color:var(--t2);color:#fff;transform:translateY(-1px)}
-        .p-card.featured .p-cta{border-color:rgba(37,99,235,.6);color:var(--gold-bright)}
-        .p-card.featured .p-cta:hover{background:rgba(37,99,235,.08);border-color:var(--gold);color:#fff}
 
         /* — Divider + feature list — */
         .p-card-highlights{margin-top:32px;padding-top:28px;border-top:1px solid var(--bdr);flex:1;display:flex;flex-direction:column}
