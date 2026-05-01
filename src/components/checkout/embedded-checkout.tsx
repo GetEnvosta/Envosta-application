@@ -54,8 +54,65 @@ function CheckoutForm({ type, planName, planPrice, fullPrice, domainName, domain
     }
   }
 
+  // Compute the date the trial actually charges so customers see a real
+  // calendar reference, not just "in 14 days".
+  const trialEndDate = (() => {
+    if (!isTrial) return '';
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+  })();
+
   return (
     <form onSubmit={handleSubmit}>
+      {/* — Unmissable trial banner — */}
+      {isTrial && (
+        <div style={{
+          borderRadius: 16,
+          padding: '18px 22px',
+          marginBottom: 18,
+          background: 'linear-gradient(135deg, rgba(34,197,94,.12), rgba(34,197,94,.05))',
+          border: '1.5px solid rgba(34,197,94,.35)',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 14,
+        }}>
+          <div style={{
+            flexShrink: 0,
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            background: 'rgba(34,197,94,.18)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginTop: 2,
+          }}>
+            <Check style={{ width: 18, height: 18, color: '#22c55e' }} strokeWidth={2.5} />
+          </div>
+          <div style={{ flex: 1, lineHeight: 1.5 }}>
+            <div style={{
+              fontSize: '1rem',
+              fontWeight: 700,
+              color: dark ? '#fff' : '#111827',
+              letterSpacing: '-.2px',
+              marginBottom: 4,
+            }}>
+              You won&rsquo;t be charged today
+            </div>
+            <div style={{
+              fontSize: '.84rem',
+              color: dark ? 'rgba(255,255,255,.75)' : '#374151',
+              fontWeight: 400,
+            }}>
+              <strong style={{ color: '#22c55e', fontWeight: 600 }}>Free for 14 days.</strong>{' '}
+              First charge {trialEndDate ? `on ${trialEndDate}` : 'after your trial ends'}
+              {fullPrice ? ` (${fullPrice})` : ''}. Cancel anytime before then and pay nothing.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Order summary */}
       <div style={{
         borderRadius: 16, padding: '20px 24px', marginBottom: 24,
@@ -69,7 +126,7 @@ function CheckoutForm({ type, planName, planPrice, fullPrice, domainName, domain
             background: isTrial ? 'rgba(34,197,94,.1)' : dark ? 'rgba(255,255,255,.06)' : '#e5e7eb',
             color: isTrial ? '#22c55e' : dark ? '#fff' : '#111827',
           }}>
-            {planPrice}
+            {isTrial ? '$0 today' : planPrice}
           </span>
         </div>
         {/* Domain line item */}
@@ -87,20 +144,17 @@ function CheckoutForm({ type, planName, planPrice, fullPrice, domainName, domain
           </div>
         )}
 
-        {/* Trial info */}
+        {/* Trial breakdown row */}
         {isTrial && (
           <div style={{
             borderTop: `1px solid ${dark ? 'rgba(255,255,255,.06)' : '#e5e7eb'}`,
             paddingTop: 12, marginTop: domainName ? 10 : 0,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
-            <p style={{ fontSize: '.8rem', color: '#22c55e', fontWeight: 500, marginBottom: 4 }}>
-              14-day free trial — no charge today
-            </p>
-            {fullPrice && (
-              <p style={{ fontSize: '.76rem', color: dark ? 'rgba(255,255,255,.35)' : '#9ca3af' }}>
-                Then {fullPrice} when your trial ends. Cancel anytime.
-              </p>
-            )}
+            <span style={{ fontSize: '.84rem', fontWeight: 500, color: dark ? '#fff' : '#111827' }}>
+              Total due today
+            </span>
+            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#22c55e' }}>$0.00</span>
           </div>
         )}
       </div>
@@ -160,11 +214,26 @@ function CheckoutForm({ type, planName, planPrice, fullPrice, domainName, domain
         {loading ? (
           <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
         ) : isTrial ? (
-          <>Start Free Trial</>
+          <>Start my 14-day free trial · $0 today</>
         ) : (
           <><Lock className="w-4 h-4" /> Pay {planPrice}</>
         )}
       </button>
+
+      {/* Reassurance line directly under the CTA */}
+      {isTrial && (
+        <p style={{
+          textAlign: 'center',
+          marginTop: 14,
+          fontSize: '.78rem',
+          color: dark ? 'rgba(255,255,255,.55)' : '#6b7280',
+          lineHeight: 1.55,
+          fontWeight: 400,
+        }}>
+          We&rsquo;ll authorize your card but <strong style={{ color: '#22c55e', fontWeight: 600 }}>won&rsquo;t charge you</strong>{' '}
+          until {trialEndDate || 'your trial ends'}. Cancel from your dashboard before then for no charge.
+        </p>
+      )}
     </form>
   );
 }
