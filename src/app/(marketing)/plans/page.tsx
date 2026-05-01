@@ -195,11 +195,15 @@ export default async function PricingPage() {
         .p-card-price .currency{font-size:1.25rem;font-weight:500;color:var(--t1);letter-spacing:-.3px}
         .p-card-price .amount{font-size:2.85rem;font-weight:700;letter-spacing:-1.8px;line-height:1;color:var(--t1);font-variant-numeric:tabular-nums}
         .p-card-period{font-size:.84rem;color:var(--t3);font-weight:400;margin-top:8px;letter-spacing:.1px}
-        .annual-note{display:inline-flex;align-items:center;gap:6px;font-size:.74rem;color:#22c55e;font-weight:600;margin-top:10px;letter-spacing:.2px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:100px;padding:3px 10px;align-self:flex-start;width:fit-content}
+        /* Reserve the slot whether or not annual pricing is set, so cards
+           with no yearly price don't shift their CTA up. */
+        .annual-note-slot{min-height:28px;margin-top:10px;display:flex;align-items:center}
+        .annual-note{display:inline-flex;align-items:center;gap:6px;font-size:.74rem;color:#22c55e;font-weight:600;letter-spacing:.2px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:100px;padding:3px 10px;width:fit-content}
         .annual-note::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:#22c55e}
 
-        /* — Tagline (Hormozi-shaped, longer) — */
-        .p-card-tag{font-size:.95rem;color:var(--t2);font-weight:300;line-height:1.65;margin:24px 0 28px;min-height:4.8em}
+        /* Tagline locked to a fixed height (not min-height) so CTAs
+           sit at the same vertical position across all three cards. */
+        .p-card-tag{font-size:.95rem;color:var(--t2);font-weight:300;line-height:1.65;margin:24px 0 28px;height:5em;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 
         /* — CTA: outline on every plan, accent ramps with tier — */
         .p-card .p-cta{display:block;width:100%;text-align:center;padding:14px 24px;font-size:.9rem;font-weight:600;letter-spacing:.3px;border-radius:12px;background:transparent;border:1.5px solid var(--bdr2);color:var(--t1);text-decoration:none;transition:background .2s,border-color .2s,color .2s,transform .15s}
@@ -316,8 +320,12 @@ export default async function PricingPage() {
                   </span>
                 </div>
                 <div className="p-card-period">USD per month</div>
-                <div className="annual-note" style={{ display: yearly ? 'inline-flex' : 'none' }}>
-                  Billed annually · ${dollars(yearly)}/yr{savings ? ` · save ${savings}%` : ''}
+                <div className="annual-note-slot">
+                  {yearly > 0 && (
+                    <div className="annual-note">
+                      Billed annually · ${dollars(yearly)}/yr{savings ? ` · save ${savings}%` : ''}
+                    </div>
+                  )}
                 </div>
 
                 <p className="p-card-tag">{tagline}</p>
