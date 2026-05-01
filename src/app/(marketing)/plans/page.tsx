@@ -66,11 +66,50 @@ function check() {
 }
 
 /**
- * Get the plan's feature bullets. plan.features is plain text rows from
- * the DB — we render them verbatim, in order, no transformation.
+ * Hardcoded feature bullets per plan slug. Edit the strings here.
  */
+const FEATURES_BY_SLUG: Record<string, string[]> = {
+  minimum: [
+    '1 managed WordPress site',
+    '25 GB SSD storage',
+    'Email support',
+    'Free SSL + global CDN',
+    'Daily automated backups',
+    'WordPress auto-updates',
+  ],
+  standard: [
+    'Up to 3 managed WordPress sites',
+    '50 GB SSD storage',
+    '1-click staging clones',
+    'Guided onboarding call',
+    'Priority support · 4-hr response',
+    'WooCommerce ready',
+    'Monthly SEO + performance report',
+    'Lead capture forms',
+    'Branded business email',
+    'Google Analytics setup',
+  ],
+  growth: [
+    'Up to 10 managed WordPress sites',
+    'Auto-scaling SSD storage',
+    'Auto-scaling PHP workers',
+    'Done-with-you concierge onboarding',
+    'Dedicated account manager',
+    'AI-powered SEO optimization',
+    'AI content & copy assistant',
+    'WooCommerce + subscription tools',
+    'Quarterly strategy consultations',
+    'Stripe & payment integrations',
+    'Google Analytics + Tag Manager setup',
+    'Quarterly site + security audits',
+    'A/B testing tools included',
+    'Cloudflare Pro CDN + edge caching',
+  ],
+};
+
 function getFeatures(plan: HostingPlan): string[] {
-  return Array.isArray(plan.features) ? plan.features.filter(f => typeof f === 'string' && f.trim()) : [];
+  const slug = (plan.slug || '').toLowerCase();
+  return FEATURES_BY_SLUG[slug] ?? [];
 }
 
 export default async function PricingPage() {
