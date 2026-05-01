@@ -165,8 +165,8 @@ export function DesignPackages() {
       <section className="design-packages rv">
         <div className="c">
           <div className="design-packages-header">
-            <h2>Studio</h2>
-            <p>Beyond hosting — a complete custom-designed website built by our team. To keep quality high we only accept a limited number of new Studio clients every month.</p>
+            <h2>More ways to get started</h2>
+            <p>Want us to build it for you? Studio is our done-for-you design service — pick the package that fits and our team handles the rest. To keep quality high we only accept a limited number of new Studio clients every month.</p>
           </div>
 
           <div className="design-packages-grid">
