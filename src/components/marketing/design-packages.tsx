@@ -26,7 +26,7 @@ const PACKAGES: Pkg[] = [
     name: 'Studio Lite',
     price: '$500',
     blurb: 'Curated wireframing, a setup-ready template tailored to your brand, performance tuning, and an SEO baseline — built specifically for small businesses and solo entrepreneurs ready to launch fast.',
-    cta: 'Submit studio request',
+    cta: 'Start with Studio Lite →',
   },
   {
     id: 'premium',
