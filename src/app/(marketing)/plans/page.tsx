@@ -127,7 +127,13 @@ const FEATURES_BY_SLUG: Record<string, string[]> = {
 
 function getFeatures(plan: HostingPlan): string[] {
   const slug = (plan.slug || '').toLowerCase();
-  return FEATURES_BY_SLUG[slug] ?? [];
+  const name = (plan.name || '').toLowerCase();
+  // Match by slug OR name containing the key, so plans with slugs like
+  // "envosta-standard" or "plan-growth" still hit the right list.
+  for (const key of Object.keys(FEATURES_BY_SLUG)) {
+    if (slug.includes(key) || name.includes(key)) return FEATURES_BY_SLUG[key];
+  }
+  return [];
 }
 
 export default async function PricingPage() {
