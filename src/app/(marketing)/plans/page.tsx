@@ -94,13 +94,16 @@ function isUniversalFeature(f: string): boolean {
  * they live in the "Included with every plan" section.
  */
 function deriveFullFeatures(plan: HostingPlan): string[] {
-  if (Array.isArray(plan.features) && plan.features.length > 0) {
-    return plan.features.filter(f => !isUniversalFeature(f));
-  }
-
   const meta = (plan.metadata as any) ?? {};
-  const out: string[] = [];
   const slug = (plan.slug || '').toLowerCase();
+
+  // Start with anything admin populated in features[] (after stripping
+  // universal essentials so we don't repeat what's in the bottom grid).
+  // Then we'll layer slug-keyed defaults on top so cards are always full
+  // even when DB metadata is sparse.
+  const out: string[] = Array.isArray(plan.features)
+    ? plan.features.filter(f => !isUniversalFeature(f))
+    : [];
 
   // Sites allotted
   const sites = meta.sites_allowed;
