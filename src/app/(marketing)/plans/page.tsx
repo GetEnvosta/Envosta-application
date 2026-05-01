@@ -64,13 +64,35 @@ function check() {
 }
 
 /**
- * Build a feature bullet list for a plan. If the DB has features populated
- * we use them verbatim; otherwise we synthesize a sensible list from the
- * plan's metadata + slug-keyed defaults so a plan never renders empty even
- * if admin hasn't filled features[] in.
+ * Universal-plan features that already appear in the "Included with every
+ * plan" grid below the cards. We strip these from per-card feature lists
+ * to avoid stating the same thing twice. The customer reads "Everything
+ * in <previous plan>, plus:" and trusts that includes them.
  */
-function deriveFeatures(plan: HostingPlan): string[] {
-  if (Array.isArray(plan.features) && plan.features.length > 0) return plan.features;
+const UNIVERSAL_PATTERNS: RegExp[] = [
+  /\bssl\b/i,
+  /\bcdn\b/i,
+  /daily backups/i,
+  /auto[- ]?updates/i,
+  /uptime/i,
+  /free site migration/i,
+  /\bwhois\b/i,
+  /performance monitoring/i,
+];
+
+function isUniversalFeature(f: string): boolean {
+  return UNIVERSAL_PATTERNS.some(re => re.test(f));
+}
+
+/**
+ * Synthesize a plan's full feature list from its metadata. Universal
+ * essentials (SSL, CDN, backups, etc.) are intentionally excluded —
+ * they live in the "Included with every plan" section.
+ */
+function deriveFullFeatures(plan: HostingPlan): string[] {
+  if (Array.isArray(plan.features) && plan.features.length > 0) {
+    return plan.features.filter(f => !isUniversalFeature(f));
+  }
 
   const meta = (plan.metadata as any) ?? {};
   const out: string[] = [];
@@ -84,9 +106,7 @@ function deriveFeatures(plan: HostingPlan): string[] {
   // Storage
   if (meta.storage_gb) out.push(`${meta.storage_gb} GB SSD storage`);
 
-  // Always-on essentials
-  out.push('Free SSL + global CDN');
-  if (meta.has_backups !== false) out.push('Daily backups & auto-updates');
+  // Tier-distinguishing infrastructure
   if (meta.has_staging) out.push('Staging environment');
   if (meta.has_waf) out.push('Web application firewall');
 
@@ -96,10 +116,9 @@ function deriveFeatures(plan: HostingPlan): string[] {
     out.push('Done-with-you concierge onboarding');
   }
 
-  // Support tier
+  // Support tier — only call out if it beats the baseline (email)
   if (meta.support_type === 'priority') out.push('Priority support');
   else if (meta.support_type === 'dedicated') out.push('Dedicated support');
-  else out.push('Email support');
 
   // Slug-specific extras for the marquee plans, in case metadata is sparse.
   const slug = (plan.slug || '').toLowerCase();
@@ -113,6 +132,35 @@ function deriveFeatures(plan: HostingPlan): string[] {
   }
 
   return out;
+}
+
+/**
+ * Builds the per-tier feature list shown on each card. Each plan only
+ * lists what's NEW relative to the cheaper plans below it — so the
+ * cards stagger as a clean ladder of additive value:
+ *   Minimum   → its own essentials
+ *   Standard  → "Everything in Minimum, plus:" + only the deltas
+ *   Growth    → "Everything in Standard, plus:" + only the deltas
+ *
+ * Even though Minimum technically also gets things like staging if
+ * its metadata has them set, we don't enumerate every essential —
+ * that's covered by the "Included with every plan" grid below.
+ */
+function buildTierFeatures(plans: HostingPlan[]): Record<string, string[]> {
+  const result: Record<string, string[]> = {};
+  const seenLower = new Set<string>();
+  for (const plan of plans) {
+    const full = deriveFullFeatures(plan);
+    const fresh: string[] = [];
+    for (const f of full) {
+      const key = f.toLowerCase().trim();
+      if (seenLower.has(key)) continue;
+      fresh.push(f);
+      seenLower.add(key);
+    }
+    result[plan.id] = fresh;
+  }
+  return result;
 }
 
 export default async function PricingPage() {
@@ -129,6 +177,10 @@ export default async function PricingPage() {
   const plans: HostingPlan[] = ((rawPlans ?? []) as any[])
     .slice()
     .sort((a, b) => (a.price_usd ?? a.price_cad ?? 0) - (b.price_usd ?? b.price_cad ?? 0));
+
+  // Compute per-tier feature lists once, here, so each card only renders
+  // what's NEW relative to cheaper tiers. Cleaner ladder, less repetition.
+  const tierFeatures = buildTierFeatures(plans);
 
   // Mark the middle plan featured if there are 3+, else the most expensive.
   const featuredSlug = plans.length >= 3
@@ -269,7 +321,7 @@ export default async function PricingPage() {
             const yearly = plan.price_yearly_usd ?? plan.price_yearly_cad ?? 0;
             const yearlyDisplayPerMonth = annualMonthly(yearly);
             const savings = annualSavings(monthly, yearly);
-            const features = deriveFeatures(plan);
+            const features = tierFeatures[plan.id] ?? [];
             const previousPlan = idx > 0 ? plans[idx - 1] : null;
             // Short tagline — use description if set, else a sensible default
             // keyed off plan position in the ladder.
