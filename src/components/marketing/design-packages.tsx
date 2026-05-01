@@ -110,9 +110,9 @@ export function DesignPackages() {
         .dp-eyebrow-dot{width:5px;height:5px;border-radius:50%}
         @keyframes dpPulseGold{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(201,164,92,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(201,164,92,0)}}
         @keyframes dpPulseGreen{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(34,197,94,0)}}
-        .design-packages-header h2{font-size:clamp(2rem,4vw,3rem);font-weight:600;letter-spacing:-1.5px;line-height:1.15;margin-bottom:14px}
+        .design-packages-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:600;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
         .design-packages-header p{font-size:.95rem;color:var(--t3);font-weight:300;max-width:580px;margin:0 auto;line-height:1.7}
-        .design-packages-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;max-width:1200px;margin:0 auto}
+        .design-packages-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;max-width:1200px;margin:0 auto}
         .dp-card{background:var(--card);border:1px solid var(--bdr);border-radius:18px;padding:36px 32px;display:flex;flex-direction:column;transition:border-color .3s,transform .3s}
         .dp-card:hover{transform:translateY(-4px);border-color:var(--bdr2)}
         .dp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:14px}

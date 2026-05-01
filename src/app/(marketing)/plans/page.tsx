@@ -218,9 +218,9 @@ export default async function PricingPage() {
         .p-card li .ck{width:10px;height:10px;color:#22c55e}
         .all-plans{padding:0 0 100px}
         .all-plans-header{text-align:center;margin-bottom:56px}
-        .all-plans-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
+        .all-plans-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:600;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
         .all-plans-header p{font-size:.92rem;color:var(--t3);font-weight:300;max-width:520px;margin:0 auto;line-height:1.7}
-        .all-plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1080px;margin:0 auto}
+        .all-plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1200px;margin:0 auto}
         .ap-card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:28px 24px;transition:border-color .3s}
         .ap-card:hover{border-color:var(--bdr2)}
         .ap-icon{width:40px;height:40px;border-radius:10px;background:rgba(37,99,235,.1);display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:var(--gold)}
@@ -249,7 +249,7 @@ export default async function PricingPage() {
         .compare-table .dash{color:var(--t3)}
         .faq{padding:0 0 100px}
         .faq-header{text-align:center;margin-bottom:56px}
-        .faq-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:500;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
+        .faq-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:600;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
         .faq-header p{font-size:.95rem;color:var(--t2);font-weight:300;line-height:1.75}
         .faq-list{max-width:720px;margin:0 auto}
         .faq-item{border-bottom:1px solid var(--bdr)}
