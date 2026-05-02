@@ -4,7 +4,11 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
-import { findHostingSubscription, addSiteLineItem, resolvePlanPrice } from '@/lib/stripe-subscription';
+// '@/lib/stripe-subscription' helpers (findHostingSubscription,
+// addSiteLineItem, resolvePlanPrice) are intentionally unused in this
+// file — the default signup path is one-site-per-subscription, so we
+// skip the line-item-collapse logic. Those helpers stay exported for
+// the future multi-site agency plan flow.
 
 export const dynamic = 'force-dynamic';
 
@@ -101,30 +105,18 @@ export async function POST(req: Request) {
     customerId = sc.id;
   }
 
-  // Check if user already has an active hosting subscription
-  const existingSub = await findHostingSubscription(sb, userId);
-
-  if (existingSub?.stripe_subscription_id) {
-    // User already has a subscription — add a line item instead of creating a new one
-    try {
-      const item = await stripe.subscriptionItems.create({
-        subscription: existingSub.stripe_subscription_id,
-        price: priceId,
-        quantity: 1,
-        proration_behavior: 'create_prorations',
-        metadata: { supabase_user_id: userId },
-      });
-
-      return NextResponse.json({
-        type: 'existing',
-        subscriptionId: existingSub.stripe_subscription_id,
-        itemId: item.id,
-        message: 'Added to existing subscription',
-      });
-    } catch (e: any) {
-      return NextResponse.json({ error: e.message ?? 'Failed to add to existing subscription' }, { status: 400 });
-    }
-  }
+  // ── Per-site subscription model ──────────────────────────────────
+  // Default behaviour today: every new site purchase creates its OWN
+  // Stripe subscription (one site = one subscription, mirrors how each
+  // domain is its own renewal sub). Customers can have many concurrent
+  // hosting subscriptions on a single account.
+  //
+  // The collapse-into-existing-subscription path (adding a new line
+  // item to an existing sub) is intentionally NOT used here — it stays
+  // available via lib/stripe-subscription.ts#addSiteLineItem so a
+  // future agency plan can opt back into multi-site-per-subscription
+  // billing without re-implementing it.
+  // ───────────────────────────────────────────────────────────────────
 
   // Build subscription params
   const subParams: Stripe.SubscriptionCreateParams = {
