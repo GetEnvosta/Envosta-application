@@ -5,6 +5,34 @@ import { createServerClient } from '@supabase/ssr';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * POST /api/admin/provision-site
+ *
+ * Admin-triggered wp.cloud provisioning. Three paths:
+ *
+ *   1. NEW SITE — no row exists for the subscription. Create a sites
+ *      row with status='provisioning' and fire the wp.cloud
+ *      provision-hosting edge function.
+ *
+ *   2. RE-PROVISION — sites row exists but wp_cloud_site_id is null
+ *      (initial provisioning failed) OR status='provisioning' (stuck).
+ *      Updates the existing row to status='provisioning' and re-fires
+ *      provision-hosting. Used by the retry-stuck-provisions cron and
+ *      by the admin "Retry" button.
+ *
+ *   3. BLOCK DUPLICATE — sites row exists, has wp_cloud_site_id, AND
+ *      status is anything other than 'provisioning'. Returns 409 to
+ *      prevent admins from accidentally clobbering a working site.
+ *
+ * State invariants:
+ *   - sites.wp_cloud_site_id != null  →  the site exists on wp.cloud
+ *   - sites.status='provisioning'     →  call to wp.cloud is in flight
+ *                                        OR was lost; retry is safe
+ *   - sites.status='active'           →  fully live; do not re-fire
+ *
+ * Subscription must be active or trialing — we don't provision against
+ * cancelled / paused / unpaid subs.
+ */
 export async function POST(req: Request) {
   // Verify admin
   const cookieStore = await cookies();

@@ -1,7 +1,44 @@
 import { createClient } from '@/lib/supabase-server';
 
 /**
- * User's sites, ordered by created_at desc.
+ * Site queries used across customer + admin dashboards.
+ *
+ * ── Site lifecycle ─────────────────────────────────────────────────
+ * `sites.status` transitions through these states:
+ *
+ *   provisioning  ── wp.cloud is creating the WordPress install. Set
+ *                    by /api/create-subscription on first signup, or
+ *                    by admin's "Provision" button. The retry-stuck-
+ *                    provisions cron re-fires the wp.cloud call if
+ *                    it failed silently (with backoff + 5-attempt
+ *                    cap, gated by metadata.provision_attempts /
+ *                    metadata.provision_giving_up).
+ *   active        ── Live. wp_cloud_site_id populated, site reachable.
+ *   paused        ── Subscription is in dunning / payment failure.
+ *                    Stripe webhook flips this. Site is suspended at
+ *                    wp.cloud but data is intact.
+ *   cancelled     ── Subscription cancelled OR Stripe pause_collection
+ *                    set. metadata.recovery_deadline is stamped to the
+ *                    sub's current_period_end. The customer has until
+ *                    that deadline to resume billing; after it passes,
+ *                    delete-expired-sites cron hard-deletes the site
+ *                    on wp.cloud and flips status → 'deleted'.
+ *   failed        ── Provisioning gave up entirely (hit the retry cap
+ *                    OR delete-expired-sites couldn't remove the wp.cloud
+ *                    site after MAX_DELETE_ATTEMPTS).
+ *   deleted       ── Permanently removed from wp.cloud. Row kept for
+ *                    audit trail.
+ *
+ * Customer-facing queries (getUserSites, etc.) hide 'cancelled' until
+ * the customer is on the recovery flow. Admin queries surface every
+ * status so support can intervene at any stage.
+ * ───────────────────────────────────────────────────────────────────
+ */
+
+/**
+ * User's sites, ordered by created_at desc. Excludes 'cancelled' so
+ * customers don't see sites that are mid-deletion countdown — those
+ * surface separately on the recovery flow if applicable.
  */
 export async function getUserSites(userId?: string) {
   const supabase = await createClient();
