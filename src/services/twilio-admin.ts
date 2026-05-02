@@ -1,3 +1,18 @@
+/**
+ * Twilio admin service. Thin wrapper around the Twilio Node SDK for
+ * the phone-number provisioning flow used by partners/admins:
+ *
+ *   - searchAvailableNumbers   — local US/CA numbers by area code
+ *   - purchasePhoneNumber      — buy + wire to our voice/SMS webhooks
+ *   - releasePhoneNumber       — release back to Twilio
+ *   - sendSms                  — outbound SMS from a provisioned number
+ *
+ * Credentials come from TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN env vars.
+ * Webhook URLs come from TWILIO_VOICE_WEBHOOK_URL / TWILIO_SMS_WEBHOOK_URL
+ * (left empty in dev — Twilio accepts the buy without webhooks set).
+ *
+ * Server-only — never import from client components.
+ */
 import twilio from 'twilio';
 
 function getClient() {

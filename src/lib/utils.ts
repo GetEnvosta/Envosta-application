@@ -1,6 +1,12 @@
+/**
+ * Shared formatting + classname helpers used across server + client.
+ * Keep this file dependency-free (only clsx + tailwind-merge) so it
+ * can be imported anywhere without dragging in Next/Supabase modules.
+ */
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+/** Concat Tailwind classnames with conflict resolution. */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }

@@ -1,3 +1,19 @@
+/**
+ * Auth/identity service. Wraps Supabase auth helpers and adds Envosta-
+ * specific concerns:
+ *
+ *   - getCurrentUser           — the authed Supabase user
+ *   - getEffectiveUserId       — same, but if an admin/partner is
+ *                                impersonating (impersonating_user_id
+ *                                cookie set), returns the impersonated
+ *                                user's ID. Most route handlers + RSCs
+ *                                should use this rather than getCurrentUser
+ *                                so impersonation Just Works.
+ *   - getUserProfile           — full users row by id
+ *
+ * Role helpers (isStaffRole, STAFF_ROLES, type StaffRole/UserRole) are
+ * re-exported from '@/lib/roles' so callers have one import path.
+ */
 import { createClient } from '@/lib/supabase-server';
 import { cookies } from 'next/headers';
 export { isStaffRole, STAFF_ROLES, type StaffRole, type UserRole } from '@/lib/roles';
