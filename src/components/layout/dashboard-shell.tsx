@@ -59,8 +59,11 @@ export function DashboardShell({
     dropdownItems.push({ divider: true }, { label: 'Staff Panel', href: '/admin', icon: Shield });
   }
 
-  // Conditional secondary nav (My Partner / Find a Partner / Partner Dashboard).
-  const sidebarExtras = (
+  // Conditional secondary nav. "Find a Partner" was removed (deprecated
+  // marketplace flow) — only "My Partner" (for customers with a linked
+  // partner) and "Partner Dashboard" (for partner-role users) remain.
+  const showSecondaryNav = user.partner_id || user.role === 'partner';
+  const sidebarExtras = showSecondaryNav ? (
     <div className="px-0 pt-3 mt-3 border-t border-gray-100 space-y-1">
       {user.partner_id && (
         <Link href="/dashboard/my-partner"
@@ -71,15 +74,6 @@ export function DashboardShell({
           <Users className="w-[18px] h-[18px] shrink-0" /> My Partner
         </Link>
       )}
-      {!user.partner_id && user.role !== 'partner' && (
-        <Link href="/dashboard/marketplace"
-          className={cn(
-            'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-200',
-            isActive('/dashboard/marketplace') ? SECONDARY_ACCENT.active : SECONDARY_ACCENT.inactive,
-          )}>
-          <Users className="w-[18px] h-[18px] shrink-0" /> Find a Partner
-        </Link>
-      )}
       {user.role === 'partner' && (
         <Link href="/partner"
           className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] text-sky-600 hover:text-sky-700 hover:bg-sky-50 transition-all duration-200">
@@ -87,7 +81,7 @@ export function DashboardShell({
         </Link>
       )}
     </div>
-  );
+  ) : null;
 
   return (
     <LayoutShell
