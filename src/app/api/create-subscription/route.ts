@@ -44,10 +44,17 @@ export async function POST(req: Request) {
       userId = existing.id;
       userEmail = existing.email;
     } else {
+      // Industry-standard "incomplete signup" pattern (Shopify / Kinsta /
+      // Stripe-recommended). The auth user is created at "Continue to
+      // Payment" so we can attach a Stripe customer + subscription, but
+      // it's tagged signup_status: 'awaiting_payment' until the first
+      // invoice clears. The webhook flips this to 'active' on payment
+      // success; the cleanup-abandoned-signups cron purges rows that
+      // sit in 'awaiting_payment' for 30 days with no paid invoice.
       const { data: authUser, error: authErr } = await sb.auth.admin.createUser({
         email: email.toLowerCase(),
         password,
-        email_confirm: true,
+        email_confirm: false, // flipped to true on first paid invoice
         user_metadata: { full_name: name },
       });
       if (authErr || !authUser.user) return NextResponse.json({ error: authErr?.message ?? 'Failed to create account' }, { status: 400 });
@@ -60,7 +67,11 @@ export async function POST(req: Request) {
         email: userEmail,
         full_name: name,
         role: 'customer',
-        metadata: { signup_source: 'embedded_checkout' },
+        metadata: {
+          signup_source: 'embedded_checkout',
+          signup_status: 'awaiting_payment',
+          signup_started_at: new Date().toISOString(),
+        },
       }, { onConflict: 'id' });
     }
   } else {

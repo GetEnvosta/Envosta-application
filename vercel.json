@@ -19,6 +19,10 @@
     {
       "path": "/api/cron/delete-expired-sites",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-abandoned-signups",
+      "schedule": "0 3 * * *"
     }
   ]
 }

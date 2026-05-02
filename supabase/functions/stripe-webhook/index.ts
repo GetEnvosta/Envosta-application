@@ -606,6 +606,31 @@ Deno.serve(async (req) => {
           const { data: existingInv } = await sb.from("invoices").select("metadata").eq("stripe_invoice_id", inv.id).maybeSingle();
           const alreadySent = (existingInv?.metadata as any)?.email_sent;
 
+          // Promote awaiting_payment signup to fully active on first paid
+          // invoice. /api/create-subscription tags new signups with
+          // metadata.signup_status: 'awaiting_payment' and email_confirm:
+          // false; here we flip both once Stripe confirms the payment.
+          const { data: pendingProfile } = await sb.from("users")
+            .select("metadata").eq("id", cust.id).maybeSingle();
+          const meta = (pendingProfile?.metadata as any) ?? {};
+          if (meta.signup_status === "awaiting_payment" || meta.signup_status === "payment_failed") {
+            await sb.from("users").update({
+              metadata: {
+                ...meta,
+                signup_status: "active",
+                payment_confirmed_at: new Date().toISOString(),
+              },
+            }).eq("id", cust.id);
+            try {
+              const adminClient: any = (sb as any).auth?.admin;
+              if (adminClient?.updateUserById) {
+                await adminClient.updateUserById(cust.id, { email_confirm: true });
+              }
+            } catch (e) {
+              console.error("auth email_confirm flip failed (non-fatal):", e);
+            }
+          }
+
           if (!alreadySent) {
             const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.id).maybeSingle();
             if (userProfile?.email) {
@@ -618,6 +643,21 @@ Deno.serve(async (req) => {
                 metadata: { ...(existingInv?.metadata as any ?? {}), email_sent: true },
               }).eq("stripe_invoice_id", inv.id);
             }
+          }
+        }
+
+        // Payment failed during signup → flip awaiting_payment user to
+        // signup_status: 'payment_failed' so it's distinguishable from a
+        // fresh awaiting_payment row when the cleanup cron + re-engagement
+        // emails decide what to do.
+        if (event.type === "invoice.payment_failed") {
+          const { data: failingProfile } = await sb.from("users")
+            .select("metadata").eq("id", cust.id).maybeSingle();
+          const fmeta = (failingProfile?.metadata as any) ?? {};
+          if (fmeta.signup_status === "awaiting_payment") {
+            await sb.from("users").update({
+              metadata: { ...fmeta, signup_status: "payment_failed", last_payment_failure_at: new Date().toISOString() },
+            }).eq("id", cust.id);
           }
         }
 

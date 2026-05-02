@@ -761,9 +761,28 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
             </div>
           ) : (
             <>
-              <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.6rem)', fontWeight: 500, letterSpacing: '-.5px', marginBottom: 24, color: t.text, textAlign: 'center' }}>
-                Complete your {isTrial ? 'signup' : 'purchase'}
+              <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.6rem)', fontWeight: 500, letterSpacing: '-.5px', marginBottom: 12, color: t.text, textAlign: 'center' }}>
+                Start your free trial
               </h2>
+
+              {/* Free trial reassurance — bold up-top callout so customers
+                  see the no-charge-for-14-days promise before they enter
+                  card details. Reduces drop-off at this step. */}
+              <div style={{
+                background: dark ? 'rgba(34,197,94,.08)' : 'rgba(34,197,94,.06)',
+                border: `1px solid ${dark ? 'rgba(34,197,94,.25)' : 'rgba(34,197,94,.3)'}`,
+                borderRadius: 14,
+                padding: '16px 20px',
+                marginBottom: 24,
+                textAlign: 'center',
+              }}>
+                <p style={{ fontSize: '.92rem', fontWeight: 600, color: '#22c55e', marginBottom: 4, letterSpacing: '.1px' }}>
+                  No charge today. No charge for 14 days.
+                </p>
+                <p style={{ fontSize: '.78rem', color: t.textSub, lineHeight: 1.55, fontWeight: 300 }}>
+                  We&rsquo;ll save your card so your site stays live after the trial — but you can cancel anytime in the next 14 days and you won&rsquo;t be charged a cent.
+                </p>
+              </div>
 
               <EmbeddedCheckout
                 clientSecret={checkoutClientSecret}
