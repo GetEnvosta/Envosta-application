@@ -6,7 +6,7 @@ import { createServerClient } from '@supabase/ssr';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  // Verify admin or studio
+  // Verify caller is admin
   const jar = await cookies();
   const supabaseAuth = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
