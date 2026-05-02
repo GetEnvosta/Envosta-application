@@ -1,3 +1,10 @@
+/**
+ * Support ticket reads. Tickets are scoped per-user; sales/onboarding
+ * tickets are filtered out of customer views and only surface in admin.
+ *
+ * Replies and status changes go through /api/tickets/* which writes to
+ * `ticket_messages` and updates `tickets.updated_at` for ordering.
+ */
 import { createClient } from '@/lib/supabase-server';
 
 /**

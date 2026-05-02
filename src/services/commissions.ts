@@ -1,3 +1,10 @@
+/**
+ * Commission queries powering the partner program payout views.
+ *
+ * Commissions are written by the stripe-webhook edge function whenever
+ * a partner-attributed invoice is paid. This file is read-only — payout
+ * status mutations happen through /api/admin/commissions/*.
+ */
 import { createClient } from '@/lib/supabase-server';
 
 export interface CommissionFilters {

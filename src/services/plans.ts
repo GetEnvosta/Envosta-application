@@ -1,3 +1,11 @@
+/**
+ * Plans/products service — hosting plans, addons, and domain pricing
+ * rows from the `products` table. Used by the marketing pricing page,
+ * the signup flow, and admin product management.
+ *
+ * Stripe-side product/price sync is handled by /api/admin/stripe/* and
+ * the stripe-webhook edge function; this file is local DB reads only.
+ */
 import { createClient } from '@/lib/supabase-server';
 
 // ─── HOSTING PLANS ───────────────────────────────────────

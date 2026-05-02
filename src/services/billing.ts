@@ -1,3 +1,10 @@
+/**
+ * Billing reads — subscriptions, invoices, payment methods.
+ *
+ * Backed by our local Supabase mirror of Stripe data (kept in sync by
+ * the stripe-webhook edge function). Don't call Stripe directly from
+ * here; use API routes that own their Stripe SDK initialization.
+ */
 import { createClient } from '@/lib/supabase-server';
 
 // ─────────────────────────────────────────────────────────────────────────────

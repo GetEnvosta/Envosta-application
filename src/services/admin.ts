@@ -1,3 +1,8 @@
+/**
+ * Admin dashboard read helpers — counts, recent signups, and other
+ * top-of-funnel queries used by /admin pages. Reads only; mutations
+ * live in the relevant API routes (e.g. /api/admin/*).
+ */
 import { createClient } from '@/lib/supabase-server';
 
 /**

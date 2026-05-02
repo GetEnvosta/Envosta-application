@@ -1,3 +1,7 @@
+/**
+ * Blog reads for the marketing site. Pulls from the `blog_posts` table.
+ * Admin authoring lives under /admin/blog and writes through API routes.
+ */
 import { createClient } from '@/lib/supabase-server';
 
 /**

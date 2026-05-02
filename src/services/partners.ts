@@ -1,3 +1,11 @@
+/**
+ * Partner program service — profile reads/writes, marketplace listings,
+ * and client attribution helpers.
+ *
+ * A partner is a `users` row with role='partner' and partner_status='approved'.
+ * Their clients are `users` rows with `partner_id = partner.id`. Commissions
+ * flow through services/commissions.ts.
+ */
 import { createClient } from '@/lib/supabase-server';
 
 // ── Partner Profile (from users table) ─────────────────────

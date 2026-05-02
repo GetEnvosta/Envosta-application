@@ -1,3 +1,8 @@
+/**
+ * Domain reads for customer + admin dashboards. Domains are
+ * registered through OpenSRS and mirrored into the `domains` table
+ * by the domain-registration API routes; this file is read-only.
+ */
 import { createClient } from '@/lib/supabase-server';
 
 /**
