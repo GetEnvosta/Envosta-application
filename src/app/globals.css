@@ -59,10 +59,10 @@
 
   /* ── Cards ── */
   .card {
-    @apply bg-white rounded-2xl border border-gray-100 shadow-sm;
+    @apply bg-white rounded-2xl border border-gray-200 shadow-sm;
   }
   .card-hover {
-    @apply card hover:shadow-md hover:border-gray-200 transition-all duration-200;
+    @apply card hover:shadow-md hover:border-gray-300 transition-all duration-200;
   }
 
   /* ── Badges ── */
@@ -138,7 +138,7 @@
 
   /* ── Section card headers ── */
   .section-card-header {
-    @apply px-5 py-4 border-b border-gray-100 flex items-center justify-between;
+    @apply px-5 py-4 border-b border-gray-200 flex items-center justify-between;
   }
   .section-card-title {
     @apply text-sm font-semibold text-gray-900;
