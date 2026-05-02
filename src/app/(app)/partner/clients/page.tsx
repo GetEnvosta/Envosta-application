@@ -41,7 +41,7 @@ export default function PartnerClientsPage() {
   }, []);
 
   async function loadClients() {
-    const res = await fetch('/api/partner/clients');
+    const res = await fetch('/api/partners/clients');
     if (res.ok) {
       const data = await res.json();
       setClients(data.clients ?? []);
@@ -55,7 +55,7 @@ export default function PartnerClientsPage() {
     e.preventDefault();
     setCreating(true);
     try {
-      const res = await fetch('/api/partner/create-client', {
+      const res = await fetch('/api/partners/create-client', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, companyName: company }),
@@ -79,7 +79,7 @@ export default function PartnerClientsPage() {
   async function handleManage(clientId: string) {
     setManagingId(clientId);
     try {
-      const res = await fetch('/api/partner/manage-client', {
+      const res = await fetch('/api/partners/manage-client', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clientId }),
