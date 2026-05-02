@@ -81,6 +81,35 @@ Deno.serve(async (req) => {
 
       console.log("Subscription upserted:", dbSub?.id, "status:", sub.status, "items:", items.length);
 
+      // ── Promote user to active whenever ANY of their subscriptions is
+      //    active. Belt-and-braces safety net for the invoice.paid handler
+      //    below — catches cases like a trialing sub with no invoice yet,
+      //    admin-created subs, or webhook delivery ordering issues.
+      //    Idempotent — if already active, this short-circuits.
+      const subActive = sub.status === "active" || sub.status === "trialing";
+      if (subActive && dbSub) {
+        const { data: profileForActive } = await sb.from("users")
+          .select("metadata").eq("id", cust.id).maybeSingle();
+        const pmeta = (profileForActive?.metadata as any) ?? {};
+        if (pmeta.signup_status && pmeta.signup_status !== "active") {
+          await sb.from("users").update({
+            metadata: {
+              ...pmeta,
+              signup_status: "active",
+              payment_confirmed_at: pmeta.payment_confirmed_at ?? new Date().toISOString(),
+            },
+          }).eq("id", cust.id);
+          try {
+            const adminClient: any = (sb as any).auth?.admin;
+            if (adminClient?.updateUserById) {
+              await adminClient.updateUserById(cust.id, { email_confirm: true });
+            }
+          } catch (e) {
+            console.error("auth email_confirm flip failed (non-fatal):", e);
+          }
+        }
+      }
+
       // ── Sync line items to sites ──
       // For each Stripe item, check if a site exists with that item ID.
       // If an item was upgraded (price changed), update the site's product_id.
