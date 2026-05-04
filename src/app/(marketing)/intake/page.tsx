@@ -46,10 +46,10 @@ const TIMELINES = [
 interface IntakePlan {
   id: string;        // slug — used as form.plan value
   name: string;
-  price: string;     // monthly $X (USD)
-  annual: string;    // annual displayed per-month $X (USD)
+  price: string;     // monthly $X (CAD)
+  annual: string;    // annual displayed per-month $X (CAD)
   annualTotal: string; // annual full charge "$Y/yr"
-  currency: 'USD';
+  currency: 'CAD';
   features: string[];
   featured?: boolean;
 }
@@ -107,11 +107,11 @@ export default function IntakePage() {
       .eq('type', 'hosting_plan')
       .eq('is_active', true)
       .then(({ data }) => {
-        // Sort by USD price so order is deterministic regardless of the
+        // Sort by CAD price so order is deterministic regardless of the
         // sort_order field state in the DB.
         const rows = ((data ?? []) as any[])
           .slice()
-          .sort((a, b) => (a.price_usd ?? a.price_cad ?? 0) - (b.price_usd ?? b.price_cad ?? 0));
+          .sort((a, b) => (a.price_cad ?? a.price_usd ?? 0) - (b.price_cad ?? b.price_usd ?? 0));
         const featuredSlug = rows.length >= 3
           ? rows[Math.floor(rows.length / 2)]?.slug
           : rows[rows.length - 1]?.slug;
@@ -151,15 +151,15 @@ export default function IntakePage() {
         };
 
         const formatted: IntakePlan[] = rows.map((p) => {
-          const monthly = p.price_usd ?? p.price_cad ?? 0;
-          const yearly = p.price_yearly_usd ?? p.price_yearly_cad ?? 0;
+          const monthly = p.price_cad ?? p.price_usd ?? 0;
+          const yearly = p.price_yearly_cad ?? p.price_yearly_usd ?? 0;
           return {
             id: p.slug,
             name: p.name,
             price: dollars(monthly),
             annual: dollars(yearly ? Math.round(yearly / 12) : 0),
             annualTotal: yearly ? `$${Math.round(yearly / 100).toLocaleString()}/yr` : '',
-            currency: 'USD',
+            currency: 'CAD',
             features: buildFeatures(p),
             featured: p.slug === featuredSlug,
           };
@@ -487,7 +487,7 @@ export default function IntakePage() {
                           {form.billing === 'annual' ? plan.annual : plan.price}
                         </div>
                         <div className="plan-period">
-                          USD/mo {form.billing === 'annual' && plan.annualTotal && `\u00b7 ${plan.annualTotal}`}
+                          CAD/mo {form.billing === 'annual' && plan.annualTotal && `\u00b7 ${plan.annualTotal}`}
                         </div>
                         <ul className="plan-features">
                           {plan.features.map(f => <li key={f}>{f}</li>)}
@@ -500,7 +500,7 @@ export default function IntakePage() {
                   <div className="design-note">
                     <div className="design-note-icon">{'\u270E'}</div>
                     <div>
-                      <h4>Design Fee: $500 USD</h4>
+                      <h4>Design Fee: $500 CAD</h4>
                       <p>
                         The design fee covers custom theme design and development. It is <strong>not charged today</strong> — the
                         customer will be invoiced $500 only after they approve the design. Hosting starts immediately on the selected plan.

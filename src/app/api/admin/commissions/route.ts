@@ -137,7 +137,7 @@ export async function PUT(req: Request) {
         },
         body: new URLSearchParams({
           amount: (-commission.amount_cad).toString(), // negative = credit
-          currency: 'usd',
+          currency: 'cad',
           description: `${commission.type === 'referral' ? 'Referral reward' : 'Affiliate commission'} — ${commission.notes || 'Envosta'}`,
         }),
       });

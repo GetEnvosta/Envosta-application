@@ -11,7 +11,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCents(cents: number, currency = 'usd') {
+export function formatCents(cents: number, currency = 'cad') {
   return new Intl.NumberFormat('en-US', {
     style: 'currency', currency, minimumFractionDigits: 2,
   }).format(cents / 100);

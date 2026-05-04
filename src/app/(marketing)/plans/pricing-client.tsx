@@ -33,7 +33,7 @@ export default function PricingClient() {
         const e = el as HTMLElement;
         e.textContent = annual ? e.dataset.annual! : e.dataset.monthly!;
       });
-      // Show/hide "billed annually" note (period label "USD/month" stays
+      // Show/hide "billed annually" note (period label "CAD/month" stays
       // because we display the per-month equivalent on annual too).
       document.querySelectorAll('.annual-note').forEach((el) => {
         (el as HTMLElement).style.display = annual ? 'block' : 'none';

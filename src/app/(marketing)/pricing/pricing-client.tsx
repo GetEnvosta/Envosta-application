@@ -32,7 +32,7 @@ export default function PricingClient() {
       });
       // Update period labels
       document.querySelectorAll('.period').forEach((el) => {
-        el.textContent = annual ? 'USD/mo' : 'USD/mo';
+        el.textContent = annual ? 'CAD/mo' : 'CAD/mo';
       });
       // Show/hide "billed annually" note
       document.querySelectorAll('.annual-note').forEach((el) => {

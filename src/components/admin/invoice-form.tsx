@@ -110,7 +110,7 @@ export function InvoiceForm(props: Props) {
         <h4 className="text-sm font-semibold text-gray-900 mb-3">Send Custom Invoice to {props.customerName}</h4>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
           <div>
-            <label className="label">Amount (USD)</label>
+            <label className="label">Amount (CAD)</label>
             <input type="number" step="0.01" className="input" placeholder="250.00" value={amount} onChange={e => setAmount(e.target.value)} />
           </div>
           <div className="sm:col-span-2">
@@ -161,7 +161,7 @@ export function InvoiceForm(props: Props) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="label">Amount (USD)</label>
+            <label className="label">Amount (CAD)</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
               <input type="number" step="0.01" min="1" className="input pl-7" placeholder="150.00"

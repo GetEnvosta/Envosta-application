@@ -183,7 +183,7 @@ export function DesignPackages() {
                   <h3 className="dp-name">{pkg.name}</h3>
                   <div className="dp-price">
                     {pkg.price}
-                    <span className="dp-price-period">USD · one-time</span>
+                    <span className="dp-price-period">CAD · one-time</span>
                   </div>
                 </div>
                 <p className="dp-blurb">{pkg.blurb}</p>

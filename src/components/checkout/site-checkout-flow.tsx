@@ -17,6 +17,8 @@ interface Plan {
   description: string;
   stripe_price_id: string;
   stripe_price_id_yearly: string;
+  stripe_price_id_cad: string | null;
+  stripe_price_id_yearly_cad: string | null;
   price_cad: number;
   price_yearly_cad: number;
   price_usd: number;
@@ -143,7 +145,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
           .eq('slug', `tld-${tld}`)
           .maybeSingle();
         if (pricing) setDomainPriceCents(
-          (pricing.metadata as any)?.registration_price_usd ?? pricing.price_usd ?? pricing.price_cad
+          (pricing.metadata as any)?.registration_price_cad ?? pricing.price_cad ?? pricing.price_usd
         );
       }
 
@@ -195,7 +197,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
             .eq('type', 'domain_tld')
             .eq('slug', `tld-${tld}`)
             .maybeSingle();
-          setDomainPriceCents(pricing ? ((pricing.metadata as any)?.registration_price_usd ?? pricing.price_usd ?? pricing.price_cad) : null);
+          setDomainPriceCents(pricing ? ((pricing.metadata as any)?.registration_price_cad ?? pricing.price_cad ?? pricing.price_usd) : null);
         }
       } else {
         setDomainError(data.error ?? 'Could not check availability');
@@ -218,7 +220,9 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
     setCheckoutError('');
 
     try {
-      const priceId = billingPeriod === 'annual' ? selectedPlan.stripe_price_id_yearly : selectedPlan.stripe_price_id;
+      const priceId = billingPeriod === 'annual'
+        ? (selectedPlan.stripe_price_id_yearly_cad ?? selectedPlan.stripe_price_id_yearly)
+        : (selectedPlan.stripe_price_id_cad ?? selectedPlan.stripe_price_id);
       if (!priceId) {
         setCheckoutError(`No pricing configured for ${selectedPlan.name} (${billingPeriod}).`);
         setCheckoutLoading(false);
@@ -493,13 +497,13 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                   </div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 4 }}>
                     <span style={{ fontSize: '2rem', fontWeight: 600, color: t.text, letterSpacing: '-1px' }}>
-                      ${billingPeriod === 'annual' ? ((plan.price_yearly_usd ?? 0) / 100 / 12).toFixed(0) : ((plan.price_usd ?? 0) / 100).toFixed(0)}
+                      ${billingPeriod === 'annual' ? (((plan.price_yearly_cad ?? plan.price_yearly_usd) ?? 0) / 100 / 12).toFixed(0) : (((plan.price_cad ?? plan.price_usd) ?? 0) / 100).toFixed(0)}
                     </span>
                     <span style={{ fontSize: '.8rem', color: t.textMuted, fontWeight: 300 }}>
-                      USD/mo
+                      CAD/mo
                     </span>
                   </div>
-                  {isTrial && <p style={{ fontSize: '.72rem', color: '#22c55e', fontWeight: 500, marginBottom: 10 }}>Then ${((plan.price_usd ?? 0) / 100).toFixed(0)}/mo after trial</p>}
+                  {isTrial && <p style={{ fontSize: '.72rem', color: '#22c55e', fontWeight: 500, marginBottom: 10 }}>Then ${(((plan.price_cad ?? plan.price_usd) ?? 0) / 100).toFixed(0)}/mo after trial</p>}
                   {!isTrial && <div style={{ marginBottom: 10 }} />}
                   <p style={{ fontSize: '.78rem', color: t.textMuted, lineHeight: 1.6, fontWeight: 300, marginBottom: 16 }}>{plan.description}</p>
                   <div style={{ flex: 1 }}>
@@ -662,7 +666,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                     <span style={{ fontWeight: 600, color: t.text, fontSize: '.88rem' }}>{domainResult.domain}</span>
                     <span style={{ color: domainResult.available ? '#22c55e' : 'var(--t3)', fontSize: '.8rem' }}>
                       {domainResult.available
-                        ? `is available${domainPriceCents ? ` · $${(domainPriceCents / 100).toFixed(0)} USD/yr` : ''}`
+                        ? `is available${domainPriceCents ? ` · $${(domainPriceCents / 100).toFixed(0)} CAD/yr` : ''}`
                         : 'is taken'}
                     </span>
                   </div>
@@ -788,10 +792,10 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                 clientSecret={checkoutClientSecret}
                 type={checkoutType}
                 planName={`${selectedPlan.name} Plan${billingPeriod === 'annual' ? ' (Annual)' : ''}`}
-                planPrice={isTrial ? '$0 today' : billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_usd ?? selectedPlan.price_yearly_cad ?? 0) / 100).toFixed(0)} USD/yr` : `$${((selectedPlan.price_usd ?? selectedPlan.price_cad) / 100).toFixed(0)} USD/mo`}
-                fullPrice={billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_usd ?? selectedPlan.price_yearly_cad ?? 0) / 100).toFixed(0)} USD/yr` : `$${((selectedPlan.price_usd ?? selectedPlan.price_cad) / 100).toFixed(0)} USD/mo`}
+                planPrice={isTrial ? '$0 today' : billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_cad ?? selectedPlan.price_yearly_usd ?? 0) / 100).toFixed(0)} CAD/yr` : `$${((selectedPlan.price_cad ?? selectedPlan.price_usd) / 100).toFixed(0)} CAD/mo`}
+                fullPrice={billingPeriod === 'annual' ? `$${((selectedPlan.price_yearly_cad ?? selectedPlan.price_yearly_usd ?? 0) / 100).toFixed(0)} CAD/yr` : `$${((selectedPlan.price_cad ?? selectedPlan.price_usd) / 100).toFixed(0)} CAD/mo`}
                 domainName={selectedDomain && domainMode === 'new' ? selectedDomain : undefined}
-                domainPrice={selectedDomain && domainMode === 'new' && domainPriceCents ? `$${(domainPriceCents / 100).toFixed(0)} USD/yr` : undefined}
+                domainPrice={selectedDomain && domainMode === 'new' && domainPriceCents ? `$${(domainPriceCents / 100).toFixed(0)} CAD/yr` : undefined}
                 isTrial={isTrial ?? false}
                 dark={dark}
                 onSuccess={async () => {

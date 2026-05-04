@@ -84,7 +84,7 @@ export async function POST(req: Request) {
       couponParams.percent_off = percent_off;
     } else {
       couponParams.amount_off = amount_off;
-      couponParams.currency = 'usd';
+      couponParams.currency = 'cad';
     }
 
     const coupon = await stripe.coupons.create(couponParams);

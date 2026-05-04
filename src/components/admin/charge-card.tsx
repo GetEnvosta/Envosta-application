@@ -20,7 +20,7 @@ export function ChargeCard({ customerId, customerName }: Props) {
 
     const amountCents = Math.round(parseFloat(amount) * 100);
     if (amountCents < 100) { setResult({ ok: false, message: 'Minimum charge is $1.00' }); return; }
-    if (!confirm(`Charge ${customerName} $${parseFloat(amount).toFixed(2)} USD for "${description}"?`)) return;
+    if (!confirm(`Charge ${customerName} $${parseFloat(amount).toFixed(2)} CAD for "${description}"?`)) return;
 
     setCharging(true);
     setResult(null);
@@ -72,7 +72,7 @@ export function ChargeCard({ customerId, customerName }: Props) {
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div>
-          <label className="label">Amount (USD)</label>
+          <label className="label">Amount (CAD)</label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
             <input type="number" step="0.01" min="1" className="input pl-7" placeholder="250.00"

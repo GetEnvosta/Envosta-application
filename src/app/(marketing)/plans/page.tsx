@@ -118,7 +118,7 @@ function getFeatures(plan: HostingPlan): string[] {
 
 export default async function PricingPage() {
   const supabase = await createClient();
-  // Pull every active hosting plan. We sort client-side by USD price so the
+  // Pull every active hosting plan. We sort client-side by CAD price so the
   // order is deterministic — sort_order in the DB is unreliable (often left
   // at 0/NULL when a new plan is added).
   const { data: rawPlans } = await supabase
@@ -129,7 +129,7 @@ export default async function PricingPage() {
 
   const plans: HostingPlan[] = ((rawPlans ?? []) as any[])
     .slice()
-    .sort((a, b) => (a.price_usd ?? a.price_cad ?? 0) - (b.price_usd ?? b.price_cad ?? 0));
+    .sort((a, b) => (a.price_cad ?? a.price_usd ?? 0) - (b.price_cad ?? b.price_usd ?? 0));
 
   // Mark the middle plan featured if there are 3+, else the most expensive.
   const featuredSlug = plans.length >= 3
@@ -141,8 +141,8 @@ export default async function PricingPage() {
 
   const overallSavings = (() => {
     // Use the cheapest plan's savings as the badge anchor.
-    const cheapest = [...plans].sort((a, b) => (a.price_usd ?? 0) - (b.price_usd ?? 0))[0];
-    return annualSavings(cheapest?.price_usd ?? null, cheapest?.price_yearly_usd ?? null);
+    const cheapest = [...plans].sort((a, b) => (a.price_cad ?? 0) - (b.price_cad ?? 0))[0];
+    return annualSavings(cheapest?.price_cad ?? cheapest?.price_usd ?? null, cheapest?.price_yearly_cad ?? cheapest?.price_yearly_usd ?? null);
   })();
 
   return (
@@ -277,8 +277,8 @@ export default async function PricingPage() {
           )}
           {plans.map((plan, idx) => {
             const isFeatured = plan.slug === featuredSlug;
-            const monthly = plan.price_usd ?? plan.price_cad ?? 0;
-            const yearly = plan.price_yearly_usd ?? plan.price_yearly_cad ?? 0;
+            const monthly = plan.price_cad ?? plan.price_usd ?? 0;
+            const yearly = plan.price_yearly_cad ?? plan.price_yearly_usd ?? 0;
             const yearlyDisplayPerMonth = annualMonthly(yearly);
             const savings = annualSavings(monthly, yearly);
             const features = getFeatures(plan);
@@ -305,7 +305,7 @@ export default async function PricingPage() {
                     {yearly ? yearlyDisplayPerMonth : dollars(monthly)}
                   </span>
                 </div>
-                <div className="p-card-period">USD per month</div>
+                <div className="p-card-period">CAD per month</div>
                 <div className="annual-note-slot">
                   {yearly > 0 && (
                     <div className="annual-note">
@@ -362,7 +362,7 @@ export default async function PricingPage() {
                 <tr>
                   <td>Price</td>
                   {plans.map((plan) => (
-                    <td key={plan.id}>${dollars(plan.price_usd ?? plan.price_cad)} USD/mo</td>
+                    <td key={plan.id}>${dollars(plan.price_cad ?? plan.price_usd)} CAD/mo</td>
                   ))}
                 </tr>
                 <tr>

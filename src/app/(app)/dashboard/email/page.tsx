@@ -65,7 +65,7 @@ export default function EmailPage() {
           <span className="badge-blue">Recommended</span>
         </div>
         <p className="text-sm text-gray-500 mb-4">
-          Business Starter &mdash; $7.20 USD/user/month
+          Business Starter &mdash; $7.20 CAD/user/month
         </p>
         <ul className="space-y-2 mb-5">
           {features.map((f, i) => (

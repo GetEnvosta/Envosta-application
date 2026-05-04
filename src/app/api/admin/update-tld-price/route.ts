@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       const stripePrice = await stripe.prices.create({
         product: stripeProductId,
         unit_amount: effectivePrice, // already in cents
-        currency: 'usd',
+        currency: 'cad',
         recurring: { interval: 'year' },
         metadata: { envosta_product_id: id },
       });
