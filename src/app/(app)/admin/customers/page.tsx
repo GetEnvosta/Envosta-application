@@ -44,7 +44,7 @@ export default async function UsersPage({
     if (u.sub_status === 'trialing') return { label: 'trialing', className: 'bg-blue-50 text-blue-700' };
     if (u.sub_status === 'past_due') return { label: 'past due', className: 'bg-red-50 text-red-700' };
     if (u.sub_status === 'paused') return { label: 'paused', className: 'bg-amber-50 text-amber-700' };
-    if (u.sub_status === 'incomplete') return { label: 'incomplete', className: 'bg-orange-50 text-orange-700' };
+    if (u.sub_status === 'incomplete') return { label: 'abandoned cart', className: 'bg-orange-50 text-orange-700' };
     if (u.sub_status === 'canceled' || u.sub_status === 'cancelled') return { label: 'cancelled', className: 'bg-red-50 text-red-600' };
     if (u.claimed === false) return { label: 'unclaimed', className: 'bg-amber-50 text-amber-700' };
     if (u.site_count === 0 && u.domain_count === 0) return { label: 'inactive', className: 'bg-gray-100 text-gray-500' };
