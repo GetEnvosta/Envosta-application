@@ -96,7 +96,9 @@ function ClaimAccountContent() {
       }
 
       setStep('success');
-      setTimeout(() => router.push('/dashboard'), 2000);
+      const hasPreselected = !!data?.preselectedPlanId;
+      const dest = hasPreselected ? '/dashboard/billing?activate=1' : '/dashboard?activate=1';
+      setTimeout(() => router.push(dest), 2000);
     } catch (e) {
       setError('Something went wrong');
       setSaving(false);

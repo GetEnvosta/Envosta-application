@@ -29,10 +29,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Staff or partner access required' }, { status: 403 });
   }
 
-  const { name, email, phone, company, siteLabel, expiresInDays } = await req.json();
+  const { name, email, phone, company, siteLabel, productId, expiresInDays } = await req.json();
   if (!name || !email) return NextResponse.json({ error: 'name and email are required' }, { status: 400 });
+  if (siteLabel && !productId) {
+    return NextResponse.json({ error: 'productId is required when creating a site' }, { status: 400 });
+  }
 
   const sb = getSupabaseAdmin();
+
+  // If we're creating a site, validate the plan exists.
+  let plan: { id: string; slug: string; name: string } | null = null;
+  if (siteLabel && productId) {
+    const { data: planRow } = await sb
+      .from('products')
+      .select('id, slug, name, type, is_active')
+      .eq('id', productId)
+      .maybeSingle();
+    if (!planRow || planRow.type !== 'hosting_plan' || !planRow.is_active) {
+      return NextResponse.json({ error: 'Invalid or inactive hosting plan' }, { status: 400 });
+    }
+    plan = { id: planRow.id, slug: planRow.slug, name: planRow.name };
+  }
 
   // Check if email already exists
   const { data: existing } = await sb.from('users').select('id, claimed').eq('email', email).maybeSingle();
@@ -62,6 +79,11 @@ export async function POST(req: Request) {
     const userId = authUser.user.id;
 
     // Create user profile
+    const userMetadata: Record<string, any> = {
+      signup_source: 'admin_unclaimed',
+    };
+    if (productId) userMetadata.preselected_plan_id = productId;
+
     await sb.from('users').upsert({
       id: userId,
       email,
@@ -73,16 +95,17 @@ export async function POST(req: Request) {
       claim_token: claimToken,
       claim_expires_at: claimExpiresAt,
       created_by: user.id,
+      metadata: userMetadata,
       // If creator is a partner, auto-assign as partner
       partner_id: callerProfile?.role === 'partner' ? user.id : null,
     }, { onConflict: 'id' });
 
     // Create a site if label provided
     let siteId = null;
-    if (siteLabel) {
-      const slug = siteLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30);
+    if (siteLabel && plan) {
       const { data: site } = await sb.from('sites').insert({
         user_id: userId,
+        product_id: plan.id,
         label: siteLabel,
         status: 'provisioning',
         server_region: 'dca',
@@ -90,9 +113,36 @@ export async function POST(req: Request) {
         bursting_enabled: false,
         max_php_workers: 2,
         max_ssd_gb: 25,
-        metadata: { auto_provisioned: false, created_by: user.id, unclaimed: true },
+        metadata: {
+          unclaimed: true,
+          created_by_admin: user.id,
+        },
       }).select('id').single();
       siteId = site?.id ?? null;
+
+      // Fire wp.cloud provisioning. Best-effort — if it fails, the
+      // retry-stuck-provisions cron will pick it up.
+      if (siteId) {
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/provision-hosting`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+            },
+            body: JSON.stringify({
+              serviceId: siteId,
+              label: siteLabel,
+              region: 'dca',
+              phpVersion: '8.4',
+              planId: plan.id,
+              userId,
+            }),
+          });
+        } catch (e) {
+          console.error('create-unclaimed: provision-hosting fire failed (will retry via cron)', e);
+        }
+      }
     }
 
     // Build claim URL

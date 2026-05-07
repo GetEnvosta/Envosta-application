@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   // Look up the unclaimed account
   const { data: user } = await sb
     .from('users')
-    .select('id, email, full_name, claimed, claim_expires_at')
+    .select('id, email, full_name, claimed, claim_expires_at, metadata')
     .eq('claim_token', token)
     .eq('claimed', false)
     .maybeSingle();
@@ -54,5 +54,7 @@ export async function POST(req: Request) {
     level: 'info',
   });
 
-  return NextResponse.json({ success: true, email: user.email });
+  const preselectedPlanId = (user.metadata as any)?.preselected_plan_id ?? null;
+
+  return NextResponse.json({ success: true, email: user.email, preselectedPlanId });
 }

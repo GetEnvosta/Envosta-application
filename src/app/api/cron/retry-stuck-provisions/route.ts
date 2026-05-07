@@ -68,9 +68,11 @@ export async function GET(req: Request) {
   const candidates = (stuck ?? []).filter((s: any) => {
     const meta = (s.metadata as any) ?? {};
     if (meta.provision_giving_up) return false;
-    // Skip unclaimed-account placeholder sites — those are intentionally
-    // unprovisioned until the customer claims the account and adds billing.
-    if (meta.unclaimed === true || meta.auto_provisioned === false) return false;
+    // Skip sites explicitly tagged as not auto-provisioned (e.g. manual
+    // admin-only flows). Unclaimed sites are NOT skipped — admin
+    // "Create Account for Client" provisions at creation time, and the
+    // initial fire-and-forget call may have failed transiently.
+    if (meta.auto_provisioned === false) return false;
     const attempts = meta.provision_attempts ?? 0;
     if (attempts >= MAX_ATTEMPTS) return false;
     // Backoff: skip if we tried too recently for this attempt count.

@@ -1,7 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2, UserPlus, Copy, Check, ExternalLink } from 'lucide-react';
+import { createClient } from '@/lib/supabase-browser';
+
+type Plan = {
+  id: string;
+  name: string;
+  slug: string;
+  price_cad: number | null;
+  price_usd: number | null;
+};
 
 export function CreateUnclaimedAccount() {
   const [open, setOpen] = useState(false);
@@ -10,15 +19,38 @@ export function CreateUnclaimedAccount() {
   const [phone, setPhone] = useState('');
   const [company, setCompany] = useState('');
   const [siteLabel, setSiteLabel] = useState('');
+  const [productId, setProductId] = useState('');
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [expiresInDays, setExpiresInDays] = useState(30);
   const [creating, setCreating] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+    const supabase = createClient();
+    supabase
+      .from('products')
+      .select('id, name, slug, price_cad, price_usd')
+      .eq('type', 'hosting_plan')
+      .eq('is_active', true)
+      .order('sort_order')
+      .then(({ data }) => {
+        const list = (data ?? []) as Plan[];
+        setPlans(list);
+        if (list.length > 0 && !productId) setProductId(list[0].id);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   async function handleCreate() {
     if (!name.trim() || !email.trim()) {
       setError('Name and email are required');
+      return;
+    }
+    if (siteLabel.trim() && !productId) {
+      setError('Please select a hosting plan for the site');
       return;
     }
     setCreating(true);
@@ -35,6 +67,7 @@ export function CreateUnclaimedAccount() {
           phone: phone.trim() || undefined,
           company: company.trim() || undefined,
           siteLabel: siteLabel.trim() || undefined,
+          productId: siteLabel.trim() ? productId : undefined,
           expiresInDays,
         }),
       });
@@ -136,6 +169,25 @@ export function CreateUnclaimedAccount() {
           <label className="block text-xs text-gray-500 mb-1">Site Name</label>
           <input type="text" value={siteLabel} onChange={e => setSiteLabel(e.target.value)} className={inputClass} placeholder="smith-plumbing" />
           <p className="text-[10px] text-gray-400 mt-0.5">Creates a site and starts provisioning</p>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">
+            Hosting Plan {siteLabel.trim() ? '*' : ''}
+          </label>
+          <select
+            value={productId}
+            onChange={e => setProductId(e.target.value)}
+            className={inputClass}
+            disabled={plans.length === 0}
+          >
+            {plans.length === 0 && <option value="">Loading…</option>}
+            {plans.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.name}{p.price_cad != null ? ` — $${p.price_cad} CAD/mo` : ''}
+              </option>
+            ))}
+          </select>
+          <p className="text-[10px] text-gray-400 mt-0.5">Customer will check out for this plan when they claim</p>
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">Expires In (days)</label>
