@@ -96,8 +96,19 @@ function ClaimAccountContent() {
       }
 
       setStep('success');
-      const hasPreselected = !!data?.preselectedPlanId;
-      const dest = hasPreselected ? '/dashboard/billing?activate=1' : '/dashboard?activate=1';
+      // Comped sites skip the checkout funnel entirely.
+      // Otherwise, if there's a preselected plan, route to billing-activate;
+      // forward any preselected coupon code so the checkout flow can apply it.
+      let dest: string;
+      if (data?.comp === true) {
+        dest = '/dashboard?welcome=1';
+      } else if (data?.preselectedPlanId) {
+        const params = new URLSearchParams({ activate: '1' });
+        if (data?.preselectedCouponCode) params.set('coupon', data.preselectedCouponCode);
+        dest = `/dashboard/billing?${params.toString()}`;
+      } else {
+        dest = '/dashboard?activate=1';
+      }
       setTimeout(() => router.push(dest), 2000);
     } catch (e) {
       setError('Something went wrong');

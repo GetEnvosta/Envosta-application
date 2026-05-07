@@ -15,6 +15,8 @@ import { AttachDomainSubscription } from '@/components/admin/attach-domain-subsc
 import { ImpersonateButton } from '@/components/admin/impersonate-button';
 import { PlanSwitcher } from '@/components/sites/plan-switcher';
 import { ClaimLinkBanner } from '@/components/admin/claim-link-banner';
+import { ProvisionStatusBadge } from '@/components/admin/provision-status-badge';
+import { AddSiteForCustomer } from '@/components/admin/add-site-for-customer';
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -230,25 +232,28 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           </div>
         )}
 
-        {/* Section header: count on left, plan-allotment indicator on right. */}
+        {/* Section header: count on left, plan-allotment + add-site on right. */}
         <div className="section-card-header">
           <h2 className="section-card-title">Sites ({activeSites.length})</h2>
-          {sitesAllowed != null && (
-            <span
-              className={`ml-auto text-xs font-medium px-2.5 py-1 rounded-full ${
-                sitesUsed >= sitesAllowed
-                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              }`}
-              title={
-                sitesUsed >= sitesAllowed
-                  ? `Plan limit reached — upgrade for more sites`
-                  : `Plan allows ${sitesAllowed} site${sitesAllowed === 1 ? '' : 's'}`
-              }
-            >
-              {sitesUsed} <span className="opacity-50">of</span> {sitesAllowed} sites used
-            </span>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            {sitesAllowed != null && (
+              <span
+                className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                  sitesUsed >= sitesAllowed
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                }`}
+                title={
+                  sitesUsed >= sitesAllowed
+                    ? `Plan limit reached — upgrade for more sites`
+                    : `Plan allows ${sitesAllowed} site${sitesAllowed === 1 ? '' : 's'}`
+                }
+              >
+                {sitesUsed} <span className="opacity-50">of</span> {sitesAllowed} sites used
+              </span>
+            )}
+            <AddSiteForCustomer customerId={user.id} />
+          </div>
         </div>
 
         {/* Site list */}
@@ -276,7 +281,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                           <Server className={`w-3.5 h-3.5 ${isCancelled ? 'text-red-400' : 'text-blue-600'}`} />
                         </div>
                         <span className="text-sm font-medium text-admin-600 truncate">{s.label}</span>
-                        <span className={statusColor(s.status)}>{s.status}</span>
+                        <ProvisionStatusBadge site={s} showDetail />
                         {isCancelled && daysLeft > 0 && (
                           <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">{daysLeft}d recovery</span>
                         )}

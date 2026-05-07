@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Staff or partner access required' }, { status: 403 });
   }
 
-  const { name, email, phone, company, siteLabel, productId, expiresInDays } = await req.json();
+  const { name, email, phone, company, siteLabel, productId, expiresInDays, comp, couponCode } = await req.json();
   if (!name || !email) return NextResponse.json({ error: 'name and email are required' }, { status: 400 });
   if (siteLabel && !productId) {
     return NextResponse.json({ error: 'productId is required when creating a site' }, { status: 400 });
@@ -82,7 +82,12 @@ export async function POST(req: Request) {
     const userMetadata: Record<string, any> = {
       signup_source: 'admin_unclaimed',
     };
-    if (productId) userMetadata.preselected_plan_id = productId;
+    // Skip preselected_plan_id for comped sites — we don't want the
+    // claim flow pushing them to a checkout. They still get the plan
+    // for sizing/limits via sites.product_id.
+    if (productId && comp !== true) userMetadata.preselected_plan_id = productId;
+    if (comp === true) userMetadata.comp = true;
+    if (couponCode && comp !== true) userMetadata.preselected_coupon_code = couponCode;
 
     await sb.from('users').upsert({
       id: userId,
@@ -116,6 +121,7 @@ export async function POST(req: Request) {
         metadata: {
           unclaimed: true,
           created_by_admin: user.id,
+          ...(comp === true ? { comp: true } : {}),
         },
       }).select('id').single();
       siteId = site?.id ?? null;

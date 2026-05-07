@@ -54,7 +54,16 @@ export async function POST(req: Request) {
     level: 'info',
   });
 
-  const preselectedPlanId = (user.metadata as any)?.preselected_plan_id ?? null;
+  const meta = (user.metadata as any) ?? {};
+  const preselectedPlanId = meta.preselected_plan_id ?? null;
+  const preselectedCouponCode = meta.preselected_coupon_code ?? null;
+  const isComp = meta.comp === true;
 
-  return NextResponse.json({ success: true, email: user.email, preselectedPlanId });
+  return NextResponse.json({
+    success: true,
+    email: user.email,
+    preselectedPlanId,
+    preselectedCouponCode,
+    comp: isComp,
+  });
 }

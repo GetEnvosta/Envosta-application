@@ -65,6 +65,15 @@ export async function GET(req: Request) {
 
   for (const site of candidates ?? []) {
     const meta = (site.metadata as any) ?? {};
+
+    // Comped sites don't have subscriptions so they should never be in
+    // a cancelled-with-deadline state. If they somehow are, skip — comp
+    // sites aren't subject to the no-payment reaper.
+    if (meta.comp === true) {
+      results.push({ siteId: site.id, status: 'skipped — comped site' });
+      continue;
+    }
+
     const attempts = (meta.delete_attempts ?? 0) + 1;
 
     // Persist attempt counter BEFORE firing.

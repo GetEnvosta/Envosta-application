@@ -22,6 +22,8 @@ export function CreateUnclaimedAccount() {
   const [productId, setProductId] = useState('');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [expiresInDays, setExpiresInDays] = useState(30);
+  const [comp, setComp] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
   const [creating, setCreating] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
@@ -69,6 +71,8 @@ export function CreateUnclaimedAccount() {
           siteLabel: siteLabel.trim() || undefined,
           productId: siteLabel.trim() ? productId : undefined,
           expiresInDays,
+          comp,
+          couponCode: couponCode.trim() || null,
         }),
       });
       const data = await res.json();
@@ -91,7 +95,8 @@ export function CreateUnclaimedAccount() {
 
   function reset() {
     setName(''); setEmail(''); setPhone(''); setCompany(''); setSiteLabel('');
-    setExpiresInDays(30); setResult(null); setError(''); setOpen(false);
+    setExpiresInDays(30); setComp(false); setCouponCode('');
+    setResult(null); setError(''); setOpen(false);
   }
 
   if (!open) {
@@ -187,7 +192,11 @@ export function CreateUnclaimedAccount() {
               </option>
             ))}
           </select>
-          <p className="text-[10px] text-gray-400 mt-0.5">Customer will check out for this plan when they claim</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">
+            {comp
+              ? 'Used for sizing only — customer will not be charged'
+              : 'Customer will check out for this plan when they claim'}
+          </p>
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">Expires In (days)</label>
@@ -195,6 +204,27 @@ export function CreateUnclaimedAccount() {
             onChange={e => setExpiresInDays(Math.min(90, Math.max(7, parseInt(e.target.value) || 30)))}
             className={inputClass} />
         </div>
+      </div>
+
+      {/* Comp + coupon — collapsed under the main grid because they're rarely used */}
+      <div className="border-t border-gray-200 pt-3 space-y-2">
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" checked={comp} onChange={e => setComp(e.target.checked)} />
+          Comp this site (no charge, no subscription)
+        </label>
+        {!comp && (
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Coupon code (optional)</label>
+            <input
+              type="text"
+              value={couponCode}
+              onChange={e => setCouponCode(e.target.value)}
+              className={inputClass}
+              placeholder="LAUNCH100"
+            />
+            <p className="text-[10px] text-gray-400 mt-0.5">Applied at checkout when the customer claims</p>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}

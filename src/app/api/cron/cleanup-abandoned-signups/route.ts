@@ -88,6 +88,17 @@ export async function GET(req: Request) {
         continue;
       }
 
+      // Skip if all of this user's sites are comped — they're not paying
+      // because we explicitly told them they don't have to.
+      const { data: userSites } = await sb
+        .from('sites')
+        .select('id, metadata')
+        .eq('user_id', user.id);
+      if (userSites && userSites.length > 0 && userSites.every((s: any) => (s.metadata as any)?.comp === true)) {
+        results.push({ email: user.email, status: 'skipped — all sites comped' });
+        continue;
+      }
+
       // Cascade-delete related rows. We do this manually in case FK
       // cascades aren't set up everywhere.
       await sb.from('sites').delete().eq('user_id', user.id);
