@@ -172,20 +172,53 @@ Deno.serve(async (req) => {
       }
 
       if (event.type === "customer.subscription.created" && shouldProvision && dbSub && primaryPlan?.type === "hosting_plan" && !isDomainRenewal && !isDomainPurchase && !isDomainTld) {
-        // Check if ANY site already exists for this subscription
-        const { data: existingSites } = await sb.from("sites")
-          .select("id")
-          .eq("subscription_id", dbSub.id)
-          .limit(1);
+        const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.id).maybeSingle();
+        const name = profile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
+        const domainFromMeta = sub.metadata?.domain_name ?? null;
+        const planMeta = primaryPlan?.metadata as any ?? {};
 
-        if (!existingSites?.length) {
-          const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.id).maybeSingle();
-          const name = profile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
-          const domainFromMeta = sub.metadata?.domain_name ?? null;
-          const planMeta = primaryPlan?.metadata as any ?? {};
+        // svc holds the site we should provision/operate on. May come from
+        // (1) pre-linked admin-created site via metadata.envosta_site_id,
+        // (2) site already linked to this subscription, or
+        // (3) a brand-new INSERT (first-payment signup, the original path).
+        let svc: { id: string; wp_cloud_site_id: string | null; label?: string | null } | null = null;
+        let wasNewlyInserted = false;
 
-          // Create the site linked to the first line item
-          const { data: svc, error: svcErr } = await sb.from("sites").insert({
+        // ─── Pre-linked site path ──────────────────────────────────
+        const preLinkedSiteId = sub.metadata?.envosta_site_id;
+        if (preLinkedSiteId) {
+          const { data: pre } = await sb.from("sites")
+            .select("id, wp_cloud_site_id, label, user_id")
+            .eq("id", preLinkedSiteId)
+            .maybeSingle();
+          if (pre && pre.user_id === cust.id) {
+            await sb.from("sites").update({
+              subscription_id: dbSub.id,
+              stripe_subscription_item_id: firstItem?.id ?? null,
+              product_id: primaryPlan?.id ?? null,
+            }).eq("id", pre.id);
+            svc = { id: pre.id, wp_cloud_site_id: pre.wp_cloud_site_id, label: pre.label };
+            console.log("Pre-linked admin-created site attached:", pre.id);
+          } else {
+            console.warn("envosta_site_id stamped but site not found or wrong user:", preLinkedSiteId);
+          }
+        }
+
+        // ─── Existing site by subscription_id ──────────────────────
+        if (!svc) {
+          const { data: existing } = await sb.from("sites")
+            .select("id, wp_cloud_site_id, label")
+            .eq("subscription_id", dbSub.id)
+            .limit(1);
+          if (existing?.length) {
+            svc = existing[0] as any;
+            console.log("Site already linked to this subscription:", svc!.id);
+          }
+        }
+
+        // ─── Insert new site (original signup path) ────────────────
+        if (!svc) {
+          const { data: inserted, error: svcErr } = await sb.from("sites").insert({
             user_id: cust.id,
             subscription_id: dbSub.id,
             product_id: primaryPlan?.id ?? null,
@@ -204,11 +237,17 @@ Deno.serve(async (req) => {
               plan_slug: primaryPlan?.slug ?? "minimum",
               onboarding_type: planMeta.onboarding_type ?? "standard",
             },
-          }).select("id").single();
-          console.log("Site created:", svc?.id, "err:", svcErr?.message);
+          }).select("id, wp_cloud_site_id, label").single();
+          console.log("Site created:", inserted?.id, "err:", svcErr?.message);
+          if (inserted && !svcErr) {
+            svc = inserted as any;
+            wasNewlyInserted = true;
+          }
+        }
 
+        if (svc) {
           // Update the Stripe item with our site ID for future reconciliation
-          if (svc && firstItem?.id) {
+          if (firstItem?.id) {
             try {
               await stripe.subscriptionItems.update(firstItem.id, {
                 metadata: { envosta_site_id: svc.id },
@@ -216,8 +255,9 @@ Deno.serve(async (req) => {
             } catch { /* non-fatal */ }
           }
 
-          // Send welcome email
-          if (svc && !svcErr) {
+          // Send welcome email — only on brand-new insert. For admin-pre-created
+          // sites, admin already sent a claim email.
+          if (wasNewlyInserted) {
             const { data: userProfile } = await sb.from("users").select("email, full_name").eq("id", cust.id).maybeSingle();
             if (userProfile?.email) {
               const planName = primaryPlan?.slug ? primaryPlan.slug.charAt(0).toUpperCase() + primaryPlan.slug.slice(1) : "Hosting";
@@ -226,8 +266,8 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Auto-register domain at OpenSRS
-          if (domainFromMeta && svc) {
+          // Auto-register domain at OpenSRS — only on brand-new insert
+          if (wasNewlyInserted && domainFromMeta) {
             const { data: existingDomain } = await sb.from("domains")
               .select("id, status").eq("domain_name", domainFromMeta).eq("user_id", cust.id).maybeSingle();
 
@@ -315,8 +355,11 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Auto-provision wp.cloud site
-          if (svc) {
+          // ─── Idempotent wp.cloud provisioning ─────────────────────
+          // Only fire provision-hosting when the site doesn't yet have a
+          // wp.cloud install. Admin-pre-created sites already provisioned
+          // at admin-create time, so this is a no-op for them.
+          if (!svc.wp_cloud_site_id) {
             try {
               console.log("Auto-provisioning site:", svc.id);
               const provRes = await fetch(`${SUPABASE_URL}/functions/v1/provision-hosting`, {
@@ -327,7 +370,7 @@ Deno.serve(async (req) => {
                 },
                 body: JSON.stringify({
                   serviceId: svc.id,
-                  label: `${name}-site`,
+                  label: svc.label ?? `${name}-site`,
                   region: "dca",
                   phpVersion: "8.4",
                   planId: primaryPlan?.id ?? null,
@@ -341,9 +384,11 @@ Deno.serve(async (req) => {
             } catch (provErr) {
               console.error("Auto-provision error (non-fatal):", provErr);
             }
+          } else {
+            console.log("Site already provisioned on wp.cloud, skipping:", svc.id, svc.wp_cloud_site_id);
           }
         } else {
-          console.log("Site(s) already exist for subscription:", dbSub.id);
+          console.log("No site resolved for subscription (insert failed?):", dbSub.id);
         }
       }
 
