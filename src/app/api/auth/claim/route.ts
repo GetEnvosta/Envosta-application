@@ -58,6 +58,8 @@ export async function POST(req: Request) {
   const preselectedPlanId = meta.preselected_plan_id ?? null;
   const preselectedCouponCode = meta.preselected_coupon_code ?? null;
   const isComp = meta.comp === true;
+  const pendingSubscriptionId = meta.pending_subscription_id ?? null;
+  const pendingSetupClientSecret = meta.pending_setup_intent_client_secret ?? null;
 
   return NextResponse.json({
     success: true,
@@ -65,5 +67,7 @@ export async function POST(req: Request) {
     preselectedPlanId,
     preselectedCouponCode,
     comp: isComp,
+    pendingSubscriptionId,
+    pendingSetupClientSecret,
   });
 }

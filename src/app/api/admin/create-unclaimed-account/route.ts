@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { isStaffRole } from '@/lib/roles';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { preCreateAdminSubscription } from '@/lib/admin-precreate-subscription';
 
 export const dynamic = 'force-dynamic';
 
@@ -107,6 +108,7 @@ export async function POST(req: Request) {
 
     // Create a site if label provided
     let siteId = null;
+    let subscriptionWarning: string | undefined;
     if (siteLabel && plan) {
       const { data: site } = await sb.from('sites').insert({
         user_id: userId,
@@ -125,6 +127,26 @@ export async function POST(req: Request) {
         },
       }).select('id').single();
       siteId = site?.id ?? null;
+
+      // Pre-create Stripe sub (skip for comped sites — they have no Stripe billing)
+      if (siteId && comp !== true) {
+        const subResult = await preCreateAdminSubscription({
+          sb,
+          userId,
+          userEmail: email,
+          userFullName: name,
+          productId: plan.id,
+          siteId,
+          callerUserId: user.id,
+          signupSource: 'admin_unclaimed',
+          couponCode: couponCode ?? null,
+        });
+        if (!subResult.ok) {
+          subscriptionWarning = subResult.warning ?? 'Subscription pre-creation failed';
+        } else if (subResult.warning) {
+          subscriptionWarning = subResult.warning;
+        }
+      }
 
       // Fire wp.cloud provisioning. Best-effort — if it fails, the
       // retry-stuck-provisions cron will pick it up.
@@ -185,6 +207,7 @@ export async function POST(req: Request) {
       claimUrl,
       claimToken,
       expiresAt: claimExpiresAt,
+      ...(subscriptionWarning ? { subscriptionWarning } : {}),
     });
   } catch (e: any) {
     console.error('Create unclaimed account error:', e);

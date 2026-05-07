@@ -12,6 +12,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { isStaffRole } from '@/lib/roles';
+import { preCreateAdminSubscription } from '@/lib/admin-precreate-subscription';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,6 +94,32 @@ export async function POST(req: Request) {
     }).eq('id', customerId);
   }
 
+  // Pre-create Stripe sub (skip for comped sites)
+  let subscriptionWarning: string | undefined;
+  if (comp !== true) {
+    const { data: targetUser } = await sb.from('users').select('email, full_name').eq('id', customerId).maybeSingle();
+    if (targetUser?.email) {
+      const subResult = await preCreateAdminSubscription({
+        sb,
+        userId: customerId,
+        userEmail: targetUser.email,
+        userFullName: targetUser.full_name ?? null,
+        productId: plan.id,
+        siteId: site.id,
+        callerUserId: user.id,
+        signupSource: 'admin_added',
+        couponCode: couponCode ?? null,
+      });
+      if (!subResult.ok) {
+        subscriptionWarning = subResult.warning ?? 'Subscription pre-creation failed';
+      } else if (subResult.warning) {
+        subscriptionWarning = subResult.warning;
+      }
+    } else {
+      subscriptionWarning = 'Target user has no email; subscription not created';
+    }
+  }
+
   // Fire provisioning (best-effort)
   try {
     await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/provision-hosting`, {
@@ -123,5 +150,8 @@ export async function POST(req: Request) {
     metadata: { target_user: customerId, plan_id: plan.id, comp: comp === true, coupon_code: couponCode ?? null },
   });
 
-  return NextResponse.json({ siteId: site.id });
+  return NextResponse.json({
+    siteId: site.id,
+    ...(subscriptionWarning ? { subscriptionWarning } : {}),
+  });
 }

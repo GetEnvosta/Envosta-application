@@ -171,7 +171,14 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (event.type === "customer.subscription.created" && shouldProvision && dbSub && primaryPlan?.type === "hosting_plan" && !isDomainRenewal && !isDomainPurchase && !isDomainTld) {
+      // Run the resolve-site + provision block on BOTH created and updated.
+      // The downstream guards (envosta_site_id pre-link, subscription_id
+      // existing-site lookup, and the !svc.wp_cloud_site_id idempotency
+      // check) make repeat invocations safe — admin-pre-created subs that
+      // flip incomplete -> trialing via subscription.updated will hit the
+      // pre-link path, attach to the existing site, and skip provisioning
+      // since wp_cloud_site_id is already set.
+      if (shouldProvision && dbSub && primaryPlan?.type === "hosting_plan" && !isDomainRenewal && !isDomainPurchase && !isDomainTld) {
         const { data: profile } = await sb.from("users").select("full_name").eq("id", cust.id).maybeSingle();
         const name = profile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30) ?? "my-site";
         const domainFromMeta = sub.metadata?.domain_name ?? null;

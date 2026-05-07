@@ -97,11 +97,14 @@ function ClaimAccountContent() {
 
       setStep('success');
       // Comped sites skip the checkout funnel entirely.
-      // Otherwise, if there's a preselected plan, route to billing-activate;
-      // forward any preselected coupon code so the checkout flow can apply it.
+      // If admin pre-created a Stripe sub, the user just needs to add a
+      // payment method — route to /dashboard/activate.
+      // Otherwise fall back to the legacy preselected-plan checkout flow.
       let dest: string;
       if (data?.comp === true) {
         dest = '/dashboard?welcome=1';
+      } else if (data?.pendingSubscriptionId || data?.pendingSetupClientSecret) {
+        dest = '/dashboard/activate';
       } else if (data?.preselectedPlanId) {
         const params = new URLSearchParams({ activate: '1' });
         if (data?.preselectedCouponCode) params.set('coupon', data.preselectedCouponCode);
