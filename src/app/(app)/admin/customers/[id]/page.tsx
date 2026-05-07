@@ -14,6 +14,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { AttachDomainSubscription } from '@/components/admin/attach-domain-subscription';
 import { ImpersonateButton } from '@/components/admin/impersonate-button';
 import { PlanSwitcher } from '@/components/sites/plan-switcher';
+import { ClaimLinkBanner } from '@/components/admin/claim-link-banner';
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -124,6 +125,14 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           <ImpersonateButton userId={id} label={user.full_name || user.email} />
         )}
       </div>
+
+      {/* ── Unclaimed-account banner with shareable claim link ── */}
+      {user.claimed === false && user.claim_token && (
+        <ClaimLinkBanner
+          claimUrl={`${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://my.envosta.com'}/auth/claim?token=${user.claim_token}`}
+          expiresAt={user.claim_expires_at ?? null}
+        />
+      )}
 
       {/* ── Sites (with customer identity hero) ── */}
       <div className="card overflow-hidden mb-6">
