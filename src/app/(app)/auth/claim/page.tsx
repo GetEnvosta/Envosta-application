@@ -96,21 +96,15 @@ function ClaimAccountContent() {
       }
 
       setStep('success');
-      // Comped sites skip the checkout funnel entirely.
-      // If admin pre-created a Stripe sub, the user just needs to add a
-      // payment method — route to /dashboard/activate.
-      // Otherwise fall back to the legacy preselected-plan checkout flow.
+      // Comped sites skip the checkout funnel entirely. Admin-created
+      // accounts always have a pre-created Stripe sub → /dashboard/activate.
       let dest: string;
       if (data?.comp === true) {
         dest = '/dashboard?welcome=1';
       } else if (data?.pendingSubscriptionId || data?.pendingSetupClientSecret) {
         dest = '/dashboard/activate';
-      } else if (data?.preselectedPlanId) {
-        const params = new URLSearchParams({ activate: '1' });
-        if (data?.preselectedCouponCode) params.set('coupon', data.preselectedCouponCode);
-        dest = `/dashboard/billing?${params.toString()}`;
       } else {
-        dest = '/dashboard?activate=1';
+        dest = '/dashboard';
       }
       setTimeout(() => router.push(dest), 2000);
     } catch (e) {

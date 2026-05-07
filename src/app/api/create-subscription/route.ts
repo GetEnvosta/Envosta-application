@@ -29,7 +29,7 @@ export async function POST(req: Request) {
 
   try {
   const body = await req.json();
-  const { priceId, domainName, name, email, password, trial, promoCode, billing, referralCode, existingSiteId } = body;
+  const { priceId, domainName, name, email, password, trial, promoCode, billing, referralCode } = body;
 
   if (!priceId) return NextResponse.json({ error: 'priceId is required' }, { status: 400 });
 
@@ -118,44 +118,10 @@ export async function POST(req: Request) {
   // billing without re-implementing it.
   // ───────────────────────────────────────────────────────────────────
 
-  // ── Pre-link to an admin-created site ────────────────────────────
-  // When admin pre-creates a site (unclaimed-account or add-site flow),
-  // the site already exists on wp.cloud with subscription_id=null. We
-  // stamp envosta_site_id on the new Stripe sub's metadata so the
-  // webhook attaches the sub to the existing site instead of inserting
-  // a duplicate row + provisioning a duplicate wp.cloud install.
-  let preLinkedSiteId: string | null = null;
-  if (existingSiteId) {
-    const { data: siteRow } = await sb.from('sites')
-      .select('id, user_id, subscription_id')
-      .eq('id', existingSiteId)
-      .maybeSingle();
-    if (!siteRow || siteRow.user_id !== userId) {
-      return NextResponse.json({ error: 'Site not found' }, { status: 400 });
-    }
-    if (siteRow.subscription_id) {
-      return NextResponse.json({ error: 'Site already linked to a subscription' }, { status: 400 });
-    }
-    preLinkedSiteId = siteRow.id;
-  } else {
-    // Auto-detect: exactly one admin-pre-created, payment-pending site for this user
-    const { data: candidates } = await sb.from('sites')
-      .select('id, metadata, status, subscription_id')
-      .eq('user_id', userId)
-      .is('subscription_id', null)
-      .eq('status', 'provisioning');
-    const adminCreated = (candidates ?? []).filter(
-      (s: any) => s.metadata && (s.metadata as any).created_by_admin
-    );
-    if (adminCreated.length === 1) {
-      preLinkedSiteId = adminCreated[0].id;
-      console.log('Auto-detected admin-created site for pre-link:', preLinkedSiteId);
-    } else if (adminCreated.length > 1) {
-      console.log('Multiple admin-created unlinked sites for user; skipping auto-detection. Count:', adminCreated.length);
-    }
-  }
-
-  // Build subscription params
+  // Build subscription params. Admin-created accounts get their Stripe
+  // sub pre-created server-side (see lib/admin-precreate-subscription.ts)
+  // and never reach this route, so no envosta_site_id pre-link logic
+  // is needed here.
   const subParams: Stripe.SubscriptionCreateParams = {
     customer: customerId,
     items: [{ price: priceId }],
@@ -167,7 +133,6 @@ export async function POST(req: Request) {
       domain_name: domainName ?? '',
       billing_period: billing ?? 'monthly',
       subscription_type: 'hosting',
-      ...(preLinkedSiteId ? { envosta_site_id: preLinkedSiteId } : {}),
     },
   };
 

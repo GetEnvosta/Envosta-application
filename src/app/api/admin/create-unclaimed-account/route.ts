@@ -79,16 +79,12 @@ export async function POST(req: Request) {
 
     const userId = authUser.user.id;
 
-    // Create user profile
+    // Create user profile. Plan + coupon are baked into the pre-created
+    // Stripe subscription below, so we don't stamp them on user.metadata.
     const userMetadata: Record<string, any> = {
       signup_source: 'admin_unclaimed',
     };
-    // Skip preselected_plan_id for comped sites — we don't want the
-    // claim flow pushing them to a checkout. They still get the plan
-    // for sizing/limits via sites.product_id.
-    if (productId && comp !== true) userMetadata.preselected_plan_id = productId;
     if (comp === true) userMetadata.comp = true;
-    if (couponCode && comp !== true) userMetadata.preselected_coupon_code = couponCode;
 
     await sb.from('users').upsert({
       id: userId,

@@ -86,15 +86,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: siteErr?.message ?? 'Failed to create site row' }, { status: 500 });
   }
 
-  // If paid + coupon provided, stamp on user metadata
-  if (comp !== true && couponCode) {
-    const existingMeta = (customer.metadata as any) ?? {};
-    await sb.from('users').update({
-      metadata: { ...existingMeta, preselected_coupon_code: couponCode },
-    }).eq('id', customerId);
-  }
-
-  // Pre-create Stripe sub (skip for comped sites)
+  // Pre-create Stripe sub (skip for comped sites). The coupon is passed
+  // directly into stripe.subscriptions.create — no user.metadata stamp.
   let subscriptionWarning: string | undefined;
   if (comp !== true) {
     const { data: targetUser } = await sb.from('users').select('email, full_name').eq('id', customerId).maybeSingle();
