@@ -9,8 +9,6 @@ export const WPCLOUD_API_KEY = Deno.env.get("WPCLOUD_API_KEY") ?? "";
 export const WPCLOUD_PROXY_URL = Deno.env.get("WPCLOUD_PROXY_URL") ?? "";
 export const WPCLOUD_PROXY_SECRET = Deno.env.get("WPCLOUD_PROXY_SECRET") ?? "";
 export const WPCLOUD_CLIENT = Deno.env.get("WPCLOUD_CLIENT") ?? "envosta";
-export const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID") ?? "";
-export const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN") ?? "";
 
 /**
  * Make a request to the wp.cloud Atomic API via the static IP proxy.

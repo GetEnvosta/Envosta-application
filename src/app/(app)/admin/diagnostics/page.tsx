@@ -9,7 +9,6 @@ import { StatCard } from '@/components/admin/stat-card';
 import { getAdminLogs } from '@/services/admin';
 import { SystemHealthChecks } from '@/app/(app)/admin/logs/health-checks';
 import AdminEmailsPage from '@/app/(app)/admin/emails/page';
-import { AdminPhone } from '@/components/admin/admin-phone';
 import { CouponManager } from '@/components/admin/coupon-manager';
 import { StripeProducts } from '@/components/admin/stripe-products';
 import { SystemTabs } from './system-tabs';
@@ -233,8 +232,6 @@ export default async function DiagnosticsPage() {
           ),
 
           emails: <AdminEmailsPage />,
-
-          phone: <AdminPhone />,
 
           stripe: (
             <StripeProducts

@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase-server';
 import { getAllActiveSubscriptions, toMonthly, getAbandonedCheckouts } from '@/services/billing';
 import { formatCents } from '@/lib/utils';
 import Link from 'next/link';
-import { DollarSign, Users, Server, Phone, Globe, ShoppingCart, ExternalLink } from 'lucide-react';
+import { DollarSign, Users, Server, Globe, ShoppingCart, ExternalLink } from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
 import { ReportingTabs } from './reporting-tabs';
 
@@ -19,26 +19,8 @@ export default async function ReportingPage() {
   const mrr = activeSubscriptions.reduce((sum: number, sub: any) => sum + toMonthly(sub), 0);
   const activeCount = activeSubscriptions.length;
 
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
-  const { data: callLogs } = await supabase
-    .from('logs')
-    .select('metadata')
-    .eq('action', 'receptionist.call')
-    .gte('created_at', monthStart);
-
-  let totalCallMinutes = 0;
-  let totalCalls = 0;
-  for (const log of callLogs ?? []) {
-    const m = (log.metadata as any) ?? {};
-    totalCallMinutes += m.duration_minutes ?? 0;
-    totalCalls++;
-  }
-
   const { count: totalSites } = await supabase.from('sites').select('id', { count: 'exact', head: true }).in('status', ['active', 'provisioning']);
   const { count: totalDomains } = await supabase.from('domains').select('id', { count: 'exact', head: true }).eq('status', 'registered');
-  const { count: totalPhoneNumbers } = await supabase.from('sites').select('id', { count: 'exact', head: true }).not('twilio_phone_number', 'is', null);
 
   return (
     <div>
@@ -53,7 +35,7 @@ export default async function ReportingPage() {
         <StatCard label="Monthly Revenue" value={formatCents(mrr)} icon={DollarSign} sub="Active subscription MRR" color="green" />
         <StatCard label="Active Customers" value={activeCount} icon={Users} sub={`${totalSites ?? 0} sites · ${totalDomains ?? 0} domains`} color="blue" />
         <StatCard label="Sites" value={totalSites ?? 0} icon={Server} sub="Active or provisioning" color="purple" />
-        <StatCard label="Phone Numbers" value={totalPhoneNumbers ?? 0} icon={Phone} sub={`${totalCalls} calls this month`} color="amber" />
+        <StatCard label="Domains" value={totalDomains ?? 0} icon={Globe} sub="Registered" color="amber" />
       </div>
 
       <ReportingTabs>
@@ -87,16 +69,6 @@ export default async function ReportingPage() {
                   <div className="flex items-center gap-2 mb-2"><Globe className="w-4 h-4 text-purple-500" /><span className="text-xs text-gray-500 uppercase tracking-wider">Domains</span></div>
                   <p className="text-2xl font-bold text-gray-900">{totalDomains ?? 0}</p>
                   <p className="text-xs text-gray-400">registered</p>
-                </div>
-                <div className="card p-5">
-                  <div className="flex items-center gap-2 mb-2"><Phone className="w-4 h-4 text-emerald-500" /><span className="text-xs text-gray-500 uppercase tracking-wider">Phone Numbers</span></div>
-                  <p className="text-2xl font-bold text-gray-900">{totalPhoneNumbers ?? 0}</p>
-                  <p className="text-xs text-gray-400">active</p>
-                </div>
-                <div className="card p-5">
-                  <div className="flex items-center gap-2 mb-2"><Phone className="w-4 h-4 text-amber-500" /><span className="text-xs text-gray-500 uppercase tracking-wider">Calls</span></div>
-                  <p className="text-2xl font-bold text-gray-900">{totalCalls}</p>
-                  <p className="text-xs text-gray-400">{totalCallMinutes} minutes</p>
                 </div>
               </div>
             </div>

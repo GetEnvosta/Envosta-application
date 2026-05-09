@@ -22,8 +22,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "stripe": "^20.4.1",
-    "tailwind-merge": "^2.6.0",
-    "twilio": "^5.13.1"
+    "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
