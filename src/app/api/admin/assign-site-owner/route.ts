@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   const { siteId, userId } = await req.json();
   if (!siteId) return NextResponse.json({ error: 'siteId required' }, { status: 400 });
 
-  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!, { auth: { persistSession: false } });
 
   await sb.from('sites').update({ user_id: userId ?? null, updated_at: new Date().toISOString() }).eq('id', siteId);
 

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const jar = await cookies();
   const authed = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!,
     { cookies: { getAll: () => jar.getAll(), setAll() {} } },
   );
   const { data: { user } } = await authed.auth.getUser();
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
   const sb = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!,
     { auth: { persistSession: false } },
   );
   const { data: profile } = await sb.from('users').select('role').eq('id', user.id).single();
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   if (!sites?.length) return NextResponse.json({ error: 'No matching sites' }, { status: 404 });
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const serviceKey = (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!;
 
   const results: any[] = [];
   for (const site of sites) {

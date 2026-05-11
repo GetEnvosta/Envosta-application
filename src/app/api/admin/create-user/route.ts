@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+﻿import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
@@ -7,7 +7,7 @@ import { ALL_ROLES, type UserRole } from '@/lib/roles';
 function getSupabaseAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!,
     { auth: { persistSession: false } }
   );
 }
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Forbidden — admin only' }, { status: 403 });
   }
 
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!(process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)) {
     return NextResponse.json({ error: 'Service temporarily unavailable' }, { status: 503 });
   }
 

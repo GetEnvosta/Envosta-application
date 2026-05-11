@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 
@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   const jar = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!,
     { cookies: { getAll: () => jar.getAll(), setAll() {} } },
   );
   const { data: { user } } = await supabase.auth.getUser();
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`,
-        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        'apikey': (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!,
       },
       body: JSON.stringify(body),
     }

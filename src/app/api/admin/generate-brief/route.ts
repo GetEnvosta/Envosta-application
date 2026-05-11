@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { createClient } from '@supabase/supabase-js';
 import { isStaffRole } from '@/lib/roles';
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   try {
     // Call the edge function
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!;
 
     // Get user's session token for edge function auth
     const { data: { session } } = await supabase.auth.getSession();
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     // Store the brief as a system message on the ticket
     const sb = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!,
       { auth: { persistSession: false } },
     );
 

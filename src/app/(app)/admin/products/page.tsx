@@ -1,4 +1,4 @@
-export const revalidate = 5;
+﻿export const revalidate = 5;
 import { formatCents } from '@/lib/utils';
 import { CheckCircle, AlertTriangle, Pencil } from 'lucide-react';
 import Link from 'next/link';
@@ -8,7 +8,7 @@ import { ProductsClient } from './products-client';
 function getSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!,
     { auth: { persistSession: false } },
   );
 }

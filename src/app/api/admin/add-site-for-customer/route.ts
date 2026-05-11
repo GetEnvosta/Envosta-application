@@ -1,4 +1,4 @@
-/**
+﻿/**
  * POST /api/admin/add-site-for-customer
  *
  * Adds an additional site (paid or comped) to an existing customer's
@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
 function getSupabaseAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!,
     { auth: { persistSession: false } },
   );
 }
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY}`,
       },
       body: JSON.stringify({
         serviceId: site.id,
