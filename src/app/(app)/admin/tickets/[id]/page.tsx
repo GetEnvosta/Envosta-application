@@ -9,7 +9,6 @@ import { TicketReplyForm } from '@/components/admin/ticket-reply-form';
 import { TicketSidebar } from '@/components/admin/ticket-sidebar';
 import { StudioProgressBar, StudioStageAdvancer } from '@/components/admin/studio-progress';
 import { OnboardingProgressBar, OnboardingStageAdvancer } from '@/components/admin/onboarding-progress';
-import { GenerateBriefButton } from '@/components/admin/generate-brief-button';
 
 function typeBadge(type: string) {
   switch (type) {
@@ -90,13 +89,6 @@ export default async function AdminTicketDetailPage({
           <OnboardingProgressBar currentStage={(ticket.metadata as any)?.onboarding_stage ?? 'inquiry'} />
           <OnboardingStageAdvancer ticketId={ticket.id} currentStage={(ticket.metadata as any)?.onboarding_stage ?? 'inquiry'} />
         </>
-      )}
-
-      {/* AI Onboarding Brief — show on onboarding tickets that are closed/approved */}
-      {ticket.type === 'onboarding' && ['approved', 'completed'].includes(ticket.status) && (
-        <div className="mb-4">
-          <GenerateBriefButton ticketId={ticket.id} />
-        </div>
       )}
 
       {/* Two-column layout */}

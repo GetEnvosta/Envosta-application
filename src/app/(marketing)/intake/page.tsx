@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AiIntakeSummary } from '@/components/admin/ai-intake-summary';
 import { createClient } from '@/lib/supabase-browser';
 
 const INDUSTRIES = [
@@ -94,7 +93,6 @@ export default function IntakePage() {
   const [form, setForm] = useState<FormData>(initial);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
-  const [aiSummary, setAiSummary] = useState('');
   const [PLANS, setPlans] = useState<IntakePlan[]>([]);
 
   // Fetch live plan data — keeps the intake form in sync with admin pricing
@@ -200,20 +198,6 @@ export default function IntakePage() {
         return;
       }
       setStatus('success');
-
-      // Fetch AI summary in the background (non-blocking)
-      try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        if (supabaseUrl) {
-          const aiRes = await fetch(`${supabaseUrl}/functions/v1/ai-intake-summary`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(form),
-          });
-          const aiData = await aiRes.json();
-          if (aiData.summary) setAiSummary(aiData.summary);
-        }
-      } catch { /* AI summary is optional */ }
     } catch {
       setStatus('error');
       setErrorMsg('Network error. Please try again.');
@@ -224,7 +208,6 @@ export default function IntakePage() {
     setForm(initial);
     setStatus('idle');
     setErrorMsg('');
-    setAiSummary('');
   }
 
   return (
@@ -370,7 +353,6 @@ export default function IntakePage() {
               <button onClick={reset} className="submit-btn" style={{ maxWidth: 240, margin: '0 auto' }}>
                 Submit Another
               </button>
-              <AiIntakeSummary summary={aiSummary} />
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="intake-form rv v">

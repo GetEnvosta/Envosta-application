@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Building2, Sparkles, Search } from 'lucide-react';
+import { Loader2, Building2 } from 'lucide-react';
 import Toast from '@/components/ui/toast';
 
 interface BusinessInfo {
@@ -42,11 +42,6 @@ export default function BusinessPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
 
-  // AI autofill
-  const [aiQuery, setAiQuery] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiFieldsFound, setAiFieldsFound] = useState<string[]>([]);
-
   const showToast = useCallback((message: string, type: ToastState['type']) => {
     setToast({ message, type });
   }, []);
@@ -70,60 +65,6 @@ export default function BusinessPage() {
 
   function set(field: keyof BusinessInfo, value: string) {
     setForm(prev => ({ ...prev, [field]: value }));
-  }
-
-  async function handleAutofill() {
-    if (!aiQuery.trim()) return;
-    setAiLoading(true);
-    setAiFieldsFound([]);
-    try {
-      const res = await fetch('/api/business/autofill', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: aiQuery.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast(data.error || 'Lookup failed', 'error');
-        setAiLoading(false);
-        return;
-      }
-      const biz = data.business;
-      if (!biz) {
-        showToast('No results found', 'info');
-        setAiLoading(false);
-        return;
-      }
-
-      // Only fill fields that came back non-empty and are currently empty or the user hasn't typed in
-      const filled: string[] = [];
-      const fieldLabels: Record<keyof BusinessInfo, string> = {
-        name: 'Business Name', phone: 'Phone', email: 'Email', website: 'Website',
-        address: 'Address', city: 'City', province: 'Province', postal_code: 'Postal Code',
-        country: 'Country', business_hours: 'Business Hours', services: 'Services', description: 'Description',
-      };
-      setForm(prev => {
-        const updated = { ...prev };
-        for (const key of Object.keys(EMPTY) as (keyof BusinessInfo)[]) {
-          const val = biz[key];
-          if (val && typeof val === 'string' && val.trim()) {
-            updated[key] = val.trim();
-            filled.push(fieldLabels[key]);
-          }
-        }
-        return updated;
-      });
-
-      setAiFieldsFound(filled);
-      if (filled.length > 0) {
-        showToast(`Filled ${filled.length} field${filled.length > 1 ? 's' : ''} — review and save`, 'success');
-      } else {
-        showToast('No details found for that search', 'info');
-      }
-    } catch {
-      showToast('Lookup failed. Try again.', 'error');
-    }
-    setAiLoading(false);
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -162,55 +103,6 @@ export default function BusinessPage() {
       </div>
 
       <form onSubmit={handleSave} className="space-y-6 max-w-2xl">
-
-        {/* AI Autofill */}
-        <div className="card p-5 border-brand-200 bg-gradient-to-r from-brand-50/40 to-white">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4 text-brand-600" />
-            <h2 className="text-sm font-semibold text-gray-900">AI Autofill</h2>
-          </div>
-          <p className="text-xs text-gray-500 mb-3">
-            Enter your business name or website URL and we'll look it up and fill in what we can find.
-          </p>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-              <input
-                type="text"
-                value={aiQuery}
-                onChange={e => setAiQuery(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAutofill())}
-                placeholder="e.g. Acme Plumbing Calgary or https://acmeplumbing.ca"
-                className="input pl-8 w-full text-sm"
-                disabled={aiLoading}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleAutofill}
-              disabled={aiLoading || !aiQuery.trim()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg disabled:opacity-50 transition-colors whitespace-nowrap"
-            >
-              {aiLoading ? (
-                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Looking up...</>
-              ) : (
-                <><Sparkles className="w-3.5 h-3.5" /> Autofill</>
-              )}
-            </button>
-          </div>
-          {aiFieldsFound.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {aiFieldsFound.map(f => (
-                <span key={f} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-100 text-brand-700">
-                  {f}
-                </span>
-              ))}
-            </div>
-          )}
-          <p className="text-[10px] text-gray-400 mt-2">
-            Uses AI to search the web. Review all fields before saving — AI results may not be 100% accurate.
-          </p>
-        </div>
 
         {/* Basic Info */}
         <div className="card p-6">
