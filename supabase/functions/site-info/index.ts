@@ -554,8 +554,8 @@ Deno.serve(async (req) => {
           if (p?.role !== "admin") return error("Forbidden", 403);
         }
 
-        // Addons are now managed via site config and charged through credits.
-        // Toggle the feature directly on the site's config/guardrails.
+        // Addons are managed via site config and the Stripe subscription
+        // line items. Toggle the feature directly on the site's config/guardrails.
         const { data: addon } = await sb.from("products").select("*").eq("id", addonId).single();
         if (!addon) return error("Addon not found", 404);
 

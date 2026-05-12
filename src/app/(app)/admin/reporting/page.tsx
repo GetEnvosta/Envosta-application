@@ -77,7 +77,7 @@ export default async function ReportingPage() {
             <div className="space-y-6">
               <div className="card p-6">
                 <h3 className="text-sm font-semibold text-gray-900 mb-4">Provider Status</h3>
-                <p className="text-sm text-gray-500">Detailed provider cost reporting has been removed with the credit system. Check each provider&apos;s dashboard directly for usage and billing.</p>
+                <p className="text-sm text-gray-500">Check each provider&apos;s dashboard directly for usage and billing.</p>
               </div>
             </div>
           ),

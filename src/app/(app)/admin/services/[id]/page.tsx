@@ -10,7 +10,6 @@ import {
   HardDrive, Wifi, Clock, CreditCard, Cpu, Database, MapPin, Zap, Key, Terminal, Shield,
   Check, AlertTriangle, Link2, Cloud,
 } from 'lucide-react';
-// Plans/subscriptions removed — sites are credit-metered now
 import { SitePerformance } from '@/components/sites/site-performance';
 import { SiteAccess } from '@/components/sites/site-access';
 import { CancelSubscriptionButton } from '@/components/admin/cancel-subscription-button';

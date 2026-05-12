@@ -13,8 +13,6 @@ interface Client {
   email: string;
   created_at: string;
   sites_count: number;
-  usage: number;
-  included: number;
   company_name?: string | null;
 }
 
@@ -100,7 +98,6 @@ export default function PartnerClientsPage() {
 
   // Stat calculations
   const totalSites = clients.reduce((sum, c) => sum + c.sites_count, 0);
-  const overUsage = clients.filter(c => c.usage > c.included).length;
 
   return (
     <div className="space-y-6">
@@ -122,7 +119,7 @@ export default function PartnerClientsPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div className="card p-4">
           <p className="text-xs text-gray-500 mb-1">Total Clients</p>
           <p className="text-2xl font-bold text-gray-900">{clients.length}</p>
@@ -135,12 +132,6 @@ export default function PartnerClientsPage() {
           <p className="text-xs text-gray-500 mb-1">Active</p>
           <p className="text-2xl font-bold text-gray-900">
             {clients.filter(c => c.sites_count > 0).length}
-          </p>
-        </div>
-        <div className="card p-4">
-          <p className="text-xs text-gray-500 mb-1">Over Usage</p>
-          <p className={`text-2xl font-bold ${overUsage > 0 ? 'text-red-600' : 'text-gray-900'}`}>
-            {overUsage}
           </p>
         </div>
       </div>
@@ -211,7 +202,6 @@ export default function PartnerClientsPage() {
               <tr className="border-b border-gray-100">
                 <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Client</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Sites</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Usage</th>
                 <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Joined</th>
                 <th className="px-5 py-3" />
               </tr>
@@ -229,11 +219,6 @@ export default function PartnerClientsPage() {
                     </Link>
                   </td>
                   <td className="px-5 py-3.5 text-sm text-gray-700">{c.sites_count}</td>
-                  <td className="px-5 py-3.5">
-                    <span className={`text-sm font-medium ${c.usage > c.included ? 'text-red-600' : 'text-gray-700'}`}>
-                      {Math.round(c.usage)}/{c.included}
-                    </span>
-                  </td>
                   <td className="px-5 py-3.5 text-sm text-gray-500">{formatDate(c.created_at)}</td>
                   <td className="px-5 py-3.5">
                     <button

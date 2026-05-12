@@ -82,7 +82,7 @@ export default async function PartnerEarningsPage() {
           <div className="card p-12 text-center">
             <DollarSign className="w-10 h-10 text-gray-300 mx-auto mb-3" />
             <p className="text-sm font-medium text-gray-700 mb-1">No commissions yet</p>
-            <p className="text-xs text-gray-400">Commissions are calculated monthly based on client credit spend.</p>
+            <p className="text-xs text-gray-400">Commissions are calculated monthly based on client subscription revenue.</p>
           </div>
         )}
       </section>
