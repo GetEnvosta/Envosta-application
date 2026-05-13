@@ -52,27 +52,33 @@ export async function recordApiCall(params: ApiCallLogParams): Promise<void> {
 
 /**
  * Convenience wrapper: time + log + propagate. Use this around an
- * outbound call you want recorded automatically.
+ * outbound call you want recorded automatically. The callback should
+ * perform the upstream call and return `{ status, body }` where
+ * `status` is the HTTP status and `body` is the parsed response.
  *
- * Phase 3+ will swap inline fetch calls (in src/app/api/**) and
- * supabase/functions/_shared/{deps,opensrs,jetpack}.ts) to use this
- * wrapper so the api_calls table fills up automatically.
+ * The wrapper records duration + status + body into `api_calls`,
+ * then returns the `body` cast to `T`. Errors thrown inside `fn`
+ * are recorded with the `error` column populated and re-thrown.
+ *
+ * Used by src/lib/integrations/{wpcloud,opensrs}.ts to log every
+ * outbound call to the api_calls table without each call site
+ * repeating boilerplate.
  */
-export async function withApiCallLogging<T>(
+export async function withApiCallLogging<T = unknown>(
   meta: Omit<ApiCallLogParams, 'durationMs' | 'responseStatus' | 'responsePayload' | 'error'>,
-  fn: () => Promise<{ data: T; status?: number; payload?: unknown }>,
+  fn: () => Promise<{ status: number; body: unknown }>,
 ): Promise<T> {
   const start = Date.now();
   try {
-    const { data, status, payload } = await fn();
+    const { status, body } = await fn();
     const durationMs = Date.now() - start;
     await recordApiCall({
       ...meta,
       durationMs,
       responseStatus: status,
-      responsePayload: payload,
+      responsePayload: body,
     });
-    return data;
+    return body as T;
   } catch (err) {
     const durationMs = Date.now() - start;
     await recordApiCall({
