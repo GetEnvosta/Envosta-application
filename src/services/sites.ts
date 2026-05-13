@@ -97,12 +97,16 @@ export async function getUserServicesBasic() {
 
 /**
  * Admin: all sites with user joins and optional filters.
+ *
+ * Subscription enrichment comes from stripe.subscriptions (Sync Engine
+ * mirror) batched by stripe_customer_id, then stitched into each user's
+ * `subscriptions` array so the admin page keeps the old shape.
  */
 export async function getAllServices(filters?: { q?: string; status?: string }) {
   const supabase = await createClient();
   let query = supabase
     .from('sites')
-    .select('*, users(full_name, email, subscriptions(id, status, products(name))), domains(id, domain_name, status)')
+    .select('*, users(id, full_name, email, stripe_customer_id), domains(id, domain_name, status)')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -110,7 +114,81 @@ export async function getAllServices(filters?: { q?: string; status?: string }) 
   if (filters?.q) query = query.or(`label.ilike.%${filters.q}%`);
 
   const { data } = await query;
-  return data ?? [];
+  const sites = data ?? [];
+  if (!sites.length) return sites;
+
+  // Collect stripe customer IDs from the joined users, fetch their active
+  // subs from stripe.* in one batch, then enrich with the matching
+  // public.products row for the plan name.
+  const customerIds = Array.from(new Set(
+    sites
+      .map((s: any) => (s.users as any)?.stripe_customer_id)
+      .filter((cid: any): cid is string => typeof cid === 'string' && cid.length > 0)
+  ));
+
+  if (customerIds.length === 0) return sites;
+
+  const stripeSchema: any = (supabase as any).schema('stripe' as any);
+  const { data: subs } = await stripeSchema
+    .from('subscriptions')
+    .select('id, customer, status, created')
+    .in('customer', customerIds)
+    .in('status', ['active', 'trialing', 'past_due', 'paused'])
+    .order('created', { ascending: false });
+
+  const subsByCustomer = new Map<string, any[]>();
+  for (const sub of (subs as any[]) ?? []) {
+    if (!subsByCustomer.has(sub.customer)) subsByCustomer.set(sub.customer, []);
+    subsByCustomer.get(sub.customer)!.push(sub);
+  }
+
+  // Best-effort plan name from the first sub's first item → public.products
+  const subIds = ((subs as any[]) ?? []).map(s => s.id);
+  let productBySubId = new Map<string, any>();
+  if (subIds.length) {
+    const { data: items } = await stripeSchema
+      .from('subscription_items')
+      .select('subscription, price')
+      .in('subscription', subIds);
+
+    const priceToSub = new Map<string, string>();
+    for (const item of (items as any[]) ?? []) {
+      const priceId = typeof item.price === 'string' ? item.price : item.price?.id;
+      if (priceId && !priceToSub.has(priceId)) priceToSub.set(priceId, item.subscription);
+    }
+
+    if (priceToSub.size) {
+      const priceIds = Array.from(priceToSub.keys());
+      const { data: products } = await supabase
+        .from('products')
+        .select('name, stripe_price_id, stripe_price_id_yearly, stripe_price_id_cad, stripe_price_id_yearly_cad')
+        .or(priceIds.map(id =>
+          `stripe_price_id.eq.${id},stripe_price_id_yearly.eq.${id},stripe_price_id_cad.eq.${id},stripe_price_id_yearly_cad.eq.${id}`
+        ).join(','));
+      for (const p of (products as any[]) ?? []) {
+        const allPriceIds = [p.stripe_price_id, p.stripe_price_id_yearly, p.stripe_price_id_cad, p.stripe_price_id_yearly_cad].filter(Boolean);
+        for (const priceId of allPriceIds) {
+          const subId = priceToSub.get(priceId);
+          if (subId) productBySubId.set(subId, p);
+        }
+      }
+    }
+  }
+
+  // Stitch the subs (with synthesized products + back-compat status field)
+  // onto each user object so the admin page reads them unchanged.
+  return sites.map((site: any) => {
+    const customerId = site.users?.stripe_customer_id;
+    const userSubs = (customerId ? subsByCustomer.get(customerId) : []) ?? [];
+    const enrichedSubs = userSubs.map(sub => ({
+      ...sub,
+      products: productBySubId.get(sub.id) ?? null,
+    }));
+    return {
+      ...site,
+      users: site.users ? { ...site.users, subscriptions: enrichedSubs } : null,
+    };
+  });
 }
 
 /**
