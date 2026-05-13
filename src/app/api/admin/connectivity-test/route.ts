@@ -20,6 +20,7 @@ import { createClient } from '@/lib/supabase-server';
 import { isStaffRole } from '@/lib/roles';
 import { verifyInternalToken } from '@/lib/internal-auth';
 import { createWpCloudClient, WpCloudError } from '@/lib/integrations/wpcloud';
+import { withApiCallLogging } from '@/lib/api-call-logger';
 import { createOpenSrsClient, OpenSrsError } from '@/lib/integrations/opensrs';
 
 export const dynamic = 'force-dynamic';
@@ -76,18 +77,38 @@ export async function GET(req: Request) {
     return data;
   });
 
-  // ─── 2. wp.cloud connectivity — list sites (read-only) ─
+  // ─── 2. wp.cloud connectivity — get PHP versions (read-only, no params) ─
+  // We use get-php-versions because it's the simplest read-only endpoint
+  // with no path parameters that need to be correct. If this works, auth
+  // and IP whitelist are both fine.
   const wpcloudCheck = await timed(async () => {
-    const client = createWpCloudClient();
-    const result = await client.listSites();
-    return {
-      siteCount: result.total,
-      firstSiteIds: result.sites.slice(0, 3).map(s => ({
-        atomic_site_id: s.atomic_site_id,
-        domain_name: s.domain_name,
-        status: s.status,
-      })),
-    };
+    const apiKey = process.env.WPCLOUD_API_KEY;
+    const client = process.env.WPCLOUD_CLIENT ?? 'envosta';
+    const baseUrl = process.env.WPCLOUD_BASE_URL ?? 'https://atomic-api.wordpress.com';
+    if (!apiKey) throw new Error('WPCLOUD_API_KEY is not set');
+    const path = `/api/v1.0/get-php-versions/${client}/verbose`;
+    const { status, body } = await withApiCallLogging<{ status: number; body: unknown }>(
+      { provider: 'wpcloud', method: 'GET', path },
+      async () => {
+        const res = await fetch(`${baseUrl}${path}`, {
+          method: 'GET',
+          headers: { Auth: apiKey },
+        });
+        const text = await res.text();
+        let parsed: any = text;
+        try { parsed = JSON.parse(text); } catch { /* keep as text */ }
+        if (!res.ok) {
+          throw Object.assign(new Error(`wp.cloud GET ${path} returned ${res.status}`), {
+            name: 'WpCloudError',
+            status: res.status,
+            body: parsed,
+            path,
+          });
+        }
+        return { status: res.status, body: parsed };
+      },
+    );
+    return { status, sample: body };
   });
 
   // ─── 3. OpenSRS connectivity — check availability (read-only, free) ─
