@@ -15,6 +15,11 @@ export const dynamic = 'force-dynamic';
  * as a new line item on their existing hosting subscription.
  *
  * If the user has no subscription yet, they're directed to sign up first.
+ *
+ * Post Stripe-Sync-Engine cutover: the local public.subscriptions table
+ * was dropped — every read goes through stripe.* (the Sync Engine mirror)
+ * via findHostingSubscription(). The webhook still fires asynchronously
+ * for new subscriptions, but we don't wait on its local upsert.
  */
 
 export async function POST(req: Request) {
@@ -104,17 +109,10 @@ export async function POST(req: Request) {
         },
       });
 
-      // Save subscription to DB
-      const { data: dbSub } = await supabase.from('subscriptions').upsert({
-        user_id: user.id,
-        stripe_subscription_id: newSub.id,
-        status: newSub.status,
-        billing_period: 'monthly',
-        metadata: { subscription_type: 'hosting' },
-      }, { onConflict: 'stripe_subscription_id' }).select('id').single();
-
+      // Sync Engine mirrors the new sub into stripe.subscriptions on its
+      // next event poll; no local insert needed.
       hostingSub = {
-        id: dbSub!.id,
+        id: newSub.id,
         stripe_subscription_id: newSub.id,
         status: newSub.status,
       };
@@ -122,11 +120,10 @@ export async function POST(req: Request) {
       // The first item is already on the subscription — grab its ID
       const firstItem = newSub.items.data[0];
 
-      // Create the site record linked to this subscription + item
+      // Create the site record linked to this subscription item
       const siteLabel = label.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 40) || 'site';
       const { data: site, error: siteErr } = await supabase.from('sites').insert({
         user_id: user.id,
-        subscription_id: hostingSub.id,
         product_id: plan.productId,
         stripe_subscription_item_id: firstItem.id,
         label: siteLabel,
@@ -203,12 +200,7 @@ export async function POST(req: Request) {
   if (hostingSub.status === 'paused') {
     try {
       await resumeSubscription(stripe, hostingSub.stripe_subscription_id);
-      await supabase.from('subscriptions').update({
-        status: 'active',
-        metadata: {
-          resumed_at: new Date().toISOString(),
-        },
-      }).eq('id', hostingSub.id);
+      // Sync Engine will mirror the updated status; nothing local to flip.
       console.log('Resumed paused subscription:', hostingSub.stripe_subscription_id);
     } catch (e: any) {
       console.error('Failed to resume subscription:', e);
@@ -220,7 +212,6 @@ export async function POST(req: Request) {
   const siteLabel = label.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 40) || 'site';
   const { data: site, error: siteErr } = await supabase.from('sites').insert({
     user_id: user.id,
-    subscription_id: hostingSub.id,
     product_id: plan.productId,
     label: siteLabel,
     status: 'provisioning',

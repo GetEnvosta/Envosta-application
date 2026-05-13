@@ -5,22 +5,33 @@ import { useRouter } from 'next/navigation';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
 import { Receipt, RotateCcw, Loader2 } from 'lucide-react';
 
+/**
+ * Invoice shape returned by `getAdminRecentInvoices` (post Stripe-Sync
+ * cutover). Reads directly from `stripe.invoices`, so:
+ *   - `id` is the Stripe invoice ID (`in_...`)
+ *   - amounts are in minor units (cents) under `amount_paid`/`amount_due`
+ *   - `created_iso` is the ISO date derived from the integer `created` ts
+ *   - `user` is the joined `users` row (look-up by stripe_customer_id)
+ */
 interface Invoice {
   id: string;
   description: string | null;
-  amount_cad: number;
+  amount_paid?: number | null;
+  amount_due?: number | null;
+  currency?: string | null;
   status: string;
   hosted_invoice_url: string | null;
-  created_at: string;
-  users?: { full_name: string | null; email: string };
+  created_iso: string | null;
+  user?: { full_name: string | null; email: string } | null;
   _category: string;
 }
 
 const FILTERS = [
   { key: 'all', label: 'All' },
-  { key: 'hosting', label: 'Hosting' },
+  { key: 'subscription', label: 'Hosting' },
   { key: 'domains', label: 'Domains' },
-  { key: 'addons', label: 'Add-ons' },
+  { key: 'overage', label: 'Overage' },
+  { key: 'studio', label: 'Studio' },
   { key: 'other', label: 'Other' },
 ];
 
@@ -29,14 +40,14 @@ export function InvoiceFilters({ invoices }: { invoices: Invoice[] }) {
   const [refunding, setRefunding] = useState<string | null>(null);
   const router = useRouter();
 
-  async function handleRefund(invoiceId: string) {
+  async function handleRefund(stripeInvoiceId: string) {
     if (!confirm('Issue a full refund for this invoice? This cannot be undone.')) return;
-    setRefunding(invoiceId);
+    setRefunding(stripeInvoiceId);
     try {
       const res = await fetch('/api/admin/refund-invoice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invoiceId }),
+        body: JSON.stringify({ stripeInvoiceId }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -103,14 +114,16 @@ export function InvoiceFilters({ invoices }: { invoices: Invoice[] }) {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((inv) => {
-                const user = inv.users as any;
+                const user = inv.user;
+                const amount = inv.amount_paid ?? inv.amount_due ?? 0;
+                const currency = (inv.currency ?? 'usd').toLowerCase() as 'usd' | 'cad';
                 return (
                   <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3 font-medium text-gray-900">{inv.description || '\u2014'}</td>
-                    <td className="px-5 py-3 text-gray-500">{user?.full_name || user?.email || '\u2014'}</td>
-                    <td className="px-5 py-3 text-gray-900 font-medium">{formatCents(inv.amount_cad ?? 0, 'cad')}</td>
+                    <td className="px-5 py-3 font-medium text-gray-900">{inv.description || '—'}</td>
+                    <td className="px-5 py-3 text-gray-500">{user?.full_name || user?.email || '—'}</td>
+                    <td className="px-5 py-3 text-gray-900 font-medium">{formatCents(amount, currency)}</td>
                     <td className="px-5 py-3"><span className={statusColor(inv.status)}>{inv.status}</span></td>
-                    <td className="px-5 py-3 text-gray-500 text-xs">{formatDate(inv.created_at)}</td>
+                    <td className="px-5 py-3 text-gray-500 text-xs">{inv.created_iso ? formatDate(inv.created_iso) : '—'}</td>
                     <td className="px-5 py-3">
                       {inv.hosted_invoice_url ? (
                         <a href={inv.hosted_invoice_url} target="_blank" rel="noopener noreferrer"

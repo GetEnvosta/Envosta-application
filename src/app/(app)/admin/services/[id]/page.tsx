@@ -179,7 +179,6 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             siteId={service.id}
             wpCloudSiteId={service.wp_cloud_site_id}
             userId={service.user_id}
-            subscriptionId={service.subscription_id}
             status={service.status}
           />
         </div>

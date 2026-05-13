@@ -130,17 +130,16 @@ export async function getAdminTicketDetail(id: string) {
       .select('id', { count: 'exact', head: true })
       .eq('user_id', ticket.user_id);
 
-    const { data: subs } = await supabase
-      .from('subscriptions')
-      .select('products(name)')
-      .eq('status', 'active')
-      .limit(1);
+    // Look up the customer's plan via the new billing helper. Reads
+    // from stripe.* + joins public.products for the plan name.
+    const { getAccountSubscriptionWithProduct } = await import('@/services/billing');
+    const sub = await getAccountSubscriptionWithProduct(ticket.user_id);
 
     customerContext = {
       name: (ticket.users as any)?.full_name,
       email: (ticket.users as any)?.email,
       memberSince: (ticket.users as any)?.created_at,
-      plan: (subs as any)?.[0]?.products?.name ?? null,
+      plan: sub?.product?.name ?? null,
       totalTickets: ticketCount ?? 0,
     };
   }

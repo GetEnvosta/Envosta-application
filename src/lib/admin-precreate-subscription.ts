@@ -12,6 +12,16 @@
  * we never throw past the helper boundary, only log + return a
  * `warning` field so the admin sees something went wrong but the
  * site row + provisioning still proceed.
+ *
+ * Post Stripe-Sync-Engine cutover:
+ *   - We no longer write to public.subscriptions (dropped). The Sync
+ *     Engine mirrors the new sub into stripe.subscriptions on the next
+ *     event poll.
+ *   - We no longer update sites.subscription_id (column dropped). The
+ *     site is linked to the user via user_id; the user's single active
+ *     subscription is looked up via users.stripe_customer_id.
+ *   - We still stamp users.metadata.pending_subscription_id +
+ *     pending_setup_intent_client_secret for the claim/activate flow.
  */
 
 import Stripe from 'stripe';
@@ -22,6 +32,7 @@ export interface PreCreateResult {
   warning?: string;
   pendingSubscriptionId?: string;
   pendingClientSecret?: string;
+  /** @deprecated public.subscriptions was dropped; always undefined now. */
   dbSubId?: string;
   stripeSubscriptionItemId?: string | null;
 }
@@ -112,41 +123,17 @@ export async function preCreateAdminSubscription(args: PreCreateArgs): Promise<P
     const paymentIntent = latestInvoice ? ((latestInvoice as any).payment_intent as Stripe.PaymentIntent | null) : null;
     const clientSecret = pendingSetup?.client_secret ?? paymentIntent?.client_secret ?? null;
 
-    // 5. Mirror into local subscriptions table
+    // 5. Link the site row to the new Stripe subscription item.
+    //    sites.subscription_id was removed (account-centric model);
+    //    we still record the line-item ID for per-site upgrades/downgrades.
     const firstItem = subscription.items?.data?.[0];
-    const { data: dbSub, error: dbSubErr } = await sb.from('subscriptions').insert({
-      user_id: userId,
-      product_id: productId,
-      stripe_subscription_id: subscription.id,
-      status: subscription.status, // 'incomplete' or 'trialing'
-      billing_period: 'monthly',
-      current_period_start: (subscription as any).current_period_start
-        ? new Date((subscription as any).current_period_start * 1000).toISOString()
-        : null,
-      current_period_end: (subscription as any).current_period_end
-        ? new Date((subscription as any).current_period_end * 1000).toISOString()
-        : (subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null),
-      metadata: {
-        subscription_type: 'hosting',
-        stripe_price_id: product.stripe_price_id,
-        admin_pre_created: true,
-        signup_source: signupSource,
-        ...(subscription.trial_end ? { trial_end: new Date(subscription.trial_end * 1000).toISOString() } : {}),
-      },
-    }).select('id').single();
-
-    if (dbSubErr || !dbSub) {
-      console.error('preCreateAdminSubscription: failed to insert local subscriptions row', dbSubErr);
-      // Don't bail — the webhook will upsert when subscription.created fires.
+    if (firstItem?.id) {
+      await sb.from('sites').update({
+        stripe_subscription_item_id: firstItem.id,
+      }).eq('id', siteId);
     }
 
-    // 6. Link site row
-    await sb.from('sites').update({
-      subscription_id: dbSub?.id ?? null,
-      stripe_subscription_item_id: firstItem?.id ?? null,
-    }).eq('id', siteId);
-
-    // 7. Stamp user metadata with pending pieces for the claim flow
+    // 6. Stamp user metadata with pending pieces for the claim flow
     const { data: userRow } = await sb.from('users').select('metadata').eq('id', userId).maybeSingle();
     const existingMeta = (userRow?.metadata as any) ?? {};
     await sb.from('users').update({
@@ -162,7 +149,6 @@ export async function preCreateAdminSubscription(args: PreCreateArgs): Promise<P
       warning: couponWarning,
       pendingSubscriptionId: subscription.id,
       pendingClientSecret: clientSecret ?? undefined,
-      dbSubId: dbSub?.id,
       stripeSubscriptionItemId: firstItem?.id ?? null,
     };
   } catch (e: any) {

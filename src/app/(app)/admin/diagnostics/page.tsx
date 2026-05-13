@@ -20,26 +20,31 @@ import { formatDateTime } from '@/lib/utils';
 export default async function DiagnosticsPage() {
   const supabase = await createClient();
 
-  // 1. Active subscriptions with NO site
-  const { data: orphanedSubs } = await supabase
-    .from('subscriptions')
-    .select('id, stripe_subscription_id, status, billing_period, created_at, users(id, email, full_name), products(name, type)')
-    .in('status', ['active', 'trialing'])
-    .order('created_at', { ascending: false });
+  // 1. Active subscriptions with NO site — read from stripe.* via
+  //    the new admin billing helper (returns user + product shape-compat
+  //    fields). Account-centric: a hosting sub is "orphaned" if the
+  //    owner has no active sites.
+  const { getAllSubscriptionsAdmin } = await import('@/services/billing');
+  const allSubs = await getAllSubscriptionsAdmin(500);
+  const aliveSubs = allSubs.filter((s: any) => ['active', 'trialing'].includes(s.status));
 
-  const subsWithSites = new Set<string>();
-  if (orphanedSubs?.length) {
-    const subIds = orphanedSubs.map((s: any) => s.id);
-    const { data: linkedSites } = await supabase.from('sites').select('subscription_id').in('subscription_id', subIds);
-    for (const s of linkedSites ?? []) { if (s.subscription_id) subsWithSites.add(s.subscription_id); }
+  const userIdsWithSites = new Set<string>();
+  const customerUserIds = aliveSubs.map((s: any) => s.users?.id).filter(Boolean);
+  if (customerUserIds.length > 0) {
+    const { data: linkedSites } = await supabase
+      .from('sites')
+      .select('user_id')
+      .in('user_id', customerUserIds)
+      .not('status', 'in', '("cancelled","deleted")');
+    for (const s of linkedSites ?? []) { if (s.user_id) userIdsWithSites.add(s.user_id); }
   }
-  const hostingSubsNoSite = (orphanedSubs ?? []).filter((s: any) =>
-    s.products?.type === 'hosting_plan' && !subsWithSites.has(s.id)
+  const hostingSubsNoSite = aliveSubs.filter((s: any) =>
+    s.products?.type === 'hosting_plan' && s.users?.id && !userIdsWithSites.has(s.users.id),
   );
 
   // 2. Active subscriptions (domain type) with NO registered domain
-  const domainSubsAll = (orphanedSubs ?? []).filter((s: any) =>
-    s.products?.type === 'domain_tld' || (s as any).metadata?.type === 'domain_renewal'
+  const domainSubsAll = aliveSubs.filter((s: any) =>
+    s.products?.type === 'domain_tld' || (s.metadata as any)?.type === 'domain_renewal',
   );
   const domainSubsNoDomain: any[] = [];
   for (const ds of domainSubsAll) {

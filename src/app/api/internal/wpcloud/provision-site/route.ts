@@ -64,6 +64,7 @@ interface ProvisionSiteBody {
   serviceId?: string;
   siteId?: string;
   userId?: string;
+  /** Legacy field — ignored post Stripe-Sync cutover (account-centric). */
   subscriptionId?: string | null;
   planId?: string | null;
   label?: string;
@@ -80,7 +81,6 @@ interface SiteRow {
   wp_cloud_site_id: string | null;
   label: string | null;
   product_id: string | null;
-  subscription_id: string | null;
   server_region: string | null;
   php_version?: string | null;
   metadata: Record<string, unknown> | null;
@@ -152,7 +152,6 @@ export async function POST(req: Request) {
 
   const refSiteId = body.siteId ?? body.serviceId ?? null;
   const userId = body.userId ?? null;
-  const subscriptionId = body.subscriptionId ?? null;
   const domainName = body.domainName ?? null;
 
   // ── Resolve the sites row we're operating on ──────────────────
@@ -161,39 +160,23 @@ export async function POST(req: Request) {
   if (refSiteId) {
     const { data: existing, error: fetchErr } = await sb
       .from('sites')
-      .select('id, user_id, status, wp_cloud_site_id, label, product_id, subscription_id, server_region, php_version, metadata, config')
+      .select('id, user_id, status, wp_cloud_site_id, label, product_id, server_region, php_version, metadata, config')
       .eq('id', refSiteId)
       .single();
     if (fetchErr || !existing) {
       return NextResponse.json({ error: 'Site row not found' }, { status: 404 });
     }
     site = existing as unknown as SiteRow;
-  } else if (subscriptionId) {
-    // Verify the subscription exists + is active or trialing.
-    const { data: sub } = await sb.from('subscriptions').select('id, status').eq('id', subscriptionId).single();
-    if (!sub || !['active', 'trialing'].includes(sub.status)) {
-      return NextResponse.json({ error: 'Subscription is not active' }, { status: 403 });
-    }
-    const { data: existing } = await sb
-      .from('sites')
-      .select('id, user_id, status, wp_cloud_site_id, label, product_id, subscription_id, server_region, php_version, metadata, config')
-      .eq('subscription_id', subscriptionId)
-      .maybeSingle();
-    if (existing?.wp_cloud_site_id) {
-      return NextResponse.json(
-        { error: 'This subscription already has a provisioned site', siteId: existing.id },
-        { status: 409 },
-      );
-    }
-    if (existing) site = existing as unknown as SiteRow;
   }
 
   // If still no site row, INSERT one (matches the edge-function path
   // for first-time signups where the webhook didn't pre-create).
+  // sites.subscription_id was dropped (account-centric model) — the
+  // user's active sub is looked up via stripe.subscriptions when needed.
   if (!site) {
     if (!userId || !body.label) {
       return NextResponse.json(
-        { error: 'When neither siteId nor an existing subscription site is provided, userId + label are required' },
+        { error: 'When siteId is not provided, userId + label are required' },
         { status: 400 },
       );
     }
@@ -201,14 +184,13 @@ export async function POST(req: Request) {
       .from('sites')
       .insert({
         user_id: userId,
-        subscription_id: subscriptionId,
         product_id: body.planId ?? null,
         label: siteLabelFromInput(body.label),
         status: 'provisioning',
         server_region: body.region ?? 'dca',
         php_version: body.phpVersion ?? '8.4',
       })
-      .select('id, user_id, status, wp_cloud_site_id, label, product_id, subscription_id, server_region, php_version, metadata, config')
+      .select('id, user_id, status, wp_cloud_site_id, label, product_id, server_region, php_version, metadata, config')
       .single();
     if (svcErr || !inserted) {
       return NextResponse.json({ error: svcErr?.message ?? 'Failed to insert site' }, { status: 500 });

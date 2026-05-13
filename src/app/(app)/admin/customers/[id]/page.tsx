@@ -39,12 +39,16 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const relatedData = await getCustomerRelatedData(user.id);
   const { services, domains, subscriptions, invoices, logs } = relatedData;
 
-  // Split subscriptions: hosting vs domain
+  // Account-centric model: the user has at most one subscription. The
+  // shape from getCustomerRelatedData() is normalized so the existing
+  // template can still treat it as an array. Domain renewals will move
+  // to cron-based one-time charges in Phase 3 — for now there are no
+  // domain sub rows surfaced here.
   const hostingSubs = subscriptions.filter((s: any) => {
     const meta = (s.metadata as any) ?? {};
     return meta.type !== 'domain_renewal' && meta.is_domain_purchase !== 'true' && s.products?.type !== 'domain_tld';
   });
-  const domainSubs = subscriptions.filter((s: any) => s.products?.type === 'domain_tld' || (s.metadata as any)?.type === 'domain_renewal');
+  const domainSubs: any[] = [];
 
   // The subscription covers an allotment of sites; price is the sub's billing
   // period price, not a per-site sum.

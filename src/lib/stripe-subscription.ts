@@ -10,20 +10,44 @@ import Stripe from 'stripe';
  * - Upgrading a site = swapping its line item's price (Stripe prorates automatically)
  * - Removing a site = deleting the line item
  * - Domain renewals remain separate subscriptions
+ *
+ * Post Stripe-Sync-Engine cutover:
+ *   - public.subscriptions was dropped. The Sync Engine mirrors Stripe
+ *     into the `stripe` schema continuously, so `findHostingSubscription`
+ *     now reads `stripe.subscriptions` via the user's stripe_customer_id.
+ *   - The returned shape preserves `stripe_subscription_id` (alias of the
+ *     stripe.subscriptions.id) so callers don't need to change.
  */
 
-/** Find the user's hosting subscription from DB (active, trialing, or paused). */
+export interface HostingSubscriptionRef {
+  /** The Stripe subscription ID (alias for stripe_subscription_id for compat). */
+  id: string;
+  stripe_subscription_id: string;
+  status: string;
+}
+
+/** Find the user's hosting subscription from stripe.* (active, trialing, or paused). */
 export async function findHostingSubscription(
   supabase: any,
   userId: string,
-): Promise<{ id: string; stripe_subscription_id: string; status: string } | null> {
-  // Find hosting subscription — include paused (no sites but sub is alive)
+): Promise<HostingSubscriptionRef | null> {
+  // Resolve Stripe customer ID first.
+  const { data: profile } = await supabase
+    .from('users')
+    .select('stripe_customer_id')
+    .eq('id', userId)
+    .maybeSingle();
+  const customerId = profile?.stripe_customer_id;
+  if (!customerId) return null;
+
+  // Pull alive subs from the Sync-Engine-mirrored stripe.subscriptions.
   const { data: subs } = await supabase
+    .schema('stripe')
     .from('subscriptions')
-    .select('id, stripe_subscription_id, status, metadata')
-    .eq('user_id', userId)
+    .select('id, status, metadata')
+    .eq('customer', customerId)
     .in('status', ['active', 'trialing', 'paused'])
-    .order('created_at', { ascending: false });
+    .order('created', { ascending: false });
 
   // Filter out domain renewals
   const hostingSub = (subs ?? []).find((s: any) => {
@@ -31,7 +55,13 @@ export async function findHostingSubscription(
     return meta.type !== 'domain_renewal' && meta.is_domain_purchase !== 'true';
   });
 
-  return hostingSub ?? null;
+  if (!hostingSub) return null;
+
+  return {
+    id: hostingSub.id,
+    stripe_subscription_id: hostingSub.id,
+    status: hostingSub.status,
+  };
 }
 
 /** Add a site as a line item to an existing Stripe subscription. */

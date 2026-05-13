@@ -285,7 +285,7 @@ async function handleSoftDelete(siteId: string, actorId: string | null) {
 
   const { data: row } = await supabase
     .from('sites')
-    .select('id, wp_cloud_site_id, wp_cloud_url, user_id, subscription_id, stripe_subscription_item_id, product_id, label, config, metadata')
+    .select('id, wp_cloud_site_id, wp_cloud_url, user_id, stripe_subscription_item_id, product_id, label, config, metadata')
     .eq('id', siteId)
     .single();
   if (!row) return NextResponse.json({ error: 'Site not found' }, { status: 404 });
@@ -293,41 +293,28 @@ async function handleSoftDelete(siteId: string, actorId: string | null) {
   let subscriptionPaused = false;
 
   // 1. Remove this site's line item from Stripe.
-  if (row.stripe_subscription_item_id && row.subscription_id) {
-    const { data: sub } = await supabase
-      .from('subscriptions')
-      .select('stripe_subscription_id, status, metadata')
-      .eq('id', row.subscription_id)
-      .single();
-
-    if (sub?.stripe_subscription_id && sub.status !== 'cancelled') {
-      try {
-        const stripeSub = await stripe.subscriptions.retrieve(sub.stripe_subscription_id);
+  // Account-centric: ask Stripe directly for the parent sub via the item.
+  // Sync Engine mirrors the resulting pause back into stripe.subscriptions.
+  if (row.stripe_subscription_item_id) {
+    try {
+      const stripeItem = await stripe.subscriptionItems.retrieve(row.stripe_subscription_item_id);
+      const parentSubId = stripeItem.subscription;
+      if (parentSubId) {
+        const stripeSub = await stripe.subscriptions.retrieve(parentSubId);
         const itemCount = stripeSub.items.data.length;
         await stripe.subscriptionItems.del(row.stripe_subscription_item_id, {
           proration_behavior: 'create_prorations',
         });
 
-        if (itemCount <= 1) {
-          await stripe.subscriptions.update(sub.stripe_subscription_id, {
+        if (itemCount <= 1 && stripeSub.status !== 'canceled') {
+          await stripe.subscriptions.update(parentSubId, {
             pause_collection: { behavior: 'void' },
           });
           subscriptionPaused = true;
-          await supabase
-            .from('subscriptions')
-            .update({
-              status: 'paused',
-              metadata: {
-                ...((sub.metadata as any) ?? {}),
-                paused_at: new Date().toISOString(),
-                paused_reason: 'last_site_deleted',
-              },
-            })
-            .eq('id', row.subscription_id);
         }
-      } catch (stripeErr) {
-        console.error('[site-info] failed to remove Stripe line item:', stripeErr);
       }
+    } catch (stripeErr) {
+      console.error('[site-info] failed to remove Stripe line item:', stripeErr);
     }
   }
 

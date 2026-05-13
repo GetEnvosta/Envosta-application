@@ -1,49 +1,43 @@
 import { getEffectiveUserId } from '@/services/auth';
-import { getUserInvoices } from '@/services/billing';
+import { getAccountInvoices, getAccountSubscriptionWithProduct } from '@/services/billing';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
 import { FileText, Download, Globe, ArrowUpRight, Plus } from 'lucide-react';
 import { PaymentMethodManager } from '@/components/billing/payment-method-manager';
 import { createClient } from '@/lib/supabase-server';
 import Link from 'next/link';
 
+/**
+ * Customer billing page. Reads subscription + invoices from the
+ * stripe.* mirror via the new billing helpers — public.subscriptions /
+ * public.invoices were dropped in the Sync Engine cutover.
+ */
 export default async function BillingPage() {
   const userId = await getEffectiveUserId();
   const supabase = await createClient();
 
-  // Fetch invoices, sites with plan info, and domain subscriptions in parallel
-  const [invoices, sitesResult, domainSubsResult] = await Promise.all([
-    getUserInvoices(20, userId!),
+  // Fetch invoices, sites with plan info, and account subscription in parallel
+  const [invoices, sitesResult, accountSub] = await Promise.all([
+    getAccountInvoices(userId!, 20),
     supabase
       .from('sites')
       .select('id, label, status, product_id, stripe_subscription_item_id, products(name, slug, price_cad)')
       .eq('user_id', userId!)
       .not('status', 'in', '("cancelled","deleted")')
       .order('created_at', { ascending: false }),
-    supabase
-      .from('subscriptions')
-      .select('id, status, billing_period, current_period_end, products(name, price_cad, type), metadata')
-      .eq('user_id', userId!)
-      .in('status', ['active', 'trialing'])
-      .order('created_at', { ascending: false }),
+    getAccountSubscriptionWithProduct(userId!),
   ]);
 
   const sites = sitesResult.data ?? [];
-  const allSubs = domainSubsResult.data ?? [];
 
-  // Separate domain renewals from hosting
-  const domainSubs = allSubs.filter((s: any) => {
-    const meta = (s.metadata as any) ?? {};
-    return meta.type === 'domain_renewal' || meta.is_domain_purchase === 'true' || (s.products as any)?.type === 'domain_tld';
-  });
+  // Domain renewals are now standalone Stripe subscriptions / one-time
+  // charges driven by cron — the customer dashboard surfaces them via
+  // the domains table, not via separate sub rows. (Phase 3 will rebuild
+  // the dedicated domain renewal section as cron-managed line items.)
+  const domainSubs: any[] = [];
 
   // Calculate totals
   const sitesTotal = sites.reduce((sum: number, s: any) => sum + ((s.products as any)?.price_cad ?? 0), 0);
-  const domainsTotal = domainSubs.reduce((sum: number, s: any) => {
-    const price = (s.products as any)?.price_cad ?? 0;
-    // Domain renewals are yearly — show monthly equivalent
-    return sum + Math.round(price / 12);
-  }, 0);
-  const monthlyTotal = sitesTotal + domainsTotal;
+  const monthlyTotal = sitesTotal;
 
   return (
     <div className="space-y-8">
@@ -61,6 +55,13 @@ export default async function BillingPage() {
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Monthly Total</p>
               <p className="text-2xl font-bold text-gray-900 mt-0.5">{formatCents(monthlyTotal, 'usd')}<span className="text-sm font-normal text-gray-400">/mo</span></p>
+              {accountSub && (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Plan: <span className="text-gray-600 font-medium">{accountSub.product?.name ?? 'Hosting'}</span>
+                  <span className="mx-1.5">·</span>
+                  <span className={statusColor(accountSub.status)}>{accountSub.status}</span>
+                </p>
+              )}
             </div>
             <Link
               href="/dashboard/add-site"
@@ -113,7 +114,7 @@ export default async function BillingPage() {
             </div>
           )}
 
-          {/* Domain renewals */}
+          {/* Domain renewals (legacy stub — Phase 3 rebuilds) */}
           {domainSubs.length > 0 && (
             <div className="divide-y divide-gray-100">
               <div className="px-6 py-2.5 bg-gray-50/50 border-t border-gray-100">
@@ -182,16 +183,17 @@ export default async function BillingPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {invoices.map((inv: any) => {
-                  const meta = (inv.metadata as any) ?? {};
+                  const amount = inv.amount_paid ?? inv.amount_due ?? 0;
+                  const currency = (inv.currency ?? 'usd').toLowerCase() as 'usd' | 'cad';
                   return (
                     <tr key={inv.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{formatDate(inv.created_at)}</td>
-                      <td className="px-5 py-3.5 text-sm text-gray-900">{inv.description || 'Invoice'}</td>
-                      <td className="px-5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{formatCents(inv.amount_cad ?? 0, 'usd')}</td>
+                      <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{inv.created_iso ? formatDate(inv.created_iso) : '—'}</td>
+                      <td className="px-5 py-3.5 text-sm text-gray-900">{inv.description || inv.number || 'Invoice'}</td>
+                      <td className="px-5 py-3.5 text-sm font-medium text-gray-900 whitespace-nowrap">{formatCents(amount, currency)}</td>
                       <td className="px-5 py-3.5"><span className={statusColor(inv.status)}>{inv.status}</span></td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
-                          {meta.invoice_pdf && <a href={meta.invoice_pdf} target="_blank" rel="noopener noreferrer" className="text-sm text-brand-600 hover:text-brand-700"><Download className="w-3.5 h-3.5" /></a>}
+                          {inv.invoice_pdf && <a href={inv.invoice_pdf} target="_blank" rel="noopener noreferrer" className="text-sm text-brand-600 hover:text-brand-700"><Download className="w-3.5 h-3.5" /></a>}
                           {inv.hosted_invoice_url && <a href={inv.hosted_invoice_url} target="_blank" rel="noopener noreferrer" className="text-sm text-gray-500 hover:text-gray-700"><FileText className="w-3.5 h-3.5" /></a>}
                         </div>
                       </td>

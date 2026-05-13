@@ -80,6 +80,8 @@ export async function POST(req: Request) {
     }).eq('id', siteId);
 
     // Step 3: Re-provision on wp.cloud via the Vercel internal route.
+    // The internal provision-site route looks up the account subscription
+    // via the user — we don't pass subscriptionId anymore (account-centric).
     const provisionRes = await fetch(`${origin}/api/internal/wpcloud/provision-site`, {
       method: 'POST',
       headers: internalHeaders,
@@ -87,7 +89,6 @@ export async function POST(req: Request) {
         siteId,
         serviceId: siteId,
         userId: site.user_id,
-        subscriptionId: site.subscription_id,
       }),
     });
 

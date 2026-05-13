@@ -1,32 +1,55 @@
 export const revalidate = 5;
 
 import { createClient } from '@/lib/supabase-server';
+import { getAllSubscriptionsAdmin } from '@/services/billing';
 import { formatDate, formatCents, statusColor } from '@/lib/utils';
 import Link from 'next/link';
 import { CreditCard, Search, AlertTriangle, Server, Globe, ExternalLink } from 'lucide-react';
 
+/**
+ * Admin: all subscriptions across the platform. Reads from stripe.*
+ * (Sync Engine mirror) via getAllSubscriptionsAdmin().
+ */
 export default async function SubscriptionsPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
   const { status: statusFilter, q } = await searchParams;
   const supabase = await createClient();
 
-  let query = supabase
-    .from('subscriptions')
-    .select('*, products(name, slug, type, price_cad), users(id, full_name, email)')
-    .order('created_at', { ascending: false })
-    .limit(200);
+  const allSubs = await getAllSubscriptionsAdmin(500);
+  // Client-side filter (the helper returns up to 500 — that's plenty for
+  // current scale; if we outgrow this we'll push filters down to SQL).
+  let subs = allSubs;
+  if (statusFilter && statusFilter !== 'all') {
+    subs = subs.filter((s: any) => s.status === statusFilter);
+  }
+  if (q) {
+    const needle = q.toLowerCase();
+    subs = subs.filter((s: any) => {
+      const full = (s.users?.full_name ?? '').toLowerCase();
+      const email = (s.users?.email ?? '').toLowerCase();
+      return full.includes(needle) || email.includes(needle);
+    });
+  }
 
-  if (statusFilter && statusFilter !== 'all') query = query.eq('status', statusFilter);
-  if (q) query = query.or(`users.full_name.ilike.%${q}%,users.email.ilike.%${q}%`);
-
-  const { data: subscriptions } = await query;
-  const subs = subscriptions ?? [];
-
-  // Find orphans: active/trialing hosting subs with no site, domain subs with no domain
-  const hostingSubIds = subs.filter((s: any) => s.products?.type === 'hosting_plan' && ['active', 'trialing'].includes(s.status)).map((s: any) => s.id);
-  const { data: linkedSites } = hostingSubIds.length > 0
-    ? await supabase.from('sites').select('subscription_id').in('subscription_id', hostingSubIds)
-    : { data: [] };
-  const siteLinkSet = new Set((linkedSites ?? []).map((s: any) => s.subscription_id));
+  // Orphan detection: hosting subs with no site / domain subs with no domain.
+  const hostingSubIds = subs
+    .filter((s: any) => s.products?.type === 'hosting_plan' && ['active', 'trialing'].includes(s.status))
+    .map((s: any) => s.id);
+  // Sites no longer carry subscription_id (account-centric). Determine
+  // "is linked" by whether the owner has any active sites.
+  const userIdsWithSites = new Set<string>();
+  if (hostingSubIds.length > 0) {
+    const customerIds = subs.map((s: any) => s.users?.id).filter(Boolean);
+    if (customerIds.length > 0) {
+      const { data: linkedSites } = await supabase
+        .from('sites')
+        .select('user_id')
+        .in('user_id', customerIds)
+        .not('status', 'in', '("cancelled","deleted")');
+      for (const r of linkedSites ?? []) {
+        if (r.user_id) userIdsWithSites.add(r.user_id);
+      }
+    }
+  }
 
   const domainSubs = subs.filter((s: any) => s.products?.type === 'domain_tld' && ['active', 'trialing'].includes(s.status));
   const domainLinkSet = new Set<string>();
@@ -38,9 +61,9 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
     }
   }
 
-  // Counts
-  const counts: Record<string, number> = { all: subs.length };
-  for (const s of subs) { counts[s.status] = (counts[s.status] ?? 0) + 1; }
+  // Counts (across all returned subs, not just filtered)
+  const counts: Record<string, number> = { all: allSubs.length };
+  for (const s of allSubs) { counts[s.status] = (counts[s.status] ?? 0) + 1; }
 
   const STATUSES = ['all', 'active', 'trialing', 'past_due', 'cancelled', 'incomplete', 'paused'];
 
@@ -102,20 +125,21 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
                 const isHosting = s.products?.type === 'hosting_plan';
                 const isDomain = s.products?.type === 'domain_tld';
                 const isActive = ['active', 'trialing'].includes(s.status);
+                const userId = s.users?.id ?? null;
                 const isOrphan = isActive && (
-                  (isHosting && !siteLinkSet.has(s.id)) ||
+                  (isHosting && userId && !userIdsWithSites.has(userId)) ||
                   (isDomain && !domainLinkSet.has(s.stripe_subscription_id))
                 );
 
                 return (
                   <tr key={s.id} className={`hover:bg-gray-50 transition-colors ${isOrphan ? 'bg-amber-50/50' : ''}`}>
                     <td className="px-5 py-3.5">
-                      <Link href={`/admin/customers/${(s.users as any)?.id}`} className="font-medium text-admin-600 hover:text-admin-700">
-                        {(s.users as any)?.full_name || (s.users as any)?.email || '\u2014'}
+                      <Link href={`/admin/customers/${userId}`} className="font-medium text-admin-600 hover:text-admin-700">
+                        {(s.users as any)?.full_name || (s.users as any)?.email || '—'}
                       </Link>
                       <p className="text-xs text-gray-400">{(s.users as any)?.email}</p>
                     </td>
-                    <td className="px-5 py-3.5 text-gray-600">{s.products?.name ?? '\u2014'}</td>
+                    <td className="px-5 py-3.5 text-gray-600">{s.products?.name ?? '—'}</td>
                     <td className="px-5 py-3.5">
                       {isHosting && <span className="inline-flex items-center gap-1 text-xs text-gray-500"><Server className="w-3 h-3" /> Hosting</span>}
                       {isDomain && <span className="inline-flex items-center gap-1 text-xs text-gray-500"><Globe className="w-3 h-3" /> Domain</span>}
@@ -135,8 +159,8 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
                         <span className="text-xs text-gray-400">&mdash;</span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 text-gray-500 text-xs">{s.billing_period ?? '\u2014'}</td>
-                    <td className="px-5 py-3.5 text-gray-400 text-xs">{formatDate(s.created_at)}</td>
+                    <td className="px-5 py-3.5 text-gray-500 text-xs">{s.billing_period ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-gray-400 text-xs">{s.created_at ? formatDate(s.created_at) : '—'}</td>
                   </tr>
                 );
               })}

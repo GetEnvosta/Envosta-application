@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { getAccountSubscription } from '@/services/billing';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,9 +11,9 @@ export const dynamic = 'force-dynamic';
  *
  * Admin-triggered wp.cloud provisioning. Three paths:
  *
- *   1. NEW SITE — no row exists for the subscription. Create a sites
- *      row with status='provisioning' and fire the wp.cloud
- *      provision-hosting edge function.
+ *   1. NEW SITE — no row exists for the user. Create a sites row with
+ *      status='provisioning' and fire the wp.cloud provision-hosting
+ *      internal route.
  *
  *   2. RE-PROVISION — sites row exists but wp_cloud_site_id is null
  *      (initial provisioning failed) OR status='provisioning' (stuck).
@@ -30,8 +31,10 @@ export const dynamic = 'force-dynamic';
  *                                        OR was lost; retry is safe
  *   - sites.status='active'           →  fully live; do not re-fire
  *
- * Subscription must be active or trialing — we don't provision against
- * cancelled / paused / unpaid subs.
+ * Post Stripe-Sync-Engine cutover: there's no local public.subscriptions
+ * to look up. The user's single subscription is fetched from stripe.*
+ * via getAccountSubscription(userId) when subscription validation is
+ * required for the "new site" path.
  */
 export async function POST(req: Request) {
   // Verify admin
@@ -54,8 +57,16 @@ export async function POST(req: Request) {
   if (!['admin', 'staff'].includes(profile?.role)) return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
 
   const reqBody = await req.json();
-  const { subscriptionId, userId, planId, label } = reqBody;
+  const { userId, planId, label } = reqBody;
   const directSiteId: string | undefined = reqBody.siteId;
+
+  const origin = process.env.NEXT_PUBLIC_APP_URL
+    ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+    : new URL(req.url).origin;
+  const internalHeaders = {
+    'Content-Type': 'application/json',
+    'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
+  };
 
   // ── Direct-by-siteId path ───────────────────────────────────
   // Used by the admin "Provision" button (provision-button.tsx),
@@ -87,16 +98,10 @@ export async function POST(req: Request) {
       })
       .eq('id', directSiteId);
 
-    const origin2 = process.env.NEXT_PUBLIC_APP_URL
-      ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
-      : new URL(req.url).origin;
     try {
-      const provRes = await fetch(`${origin2}/api/internal/wpcloud/provision-site`, {
+      const provRes = await fetch(`${origin}/api/internal/wpcloud/provision-site`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
-        },
+        headers: internalHeaders,
         body: JSON.stringify({
           siteId: targetSite.id,
           serviceId: targetSite.id,
@@ -115,34 +120,35 @@ export async function POST(req: Request) {
     }
   }
 
-  if (!subscriptionId || !userId) return NextResponse.json({ error: 'subscriptionId and userId required (or pass siteId)' }, { status: 400 });
+  if (!userId) return NextResponse.json({ error: 'userId required (or pass siteId)' }, { status: 400 });
 
-  // Check subscription exists and is active
-  const { data: sub } = await supabase.from('subscriptions').select('*').eq('id', subscriptionId).single();
-  if (!sub) return NextResponse.json({ error: 'Subscription not found' }, { status: 404 });
-  if (!['active', 'trialing'].includes(sub.status)) {
-    return NextResponse.json({ error: `Subscription is ${sub.status}, must be active or trialing` }, { status: 400 });
+  // Validate the user has an active subscription before spinning up a site.
+  const accountSub = await getAccountSubscription(userId);
+  if (!accountSub) {
+    return NextResponse.json({ error: 'User has no active subscription' }, { status: 400 });
+  }
+  if (!['active', 'trialing'].includes(accountSub.status)) {
+    return NextResponse.json({ error: `Subscription is ${accountSub.status}, must be active or trialing` }, { status: 400 });
   }
 
-  // Resolve internal-route origin (same Vercel deployment).
-  const origin = process.env.NEXT_PUBLIC_APP_URL
-    ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
-    : new URL(req.url).origin;
-  const internalHeaders = {
-    'Content-Type': 'application/json',
-    'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
-  };
+  // Check if a site already exists for this user that's stuck/incomplete.
+  const { data: existing } = await supabase
+    .from('sites')
+    .select('id, wp_cloud_site_id, status, product_id')
+    .eq('user_id', userId)
+    .in('status', ['provisioning', 'failed'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  // Check if site already exists for this subscription
-  const { data: existing } = await supabase.from('sites').select('id, wp_cloud_site_id, status').eq('subscription_id', subscriptionId).maybeSingle();
   if (existing) {
     // If the site already has a wp.cloud ID and is active, block
     if (existing.wp_cloud_site_id && existing.status !== 'provisioning') {
-      return NextResponse.json({ error: 'Site already exists for this subscription', siteId: existing.id }, { status: 409 });
+      return NextResponse.json({ error: 'Site already exists for this user', siteId: existing.id }, { status: 409 });
     }
     // If the site exists but has no wp.cloud ID (reinstalled/failed), re-provision it
     if (!existing.wp_cloud_site_id || existing.status === 'provisioning') {
-      const effectivePlanId = planId || sub.product_id;
+      const effectivePlanId = planId || existing.product_id;
       await supabase.from('sites').update({ status: 'provisioning', product_id: effectivePlanId }).eq('id', existing.id);
       try {
         const provRes = await fetch(`${origin}/api/internal/wpcloud/provision-site`, {
@@ -174,11 +180,10 @@ export async function POST(req: Request) {
   const { data: userProfile } = await supabase.from('users').select('full_name, email').eq('id', userId).single();
   const name = label || userProfile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 30) || 'my-site';
 
-  // Create site record
-  const effectivePlanId = planId || sub.product_id;
+  // Create site record — no subscription_id (account-centric)
+  const effectivePlanId = planId || null;
   const { data: site, error: siteErr } = await supabase.from('sites').insert({
     user_id: userId,
-    subscription_id: subscriptionId,
     product_id: effectivePlanId,
     label: `${name}-site`,
     status: 'provisioning',

@@ -36,10 +36,9 @@ export async function GET(req: Request) {
   for (const user of expired) {
     try {
       // Delete sites (cascade will handle related data)
+      // public.subscriptions / public.invoices were dropped in the Sync
+      // Engine cutover; stripe.* mirrors are managed by the Sync Engine.
       await sb.from('sites').delete().eq('user_id', user.id);
-
-      // Delete subscriptions
-      await sb.from('subscriptions').delete().eq('user_id', user.id);
 
       // Delete tickets + messages
       const { data: tickets } = await sb.from('tickets').select('id').eq('user_id', user.id);

@@ -4,14 +4,13 @@ import { useState } from 'react';
 import { Loader2, Server, CheckCircle } from 'lucide-react';
 
 export function AdminSiteActions({
+  siteId,
   wpCloudSiteId,
   userId,
-  subscriptionId,
 }: {
   siteId: string;
   wpCloudSiteId: string | null;
   userId: string;
-  subscriptionId: string | null;
   status: string;
 }) {
   const [loading, setLoading] = useState<string | null>(null);
@@ -23,10 +22,13 @@ export function AdminSiteActions({
     setError('');
     setSuccess('');
     try {
+      // Pass siteId — /api/admin/provision-site re-fires wp.cloud for
+      // the existing row. (subscriptionId no longer exists in the
+      // account-centric model.)
       const res = await fetch('/api/admin/provision-site', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscriptionId, userId }),
+        body: JSON.stringify({ siteId, userId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? 'Provisioning failed');

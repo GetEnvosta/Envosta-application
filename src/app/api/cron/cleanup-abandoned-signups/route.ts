@@ -76,16 +76,25 @@ export async function GET(req: Request) {
       // Defense in depth: skip if there's any paid invoice on file. The
       // webhook should have flipped signup_status to 'active' if so, but
       // if the webhook is delayed or missed an event we don't want to
-      // delete a paying customer.
-      const { count: paidCount } = await sb
-        .from('invoices')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('status', 'paid');
+      // delete a paying customer. Read directly from stripe.invoices
+      // (mirrored by Sync Engine) via the user's stripe_customer_id.
+      const { data: userRow } = await sb
+        .from('users')
+        .select('stripe_customer_id')
+        .eq('id', user.id)
+        .maybeSingle();
 
-      if ((paidCount ?? 0) > 0) {
-        results.push({ email: user.email, status: 'skipped — has paid invoices' });
-        continue;
+      if (userRow?.stripe_customer_id) {
+        const { count: paidCount } = await (sb.schema('stripe' as any) as any)
+          .from('invoices')
+          .select('id', { count: 'exact', head: true })
+          .eq('customer', userRow.stripe_customer_id)
+          .eq('status', 'paid');
+
+        if ((paidCount ?? 0) > 0) {
+          results.push({ email: user.email, status: 'skipped — has paid invoices' });
+          continue;
+        }
       }
 
       // Skip if all of this user's sites are comped — they're not paying
@@ -100,9 +109,11 @@ export async function GET(req: Request) {
       }
 
       // Cascade-delete related rows. We do this manually in case FK
-      // cascades aren't set up everywhere.
+      // cascades aren't set up everywhere. public.subscriptions and
+      // public.invoices were dropped in the Sync Engine cutover —
+      // stripe.* mirrors stay (managed by the Sync Engine); they're
+      // harmless to leave around since the customer ID is gone.
       await sb.from('sites').delete().eq('user_id', user.id);
-      await sb.from('subscriptions').delete().eq('user_id', user.id);
       await sb.from('domains').delete().eq('user_id', user.id);
       const { data: tickets } = await sb.from('tickets').select('id').eq('user_id', user.id);
       for (const t of tickets ?? []) {
@@ -110,7 +121,6 @@ export async function GET(req: Request) {
       }
       await sb.from('tickets').delete().eq('user_id', user.id);
       await sb.from('logs').delete().eq('user_id', user.id);
-      await sb.from('invoices').delete().eq('user_id', user.id);
 
       await sb.from('users').delete().eq('id', user.id);
       await sb.auth.admin.deleteUser(user.id);

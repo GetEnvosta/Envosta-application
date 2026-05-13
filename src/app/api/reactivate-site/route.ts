@@ -14,6 +14,10 @@ export const dynamic = 'force-dynamic';
  * If the subscription was cancelled (last site), creates a new subscription.
  * The wp.cloud site is still alive during the 30-day window, so no re-provisioning needed.
  *
+ * Post Stripe-Sync-Engine cutover: the local public.subscriptions table
+ * was dropped; the helper reads from stripe.* via the user's customer ID,
+ * and we don't write any local subscription rows after creating in Stripe.
+ *
  * Body: { siteId: string }
  */
 export async function POST(req: Request) {
@@ -40,7 +44,7 @@ export async function POST(req: Request) {
   // Get the cancelled site
   const { data: site } = await supabase
     .from('sites')
-    .select('id, user_id, label, status, product_id, subscription_id, wp_cloud_site_id, metadata')
+    .select('id, user_id, label, status, product_id, wp_cloud_site_id, metadata')
     .eq('id', siteId)
     .single();
 
@@ -126,23 +130,13 @@ export async function POST(req: Request) {
         }, { status: 402 });
       }
 
-      // Save subscription to DB
-      const { data: dbSub } = await supabase.from('subscriptions').insert({
-        user_id: user.id,
-        stripe_subscription_id: newSub.id,
-        status: newSub.status,
-        billing_period: 'monthly',
-        metadata: { subscription_type: 'hosting', reactivated: true },
-      }).select('id').single();
-
-      hostingSub = { id: dbSub!.id, stripe_subscription_id: newSub.id, status: newSub.status };
+      hostingSub = { id: newSub.id, stripe_subscription_id: newSub.id, status: newSub.status };
       newSubscriptionCreated = true;
 
       // Link the site to the new subscription item
       const firstItem = newSub.items.data[0];
       await supabase.from('sites').update({
         status: 'active',
-        subscription_id: dbSub!.id,
         product_id: productId,
         stripe_subscription_item_id: firstItem.id,
         metadata: {
@@ -155,10 +149,7 @@ export async function POST(req: Request) {
       // Subscription exists — resume it if paused, then add the line item
       if (hostingSub.status === 'paused') {
         await resumeSubscription(stripe, hostingSub.stripe_subscription_id);
-        await supabase.from('subscriptions').update({
-          status: 'active',
-          metadata: { resumed_at: new Date().toISOString() },
-        }).eq('id', hostingSub.id);
+        // Sync Engine will catch the resume on its next event.
       }
 
       const item = await addSiteLineItem(
@@ -170,7 +161,6 @@ export async function POST(req: Request) {
 
       await supabase.from('sites').update({
         status: 'active',
-        subscription_id: hostingSub.id,
         product_id: productId,
         stripe_subscription_item_id: item.id,
         metadata: {

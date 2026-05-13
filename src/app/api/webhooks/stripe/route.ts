@@ -1,34 +1,29 @@
 /**
  * POST /api/webhooks/stripe
  *
- * Vercel-hosted Stripe webhook. Net-additive port of
- * supabase/functions/stripe-webhook/index.ts — both run side-by-side
- * during Phase 2C burn-in. The Stripe Dashboard chooses which one
- * receives events by which endpoint URL it points at; the operator
- * will flip it from the Supabase URL to this route once they verify
- * events arrive correctly here.
+ * Stripe webhook — orchestration-only after the Sync Engine cutover.
+ * The Supabase Stripe Sync Engine continuously mirrors every Stripe
+ * object into the `stripe` schema, so this handler no longer maintains
+ * a local public.subscriptions / public.invoices mirror. Its job is
+ * limited to the side effects Stripe data alone can't drive:
  *
- * Key differences from the edge-function original:
- *  - Runs on Vercel's Node runtime (not Deno).
- *  - Reads the raw body via `await req.text()` BEFORE parsing — Stripe
- *    signature verification needs exact raw bytes.
- *  - Uses `stripe.webhooks.constructEvent` (sync) instead of the Deno
- *    async variant with the SubtleCrypto provider.
- *  - Idempotency keyed off the new webhook_events table
- *    (provider='stripe', provider_event_id=event.id, UNIQUE constraint
- *    handles dedup — duplicate inserts return 200 immediately).
- *  - Outbound wp.cloud calls go through the typed client + the
- *    /api/internal/wpcloud/provision-site route instead of POSTing
- *    the legacy edge function.
- *  - Outbound OpenSRS register calls go through createOpenSrsClient()
- *    instead of POSTing the legacy register-domain edge function.
- *  - Logging is console.* (Vercel logs capture it). The `logs` table
- *    is still written for business-level events.
+ *   - Provisioning new wp.cloud sites for new subscriptions
+ *   - Cascading sub status changes to `sites` (active/paused/cancelled)
+ *   - Flipping users.metadata.signup_status on payment success/failure
+ *   - Sending transactional emails (welcome, paid, payment_failed, sites_paused)
+ *   - Auto-registering domains via OpenSRS for new signups
+ *   - Studio-request ticket creation (one-time checkout flow)
+ *   - Stamping users.stripe_customer_id on customer.created
  *
- * IMPORTANT: All side effects (DB writes, integration calls, emails)
- * stay in the route handler for now. Phase 4 moves them into background
- * jobs; this commit just parallels the edge function with the new
- * integration plumbing.
+ * Dedup: every event is recorded in `webhook_events`
+ *        (provider='stripe', provider_event_id=event.id). The UNIQUE
+ *        constraint handles dedup; duplicate inserts return 200 immediately.
+ *
+ * What this handler explicitly DOES NOT do:
+ *   - Write to public.subscriptions / public.invoices (tables dropped)
+ *   - Write to sites.subscription_id (column dropped — account-centric)
+ *   - Manage the domain_renewal subscription mirror
+ *     (TODO Phase 3: domain renewal moves to cron-based one-time charges)
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -60,7 +55,7 @@ function getStripe(): Stripe {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
 }
 
-// ─── Audit log helper (writes to logs table — mirrors the edge fn) ──
+// ─── Audit log helper ─────────────────────────────────────────
 
 async function logEvent(p: {
   userId?: string | null;
@@ -68,8 +63,6 @@ async function logEvent(p: {
   level?: string;
   action: string;
   message?: string;
-  req?: unknown;
-  res?: unknown;
 }): Promise<void> {
   try {
     const supabase = sb();
@@ -79,8 +72,6 @@ async function logEvent(p: {
       level: p.level ?? 'info',
       action: p.action,
       message: p.message ?? null,
-      request_payload: p.req ?? null,
-      response_payload: p.res ?? null,
     });
   } catch (e) {
     console.error('[stripe-webhook] log write failed:', e);
@@ -122,11 +113,6 @@ async function provisionSiteViaInternal(
 
 // ─── OpenSRS register helper ─────────────────────────────────
 
-/**
- * Build an OpenSrsContact from a row in the `users` table. Mirrors the
- * `getContact()` helper inside supabase/functions/register-domain so the
- * webhook-driven domain registrations need only a userId.
- */
 function buildContactFromProfile(profile: any, fallbackEmail: string): OpenSrsContact {
   const parts = (profile?.full_name ?? 'Domain Owner').split(' ');
   const meta = (profile?.metadata as any) ?? {};
@@ -151,7 +137,6 @@ async function registerDomainViaOpenSrs(params: {
   siteId?: string | null;
 }): Promise<{ ok: boolean; error?: string; orderId?: string }> {
   const supabase = sb();
-  // Find or create the customer-facing domains row.
   const { data: profile } = await supabase
     .from('users')
     .select('id, full_name, email, phone, company_name, metadata')
@@ -162,7 +147,6 @@ async function registerDomainViaOpenSrs(params: {
   const contacts: OpenSrsContacts = { owner: buildContactFromProfile(profile, profile.email ?? '') };
   const tld = params.domainName.split('.').slice(-1)[0] ?? '';
 
-  // Ensure domains row exists.
   const { data: existing } = await supabase
     .from('domains')
     .select('id, status, expiry_date, metadata')
@@ -266,9 +250,7 @@ export async function POST(req: Request) {
   console.log('[stripe-webhook] event received:', event.type, event.id);
   const supabase = sb();
 
-  // ── Idempotency: insert webhook_events row keyed on (provider, provider_event_id) ──
-  // The UNIQUE constraint handles dedup atomically — on conflict we
-  // return 200 immediately so Stripe stops retrying.
+  // ── Idempotency: webhook_events row (UNIQUE on provider+provider_event_id) ──
   const { error: dedupErr } = await supabase.from('webhook_events').insert({
     provider: 'stripe',
     provider_event_id: event.id,
@@ -277,7 +259,6 @@ export async function POST(req: Request) {
     signature_verified: true,
   });
   if (dedupErr) {
-    // 23505 = unique_violation; treat as duplicate.
     if ((dedupErr as any).code === '23505') {
       console.log('[stripe-webhook] duplicate event, skipping:', event.id);
       return NextResponse.json({ received: true, duplicate: true });
@@ -290,11 +271,12 @@ export async function POST(req: Request) {
       const sub = event.data.object as Stripe.Subscription;
       const custStripeId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
 
+      // Resolve the user via stripe_customer_id (no more sub-mirror lookup).
       const { data: cust } = await supabase
         .from('users')
-        .select('id, full_name, email')
+        .select('id, full_name, email, metadata, role, stripe_customer_id')
         .eq('stripe_customer_id', custStripeId)
-        .single();
+        .maybeSingle();
       if (!cust) {
         console.log('[stripe-webhook] no customer for', custStripeId);
         return NextResponse.json({ received: true });
@@ -304,7 +286,7 @@ export async function POST(req: Request) {
       const firstItem = items[0];
       const firstPriceId = firstItem?.price?.id ?? '';
 
-      // Match first item's price to a plan (drives subscription.product_id).
+      // Match first item's price to a plan (drives downstream provisioning).
       let primaryPlan: any = null;
       if (firstPriceId) {
         const { data: p } = await supabase
@@ -317,51 +299,10 @@ export async function POST(req: Request) {
         primaryPlan = p;
       }
 
-      const interval = firstItem?.price?.recurring?.interval;
-      let billingPeriod = 'monthly';
-      if (interval === 'year') billingPeriod = 'yearly';
-
-      const { data: existingSub } = await supabase
-        .from('subscriptions')
-        .select('metadata')
-        .eq('stripe_subscription_id', sub.id)
-        .maybeSingle();
-      const existingMeta = (existingSub?.metadata as any) ?? {};
-
-      const { data: dbSub } = await supabase
-        .from('subscriptions')
-        .upsert(
-          {
-            user_id: cust.id,
-            product_id: primaryPlan?.id ?? null,
-            stripe_subscription_id: sub.id,
-            status: sub.status,
-            billing_period: billingPeriod,
-            current_period_start: (sub as any).current_period_start
-              ? new Date((sub as any).current_period_start * 1000).toISOString()
-              : null,
-            current_period_end:
-              ((sub as any).current_period_end ? new Date((sub as any).current_period_end * 1000).toISOString() : null) ??
-              (sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null),
-            metadata: {
-              ...existingMeta,
-              stripe_price_id: firstPriceId,
-              cancel_at_period_end: sub.cancel_at_period_end ?? false,
-              item_count: items.length,
-            },
-          },
-          { onConflict: 'stripe_subscription_id' },
-        )
-        .select('id')
-        .single();
-
-      console.log('[stripe-webhook] subscription upserted:', dbSub?.id, 'status:', sub.status, 'items:', items.length);
-
       // ── Promote awaiting_payment / payment_failed users to active ──
       const subActive = sub.status === 'active' || sub.status === 'trialing';
-      if (subActive && dbSub) {
-        const { data: profileForActive } = await supabase.from('users').select('metadata').eq('id', cust.id).maybeSingle();
-        const pmeta = (profileForActive?.metadata as any) ?? {};
+      if (subActive) {
+        const pmeta = (cust.metadata as any) ?? {};
         if (pmeta.signup_status && pmeta.signup_status !== 'active') {
           await supabase
             .from('users')
@@ -423,7 +364,7 @@ export async function POST(req: Request) {
         }
       }
 
-      // ── Auto-create / pre-link site + provision ──
+      // ── Auto-create / pre-link site + provision (hosting only) ──
       const isDomainRenewal = (sub.metadata as any)?.type === 'domain_renewal';
       const isDomainPurchase = (sub.metadata as any)?.is_domain_purchase === 'true';
       const isDomainTld = primaryPlan?.type === 'domain_tld';
@@ -447,9 +388,13 @@ export async function POST(req: Request) {
         }
       }
 
-      if (shouldProvision && dbSub && primaryPlan?.type === 'hosting_plan' && !isDomainRenewal && !isDomainPurchase && !isDomainTld) {
-        const { data: profile } = await supabase.from('users').select('full_name').eq('id', cust.id).maybeSingle();
-        const name = profile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 30) ?? 'my-site';
+      // TODO Phase 3: domain renewal moves to cron-based one-time charges.
+      // For now we silently ignore domain_renewal / domain_purchase /
+      // domain_tld subs in the provisioning path — they only need the
+      // OpenSRS registration step further down.
+
+      if (shouldProvision && primaryPlan?.type === 'hosting_plan' && !isDomainRenewal && !isDomainPurchase && !isDomainTld) {
+        const name = (cust.full_name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 30) || 'my-site';
         const domainFromMeta = (sub.metadata as any)?.domain_name ?? null;
         const planMeta = (primaryPlan?.metadata as any) ?? {};
 
@@ -468,7 +413,6 @@ export async function POST(req: Request) {
             await supabase
               .from('sites')
               .update({
-                subscription_id: dbSub.id,
                 stripe_subscription_item_id: firstItem?.id ?? null,
                 product_id: primaryPlan?.id ?? null,
               })
@@ -480,16 +424,16 @@ export async function POST(req: Request) {
           }
         }
 
-        // ── Existing site by subscription_id ──
-        if (!svc) {
+        // ── Existing site by subscription item ──
+        if (!svc && firstItem?.id) {
           const { data: existing } = await supabase
             .from('sites')
             .select('id, wp_cloud_site_id, label')
-            .eq('subscription_id', dbSub.id)
+            .eq('stripe_subscription_item_id', firstItem.id)
             .limit(1);
           if (existing?.length) {
             svc = existing[0] as any;
-            console.log('[stripe-webhook] site already linked:', svc!.id);
+            console.log('[stripe-webhook] site already linked via item:', svc!.id);
           }
         }
 
@@ -499,7 +443,6 @@ export async function POST(req: Request) {
             .from('sites')
             .insert({
               user_id: cust.id,
-              subscription_id: dbSub.id,
               product_id: primaryPlan?.id ?? null,
               stripe_subscription_item_id: firstItem?.id ?? null,
               label: `${name}-site`,
@@ -527,7 +470,7 @@ export async function POST(req: Request) {
         }
 
         if (svc) {
-          // Update the Stripe item with our site ID for reconciliation.
+          // Reconciliation: stamp the Stripe item with our site ID.
           if (firstItem?.id) {
             try {
               await stripe.subscriptionItems.update(firstItem.id, {
@@ -539,13 +482,10 @@ export async function POST(req: Request) {
           }
 
           // Welcome email — only on brand-new insert.
-          if (wasNewlyInserted) {
-            const { data: userProfile } = await supabase.from('users').select('email, full_name').eq('id', cust.id).maybeSingle();
-            if (userProfile?.email) {
-              const planName = primaryPlan?.slug ? primaryPlan.slug.charAt(0).toUpperCase() + primaryPlan.slug.slice(1) : 'Hosting';
-              const email = welcomeEmail(userProfile.full_name ?? 'there', planName, 'https://my.envosta.com/dashboard');
-              await sendEmail({ to: userProfile.email, ...email });
-            }
+          if (wasNewlyInserted && cust.email) {
+            const planName = primaryPlan?.slug ? primaryPlan.slug.charAt(0).toUpperCase() + primaryPlan.slug.slice(1) : 'Hosting';
+            const email = welcomeEmail(cust.full_name ?? 'there', planName, 'https://my.envosta.com/dashboard');
+            await sendEmail({ to: cust.email, ...email });
           }
 
           // Auto-register domain — only on brand-new insert.
@@ -571,51 +511,8 @@ export async function POST(req: Request) {
                   .update({ site_id: svc.id })
                   .eq('domain_name', domainFromMeta)
                   .eq('user_id', cust.id);
-
-                // Create yearly domain renewal subscription.
-                try {
-                  const tld = domainFromMeta.split('.').pop()?.toLowerCase() ?? '';
-                  const { data: tldProduct } = await supabase
-                    .from('products')
-                    .select('stripe_price_id, price_cad')
-                    .eq('type', 'domain_tld')
-                    .eq('slug', `tld-${tld}`)
-                    .maybeSingle();
-
-                  if (tldProduct?.stripe_price_id) {
-                    const renewalSub = await stripe.subscriptions.create({
-                      customer: custStripeId,
-                      items: [{ price: tldProduct.stripe_price_id }],
-                      metadata: {
-                        supabase_user_id: cust.id,
-                        domain_name: domainFromMeta,
-                        type: 'domain_renewal',
-                      },
-                    });
-
-                    const { data: domRec } = await supabase
-                      .from('domains')
-                      .select('metadata')
-                      .eq('domain_name', domainFromMeta)
-                      .eq('user_id', cust.id)
-                      .maybeSingle();
-                    await supabase
-                      .from('domains')
-                      .update({
-                        metadata: {
-                          ...((domRec?.metadata as any) ?? {}),
-                          renewal_stripe_subscription_id: renewalSub.id,
-                          dns_setup: 'pending',
-                        },
-                      })
-                      .eq('domain_name', domainFromMeta)
-                      .eq('user_id', cust.id);
-
-                    console.log('[stripe-webhook] domain renewal sub created:', renewalSub.id);
-                  }
-                } catch (renewErr) {
-                  console.error('[stripe-webhook] domain renewal sub failed:', renewErr);
-                }
+                // TODO Phase 3: domain renewal moves to cron-based one-time charges
+                // (no more Stripe domain_renewal subscription created here).
               } else {
                 console.error('[stripe-webhook] domain registration failed:', domainFromMeta, reg.error);
               }
@@ -638,34 +535,33 @@ export async function POST(req: Request) {
               userId: cust.id,
               ...(domainFromMeta && { domainName: domainFromMeta }),
             });
-            console.log('[stripe-webhook] auto-provision result:', provRes.status, JSON.stringify(provRes.data).substring(0, 300));
+            console.log('[stripe-webhook] auto-provision result:', provRes.status);
             if (!provRes.ok) {
               console.error('[stripe-webhook] auto-provision failed (admin can retry):', provRes.data?.error);
             }
           } else {
             console.log('[stripe-webhook] site already provisioned, skipping:', svc.id, svc.wp_cloud_site_id);
           }
-        } else {
-          console.log('[stripe-webhook] no site resolved for subscription:', dbSub.id);
         }
       }
 
-      // ── Subscription paused / resumed → cascade to sites ──
-      if (event.type === 'customer.subscription.updated' && dbSub) {
+      // ── Subscription paused / resumed → cascade to sites (by item) ──
+      if (event.type === 'customer.subscription.updated') {
         const isPaused = sub.status === 'paused' || (sub.pause_collection && sub.pause_collection.behavior);
         const periodEndIso = (sub as any).current_period_end
           ? new Date((sub as any).current_period_end * 1000).toISOString()
           : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-        if (isPaused) {
+        const itemIds = items.map(i => i.id);
+
+        if (isPaused && itemIds.length > 0) {
           const { data: sitesToFlag } = await supabase
             .from('sites')
             .select('id, label, status, metadata, user_id')
-            .eq('subscription_id', dbSub.id)
+            .in('stripe_subscription_item_id', itemIds)
             .in('status', ['active', 'provisioning', 'paused']);
 
           let flagged = 0;
-          let ownerEmail: { email: string; full_name: string | null } | null = null;
           for (const site of sitesToFlag ?? []) {
             const meta = (site.metadata as any) ?? {};
             if (site.status === 'cancelled' && meta.recovery_deadline) continue;
@@ -690,24 +586,19 @@ export async function POST(req: Request) {
               message: `${site.label} flagged for deletion at ${periodEndIso} (subscription paused)`,
             });
             flagged++;
-
-            if (!ownerEmail && site.user_id) {
-              const { data: u } = await supabase.from('users').select('email, full_name').eq('id', site.user_id).maybeSingle();
-              if (u) ownerEmail = u as any;
-            }
           }
 
-          if (flagged > 0 && ownerEmail?.email) {
-            const email = sitesPausedEmail(ownerEmail.full_name ?? 'there', flagged);
-            await sendEmail({ to: ownerEmail.email, ...email });
+          if (flagged > 0 && cust.email) {
+            const email = sitesPausedEmail(cust.full_name ?? 'there', flagged);
+            await sendEmail({ to: cust.email, ...email });
           }
           console.log(`[stripe-webhook] subscription paused: ${sub.id}, flagged ${flagged} site(s)`);
-        } else if (sub.status === 'active' && !sub.pause_collection) {
+        } else if (sub.status === 'active' && !sub.pause_collection && itemIds.length > 0) {
           // Resume → restore sites we flagged.
           const { data: flagged } = await supabase
             .from('sites')
             .select('id, label, metadata')
-            .eq('subscription_id', dbSub.id)
+            .in('stripe_subscription_item_id', itemIds)
             .eq('status', 'cancelled')
             .eq('flag_reason', 'subscription_paused');
 
@@ -732,7 +623,7 @@ export async function POST(req: Request) {
       }
 
       // ── Standalone domain purchases (no site creation) ──
-      if ((isDomainPurchase || isDomainTld) && dbSub && (sub.status === 'active' || sub.status === 'trialing')) {
+      if ((isDomainPurchase || isDomainTld) && (sub.status === 'active' || sub.status === 'trialing')) {
         const domainFromMeta = (sub.metadata as any)?.domain_name ?? null;
         if (domainFromMeta) {
           const { data: existingDomain } = await supabase
@@ -806,30 +697,23 @@ export async function POST(req: Request) {
     // ── customer.subscription.deleted ──
     else if (event.type === 'customer.subscription.deleted') {
       const sub = event.data.object as Stripe.Subscription;
-
-      const { data: existSubDel } = await supabase
-        .from('subscriptions')
-        .select('id, metadata')
-        .eq('stripe_subscription_id', sub.id)
-        .maybeSingle();
-      const { data: dbSub } = await supabase
-        .from('subscriptions')
-        .update({
-          status: 'cancelled',
-          metadata: { ...((existSubDel?.metadata as any) ?? {}), cancelled_at: new Date().toISOString() },
-        })
-        .eq('stripe_subscription_id', sub.id)
-        .select('id')
-        .maybeSingle();
+      const custStripeId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
       console.log('[stripe-webhook] subscription cancelled:', sub.id);
 
+      const { data: cust } = await supabase
+        .from('users')
+        .select('id, email, full_name')
+        .eq('stripe_customer_id', custStripeId)
+        .maybeSingle();
+
+      // Cascade to sites linked via stripe_subscription_item_id.
+      const itemIds = (sub.items?.data ?? []).map(i => i.id);
       let pausedSiteCount = 0;
-      let ownerEmail: { id: string; email: string; full_name: string | null } | null = null;
-      if (dbSub) {
+      if (cust && itemIds.length > 0) {
         const { data: sites } = await supabase
           .from('sites')
           .select('id, label, status, user_id')
-          .eq('subscription_id', dbSub.id)
+          .in('stripe_subscription_item_id', itemIds)
           .in('status', ['active', 'provisioning']);
 
         for (const site of sites ?? []) {
@@ -848,19 +732,16 @@ export async function POST(req: Request) {
             message: `${site.label} paused after subscription cancelled in Stripe portal`,
           });
           pausedSiteCount++;
-          if (!ownerEmail && site.user_id) {
-            const { data: u } = await supabase.from('users').select('id, email, full_name').eq('id', site.user_id).maybeSingle();
-            if (u) ownerEmail = u as any;
-          }
         }
       }
 
-      if (pausedSiteCount > 0 && ownerEmail?.email) {
-        const email = sitesPausedEmail(ownerEmail.full_name ?? 'there', pausedSiteCount);
-        await sendEmail({ to: ownerEmail.email, ...email });
+      if (pausedSiteCount > 0 && cust?.email) {
+        const email = sitesPausedEmail(cust.full_name ?? 'there', pausedSiteCount);
+        await sendEmail({ to: cust.email, ...email });
       }
 
       // Domain renewal subscription cancellation → disable auto-renew at OpenSRS.
+      // TODO Phase 3: domain renewal moves to cron-based one-time charges.
       const domainMeta = sub.metadata as Record<string, string>;
       if (domainMeta?.type === 'domain_renewal' && domainMeta?.domain_name) {
         await supabase.from('domains').update({ auto_renew: false }).eq('domain_name', domainMeta.domain_name);
@@ -874,241 +755,76 @@ export async function POST(req: Request) {
       }
     }
 
-    // ── invoice.paid / invoice.payment_failed / invoice.created ──
-    else if (event.type === 'invoice.paid' || event.type === 'invoice.payment_failed' || event.type === 'invoice.created') {
+    // ── invoice.paid / invoice.payment_failed ──
+    else if (event.type === 'invoice.paid' || event.type === 'invoice.payment_failed') {
       const inv = event.data.object as Stripe.Invoice;
       const custStripeId = typeof inv.customer === 'string' ? inv.customer : (inv.customer as any)?.id;
-      const { data: cust } = await supabase.from('users').select('id, full_name, email').eq('stripe_customer_id', custStripeId).maybeSingle();
-      if (cust) {
-        const stripeSubId = typeof (inv as any).subscription === 'string'
-          ? (inv as any).subscription
-          : (inv as any).subscription?.id ?? null;
-        let subscriptionId: string | null = null;
-        let productType: string | null = null;
-        if (stripeSubId) {
-          const { data: linkedSub } = await supabase
-            .from('subscriptions')
-            .select('id, products(type)')
-            .eq('stripe_subscription_id', stripeSubId)
-            .maybeSingle();
-          if (linkedSub) {
-            subscriptionId = linkedSub.id;
-            productType = (linkedSub.products as any)?.type ?? null;
-          }
-        }
+      const { data: cust } = await supabase
+        .from('users')
+        .select('id, full_name, email, metadata')
+        .eq('stripe_customer_id', custStripeId)
+        .maybeSingle();
+      if (!cust) return NextResponse.json({ received: true });
 
-        const invStatus =
-          inv.status === 'paid'
-            ? 'paid'
-            : inv.status === 'open'
-            ? 'open'
-            : inv.status === 'void'
-            ? 'void'
-            : inv.status === 'uncollectible'
-            ? 'uncollectible'
-            : 'draft';
-        await supabase.from('invoices').upsert(
-          {
-            user_id: cust.id,
-            subscription_id: subscriptionId,
-            stripe_invoice_id: inv.id,
-            status: invStatus,
-            amount_cad: inv.amount_paid ?? inv.amount_due ?? 0,
-            description: inv.description || `Invoice ${inv.number ?? ''}`,
-            hosted_invoice_url: inv.hosted_invoice_url ?? null,
-            metadata: {
-              currency: inv.currency ?? 'usd',
-              amount_due: inv.amount_due,
-              amount_paid: inv.amount_paid,
-              invoice_pdf: inv.invoice_pdf,
-              stripe_subscription_id: stripeSubId,
-              product_type: productType,
-              period_start: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
-              period_end: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
-              paid_at: inv.status === 'paid' ? new Date().toISOString() : null,
-            },
-          },
-          { onConflict: 'stripe_invoice_id' },
-        );
-        console.log('[stripe-webhook] invoice:', inv.id, invStatus, productType ? `(${productType})` : '');
+      const meta = (cust.metadata as any) ?? {};
 
-        // Invoice paid → receipt email + promote signup_status.
-        if (event.type === 'invoice.paid' && (inv.amount_paid ?? 0) > 0) {
-          const { data: existingInv } = await supabase.from('invoices').select('metadata').eq('stripe_invoice_id', inv.id).maybeSingle();
-          const alreadySent = (existingInv?.metadata as any)?.email_sent;
-
-          const { data: pendingProfile } = await supabase.from('users').select('metadata').eq('id', cust.id).maybeSingle();
-          const meta = (pendingProfile?.metadata as any) ?? {};
-          if (meta.signup_status === 'awaiting_payment' || meta.signup_status === 'payment_failed') {
-            await supabase
-              .from('users')
-              .update({
-                metadata: {
-                  ...meta,
-                  signup_status: 'active',
-                  payment_confirmed_at: new Date().toISOString(),
-                },
-              })
-              .eq('id', cust.id);
-            try {
-              const adminClient: any = (supabase as any).auth?.admin;
-              if (adminClient?.updateUserById) {
-                await adminClient.updateUserById(cust.id, { email_confirm: true });
-              }
-            } catch (e) {
-              console.error('[stripe-webhook] auth email_confirm flip failed:', e);
-            }
-          }
-
-          if (!alreadySent) {
-            const { data: userProfile } = await supabase.from('users').select('email, full_name').eq('id', cust.id).maybeSingle();
-            if (userProfile?.email) {
-              const amount = `$${((inv.amount_paid ?? 0) / 100).toFixed(2)} USD`;
-              const desc = inv.description ?? `Invoice ${inv.number ?? ''}`;
-              const email = invoicePaidEmail(userProfile.full_name ?? 'there', amount, desc, inv.hosted_invoice_url ?? null);
-              await sendEmail({ to: userProfile.email, ...email });
-
-              await supabase
-                .from('invoices')
-                .update({
-                  metadata: { ...((existingInv?.metadata as any) ?? {}), email_sent: true },
-                })
-                .eq('stripe_invoice_id', inv.id);
-            }
-          }
-        }
-
-        // Payment failed → flip signup_status to payment_failed.
-        if (event.type === 'invoice.payment_failed') {
-          const { data: failingProfile } = await supabase.from('users').select('metadata').eq('id', cust.id).maybeSingle();
-          const fmeta = (failingProfile?.metadata as any) ?? {};
-          if (fmeta.signup_status === 'awaiting_payment') {
-            await supabase
-              .from('users')
-              .update({
-                metadata: { ...fmeta, signup_status: 'payment_failed', last_payment_failure_at: new Date().toISOString() },
-              })
-              .eq('id', cust.id);
-          }
-        }
-
-        // Payment failed → notify customer (idempotent).
-        if (event.type === 'invoice.payment_failed' && (inv.amount_due ?? 0) > 0) {
-          const { data: existingInv } = await supabase.from('invoices').select('metadata').eq('stripe_invoice_id', inv.id).maybeSingle();
-          const alreadySent = (existingInv?.metadata as any)?.failure_email_sent;
-
-          if (!alreadySent) {
-            const { data: userProfile } = await supabase.from('users').select('email, full_name').eq('id', cust.id).maybeSingle();
-            if (userProfile?.email) {
-              const amount = `$${((inv.amount_due ?? 0) / 100).toFixed(2)} ${(inv.currency ?? 'USD').toUpperCase()}`;
-              const email = paymentFailedEmail(userProfile.full_name ?? 'there', amount);
-              await sendEmail({ to: userProfile.email, ...email });
-              await supabase
-                .from('invoices')
-                .update({
-                  metadata: { ...((existingInv?.metadata as any) ?? {}), failure_email_sent: true },
-                })
-                .eq('stripe_invoice_id', inv.id);
-            }
-          }
-        }
-
-        // Domain renewal handling.
-        if (event.type === 'invoice.paid' && (inv as any).subscription) {
-          const subStripeId2 = typeof (inv as any).subscription === 'string' ? (inv as any).subscription : (inv as any).subscription.id;
-          try {
-            const stripeSub = await stripe.subscriptions.retrieve(subStripeId2);
-            if ((stripeSub.metadata as any)?.type === 'domain_renewal' && (stripeSub.metadata as any)?.domain_name) {
-              const domainToRenew = (stripeSub.metadata as any).domain_name;
-              console.log('[stripe-webhook] domain renewal invoice paid:', domainToRenew);
-
-              const { data: domainRecord } = await supabase
-                .from('domains')
-                .select('id, status, expires_at')
-                .eq('domain_name', domainToRenew)
-                .eq('user_id', cust.id)
-                .maybeSingle();
-
-              if (!domainRecord) {
-                console.log('[stripe-webhook] domain no longer exists, cancelling renewal:', domainToRenew);
-                await stripe.subscriptions.cancel(stripeSub.id);
-              } else {
-                const currentExpiry = (domainRecord as any).expires_at
-                  ? new Date((domainRecord as any).expires_at).getTime()
-                  : Date.now();
-                const newExpiry = new Date(Math.max(currentExpiry, Date.now()) + 365.25 * 86_400_000).toISOString();
-
-                await supabase
-                  .from('domains')
-                  .update({
-                    expires_at: newExpiry,
-                    metadata: { last_renewal: new Date().toISOString(), renewal_invoice: inv.id },
-                  })
-                  .eq('id', (domainRecord as any).id);
-                console.log('[stripe-webhook] domain expiry updated:', domainToRenew);
-              }
-            }
-          } catch (renewErr) {
-            console.error('[stripe-webhook] domain renewal processing error:', renewErr);
-          }
-        }
-
-        // invoice.paid → clear payment status + grace period.
-        if (event.type === 'invoice.paid' && (inv as any).subscription) {
+      if (event.type === 'invoice.paid' && (inv.amount_paid ?? 0) > 0) {
+        // Promote signup_status if pending.
+        if (meta.signup_status === 'awaiting_payment' || meta.signup_status === 'payment_failed') {
           await supabase
             .from('users')
             .update({
-              payment_status: 'current',
-              payment_failed_at: null,
-              suspended_at: null,
-              pre_suspension_state: null,
+              metadata: {
+                ...meta,
+                signup_status: 'active',
+                payment_confirmed_at: new Date().toISOString(),
+              },
+            })
+            .eq('id', cust.id);
+          try {
+            const adminClient: any = (supabase as any).auth?.admin;
+            if (adminClient?.updateUserById) {
+              await adminClient.updateUserById(cust.id, { email_confirm: true });
+            }
+          } catch (e) {
+            console.error('[stripe-webhook] auth email_confirm flip failed:', e);
+          }
+        }
+
+        // Receipt email.
+        if (cust.email) {
+          const amount = `$${((inv.amount_paid ?? 0) / 100).toFixed(2)} ${(inv.currency ?? 'USD').toUpperCase()}`;
+          const desc = inv.description ?? `Invoice ${inv.number ?? ''}`;
+          const email = invoicePaidEmail(cust.full_name ?? 'there', amount, desc, inv.hosted_invoice_url ?? null);
+          await sendEmail({ to: cust.email, ...email });
+        }
+
+        // Clear payment status + grace period.
+        await supabase
+          .from('users')
+          .update({
+            payment_status: 'current',
+            payment_failed_at: null,
+            suspended_at: null,
+            pre_suspension_state: null,
+          })
+          .eq('id', cust.id);
+      }
+
+      if (event.type === 'invoice.payment_failed') {
+        if (meta.signup_status === 'awaiting_payment') {
+          await supabase
+            .from('users')
+            .update({
+              metadata: { ...meta, signup_status: 'payment_failed', last_payment_failure_at: new Date().toISOString() },
             })
             .eq('id', cust.id);
         }
 
-        // Fallback: create site if invoice.paid and no site exists yet.
-        if (event.type === 'invoice.paid' && (inv as any).subscription) {
-          const subStripeId = typeof (inv as any).subscription === 'string' ? (inv as any).subscription : (inv as any).subscription.id;
-          const { data: dbSub } = await supabase
-            .from('subscriptions')
-            .select('id,product_id')
-            .eq('stripe_subscription_id', subStripeId)
-            .maybeSingle();
-          if (dbSub) {
-            const { data: existingSites } = await supabase.from('sites').select('id').eq('subscription_id', dbSub.id).limit(1);
-            if (!existingSites?.length && dbSub.product_id) {
-              const { data: planCheck } = await supabase.from('products').select('type,slug,metadata').eq('id', dbSub.product_id).maybeSingle();
-              if (planCheck?.type === 'hosting_plan') {
-                const { data: profile } = await supabase.from('users').select('full_name').eq('id', cust.id).maybeSingle();
-                const name = profile?.full_name?.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 30) ?? 'my-site';
-                const planMeta = (planCheck.metadata as any) ?? {};
-
-                try {
-                  const stripeSub = await stripe.subscriptions.retrieve(subStripeId);
-                  const firstItemId = stripeSub.items?.data?.[0]?.id ?? null;
-
-                  await supabase.from('sites').insert({
-                    user_id: cust.id,
-                    subscription_id: dbSub.id,
-                    product_id: dbSub.product_id,
-                    stripe_subscription_item_id: firstItemId,
-                    label: `${name}-site`,
-                    status: 'provisioning',
-                    server_region: 'dca',
-                    config: {
-                      php_workers: planMeta.php_workers_default ?? 2,
-                      storage_gb: planMeta.storage_gb ?? 25,
-                      php_memory_mb: planMeta.php_memory_mb ?? 512,
-                    },
-                    metadata: { auto_provisioned: true, plan_slug: planCheck.slug ?? 'minimum', via: 'invoice.paid' },
-                  });
-                  console.log('[stripe-webhook] site created via invoice.paid fallback');
-                } catch (e) {
-                  console.error('[stripe-webhook] fallback site creation error:', e);
-                }
-              }
-            }
-          }
+        if ((inv.amount_due ?? 0) > 0 && cust.email) {
+          const amount = `$${((inv.amount_due ?? 0) / 100).toFixed(2)} ${(inv.currency ?? 'USD').toUpperCase()}`;
+          const email = paymentFailedEmail(cust.full_name ?? 'there', amount);
+          await sendEmail({ to: cust.email, ...email });
         }
       }
     }

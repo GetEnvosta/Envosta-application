@@ -56,7 +56,7 @@ export async function GET(req: Request) {
     .from('sites')
     // Note: php_version is not a column on `sites` — it's stored in
     // metadata when set, with '8.4' as the default at provision time.
-    .select('id, label, user_id, product_id, subscription_id, server_region, metadata, created_at')
+    .select('id, label, user_id, product_id, server_region, metadata, created_at')
     .eq('status', 'provisioning')
     .is('wp_cloud_site_id', null)
     .lt('created_at', cutoffIso)

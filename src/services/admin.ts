@@ -2,8 +2,18 @@
  * Admin dashboard read helpers — counts, recent signups, and other
  * top-of-funnel queries used by /admin pages. Reads only; mutations
  * live in the relevant API routes (e.g. /api/admin/*).
+ *
+ * Post Stripe-Sync-Engine cutover: subscriptions + invoices live in
+ * the `stripe` schema, not local public.subscriptions / public.invoices.
+ * Customer-detail joins fetch the user's single account subscription
+ * via `getAccountSubscriptionWithProduct(userId)` and their invoices
+ * via `getAccountInvoices(userId)`.
  */
 import { createClient } from '@/lib/supabase-server';
+import {
+  getAccountSubscriptionWithProduct,
+  getAccountInvoices,
+} from '@/services/billing';
 
 /**
  * Dashboard stats: counts for customers, active services, registered domains.
@@ -55,14 +65,17 @@ export async function getRecentActivity(limit: number = 10) {
 }
 
 /**
- * All customers with optional search filter.
+ * All customers with optional search filter. Subscription status is
+ * fetched per-row from stripe.subscriptions (Sync Engine mirror) via
+ * the customer's stripe_customer_id — cross-schema PostgREST joins are
+ * iffy, so we do a single batched lookup instead.
  */
 export async function getAllCustomers(search?: string) {
   const supabase = await createClient();
 
   let query = supabase
     .from('users')
-    .select('*, sites(id), domains(id), subscriptions(id, status, billing_period)')
+    .select('*, sites(id), domains(id)')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -71,19 +84,37 @@ export async function getAllCustomers(search?: string) {
   }
 
   const { data } = await query;
-  return (data ?? []).map((u: any) => {
-    const subs = Array.isArray(u.subscriptions) ? u.subscriptions : [];
-    const activeSub = subs.find((s: any) => s.status === 'active') ?? subs.find((s: any) => s.status === 'trialing') ?? null;
-    return {
-      ...u,
-      site_count: Array.isArray(u.sites) ? u.sites.length : 0,
-      domain_count: Array.isArray(u.domains) ? u.domains.length : 0,
-      sub_status: activeSub?.status ?? (subs.length > 0 ? subs[0].status : null),
-      sites: undefined,
-      domains: undefined,
-      subscriptions: undefined,
-    };
-  });
+  const users = data ?? [];
+
+  // Batch-fetch sub status by stripe_customer_id.
+  const customerIds = users
+    .map((u: any) => u.stripe_customer_id)
+    .filter((cid: any): cid is string => typeof cid === 'string' && cid.length > 0);
+  let subStatusByCustomer = new Map<string, string>();
+  if (customerIds.length > 0) {
+    const stripeSchema: any = (supabase as any).schema('stripe' as any);
+    const { data: subs } = await stripeSchema
+      .from('subscriptions')
+      .select('customer, status, created')
+      .in('customer', customerIds)
+      .in('status', ['active', 'trialing', 'past_due', 'paused', 'incomplete'])
+      .order('created', { ascending: false });
+    for (const s of (subs as any[]) ?? []) {
+      // First seen (most recent) wins per customer.
+      if (!subStatusByCustomer.has(s.customer)) {
+        subStatusByCustomer.set(s.customer, s.status);
+      }
+    }
+  }
+
+  return users.map((u: any) => ({
+    ...u,
+    site_count: Array.isArray(u.sites) ? u.sites.length : 0,
+    domain_count: Array.isArray(u.domains) ? u.domains.length : 0,
+    sub_status: u.stripe_customer_id ? subStatusByCustomer.get(u.stripe_customer_id) ?? null : null,
+    sites: undefined,
+    domains: undefined,
+  }));
 }
 
 /**
@@ -151,14 +182,19 @@ export async function getCustomerById(id: string) {
 
 /**
  * Get all data related to a customer: services, domains, subscriptions, logs.
+ *
+ * Subscriptions + invoices come from the stripe.* mirror (Sync Engine).
+ * The shape returned is normalized so the admin UI can keep reading the
+ * familiar field names (status, billing_period, current_period_end,
+ * stripe_subscription_id, products, amount_cad, description, …).
  */
 export async function getCustomerRelatedData(userId: string) {
   const supabase = await createClient();
   const [
     { data: services },
     { data: domains },
-    { data: subscriptions },
-    { data: invoices },
+    accountSub,
+    accountInvoices,
     { data: logs },
   ] = await Promise.all([
     supabase
@@ -171,17 +207,8 @@ export async function getCustomerRelatedData(userId: string) {
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false }),
-    supabase
-      .from('subscriptions')
-      .select('*, products(name, price_cad, price_yearly_cad, type, metadata)')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('invoices')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(20),
+    getAccountSubscriptionWithProduct(userId),
+    getAccountInvoices(userId, 20),
     supabase
       .from('logs')
       .select('*')
@@ -190,11 +217,38 @@ export async function getCustomerRelatedData(userId: string) {
       .limit(20),
   ]);
 
+  // Build a single-element "subscriptions" array for back-compat with the
+  // admin UI, which expects an array of subs (was the [hosting + domain]
+  // arrangement previously). Today the user has ≤1 account sub from
+  // Stripe; domain renewals are managed separately.
+  const subscriptions: any[] = [];
+  if (accountSub) {
+    subscriptions.push({
+      ...accountSub,
+      stripe_subscription_id: accountSub.id,
+      products: accountSub.product,
+      created_at: accountSub.created ? new Date(typeof accountSub.created === 'number' ? accountSub.created * 1000 : accountSub.created).toISOString() : null,
+      current_period_end: accountSub.current_period_end
+        ? new Date(typeof accountSub.current_period_end === 'number' ? accountSub.current_period_end * 1000 : accountSub.current_period_end).toISOString()
+        : null,
+    });
+  }
+
+  // Shape invoices for back-compat: amount_cad alias for amount_paid,
+  // created_at alias for created_iso, etc.
+  const invoices = (accountInvoices ?? []).map((inv: any) => ({
+    ...inv,
+    amount_cad: inv.amount_paid ?? inv.amount_due ?? 0,
+    created_at: inv.created_iso,
+    subscription_id: inv.subscription ?? null,
+    stripe_subscription_id: inv.subscription ?? null,
+  }));
+
   return {
     services: services ?? [],
     domains: domains ?? [],
-    subscriptions: subscriptions ?? [],
-    invoices: invoices ?? [],
+    subscriptions,
+    invoices,
     logs: logs ?? [],
   };
 }
