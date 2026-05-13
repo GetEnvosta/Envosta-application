@@ -39,28 +39,24 @@ export async function PUT(req: Request) {
 }
 
 /**
- * Forward to the legacy Supabase Edge Function (which still routes
- * through the OpenSRS Cloud Run proxy). Used as the fallback path for
- * actions we haven't moved to a Vercel internal route yet:
- * check, update-nameservers, set-dns-mode, set-auto-renew,
- * set-whois-privacy, get-lock-status, set-lock, get-epp-code,
- * transfer, list-all-domains, create-nameserver.
+ * Phase 2D — the legacy `register-domain` Supabase edge function has
+ * been deleted along with the OpenSRS Cloud Run proxy. The fallback
+ * path now returns 501 for any action that hasn't been ported to a
+ * Vercel internal route yet:
+ *
+ *   update-nameservers, set-dns-mode, set-auto-renew, set-whois-privacy,
+ *   get-lock-status, set-lock, get-epp-code, transfer, list-all-domains,
+ *   create-nameserver
+ *
+ * Each of these needs its own /api/internal/opensrs/* handler.
  */
-async function forwardToEdge(payload: unknown) {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
+function notImplemented(action: string) {
+  return NextResponse.json(
     {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
-        'apikey': process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-      },
-      body: JSON.stringify(payload),
+      error: `Action "${action}" has not been ported to a Vercel internal route. The Supabase register-domain edge function was decommissioned in Phase 2D.`,
     },
+    { status: 501 },
   );
-  const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
 }
 
 /**
@@ -78,10 +74,17 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { action } = body;
 
-  // Check action is public (no auth needed). Still on the edge
-  // function until we add an internal /opensrs/check route.
+  // Check action is public (no auth needed). Calls OpenSRS directly
+  // via the internal route added in Phase 2D.
   if (action === 'check') {
-    return forwardToEdge(body);
+    const origin = internalOrigin(req);
+    const res = await fetch(`${origin}/api/domain-check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain: body.domainName }),
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
   }
 
   // All other actions require auth
@@ -192,6 +195,7 @@ export async function POST(req: Request) {
     return NextResponse.json(data, { status: res.status });
   }
 
-  // ── Burn-in fallback: still goes through the Cloud Run proxy ──
-  return forwardToEdge({ ...body, userId: user.id });
+  // ── Phase 2D: no fallback. Actions without a Vercel internal route
+  //   return 501 until they're ported.
+  return notImplemented(action ?? 'unknown');
 }

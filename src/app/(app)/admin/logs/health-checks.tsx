@@ -21,8 +21,7 @@ export function SystemHealthChecks() {
   const [checks, setChecks] = useState<HealthStatus[]>([
     { name: 'Supabase', status: 'checking' },
     { name: 'Stripe', status: 'checking' },
-    { name: 'wp.cloud Proxy', status: 'checking' },
-    { name: 'Edge Functions', status: 'checking' },
+    { name: 'wp.cloud', status: 'checking' },
     { name: 'OpenSRS', status: 'checking' },
   ]);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
@@ -66,34 +65,26 @@ export function SystemHealthChecks() {
       updateCheck('Stripe', { status: 'down', detail: e.message, latency: Date.now() - t2 });
     }
 
-    // wp.cloud Proxy — test via our own API route
+    // wp.cloud — call the internal list-all-sites endpoint (no proxy after Phase 2D)
     const t3 = Date.now();
     try {
       const res = await fetch('/api/site-actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'datacenters', siteId: 'health-check' }),
+        body: JSON.stringify({ action: 'list-all-sites' }),
       });
-      const data = await res.json();
       const lat = Date.now() - t3;
-      if (res.ok && data.datacenters) {
-        updateCheck('Edge Functions', { status: 'healthy', latency: lat });
-        if (data.proxyOk) {
-          updateCheck('wp.cloud Proxy', { status: 'healthy', latency: lat, detail: `${data.datacenters?.length ?? 0} DCs` });
-        } else {
-          updateCheck('wp.cloud Proxy', { status: 'down', detail: 'Proxy unreachable', latency: lat });
-        }
+      if (res.ok) {
+        const data = await res.json();
+        const count = Array.isArray(data) ? data.length : 0;
+        updateCheck('wp.cloud', { status: 'healthy', latency: lat, detail: `${count} sites` });
       } else if (res.status < 500) {
-        updateCheck('Edge Functions', { status: 'healthy', latency: lat });
-        updateCheck('wp.cloud Proxy', { status: 'degraded', detail: data.error ?? `HTTP ${res.status}`, latency: lat });
+        updateCheck('wp.cloud', { status: 'degraded', detail: `HTTP ${res.status}`, latency: lat });
       } else {
-        updateCheck('wp.cloud Proxy', { status: 'down', detail: data.error ?? `HTTP ${res.status}`, latency: lat });
-        updateCheck('Edge Functions', { status: 'down', detail: `HTTP ${res.status}`, latency: lat });
+        updateCheck('wp.cloud', { status: 'down', detail: `HTTP ${res.status}`, latency: lat });
       }
     } catch (e: any) {
-      const lat = Date.now() - t3;
-      updateCheck('wp.cloud Proxy', { status: 'down', detail: e.message, latency: lat });
-      updateCheck('Edge Functions', { status: 'down', detail: e.message, latency: lat });
+      updateCheck('wp.cloud', { status: 'down', detail: e.message, latency: Date.now() - t3 });
     }
 
     // OpenSRS — domain availability check via our API route
@@ -165,7 +156,7 @@ export function SystemHealthChecks() {
       </div>
 
       {/* Service health cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {checks.map(c => (
           <div key={c.name} className="card p-4">
             <div className="flex items-center gap-2 mb-1">

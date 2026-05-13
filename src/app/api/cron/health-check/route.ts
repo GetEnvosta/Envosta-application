@@ -20,24 +20,6 @@ export async function GET(req: Request) {
 
   const results: Record<string, any> = {};
 
-  // 1. Edge function health check
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/health-check`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
-        },
-        body: '{}',
-      }
-    );
-    results.healthCheck = await res.json();
-  } catch (e: any) {
-    results.healthCheck = { error: e.message };
-  }
-
   // Internal route base (Vercel static IP path).
   const origin = process.env.NEXT_PUBLIC_APP_URL
     ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')

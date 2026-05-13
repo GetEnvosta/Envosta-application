@@ -6,29 +6,32 @@ upstream services originates from one of these IPs.
 
 | IP | Whitelisted at OpenSRS | Whitelisted at wp.cloud |
 |---|---|---|
-| `184.72.2.216` | ✅ Yes | ⏳ Pending confirmation |
-| `54.241.78.174` | ✅ Yes | ⏳ Pending confirmation |
+| `184.72.2.216` | Yes | Yes |
+| `54.241.78.174` | Yes | Yes |
 
 ## OpenSRS
 
-Whitelisted via the OpenSRS Reseller Control Panel → Profile →
+Whitelisted via the OpenSRS Reseller Control Panel -> Profile ->
 API Configuration. Self-serve.
 
 ## wp.cloud
 
 wp.cloud (Atomic) does not have a self-serve IP allowlist UI. Whitelisting
-is done by your Atomic account representative. Email the rep with both
-IPs above and confirm reachability before cutting over wp.cloud traffic.
+is done via the Atomic account representative.
 
 ## Cutover history
 
 - **2026-05-06** — Static IPs enabled in Vercel.
 - **2026-05-06** — Both IPs whitelisted with OpenSRS. OpenSRS callers
-  cut over from Supabase Edge Function (proxy) → Vercel internal route
+  cut over from Supabase Edge Function (proxy) -> Vercel internal route
   (direct).
-- **TBD** — wp.cloud whitelist confirmed. wp.cloud callers cut over.
-- **TBD** — 7-day burn-in complete. Cloud Run proxies decommissioned,
-  `opensrs-proxy/` directory removed, `*_PROXY_*` env vars cleared.
+- **2026-05-12** — wp.cloud whitelist confirmed. wp.cloud callers cut
+  over (commits `0db06b9`, `bd6595f`). Stripe webhook ported to Vercel
+  (commit `8c92ce5`).
+- **2026-05-13** — Phase 2D decommission. Supabase Edge Functions
+  (`stripe-webhook`, `provision-hosting`, `site-info`, `register-domain`,
+  `health-check`) and both Cloud Run proxies removed. All wp.cloud and
+  OpenSRS traffic now originates directly from Vercel static IPs.
 
 ## Verification
 

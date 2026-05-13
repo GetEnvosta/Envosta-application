@@ -2,7 +2,17 @@
 
 > Read-only inventory of every place Envosta talks to wp.cloud, OpenSRS, and Stripe; every webhook, cron, edge function, mirror table, and env var. Baseline for the mirror-table refactor.
 
-**Scope:** `src/`, `supabase/`, `opensrs-proxy/`, `vercel.json`, `package.json`, `.env.example`.
+> **HISTORICAL — superseded by Phase 2D (2026-05-13).** The Cloud Run
+> proxies (`opensrs-proxy/`, the off-repo wp.cloud proxy) and the
+> Supabase Edge Functions `stripe-webhook`, `provision-hosting`,
+> `site-info`, `register-domain`, and `health-check` have been deleted.
+> All wp.cloud + OpenSRS traffic now originates from Vercel static IPs
+> via `src/lib/integrations/{wpcloud,opensrs,jetpack}.ts` and the
+> `/api/internal/{wpcloud,opensrs}/*` + `/api/webhooks/stripe` routes.
+> The proxy and edge-function references below describe the pre-Phase-2D
+> world and are kept only for context.
+
+**Scope:** `src/`, `supabase/`, `opensrs-proxy/` (removed), `vercel.json`, `package.json`, `.env.example`.
 **Generated against:** `main` @ commit `6f3f820` (chore: use new Supabase API key naming exclusively).
 
 ---

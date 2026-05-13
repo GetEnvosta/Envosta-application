@@ -26,8 +26,5 @@ jobs:
       - run: supabase db push
 
       - run: |
-          supabase functions deploy stripe-webhook --no-verify-jwt
           supabase functions deploy stripe-checkout
-          supabase functions deploy provision-hosting
-          supabase functions deploy register-domain
           supabase functions deploy log-action

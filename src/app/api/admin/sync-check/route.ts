@@ -123,31 +123,13 @@ export async function POST(req: Request) {
     const validDomainUserIds = new Set((domainUsers ?? []).map((u: any) => u.id));
     const domainsOrphanedUser = (dbDomains ?? []).filter((d: any) => d.user_id && !validDomainUserIds.has(d.user_id));
 
-    // Fetch all domains from OpenSRS via edge function
-    let opensrsDomains: string[] = [];
-    let opensrsError = '';
-    try {
-      const osRes = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-          },
-          body: JSON.stringify({ action: 'list-all-domains' }),
-        }
-      );
-      const osData = await osRes.json();
-      if (Array.isArray(osData?.domains)) {
-        opensrsDomains = osData.domains;
-      } else if (osData?.error) {
-        opensrsError = osData.error;
-      }
-    } catch (e: any) {
-      opensrsError = e.message;
-    }
+    // OpenSRS bulk list — not yet ported to the Vercel internal client.
+    // The legacy edge function used GET_DOMAINS_BY_EXPIREDATE; that
+    // capability needs to be re-added to src/lib/integrations/opensrs.ts.
+    // For now we skip the OpenSRS comparison and rely on the DB-side
+    // checks below.
+    const opensrsDomains: string[] = [];
+    const opensrsError = 'OpenSRS bulk listing not yet ported (Phase 2D follow-up)';
 
     // Compare DB domains vs OpenSRS domains
     const dbDomainNames = new Set((dbDomains ?? []).map((d: any) => d.domain_name?.toLowerCase()).filter(Boolean));
