@@ -54,7 +54,9 @@ export async function GET(req: Request) {
   const cutoffIso = new Date(Date.now() - MIN_AGE_SECONDS * 1000).toISOString();
   const { data: stuck, error } = await sb
     .from('sites')
-    .select('id, label, user_id, product_id, subscription_id, server_region, php_version, metadata, created_at')
+    // Note: php_version is not a column on `sites` — it's stored in
+    // metadata when set, with '8.4' as the default at provision time.
+    .select('id, label, user_id, product_id, subscription_id, server_region, metadata, created_at')
     .eq('status', 'provisioning')
     .is('wp_cloud_site_id', null)
     .lt('created_at', cutoffIso)
@@ -116,7 +118,7 @@ export async function GET(req: Request) {
             serviceId: site.id,
             label: site.label || 'site',
             region: site.server_region || 'dca',
-            phpVersion: site.php_version || '8.4',
+            phpVersion: (site.metadata as any)?.php_version || '8.4',
             planId: site.product_id,
             userId: site.user_id,
           }),
