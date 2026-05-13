@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /**
  * <InvoiceForm> — single component for creating a custom Stripe invoice.
@@ -68,7 +68,7 @@ export function InvoiceForm(props: Props) {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.access_token}`,
-            apikey: (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!,
+            apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
           },
           body: JSON.stringify(body),
         }

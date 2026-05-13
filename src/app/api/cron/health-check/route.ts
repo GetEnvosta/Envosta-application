@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
   const sb = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!,
+    process.env.SUPABASE_SECRET_KEY!,
     { auth: { persistSession: false } },
   );
 
@@ -28,7 +28,7 @@ export async function GET(req: Request) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
         },
         body: '{}',
       }
@@ -55,7 +55,7 @@ export async function GET(req: Request) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+              'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
             },
             body: JSON.stringify({ action: 'get-site', siteId: site.id }),
           },
@@ -87,7 +87,7 @@ export async function GET(req: Request) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
         },
         body: JSON.stringify({ action: 'list-all-sites' }),
       },

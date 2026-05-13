@@ -1,4 +1,4 @@
-import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, getStripe, cors, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, SUPABASE_SECRET_KEY, getStripe, cors, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, domainRegisteredEmail } from "../_shared/email.ts";
 import { opensrsRequest, parseResponse, setDnsZone, buildWpCloudDnsRecords, setDomainLock, getDomainLockStatus, getDomainAuthCode, createNameserver, registryAddNs, listAllDomains, type DnsRecord } from "../_shared/opensrs.ts";
 
@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
     if (action === "list-all-domains") {
       const authHeader = req.headers.get("Authorization") ?? "";
       const bearerToken = authHeader.replace("Bearer ", "");
-      if (bearerToken !== SUPABASE_SERVICE_ROLE_KEY) return error("Service role required", 403);
+      if (bearerToken !== SUPABASE_SECRET_KEY) return error("Service role required", 403);
 
       const result = await listAllDomains();
       const ms = Date.now() - t0;
@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
     // ═══ Auth required for all other actions ════════════════
     const authHeader = req.headers.get("Authorization") ?? "";
     const bearerToken = authHeader.replace("Bearer ", "");
-    const isServiceRole = bearerToken === SUPABASE_SERVICE_ROLE_KEY;
+    const isServiceRole = bearerToken === SUPABASE_SECRET_KEY;
 
     let userId: string;
     let userEmail: string;

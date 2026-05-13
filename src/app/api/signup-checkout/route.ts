@@ -1,4 +1,4 @@
-﻿import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { NextResponse } from 'next/server';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
@@ -6,7 +6,7 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit';
 function getSupabaseAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!,
+    process.env.SUPABASE_SECRET_KEY!,
     { auth: { persistSession: false } }
   );
 }
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Too many signup attempts. Please wait a few minutes.' }, { status: 429 });
   }
 
-  if (!(process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)) {
+  if (!process.env.SUPABASE_SECRET_KEY) {
     return NextResponse.json({ error: 'Service temporarily unavailable' }, { status: 503 });
   }
   if (!process.env.STRIPE_SECRET_KEY) {

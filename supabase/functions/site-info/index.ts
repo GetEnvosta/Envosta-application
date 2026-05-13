@@ -1,4 +1,4 @@
-import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, WPCLOUD_PROXY_URL, WPCLOUD_API_KEY, WPCLOUD_PROXY_SECRET, runWpCli, manageSoftware, cors, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, SUPABASE_SECRET_KEY, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, WPCLOUD_PROXY_URL, WPCLOUD_API_KEY, WPCLOUD_PROXY_SECRET, runWpCli, manageSoftware, cors, json, error, log } from "../_shared/deps.ts";
 
 const ENVOSTA_PARENT_THEME_ZIP_URL = Deno.env.get("ENVOSTA_PARENT_THEME_ZIP_URL")
   ?? "https://github.com/GetEnvosta/Envosta-Theme/releases/latest/download/envosta.zip";
@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     // All actions require auth (user JWT or service role key)
     const authHeader = req.headers.get("Authorization") ?? "";
     const bearerToken = authHeader.replace("Bearer ", "");
-    const isServiceRole = bearerToken === SUPABASE_SERVICE_ROLE_KEY;
+    const isServiceRole = bearerToken === SUPABASE_SECRET_KEY;
 
     // Domain verification requires auth (returns sensitive TXT records)
     if (action === "domain-verification") {

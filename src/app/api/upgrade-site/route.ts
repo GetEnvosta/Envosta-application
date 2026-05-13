@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   const cookieStore = await cookies();
   const supabaseAuth = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } },
   );
   const { data: { user } } = await supabaseAuth.auth.getUser();
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!,
+    process.env.SUPABASE_SECRET_KEY!,
     { auth: { persistSession: false } },
   );
 
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
 
     if (siteData?.wp_cloud_site_id) {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const serviceKey = (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!;
+      const serviceKey = process.env.SUPABASE_SECRET_KEY!;
 
       const wpUpdates = [
         { key: 'default_php_conns', value: newConfig.php_workers },

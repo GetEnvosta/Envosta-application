@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getEffectiveUserId } from '@/services/auth';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 
@@ -84,7 +84,7 @@ export async function PUT(req: Request) {
   // Push changes to wp.cloud via edge function
   if (site.wp_cloud_site_id) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceKey = (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!;
+    const serviceKey = process.env.SUPABASE_SECRET_KEY!;
 
     const wpUpdates: { key: string; value: number | string }[] = [];
 

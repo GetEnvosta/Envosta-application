@@ -2,18 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.0";
 import Stripe from "https://esm.sh/stripe@14?target=denonext";
 
 export const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-// Supabase introduced new key names (sb_publishable_*, sb_secret_*) alongside
-// the legacy anon/service_role JWTs. Read the new name first and fall back to
-// the legacy one so we can rotate env vars without redeploying.
-export const SUPABASE_SECRET_KEY =
-  Deno.env.get("SUPABASE_SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-export const SUPABASE_PUBLISHABLE_KEY =
-  Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-// Backwards-compat alias — callers across the edge functions still import
-// SUPABASE_SERVICE_ROLE_KEY by name (e.g. to compare against a bearer token).
-// Point it at the same value as SUPABASE_SECRET_KEY so the fallback applies
-// transparently. Don't remove without grepping `supabase/functions/`.
-export const SUPABASE_SERVICE_ROLE_KEY = SUPABASE_SECRET_KEY;
+export const SUPABASE_SECRET_KEY = Deno.env.get("SUPABASE_SECRET_KEY") ?? "";
+export const SUPABASE_PUBLISHABLE_KEY = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
 export const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
 export const STRIPE_WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
 export const WPCLOUD_API_KEY = Deno.env.get("WPCLOUD_API_KEY") ?? "";
@@ -122,7 +112,7 @@ export async function manageSoftware(
 }
 
 export function supabaseAdmin() {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  return createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
     auth: { persistSession: false },
   });
 }

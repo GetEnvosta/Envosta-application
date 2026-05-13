@@ -16,7 +16,7 @@ export async function middleware(request: NextRequest) {
   const host = request.headers.get('host') ?? '';
   const { pathname } = request.nextUrl;
 
-  // Marketing site — skip all auth logic (let Vercel handle domain redirects)
+  // Marketing site â€” skip all auth logic (let Vercel handle domain redirects)
   const isAppDomain = host.startsWith('my.') || host.startsWith('app.') || host.includes('localhost');
   if (!isAppDomain) {
     return addSecurityHeaders(NextResponse.next());
@@ -31,7 +31,7 @@ export async function middleware(request: NextRequest) {
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
         getAll() { return request.cookies.getAll(); },
@@ -61,7 +61,7 @@ export async function middleware(request: NextRequest) {
     return addSecurityHeaders(NextResponse.redirect(url));
   }
 
-  // Protect admin routes — block during impersonation
+  // Protect admin routes â€” block during impersonation
   if (pathname.startsWith('/admin')) {
     if (!user) {
       return addSecurityHeaders(NextResponse.redirect(new URL('/auth/login', request.url)));

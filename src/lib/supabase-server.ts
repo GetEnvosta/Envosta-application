@@ -8,10 +8,7 @@
  * expected; Supabase's auth helper retries the set in a Route Handler
  * context where it works.
  *
- * The publishable key is read from `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
- * (Supabase's new naming) and falls back to the legacy
- * `NEXT_PUBLIC_SUPABASE_ANON_KEY` so env-var rotations can happen
- * without a redeploy.
+ * The publishable key is read from `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
  *
  * For privileged operations that need to bypass RLS or call
  * auth.admin.*, construct a service-role client inline:
@@ -19,8 +16,7 @@
  *   import { createClient } from '@supabase/supabase-js';
  *   const sb = createClient(
  *     process.env.NEXT_PUBLIC_SUPABASE_URL!,
- *     // new name preferred, legacy name fallback
- *     (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!,
+ *     process.env.SUPABASE_SECRET_KEY!,
  *     { auth: { persistSession: false } },
  *   );
  *
@@ -31,8 +27,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_PUBLISHABLE_KEY =
-  (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!;
+const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
 
 export async function createClient() {
   const cookieStore = await cookies();

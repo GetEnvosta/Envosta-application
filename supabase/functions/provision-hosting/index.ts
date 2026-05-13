@@ -1,4 +1,4 @@
-import { supabaseAdmin, supabaseForUser, SUPABASE_SERVICE_ROLE_KEY, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, runWpCli, manageSoftware, cors, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, supabaseForUser, SUPABASE_SECRET_KEY, wpcloudPost, wpcloudGet, WPCLOUD_CLIENT, runWpCli, manageSoftware, cors, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, siteReadyEmail, provisioningFailedEmail } from "../_shared/email.ts";
 import { setDnsZone, buildWpCloudDnsRecords } from "../_shared/opensrs.ts";
 import { jetpackPartnerProvision } from "../_shared/jetpack.ts";
@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     // Auth: either user session or service role key with userId in body (webhook/admin calls)
     const authHeader = req.headers.get("Authorization") ?? "";
     const bearerToken = authHeader.replace("Bearer ", "");
-    const isServiceRole = bearerToken === SUPABASE_SERVICE_ROLE_KEY;
+    const isServiceRole = bearerToken === SUPABASE_SECRET_KEY;
 
     const userSb = supabaseForUser(req);
     const { data: { user } } = await userSb.auth.getUser();

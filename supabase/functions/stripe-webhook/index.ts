@@ -1,4 +1,4 @@
-import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, json, error, log } from "../_shared/deps.ts";
+import { supabaseAdmin, getStripe, getCryptoProvider, STRIPE_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SECRET_KEY, json, error, log } from "../_shared/deps.ts";
 import { sendEmail, welcomeEmail, invoicePaidEmail, paymentFailedEmail, sitesPausedEmail } from "../_shared/email.ts";
 import { opensrsRequest, parseResponse } from "../_shared/opensrs.ts";
 
@@ -285,7 +285,7 @@ Deno.serve(async (req) => {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                    "Authorization": `Bearer ${SUPABASE_SECRET_KEY}`,
                   },
                   body: JSON.stringify({
                     action: "register",
@@ -373,7 +373,7 @@ Deno.serve(async (req) => {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                  "Authorization": `Bearer ${SUPABASE_SECRET_KEY}`,
                 },
                 body: JSON.stringify({
                   serviceId: svc.id,
@@ -491,7 +491,7 @@ Deno.serve(async (req) => {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                  "Authorization": `Bearer ${SUPABASE_SECRET_KEY}`,
                 },
                 body: JSON.stringify({
                   action: "register",

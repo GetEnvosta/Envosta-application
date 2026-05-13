@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   const q = searchParams.get('q');
   if (!q) return NextResponse.json([]);
 
-  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!, { auth: { persistSession: false } });
+  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false } });
   const { data } = await sb.from('users')
     .select('id, full_name, email, role')
     .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
