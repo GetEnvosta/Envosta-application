@@ -38,26 +38,50 @@ export async function PUT(req: Request) {
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
 }
 
+/**
+ * Forward to the legacy Supabase Edge Function (which still routes
+ * through the OpenSRS Cloud Run proxy). Used as the fallback path for
+ * actions we haven't moved to a Vercel internal route yet:
+ * check, update-nameservers, set-dns-mode, set-auto-renew,
+ * set-whois-privacy, get-lock-status, set-lock, get-epp-code,
+ * transfer, list-all-domains, create-nameserver.
+ */
+async function forwardToEdge(payload: unknown) {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
+        'apikey': process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+  const data = await res.json();
+  return NextResponse.json(data, { status: res.status });
+}
+
+/**
+ * Resolve the origin for internal API calls. Prefers
+ * NEXT_PUBLIC_APP_URL (set on Vercel) so the call stays within the
+ * same deployment; falls back to the request's origin for local dev.
+ */
+function internalOrigin(req: Request): string {
+  const env = process.env.NEXT_PUBLIC_APP_URL;
+  if (env && env.length > 0) return env.replace(/\/$/, '');
+  return new URL(req.url).origin;
+}
+
 export async function POST(req: Request) {
   const body = await req.json();
   const { action } = body;
 
-  // Check action is public (no auth needed)
+  // Check action is public (no auth needed). Still on the edge
+  // function until we add an internal /opensrs/check route.
   if (action === 'check') {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-        },
-        body: JSON.stringify(body),
-      }
-    );
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    return forwardToEdge(body);
   }
 
   // All other actions require auth
@@ -70,20 +94,104 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Forward to Edge Function with user's context
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
-        'apikey': process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-      },
-      body: JSON.stringify({ ...body, userId: user.id }),
-    }
-  );
+  const origin = internalOrigin(req);
+  const internalHeaders = {
+    'Content-Type': 'application/json',
+    'X-Internal-Token': process.env.INTERNAL_API_TOKEN!,
+  };
 
-  const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
+  // ── Phase 2C: routes cut over to the Vercel internal API ──
+  // These hit OpenSRS directly from Vercel static IPs (whitelisted).
+
+  if (action === 'register') {
+    // If the caller is registering on behalf of another user, require
+    // admin role (mirrors the edge function's admin-override check).
+    let targetUserId = user.id;
+    if (body.userId && body.userId !== user.id) {
+      const sbAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SECRET_KEY!,
+        { auth: { persistSession: false } },
+      );
+      const { data: profile } = await sbAdmin
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      if (profile?.role !== 'admin') {
+        return NextResponse.json({ error: 'Admin only' }, { status: 403 });
+      }
+      targetUserId = body.userId;
+    }
+
+    const res = await fetch(`${origin}/api/internal/opensrs/register-domain`, {
+      method: 'POST',
+      headers: internalHeaders,
+      body: JSON.stringify({
+        userId: targetUserId,
+        siteId: body.serviceId ?? body.siteId ?? null,
+        domainName: body.domainName,
+        years: body.years ?? body.period ?? 1,
+      }),
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  }
+
+  if (action === 'setup-dns') {
+    if (!body.domainName || !body.siteIp) {
+      return NextResponse.json({ error: 'domainName and siteIp are required' }, { status: 400 });
+    }
+    const res = await fetch(`${origin}/api/internal/opensrs/set-dns`, {
+      method: 'POST',
+      headers: internalHeaders,
+      body: JSON.stringify({
+        domainName: body.domainName,
+        siteIp: body.siteIp,
+        actorId: user.id,
+      }),
+    });
+    const data = await res.json();
+    // Match edge-function response shape so the dns-manager UI keeps working:
+    //   { records: <count>, siteIp, success: true }
+    if (res.ok) {
+      return NextResponse.json({
+        domainName: data.domainName ?? body.domainName,
+        siteIp: body.siteIp,
+        records: data.recordCount ?? 0,
+        success: true,
+      });
+    }
+    return NextResponse.json(data, { status: res.status });
+  }
+
+  if (action === 'update-dns') {
+    if (!body.domainName || !Array.isArray(body.records)) {
+      return NextResponse.json(
+        { error: 'domainName and records[] are required' },
+        { status: 400 },
+      );
+    }
+    const res = await fetch(`${origin}/api/internal/opensrs/set-dns`, {
+      method: 'POST',
+      headers: internalHeaders,
+      body: JSON.stringify({
+        domainName: body.domainName,
+        records: body.records,
+        actorId: user.id,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return NextResponse.json({
+        domainName: data.domainName ?? body.domainName,
+        records: data.recordCount ?? 0,
+        success: true,
+      });
+    }
+    return NextResponse.json(data, { status: res.status });
+  }
+
+  // ── Burn-in fallback: still goes through the Cloud Run proxy ──
+  return forwardToEdge({ ...body, userId: user.id });
 }

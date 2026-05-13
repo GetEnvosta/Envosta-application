@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase-browser';
 import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 
 export function DomainRetryRegister({
@@ -31,32 +30,20 @@ export function DomainRetryRegister({
     setSuccess('');
 
     try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      let token = session?.access_token;
-      if (!token) {
-        const { data: { session: refreshed } } = await supabase.auth.refreshSession();
-        token = refreshed?.access_token ?? undefined;
-      }
-      if (!token) { setError('Not authenticated — sign in again'); setLoading(false); return; }
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-          },
-          body: JSON.stringify({
-            action: 'register',
-            domainName,
-            serviceId: siteId,
-            userId,
-          }),
-        }
-      );
+      // Route through the same-origin /api/domains endpoint so the
+      // OpenSRS call originates from a Vercel static IP (whitelisted)
+      // rather than POSTing directly to the edge function. Session
+      // auth via cookies is automatic on the same origin.
+      const res = await fetch('/api/domains', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'register',
+          domainName,
+          serviceId: siteId,
+          userId,
+        }),
+      });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? `Registration failed (${res.status})`);

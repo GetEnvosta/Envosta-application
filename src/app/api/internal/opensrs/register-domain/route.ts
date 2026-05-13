@@ -21,6 +21,7 @@ import { verifyInternalToken } from '@/lib/internal-auth';
 import {
   createOpenSrsClient,
   OpenSrsError,
+  type OpenSrsContact,
   type OpenSrsContacts,
 } from '@/lib/integrations/opensrs';
 import { recordAudit } from '@/lib/audit';
@@ -33,7 +34,36 @@ interface RegisterDomainBody {
   siteId?: string | null;
   domainName: string;
   years?: number;
-  contacts: OpenSrsContacts;
+  /**
+   * Optional. If omitted, the route looks the contact info up from
+   * the `users` table for `userId` (mirroring the edge function's
+   * behaviour so existing callers don't need to assemble a contact
+   * before calling).
+   */
+  contacts?: OpenSrsContacts;
+}
+
+/**
+ * Build an OpenSrsContact from a row in the `users` table. Mirrors the
+ * `getContact()` helper inside supabase/functions/register-domain so
+ * Stripe-webhook → edge-function callers can be flipped to this route
+ * without restructuring their payload.
+ */
+function buildContactFromProfile(profile: any, fallbackEmail: string): OpenSrsContact {
+  const parts = (profile?.full_name ?? 'Domain Owner').split(' ');
+  const meta = (profile?.metadata as any) ?? {};
+  return {
+    first_name: parts[0] ?? 'Domain',
+    last_name: parts.slice(1).join(' ') || 'Owner',
+    org_name: profile?.company_name ?? 'N/A',
+    email: profile?.email ?? fallbackEmail ?? 'domains@envosta.com',
+    phone: profile?.phone ?? '+1.0000000000',
+    address1: meta.address ?? 'N/A',
+    city: meta.city ?? 'Calgary',
+    state: meta.state ?? 'AB',
+    postal_code: meta.postal_code ?? 'T2P0A1',
+    country: meta.country ?? 'CA',
+  };
 }
 
 export async function POST(req: Request) {
@@ -48,9 +78,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  if (!body.userId || !body.domainName || !body.contacts?.owner) {
+  if (!body.userId || !body.domainName) {
     return NextResponse.json(
-      { error: 'userId, domainName, and contacts.owner are required' },
+      { error: 'userId and domainName are required' },
       { status: 400 },
     );
   }
@@ -60,6 +90,24 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SECRET_KEY!,
     { auth: { persistSession: false } },
   );
+
+  // Resolve contacts: prefer explicit payload, otherwise look up the
+  // user's profile. This keeps backwards-compat with the edge function
+  // shape used by the Stripe webhook and admin callers.
+  let contacts: OpenSrsContacts;
+  if (body.contacts?.owner) {
+    contacts = body.contacts;
+  } else {
+    const { data: profile } = await sb
+      .from('users')
+      .select('id, full_name, email, phone, company_name, metadata')
+      .eq('id', body.userId)
+      .maybeSingle();
+    if (!profile) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    contacts = { owner: buildContactFromProfile(profile, profile.email ?? '') };
+  }
 
   const years = body.years ?? 1;
   const tld = body.domainName.split('.').slice(-1)[0] ?? '';
@@ -105,7 +153,7 @@ export async function POST(req: Request) {
     const result = await client.registerDomain({
       domain: body.domainName,
       years,
-      contacts: body.contacts,
+      contacts,
     });
 
     const nowIso = new Date().toISOString();

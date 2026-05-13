@@ -34,25 +34,26 @@ export async function POST(req: Request) {
   const { data: targetUser } = await supabase.from('users').select('id, full_name, email').eq('id', userId).single();
   if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-  // Register via Edge Function (same as user-facing flow but with admin context)
+  // Register via Vercel internal route — calls OpenSRS directly from
+  // Vercel static IPs (whitelisted at OpenSRS) instead of the legacy
+  // Supabase edge-function path that routed through the Cloud Run proxy.
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/register-domain`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
-        },
-        body: JSON.stringify({
-          action: 'register',
-          domain,
-          period: period || 1,
-          userId,
-          adminOverride: true,
-        }),
+    const origin = process.env.NEXT_PUBLIC_APP_URL
+      ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+      : new URL(req.url).origin;
+
+    const res = await fetch(`${origin}/api/internal/opensrs/register-domain`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Token': process.env.INTERNAL_API_TOKEN!,
       },
-    );
+      body: JSON.stringify({
+        userId,
+        domainName: domain,
+        years: period || 1,
+      }),
+    });
 
     const data = await res.json();
 
