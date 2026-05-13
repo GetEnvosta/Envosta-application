@@ -110,7 +110,6 @@ export async function GET(req: Request) {
       }
       await sb.from('tickets').delete().eq('user_id', user.id);
       await sb.from('logs').delete().eq('user_id', user.id);
-      await sb.from('commissions').delete().eq('customer_id', user.id);
       await sb.from('invoices').delete().eq('user_id', user.id);
 
       await sb.from('users').delete().eq('id', user.id);

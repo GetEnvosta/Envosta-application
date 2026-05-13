@@ -20,14 +20,14 @@ export async function POST(req: Request) {
   const { allowed } = rateLimit(`create-unclaimed:${ip}`, 10, 60_000);
   if (!allowed) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
 
-  // Verify caller is admin, staff, or partner
+  // Verify caller is admin or staff
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { data: callerProfile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (!isStaffRole(callerProfile?.role) && callerProfile?.role !== 'partner') {
-    return NextResponse.json({ error: 'Staff or partner access required' }, { status: 403 });
+  if (!isStaffRole(callerProfile?.role)) {
+    return NextResponse.json({ error: 'Staff access required' }, { status: 403 });
   }
 
   const { name, email, phone, company, siteLabel, productId, expiresInDays, comp, couponCode } = await req.json();
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
     const { data: authUser, error: authError } = await sb.auth.admin.createUser({
       email,
       password: tempPassword,
-      email_confirm: true, // skip email verification — partner is vouching
+      email_confirm: true, // skip email verification — staff is vouching
       user_metadata: { full_name: name },
     });
 
@@ -98,8 +98,6 @@ export async function POST(req: Request) {
       claim_expires_at: claimExpiresAt,
       created_by: user.id,
       metadata: userMetadata,
-      // If creator is a partner, auto-assign as partner
-      partner_id: callerProfile?.role === 'partner' ? user.id : null,
     }, { onConflict: 'id' });
 
     // Create a site if label provided

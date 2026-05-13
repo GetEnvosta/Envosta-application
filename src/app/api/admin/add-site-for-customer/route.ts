@@ -38,17 +38,15 @@ export async function POST(req: Request) {
 
   const sb = getSupabaseAdmin();
 
-  // Verify target customer + permissions: staff/admin always allowed; partner allowed if it's their customer
+  // Verify target customer + permissions: staff/admin only
   const { data: customer } = await sb
     .from('users')
-    .select('id, partner_id, metadata')
+    .select('id, metadata')
     .eq('id', customerId)
     .maybeSingle();
   if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
 
-  const isStaff = isStaffRole(callerProfile?.role);
-  const isOwnPartner = callerProfile?.role === 'partner' && customer.partner_id === user.id;
-  if (!isStaff && !isOwnPartner) {
+  if (!isStaffRole(callerProfile?.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

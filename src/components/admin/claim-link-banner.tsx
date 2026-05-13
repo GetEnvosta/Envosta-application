@@ -3,8 +3,8 @@
 /**
  * Claim-link banner for unclaimed customer accounts on the admin
  * customer detail page. Shows the claim URL with a one-click copy
- * button so admins/partners can re-share the link with the client
- * if they lost the original email.
+ * button so admins can re-share the link with the client if they
+ * lost the original email.
  */
 import { useState } from 'react';
 import { Copy, Check, ExternalLink, AlertCircle } from 'lucide-react';

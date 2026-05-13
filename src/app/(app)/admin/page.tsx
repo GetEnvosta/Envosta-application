@@ -6,13 +6,8 @@ import { formatCents, formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { Users, Server, Globe, DollarSign, ArrowRight, MessageSquare, Sparkles, Phone, ShoppingCart, UserPlus } from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
-import { getCurrentUser, getUserProfile } from '@/services/auth';
-import { AffiliateReferralCard } from '@/components/admin/affiliate-referral-card';
 
 export default async function AdminDashboardPage() {
-  const currentUser = await getCurrentUser();
-  const currentProfile = currentUser ? await getUserProfile(currentUser.id) : null;
-  const isAffiliate = currentProfile?.role === 'affiliate';
   const [
     { customersCount, servicesCount, domainsCount },
     recentUsers,
@@ -47,9 +42,6 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      {/* Affiliate referral card — only shown to affiliates */}
-      {isAffiliate && <AffiliateReferralCard />}
-
       <div className="page-header">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Admin Dashboard</h1>

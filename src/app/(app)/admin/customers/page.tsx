@@ -1,14 +1,12 @@
 export const revalidate = 5;
 import { getAllCustomers } from '@/services/admin';
-import { getPartnerApplications } from '@/services/partners';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
-import { Search, Users, Server, Globe, UserCheck, Handshake, Eye } from 'lucide-react';
+import { Search, Users, Server, Globe, UserCheck, Eye } from 'lucide-react';
 import { getCurrentUser, getUserProfile } from '@/services/auth';
 import { CustomersHeader } from './customers-header';
 import { UsersTabs } from './users-tabs';
 import { ROLE_BADGE_CLASSES } from '@/lib/roles';
-import { PartnerActions } from '@/app/(app)/admin/partners/partner-actions';
 import { StatCard } from '@/components/admin/stat-card';
 
 export default async function UsersPage({
@@ -17,17 +15,13 @@ export default async function UsersPage({
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
   const { q } = await searchParams;
-  const [allUsers, partnerApps] = await Promise.all([
-    getAllCustomers(q),
-    getPartnerApplications(),
-  ]);
+  const allUsers = await getAllCustomers(q);
   const currentUser = await getCurrentUser();
   const currentProfile = currentUser ? await getUserProfile(currentUser.id) : null;
   const isAdmin = currentProfile?.role === 'admin';
 
   const customers = allUsers.filter((u: any) => u.role === 'customer');
-  const partners = allUsers.filter((u: any) => u.role === 'partner');
-  const staff = allUsers.filter((u: any) => ['admin', 'staff', 'affiliate'].includes(u.role));
+  const staff = allUsers.filter((u: any) => ['admin', 'staff'].includes(u.role));
 
   const activeCustomers = customers.filter((u: any) => u.sub_status === 'active' || u.sub_status === 'trialing').length;
   const withSites = customers.filter((u: any) => u.site_count > 0).length;
@@ -126,9 +120,6 @@ export default async function UsersPage({
     );
   }
 
-  // Partner applications (pending)
-  const pendingPartners = partnerApps.filter((p: any) => p.partner_status === 'pending');
-
   return (
     <div>
       <CustomersHeader isAdmin={isAdmin} />
@@ -137,45 +128,12 @@ export default async function UsersPage({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Total Users" value={allUsers.length} icon={Users} color="blue" />
         <StatCard label="Active Customers" value={activeCustomers} icon={UserCheck} color="green" />
-        <StatCard label="Partners" value={partners.length} icon={Handshake} color="purple" />
         <StatCard label="With Sites" value={withSites} icon={Server} color="cyan" />
       </div>
 
       <UsersTabs>
         {{
           customers: <UserTable users={customers} />,
-
-          partners: (
-            <div className="space-y-6">
-              {pendingPartners.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Pending Applications ({pendingPartners.length})</h3>
-                  <div className="card overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead><tr className="border-b border-gray-100">
-                        <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
-                        <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">Specializations</th>
-                        <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">Applied</th>
-                        <th className="text-right px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      </tr></thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {pendingPartners.map((p: any) => (
-                          <tr key={p.id} className="hover:bg-gray-50/50">
-                            <td className="px-4 py-2.5"><span className="text-sm font-medium text-gray-900">{p.full_name ?? 'Unknown'}</span> <span className="text-xs text-gray-400">{p.email}</span></td>
-                            <td className="px-4 py-2.5"><div className="flex flex-wrap gap-1">{(p.specializations ?? []).slice(0, 3).map((s: string) => <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{s}</span>)}</div></td>
-                            <td className="px-4 py-2.5 text-sm text-gray-500">{formatDate(p.partner_applied_at)}</td>
-                            <td className="px-4 py-2.5 text-right"><PartnerActions userId={p.id} status={p.partner_status} /></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-              <UserTable users={partners} />
-            </div>
-          ),
-
           staff: <UserTable users={staff} />,
         }}
       </UsersTabs>

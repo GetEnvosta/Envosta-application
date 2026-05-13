@@ -41,12 +41,10 @@ interface Props {
   isTrial?: boolean;
   /** Stripe promotion code to auto-apply at checkout */
   promoCode?: string;
-  /** Affiliate referral code from ?ref= param */
-  referralCode?: string;
 }
 
 /* ── Component ── */
-export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBilling, isTrial, promoCode, referralCode }: Props) {
+export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBilling, isTrial, promoCode }: Props) {
   const supabase = createClient();
 
   /* State */
@@ -238,7 +236,6 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
           billing: billingPeriod,
           trial: isTrial || false,
           promoCode: promoCode || undefined,
-          referralCode: referralCode || document.cookie.match(/envosta_ref=([^;]+)/)?.[1] || undefined,
           ...(mode === 'public' ? { name, email, password } : {}),
         }),
       });

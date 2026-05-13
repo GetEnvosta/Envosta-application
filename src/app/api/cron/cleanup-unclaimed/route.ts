@@ -51,9 +51,6 @@ export async function GET(req: Request) {
       // Delete logs
       await sb.from('logs').delete().eq('user_id', user.id);
 
-      // Delete commissions
-      await sb.from('commissions').delete().eq('customer_id', user.id);
-
       // Delete user profile
       await sb.from('users').delete().eq('id', user.id);
 

@@ -39,7 +39,6 @@ const footerColumns = [
       { label: 'The Method', href: '/method' },
       { label: 'Onboarding', href: '/onboarding' },
       { label: 'Careers', href: '/careers' },
-      { label: 'Affiliates', href: '/affiliate' },
       { label: 'Contact Us', href: '/support' },
     ],
   },

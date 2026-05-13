@@ -240,7 +240,7 @@ RETURNS BOOLEAN AS $$
     SELECT EXISTS (
         SELECT 1 FROM public.users
         WHERE id = auth.uid()
-          AND role IN ('admin','staff','affiliate')
+          AND role IN ('admin','staff')
     );
 $$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public;
 
@@ -340,13 +340,6 @@ CREATE POLICY "Users can insert messages on own tickets"
               AND (t.user_id = auth.uid() OR public.fn_is_admin_or_staff())
         )
     );
-
--- commissions
-ALTER TABLE public.commissions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Earners can view own commissions" ON public.commissions;
-CREATE POLICY "Earners can view own commissions"
-    ON public.commissions FOR SELECT
-    USING (earner_id = auth.uid() OR public.fn_is_admin_or_staff());
 
 -- ───────────────────────────────────────────────────────────────────────
 -- STEP 5 — Force PostgREST to refresh its schema cache

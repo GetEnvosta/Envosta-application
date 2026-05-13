@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * <LayoutShell> — single skeleton powering AdminShell, DashboardShell, and
- * PartnerShell. Owns the structural concerns that should always behave the
- * same regardless of audience:
+ * <LayoutShell> — single skeleton powering AdminShell and DashboardShell.
+ * Owns the structural concerns that should always behave the same regardless
+ * of audience:
  *
  *   - Fixed desktop sidebar at lg breakpoint
  *   - Mobile overlay sidebar (open/close, click-outside dismiss, route-change dismiss)
@@ -15,13 +15,13 @@
  * The three things that legitimately differ per audience are passed as props:
  *
  *   - `variant: 'dark' | 'light'`   — sidebar + mobile header theme
- *   - `accent`                       — active-link styling (admin: white/10, dashboard: gray-900, partner: sky-600)
+ *   - `accent`                       — active-link styling (admin: white/10, dashboard: gray-900)
  *   - slot props (`headerRight`, `sidebarFooter`, `sidebarExtras`, `topBanner`)
  *
  * Avatar dropdown is exported separately (`<ShellAvatarDropdown>`) so each
  * shell can supply audience-specific menu items (e.g. dashboard adds "Staff
- * Panel" for staff users; partner adds "Customer View"; admin doesn't use
- * a dropdown at all and puts user info in the sidebar footer).
+ * Panel" for staff users; admin doesn't use a dropdown at all and puts
+ * user info in the sidebar footer).
  */
 
 import Link from 'next/link';
@@ -51,7 +51,7 @@ export type Brand = {
   mark: string;
   /** Brand name shown next to the mark. */
   label: string;
-  /** Optional small uppercase tag, e.g. "Staff" or "Partner". */
+  /** Optional small uppercase tag, e.g. "Staff". */
   tag?: string;
   /** Tag color class (defaults to indigo-400/70 for dark variant, gray-500 for light). */
   tagClass?: string;
@@ -66,7 +66,7 @@ export interface LayoutShellProps {
   topBanner?: React.ReactNode;
   /** What goes on the right of the desktop/mobile header (avatar dropdown, etc). */
   headerRight?: React.ReactNode;
-  /** Extra nav block placed under the main nav (e.g. dashboard's "My Partner"/"Find Partner"). */
+  /** Extra nav block placed under the main nav. */
   sidebarExtras?: React.ReactNode;
   /** Block at the very bottom of the sidebar (e.g. admin's user info + sign-out). */
   sidebarFooter?: React.ReactNode;
@@ -282,7 +282,7 @@ function SidebarNavOnly({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Shared header avatar dropdown — used by Dashboard + Partner shells. Admin
+// Shared header avatar dropdown — used by the Dashboard shell. Admin
 // puts user info in the sidebar footer instead.
 // ─────────────────────────────────────────────────────────────────────────────
 

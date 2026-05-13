@@ -9,40 +9,30 @@ export function ImpersonationBanner({
 }: {
   targetName: string | null;
   targetEmail: string;
-  mode?: 'admin' | 'partner';
+  mode?: 'admin';
 }) {
   const router = useRouter();
+  void mode;
 
   async function handleStop() {
     const res = await fetch('/api/stop-impersonation', { method: 'POST' });
     if (res.ok) {
-      router.push(mode === 'partner' ? '/partner/clients' : '/admin');
+      router.push('/admin');
       router.refresh();
     }
   }
 
-  const isPartner = mode === 'partner';
-
   return (
-    <div className={`text-sm font-medium px-4 py-2 flex items-center justify-center gap-3 relative z-50 ${
-      isPartner
-        ? 'bg-sky-600 text-white'
-        : 'bg-amber-500 text-amber-950'
-    }`}>
+    <div className="text-sm font-medium px-4 py-2 flex items-center justify-center gap-3 relative z-50 bg-amber-500 text-amber-950">
       <span>
-        {isPartner ? 'Managing client:' : 'Viewing as'}{' '}
-        <strong>{targetName || targetEmail}</strong>
+        Viewing as <strong>{targetName || targetEmail}</strong>
         {targetName && <span className="opacity-70 ml-1">({targetEmail})</span>}
       </span>
       <button
         onClick={handleStop}
-        className={`text-xs font-semibold px-3 py-1 rounded-full transition-colors ${
-          isPartner
-            ? 'bg-white/20 text-white hover:bg-white/30'
-            : 'bg-amber-950 text-amber-100 hover:bg-amber-900'
-        }`}
+        className="text-xs font-semibold px-3 py-1 rounded-full transition-colors bg-amber-950 text-amber-100 hover:bg-amber-900"
       >
-        {isPartner ? 'Back to my dashboard' : 'Stop impersonating'}
+        Stop impersonating
       </button>
     </div>
   );

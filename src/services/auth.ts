@@ -3,12 +3,12 @@
  * specific concerns:
  *
  *   - getCurrentUser           — the authed Supabase user
- *   - getEffectiveUserId       — same, but if an admin/partner is
- *                                impersonating (impersonating_user_id
- *                                cookie set), returns the impersonated
- *                                user's ID. Most route handlers + RSCs
- *                                should use this rather than getCurrentUser
- *                                so impersonation Just Works.
+ *   - getEffectiveUserId       — same, but if an admin is impersonating
+ *                                (impersonating_user_id cookie set),
+ *                                returns the impersonated user's ID.
+ *                                Most route handlers + RSCs should use
+ *                                this rather than getCurrentUser so
+ *                                impersonation Just Works.
  *   - getUserProfile           — full users row by id
  *
  * Role helpers (isStaffRole, STAFF_ROLES, type StaffRole/UserRole) are
@@ -27,7 +27,6 @@ export async function getCurrentUser() {
 /**
  * Returns the effective user ID for dashboard pages.
  * Admins can impersonate any customer.
- * Partners can manage (impersonate) their own clients.
  */
 export async function getEffectiveUserId(): Promise<string | null> {
   const user = await getCurrentUser();
@@ -46,24 +45,13 @@ export async function getEffectiveUserId(): Promise<string | null> {
 
     // Admin can impersonate anyone
     if (profile?.role === 'admin') return impersonating;
-
-    // Partner can only manage their own clients
-    if (profile?.role === 'partner') {
-      const { data: target } = await supabase
-        .from('users')
-        .select('partner_id')
-        .eq('id', impersonating)
-        .single();
-      if (target?.partner_id === user.id) return impersonating;
-    }
   }
 
   return user.id;
 }
 
 /**
- * Returns impersonation/managing info if active, null otherwise.
- * Includes `mode` ('admin' | 'partner') so the UI can show the correct banner.
+ * Returns impersonation info if active, null otherwise.
  */
 export async function getImpersonationInfo() {
   const cookieStore = await cookies();
@@ -80,26 +68,13 @@ export async function getImpersonationInfo() {
     .eq('id', user.id)
     .single();
 
-  const role = callerProfile?.role;
-
-  if (role === 'admin') {
+  if (callerProfile?.role === 'admin') {
     const { data: target } = await supabase
       .from('users')
       .select('id, full_name, email')
       .eq('id', impersonatingId)
       .single();
     return target ? { ...target, mode: 'admin' as const } : null;
-  }
-
-  if (role === 'partner') {
-    const { data: target } = await supabase
-      .from('users')
-      .select('id, full_name, email, partner_id')
-      .eq('id', impersonatingId)
-      .single();
-    if (target?.partner_id === user.id) {
-      return { id: target.id, full_name: target.full_name, email: target.email, mode: 'partner' as const };
-    }
   }
 
   return null;
@@ -109,7 +84,7 @@ export async function getUserProfile(userId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('users')
-    .select('id, full_name, email, role, partner_id')
+    .select('id, full_name, email, role')
     .eq('id', userId)
     .single();
   return data;
