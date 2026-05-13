@@ -89,15 +89,18 @@ export async function GET(req: Request) {
     }
 
     try {
+      const origin = process.env.NEXT_PUBLIC_APP_URL
+        ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+        : new URL(req.url).origin;
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
+        `${origin}/api/internal/wpcloud/site-info`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
+            'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
           },
-          body: JSON.stringify({ action: 'hard-delete-site', siteId: site.id, userId: site.user_id }),
+          body: JSON.stringify({ action: 'hard-delete-site', siteId: site.id, userId: site.user_id, actorId: site.user_id }),
         }
       );
       const data = await res.json().catch(() => ({}));

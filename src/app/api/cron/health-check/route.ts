@@ -38,6 +38,15 @@ export async function GET(req: Request) {
     results.healthCheck = { error: e.message };
   }
 
+  // Internal route base (Vercel static IP path).
+  const origin = process.env.NEXT_PUBLIC_APP_URL
+    ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+    : new URL(req.url).origin;
+  const internalHeaders = {
+    'Content-Type': 'application/json',
+    'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
+  };
+
   // 2. Sync storage usage from wp.cloud
   try {
     const { data: sites } = await sb
@@ -49,17 +58,11 @@ export async function GET(req: Request) {
     let synced = 0;
     for (const site of sites ?? []) {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
-            },
-            body: JSON.stringify({ action: 'get-site', siteId: site.id }),
-          },
-        );
+        const res = await fetch(`${origin}/api/internal/wpcloud/site-info`, {
+          method: 'POST',
+          headers: internalHeaders,
+          body: JSON.stringify({ action: 'get-site', siteId: site.id }),
+        });
         if (res.ok) {
           const siteData = await res.json();
           const diskUsageMb = siteData.space_used
@@ -81,17 +84,11 @@ export async function GET(req: Request) {
   // 3. wp.cloud ↔ Envosta site sync check
   // Pull all sites from wp.cloud, compare against our sites table
   try {
-    const wpcloudRes = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
-        },
-        body: JSON.stringify({ action: 'list-all-sites' }),
-      },
-    );
+    const wpcloudRes = await fetch(`${origin}/api/internal/wpcloud/site-info`, {
+      method: 'POST',
+      headers: internalHeaders,
+      body: JSON.stringify({ action: 'list-all-sites' }),
+    });
 
     if (wpcloudRes.ok) {
       const wpSites = await wpcloudRes.json();

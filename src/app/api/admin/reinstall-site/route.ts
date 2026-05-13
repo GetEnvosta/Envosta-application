@@ -35,25 +35,28 @@ export async function POST(req: Request) {
     const { data: site } = await sb.from('sites').select('*').eq('id', siteId).single();
     if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 });
 
+    // Vercel internal route — calls wp.cloud directly from Vercel
+    // static IPs (whitelisted).
+    const origin = process.env.NEXT_PUBLIC_APP_URL
+      ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+      : new URL(req.url).origin;
+    const internalHeaders = {
+      'Content-Type': 'application/json',
+      'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
+    };
+
     // Step 1: Delete the existing wp.cloud site (if it exists)
     if (site.wp_cloud_site_id) {
       try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const serviceKey = process.env.SUPABASE_SECRET_KEY!;
-
-        const res = await fetch(`${supabaseUrl}/functions/v1/site-info`, {
+        const res = await fetch(`${origin}/api/internal/wpcloud/site-info`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${serviceKey}`,
-            'apikey': serviceKey,
-          },
+          headers: internalHeaders,
           body: JSON.stringify({
             action: 'hard-delete-site',
             siteId: site.id,
+            actorId: user.id,
           }),
         });
-        // Log but don't fail if wp.cloud delete fails (site might already be gone)
         const deleteResult = await res.json();
         console.log('wp.cloud delete result:', deleteResult);
       } catch (e) {
@@ -76,15 +79,12 @@ export async function POST(req: Request) {
       updated_at: new Date().toISOString(),
     }).eq('id', siteId);
 
-    // Step 3: Re-provision on wp.cloud
-    const provisionRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/provision-hosting`, {
+    // Step 3: Re-provision on wp.cloud via the Vercel internal route.
+    const provisionRes = await fetch(`${origin}/api/internal/wpcloud/provision-site`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
-        'apikey': process.env.SUPABASE_SECRET_KEY!,
-      },
+      headers: internalHeaders,
       body: JSON.stringify({
+        siteId,
         serviceId: siteId,
         userId: site.user_id,
         subscriptionId: site.subscription_id,

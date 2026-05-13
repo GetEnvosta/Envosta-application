@@ -43,20 +43,20 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!sites?.length) return NextResponse.json({ error: 'No matching sites' }, { status: 404 });
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const serviceKey = process.env.SUPABASE_SECRET_KEY!;
+  const origin = process.env.NEXT_PUBLIC_APP_URL
+    ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+    : new URL(req.url).origin;
 
   const results: any[] = [];
   for (const site of sites) {
     try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/site-info`, {
+      const res = await fetch(`${origin}/api/internal/wpcloud/site-info`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${serviceKey}`,
-          'apikey': serviceKey,
+          'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
         },
-        body: JSON.stringify({ action: 'software-bootstrap', siteId: site.id }),
+        body: JSON.stringify({ action: 'software-bootstrap', siteId: site.id, actorId: user.id }),
       });
       const body = await res.json();
       results.push({ siteId: site.id, url: site.wp_cloud_url, ok: res.ok, ...body });

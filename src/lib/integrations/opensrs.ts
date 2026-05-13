@@ -72,6 +72,22 @@ export interface DnsRecord {
 }
 
 /**
+ * Build the standard wp.cloud DNS zone for a site (A apex, A www,
+ * SPF, two CNAMEs for DKIM, and a DMARC TXT). Mirrors the helper of
+ * the same name in supabase/functions/_shared/opensrs.ts.
+ */
+export function buildWpCloudDnsRecords(siteIp: string): DnsRecord[] {
+  return [
+    { type: 'A', subdomain: '', ip_address: siteIp },
+    { type: 'A', subdomain: 'www', ip_address: siteIp },
+    { type: 'TXT', subdomain: '', text: 'v=spf1 include:_spf.wpcloud.com ~all' },
+    { type: 'CNAME', subdomain: 'wpcloud1._domainkey', hostname: 'wpcloud1._domainkey.wpcloud.com' },
+    { type: 'CNAME', subdomain: 'wpcloud2._domainkey', hostname: 'wpcloud2._domainkey.wpcloud.com' },
+    { type: 'TXT', subdomain: '_dmarc', text: 'v=DMARC1; p=none;' },
+  ];
+}
+
+/**
  * Error thrown when OpenSRS returns a non-success response, or when
  * the HTTP layer fails. Carries the parsed response (if any),
  * OpenSRS response code, and the action that was attempted.

@@ -90,6 +90,11 @@ export interface WpCloudClient {
    * Returns the upstream site identifier (`site_id`) plus a status
    * string. The Atomic API actually returns more fields than this —
    * see `wpcloud_sites.upstream_payload` for the full mirror.
+   *
+   * `extraBody` lets advanced callers (e.g. the Stripe webhook +
+   * provision-site internal route) pass the full atomic-create body
+   * — admin_user / admin_pass / admin_email / domain_name / space_quota
+   * / meta {} / persist_data {} — rather than the minimal subset.
    */
   createSite(params: {
     label: string;
@@ -97,7 +102,16 @@ export interface WpCloudClient {
     phpVersion: string;
     planId: string;
     userId: string;
-  }): Promise<{ site_id: string; status: string }>;
+    extraBody?: Record<string, unknown>;
+    siteIdentifier?: string;
+  }): Promise<{ site_id: string; status: string; raw: Record<string, unknown> }>;
+
+  /**
+   * Fetch a wp.cloud site's primary IP address.
+   * Maps to `GET /api/v1.0/get-ips/{client}/{siteRef}`. `siteRef` may
+   * be a wp.cloud site ID or a domain name.
+   */
+  getSiteIp(siteRef: string): Promise<{ ip: string | null; raw: unknown }>;
 
   /**
    * Fetch a single site's details. Maps to
@@ -157,22 +171,42 @@ export interface WpCloudClient {
    * Run an arbitrary WP-CLI command on a wp.cloud site.
    * Maps to `POST /api/v1.0/task-create/{client}/run-wp-cli-command`.
    * Tasks run async — the response contains a task_id you can poll.
+   *
+   * Pass either:
+   *   - a full string ("plugin install akismet --activate"), or
+   *   - an array of pre-tokenized args (["plugin", "install", …]) —
+   *     preferred when args may contain whitespace (e.g. URLs).
    */
-  runWpCli(siteId: string, command: string): Promise<{
+  runWpCli(siteId: string, command: string | string[]): Promise<{
     task_id: string;
     output?: string;
+    status?: number;
+    ok?: boolean;
+    raw?: unknown;
   }>;
 
   /**
-   * Install / activate / deactivate / delete a plugin or theme.
+   * Install / activate / deactivate / delete / unlock a plugin or theme.
    * Maps to `POST /api/v1.0/site-manage-software/{type}/{id}`.
+   * `unlock` toggles off the "hosting-managed" flag on plugins that
+   * wp.cloud auto-installs (e.g. Jetpack) so the customer can remove
+   * them.
    */
   manageSoftware(
     siteId: string,
-    action: 'install' | 'activate' | 'deactivate' | 'delete',
+    action: 'install' | 'activate' | 'deactivate' | 'delete' | 'unlock',
     type: 'plugin' | 'theme',
     slug: string,
-  ): Promise<{ task_id: string }>;
+  ): Promise<{ task_id: string; status?: number; message?: string }>;
+
+  /**
+   * List all wp.cloud sites for the reseller client.
+   * Maps to `GET /api/v1.0/get-sites/{client}/+`. Used by admin sync
+   * tooling — same upstream call as `listSites()` but returns the raw
+   * payload so callers can inspect ID variants (atomic_site_id /
+   * wpcom_blog_id / blog_id / domain_name).
+   */
+  listAllSitesRaw(): Promise<unknown[]>;
 }
 
 // ─── Implementation ────────────────────────────────────────
@@ -284,9 +318,12 @@ export function createWpCloudClient(): WpCloudClient {
 
   return {
     async createSite(params) {
-      const siteIdentifier = Date.now().toString();
+      const siteIdentifier = params.siteIdentifier ?? Date.now().toString();
       const path = `/api/v1.0/create-site/${env.client}/${siteIdentifier}`;
-      const requestPayload: Record<string, unknown> = {
+      // Default minimal body — callers that need the full surface
+      // (admin_user/pass, domain_name, space_quota, meta, …) supply it
+      // via `extraBody` and we merge.
+      const baseBody: Record<string, unknown> = {
         admin_email: `${params.userId}@envosta-internal.local`,
         php_version: params.phpVersion,
         geo_affinity: params.region,
@@ -296,8 +333,16 @@ export function createWpCloudClient(): WpCloudClient {
           envosta_user_id: params.userId,
           envosta_plan: params.planId,
         },
-        demo_domain: true,
       };
+      const requestPayload: Record<string, unknown> = {
+        ...baseBody,
+        ...(params.extraBody ?? {}),
+      };
+      // If no domain hint provided, default to demo_domain to match the
+      // legacy edge-function behaviour for minimal callers.
+      if (!('domain_name' in requestPayload) && !('demo_domain' in requestPayload)) {
+        requestPayload.demo_domain = true;
+      }
 
       const raw = await withApiCallLogging<unknown>(
         { provider: 'wpcloud', method: 'POST', path, requestPayload },
@@ -318,7 +363,35 @@ export function createWpCloudClient(): WpCloudClient {
       return {
         site_id: siteId,
         status: (data?.status as string | undefined) ?? 'provisioning',
+        raw: data,
       };
+    },
+
+    async getSiteIp(siteRef) {
+      const path = `/api/v1.0/get-ips/${env.client}/${siteRef}`;
+      const raw = await withApiCallLogging<unknown>(
+        { provider: 'wpcloud', method: 'GET', path },
+        () => wpcloudFetch(env, 'GET', path),
+      );
+      const data = unwrap(raw) as Record<string, unknown>;
+      const ip =
+        (data?.ip_address as string | undefined) ??
+        (Array.isArray(data?.suggested) ? (data!.suggested as unknown[])[0] as string | undefined : undefined) ??
+        (Array.isArray(data?.ipv4) ? (data!.ipv4 as unknown[])[0] as string | undefined : undefined) ??
+        null;
+      return { ip, raw: data };
+    },
+
+    async listAllSitesRaw() {
+      const path = `/api/v1.0/get-sites/${env.client}/+`;
+      const raw = await withApiCallLogging<unknown>(
+        { provider: 'wpcloud', method: 'GET', path },
+        () => wpcloudFetch(env, 'GET', path),
+      );
+      const data = unwrap(raw);
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === 'object') return Object.values(data as Record<string, unknown>);
+      return [];
     },
 
     async getSite(siteId) {
@@ -424,9 +497,10 @@ export function createWpCloudClient(): WpCloudClient {
 
     async runWpCli(siteId, command) {
       const path = `/api/v1.0/task-create/${env.client}/run-wp-cli-command`;
-      // `command` is the full WP-CLI arg string ("plugin install akismet --activate").
-      // Split it into args[] for the Atomic API.
-      const args = command.split(/\s+/).filter(Boolean);
+      // `command` is either a full WP-CLI arg string
+      // ("plugin install akismet --activate") or a pre-tokenized array
+      // (preferred — preserves whitespace inside args, e.g. URLs).
+      const args = Array.isArray(command) ? command.filter(Boolean) : command.split(/\s+/).filter(Boolean);
       const requestPayload: Record<string, unknown> = {
         site_ids: [siteId],
         args,
@@ -443,12 +517,18 @@ export function createWpCloudClient(): WpCloudClient {
             '',
         ),
         output: data?.output as string | undefined,
+        status: 200,
+        ok: true,
+        raw: data,
       };
     },
 
     async manageSoftware(siteId, action, type, slug) {
       const path = `/api/v1.0/site-manage-software/${type}/${siteId}`;
       // wp.cloud's API uses "remove" for delete; map for ergonomics.
+      // `unlock` is passed through verbatim — it removes the
+      // hosting-managed flag from a pre-installed plugin (Jetpack /
+      // Akismet) so users can deactivate/delete it.
       const upstreamAction = action === 'delete' ? 'remove' : action;
       const requestPayload: Record<string, unknown> = {
         action: upstreamAction,
@@ -465,6 +545,8 @@ export function createWpCloudClient(): WpCloudClient {
             (data?.atomic_task_id as string | undefined) ??
             '',
         ),
+        status: (data?.status as number | undefined) ?? 200,
+        message: data?.message as string | undefined,
       };
     },
   };

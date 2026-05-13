@@ -114,8 +114,13 @@ export async function POST(req: Request) {
       .single();
 
     if (siteData?.wp_cloud_site_id) {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const serviceKey = process.env.SUPABASE_SECRET_KEY!;
+      const origin = process.env.NEXT_PUBLIC_APP_URL
+        ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+        : new URL(req.url).origin;
+      const internalHeaders = {
+        'Content-Type': 'application/json',
+        'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
+      };
 
       const wpUpdates = [
         { key: 'default_php_conns', value: newConfig.php_workers },
@@ -129,12 +134,9 @@ export async function POST(req: Request) {
 
       for (const update of wpUpdates) {
         try {
-          await fetch(`${supabaseUrl}/functions/v1/site-info`, {
+          await fetch(`${origin}/api/internal/wpcloud/site-info`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${serviceKey}`,
-            },
+            headers: internalHeaders,
             body: JSON.stringify({
               action: 'update-site-meta',
               siteId,
@@ -149,12 +151,9 @@ export async function POST(req: Request) {
 
       // Update storage quota separately (uses space_quota format)
       try {
-        await fetch(`${supabaseUrl}/functions/v1/site-info`, {
+        await fetch(`${origin}/api/internal/wpcloud/site-info`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${serviceKey}`,
-          },
+          headers: internalHeaders,
           body: JSON.stringify({
             action: 'update-site-meta',
             siteId,

@@ -19,29 +19,30 @@ async function verifyAdmin() {
   return profile?.role === 'admin' ? { supabase, userId: user.id } : null;
 }
 
-export async function POST() {
+export async function POST(req: Request) {
   const auth = await verifyAdmin();
   if (!auth) return NextResponse.json({ error: 'Admin only' }, { status: 403 });
 
   const { supabase: sb, userId } = auth;
 
+  const origin = process.env.NEXT_PUBLIC_APP_URL
+    ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+    : new URL(req.url).origin;
+  const internalHeaders = {
+    'Content-Type': 'application/json',
+    'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
+  };
+
   try {
-    // 1. Fetch wp.cloud sites via site-info edge function (list-all-sites)
+    // 1. Fetch wp.cloud sites via Vercel internal route (list-all-sites)
     let wpCloudRaw: any[] = [];
     let wpCloudError = '';
     try {
-      const wpRes = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-          },
-          body: JSON.stringify({ action: 'list-all-sites' }),
-        }
-      );
+      const wpRes = await fetch(`${origin}/api/internal/wpcloud/site-info`, {
+        method: 'POST',
+        headers: internalHeaders,
+        body: JSON.stringify({ action: 'list-all-sites' }),
+      });
       const wpData = await wpRes.json();
       if (Array.isArray(wpData)) {
         wpCloudRaw = wpData;

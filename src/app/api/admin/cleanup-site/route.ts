@@ -87,17 +87,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `Flag the site for deletion before deleting (status=${site.status})` }, { status: 409 });
   }
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
-      },
-      body: JSON.stringify({ action: 'hard-delete-site', siteId, userId: user.id }),
+  const origin = process.env.NEXT_PUBLIC_APP_URL
+    ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+    : new URL(req.url).origin;
+  const res = await fetch(`${origin}/api/internal/wpcloud/site-info`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
     },
-  );
+    body: JSON.stringify({ action: 'hard-delete-site', siteId, userId: user.id, actorId: user.id }),
+  });
 
   if (!res.ok) {
     const text = await res.text();

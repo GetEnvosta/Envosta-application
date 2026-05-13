@@ -144,17 +144,21 @@ export async function POST(req: Request) {
         }
       }
 
-      // Fire wp.cloud provisioning. Best-effort — if it fails, the
-      // retry-stuck-provisions cron will pick it up.
+      // Fire wp.cloud provisioning via Vercel internal route.
+      // Best-effort — if it fails, retry-stuck-provisions picks it up.
       if (siteId) {
         try {
-          await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/provision-hosting`, {
+          const origin = process.env.NEXT_PUBLIC_APP_URL
+            ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+            : new URL(req.url).origin;
+          await fetch(`${origin}/api/internal/wpcloud/provision-site`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
+              'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
             },
             body: JSON.stringify({
+              siteId,
               serviceId: siteId,
               label: siteLabel,
               region: 'dca',

@@ -81,10 +81,11 @@ export async function PUT(req: Request) {
     })
     .eq('id', siteId);
 
-  // Push changes to wp.cloud via edge function
+  // Push changes to wp.cloud via the Vercel internal route.
   if (site.wp_cloud_site_id) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const serviceKey = process.env.SUPABASE_SECRET_KEY!;
+    const origin = process.env.NEXT_PUBLIC_APP_URL
+      ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+      : new URL(req.url).origin;
 
     const wpUpdates: { key: string; value: number | string }[] = [];
 
@@ -95,14 +96,13 @@ export async function PUT(req: Request) {
       wpUpdates.push({ key: 'burst_php_conns', value: newBursting ? newWorkers * 2 : 0 });
     }
 
-    // Apply each wp.cloud update
     for (const update of wpUpdates) {
       try {
-        await fetch(`${supabaseUrl}/functions/v1/site-info`, {
+        await fetch(`${origin}/api/internal/wpcloud/site-info`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${serviceKey}`,
+            'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
           },
           body: JSON.stringify({
             action: 'update-site-meta',

@@ -40,19 +40,19 @@ export async function POST(req: Request) {
     }
   }
 
-  // Forward to Edge Function with service role key (ownership verified above)
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/site-info`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
-        'apikey': process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-      },
-      body: JSON.stringify({ action: action ?? 'delete-site', siteId }),
-    }
-  );
+  // Forward to the Vercel internal route (calls wp.cloud directly from
+  // Vercel static IPs instead of via the Cloud Run proxy).
+  const origin = process.env.NEXT_PUBLIC_APP_URL
+    ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+    : new URL(req.url).origin;
+  const res = await fetch(`${origin}/api/internal/wpcloud/site-info`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
+    },
+    body: JSON.stringify({ action: action ?? 'delete-site', siteId, actorId: user.id }),
+  });
 
   const data = await res.json();
   return NextResponse.json(data, { status: res.status });

@@ -100,15 +100,19 @@ export async function GET(req: Request) {
     }).eq('id', site.id);
 
     try {
+      const origin = process.env.NEXT_PUBLIC_APP_URL
+        ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+        : new URL(req.url).origin;
       const provRes = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/provision-hosting`,
+        `${origin}/api/internal/wpcloud/provision-site`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.SUPABASE_SECRET_KEY}`,
+            'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
           },
           body: JSON.stringify({
+            siteId: site.id,
             serviceId: site.id,
             label: site.label || 'site',
             region: site.server_region || 'dca',
