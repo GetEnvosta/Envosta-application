@@ -53,28 +53,18 @@ export async function getPlanBySlug(slug: string) {
 }
 
 // ─── DOMAIN TLDs ─────────────────────────────────────────
+// Phase 3: TLD pricing moved to public.tlds — use @/services/tlds.
+// These shim functions stay for callers we haven't migrated yet so the
+// type checker still accepts their import path.
 
-export async function getDomainPricing() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('products')
-    .select('*')
-    .eq('type', 'domain_tld')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true });
-  return data ?? [];
+import { getActiveTlds, getTldByName, type Tld } from './tlds';
+
+export async function getDomainPricing(): Promise<Tld[]> {
+  return getActiveTlds();
 }
 
-export async function getTldPricing(tld: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('products')
-    .select('*')
-    .eq('type', 'domain_tld')
-    .eq('slug', `tld-${tld.toLowerCase()}`)
-    .eq('is_active', true)
-    .single();
-  return data;
+export async function getTldPricing(tld: string): Promise<Tld | null> {
+  return getTldByName(tld);
 }
 
 // ─── ALL PRODUCTS ────────────────────────────────────────

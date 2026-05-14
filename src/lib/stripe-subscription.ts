@@ -9,7 +9,10 @@ import Stripe from 'stripe';
  * - Adding a site = adding a line item with the plan's price
  * - Upgrading a site = swapping its line item's price (Stripe prorates automatically)
  * - Removing a site = deleting the line item
- * - Domain renewals remain separate subscriptions
+ *
+ * Phase 3: domain renewals are NOT Stripe Subscriptions — the daily cron
+ * fires off-session PaymentIntents instead. There's nothing here that
+ * needs to filter them out anymore.
  *
  * Post Stripe-Sync-Engine cutover:
  *   - public.subscriptions was dropped. The Sync Engine mirrors Stripe
@@ -49,11 +52,12 @@ export async function findHostingSubscription(
     .in('status', ['active', 'trialing', 'paused'])
     .order('created', { ascending: false });
 
-  // Filter out domain renewals
+  // Phase 3: domain renewals are no longer Stripe Subscriptions — any
+  // live sub belongs to hosting. Defensive guard kept for legacy rows.
   const hostingSub = (subs ?? []).find((s: any) => {
     const meta = (s.metadata as any) ?? {};
     return meta.type !== 'domain_renewal' && meta.is_domain_purchase !== 'true';
-  });
+  }) ?? (subs ?? [])[0];
 
   if (!hostingSub) return null;
 

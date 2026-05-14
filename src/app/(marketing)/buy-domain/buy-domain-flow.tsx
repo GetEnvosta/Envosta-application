@@ -3,31 +3,41 @@
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase-browser';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { Globe, Lock, Shield, CreditCard, Check, Loader2, ArrowRight } from 'lucide-react';
+import { Globe, Check, Loader2, ArrowRight } from 'lucide-react';
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
-
+/**
+ * Phase 3 — domain-only buy flow.
+ *
+ * The previous flow used Stripe Elements + a domain-renewal subscription
+ * with embedded payment. Phase 3 collapses this into a single redirect to
+ * a Stripe Checkout Session (mode='payment', inline price_data) created
+ * by /api/domain-only-checkout. On return the URL carries ?success=1.
+ */
 export function BuyDomainFlow() {
   const searchParams = useSearchParams();
   const domain = searchParams.get('domain') ?? '';
-  const [step, setStep] = useState<'account' | 'payment' | 'success'>('account');
+  const success = searchParams.get('success') === '1';
+  const cancelled = searchParams.get('cancelled') === '1';
 
-  // Account
+  const [step, setStep] = useState<'account' | 'success'>('account');
+
+  // Account form
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  // Payment
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [price, setPrice] = useState<number | null>(null);
 
-  // If already signed in, send them to the dashboard's domain register flow with the domain pre-filled.
+  // Stripe success redirect → flip to success step.
+  useEffect(() => {
+    if (success) setStep('success');
+  }, [success]);
+
+  // If already signed in, send them to the dashboard's domain register flow.
   useEffect(() => {
     if (!domain) return;
     const supabase = createClient();
@@ -38,19 +48,18 @@ export function BuyDomainFlow() {
     });
   }, [domain]);
 
-  // Fetch domain price
+  // Fetch domain price from public.tlds.
   useEffect(() => {
     if (!domain) return;
     const tld = domain.split('.').pop()?.toLowerCase() ?? '';
     const supabase = createClient();
-    supabase.from('products').select('price_usd, price_cad, metadata')
-      .eq('type', 'domain_tld').eq('slug', `tld-${tld}`).maybeSingle()
+    supabase.from('tlds').select('register_price_cad_cents').eq('tld', tld).eq('is_active', true).maybeSingle()
       .then(({ data }) => {
-        if (data) setPrice((((data.metadata as any)?.registration_price_cad ?? data.price_cad ?? data.price_usd ?? 0) / 100));
+        if (data) setPrice((data.register_price_cad_cents ?? 0) / 100);
       });
   }, [domain]);
 
-  async function handleCreateAccount() {
+  async function handleCreateAccountAndCheckout() {
     if (!name || !email || password.length < 8 || !termsAccepted) return;
     setLoading(true);
     setError('');
@@ -66,11 +75,29 @@ export function BuyDomainFlow() {
       try { data = JSON.parse(text); } catch { setError(`Server error: ${text.substring(0, 200) || 'Empty response'}`); setLoading(false); return; }
       if (!res.ok) { setError(data.error ?? 'Something went wrong'); setLoading(false); return; }
 
-      setClientSecret(data.clientSecret);
-      setStep('payment');
-    } catch (e: any) { setError(e.message ?? 'Connection error'); }
-    setLoading(false);
+      if (!data.url) { setError('No checkout URL returned'); setLoading(false); return; }
+
+      // Stash credentials so we can auto-sign-in on return.
+      try {
+        sessionStorage.setItem(`envosta_buy_domain_${domain}`, JSON.stringify({ email, password }));
+      } catch { /* private mode */ }
+
+      window.location.href = data.url;
+    } catch (e: any) { setError(e.message ?? 'Connection error'); setLoading(false); }
   }
+
+  // On success step, auto sign in from the stashed creds (best-effort).
+  useEffect(() => {
+    if (step !== 'success' || !domain) return;
+    try {
+      const stashed = sessionStorage.getItem(`envosta_buy_domain_${domain}`);
+      if (!stashed) return;
+      const { email: storedEmail, password: storedPass } = JSON.parse(stashed);
+      sessionStorage.removeItem(`envosta_buy_domain_${domain}`);
+      const sb = createClient();
+      sb.auth.signInWithPassword({ email: storedEmail, password: storedPass }).catch(() => { /* fall back to login page */ });
+    } catch { /* ignore */ }
+  }, [step, domain]);
 
   if (!domain) {
     return (
@@ -107,14 +134,21 @@ export function BuyDomainFlow() {
           </p>
         </div>
 
-        {/* Step: Account */}
+        {/* Cancelled banner */}
+        {cancelled && step === 'account' && (
+          <div style={{ background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.25)', borderRadius: 10, padding: '10px 14px', fontSize: '.82rem', color: '#fbbf24', marginBottom: 16 }}>
+            Checkout cancelled — you can try again any time.
+          </div>
+        )}
+
+        {/* Step: Account + redirect to checkout */}
         {step === 'account' && (
           <div style={{ textAlign: 'center', maxWidth: 440, margin: '0 auto' }}>
             <h2 style={{ fontSize: 'clamp(1.4rem,3vw,1.8rem)', fontWeight: 400, letterSpacing: '-.5px', marginBottom: 12, color: 'var(--t1)' }}>
               Create your account
             </h2>
             <p style={{ color: 'var(--t2)', marginBottom: 28, fontSize: '.92rem' }}>
-              Just the basics — we&apos;ll set up your domain right after.
+              We&apos;ll create your account and take you to secure checkout.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'left' }}>
               <div>
@@ -151,7 +185,7 @@ export function BuyDomainFlow() {
               {error && <p style={{ color: '#ef4444', fontSize: '.82rem' }}>{error}</p>}
 
               <button
-                onClick={handleCreateAccount}
+                onClick={handleCreateAccountAndCheckout}
                 disabled={!name || !email || password.length < 8 || password !== confirmPassword || !termsAccepted || loading}
                 style={{
                   padding: '14px 24px', background: '#fff', color: '#03060e', borderRadius: 100, border: 'none',
@@ -160,68 +194,12 @@ export function BuyDomainFlow() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}
               >
-                {loading ? <><Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Setting up...</> : <>Continue to Payment <ArrowRight style={{ width: 16, height: 16 }} /></>}
+                {loading ? <><Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Redirecting...</> : <>Continue to Payment <ArrowRight style={{ width: 16, height: 16 }} /></>}
               </button>
             </div>
             <p style={{ fontSize: '.82rem', color: 'var(--t3)', marginTop: 20 }}>
               Already have an account? <a href="https://my.envosta.com/auth/login" style={{ color: '#2563EB', textDecoration: 'underline' }}>Sign in</a>
             </p>
-          </div>
-        )}
-
-        {/* Step: Payment */}
-        {step === 'payment' && clientSecret && (
-          <div>
-            {/* Order summary */}
-            <div style={{
-              borderRadius: 16, padding: '20px 24px', marginBottom: 24,
-              background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.06)',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ fontSize: '.95rem', fontWeight: 600, color: '#fff' }}>{domain}</span>
-                  <p style={{ fontSize: '.76rem', color: 'rgba(255,255,255,.35)', marginTop: 2 }}>1 year registration &middot; auto-renews annually</p>
-                </div>
-                <span style={{
-                  fontSize: '.82rem', fontWeight: 600, padding: '4px 12px', borderRadius: 100,
-                  background: 'rgba(255,255,255,.06)', color: '#fff',
-                }}>
-                  ${price ?? '...'} CAD/yr
-                </span>
-              </div>
-            </div>
-
-            <Elements stripe={stripePromise} options={{
-              clientSecret,
-              appearance: {
-                theme: 'night' as const,
-                variables: {
-                  fontFamily: '"DM Sans", system-ui, sans-serif',
-                  borderRadius: '12px',
-                  colorPrimary: '#2563EB',
-                  colorBackground: '#0a0e1a',
-                  colorText: '#e2e8f0',
-                  colorTextSecondary: '#64748b',
-                },
-                rules: {
-                  '.Input': { backgroundColor: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', color: '#e2e8f0', padding: '12px 14px' },
-                  '.Input:focus': { borderColor: '#2563EB', boxShadow: '0 0 0 1px #2563EB' },
-                  '.Label': { color: '#94a3b8', fontSize: '13px' },
-                  '.Tab': { backgroundColor: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', borderRadius: '10px' },
-                  '.Tab--selected': { backgroundColor: 'rgba(37,99,235,.12)', borderColor: 'rgba(37,99,235,.3)' },
-                  '.AccordionItem': { backgroundColor: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)', borderRadius: '12px' },
-                },
-              },
-            }}>
-              <DomainPaymentForm domain={domain} price={price} onSuccess={async () => {
-                // Auto sign in
-                try {
-                  const sb = createClient();
-                  await sb.auth.signInWithPassword({ email, password });
-                } catch { /* fallback to login page */ }
-                setStep('success');
-              }} />
-            </Elements>
           </div>
         )}
 
@@ -246,72 +224,5 @@ export function BuyDomainFlow() {
       </div>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
     </div>
-  );
-}
-
-function DomainPaymentForm({ domain, price, onSuccess }: { domain: string; price: number | null; onSuccess: () => void }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState('');
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-    setLoading(true);
-    setError('');
-
-    const result = await stripe.confirmPayment({
-      elements,
-      confirmParams: { return_url: `${window.location.origin}/buy-domain?domain=${encodeURIComponent(domain)}&success=1` },
-      redirect: 'if_required',
-    });
-
-    if (result.error) {
-      setError(result.error.message ?? 'Payment failed');
-      setLoading(false);
-    } else {
-      onSuccess();
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <div style={{ marginBottom: 20 }}>
-        <PaymentElement onReady={() => setReady(true)} options={{
-          layout: 'accordion',
-          paymentMethodOrder: ['card'],
-          defaultValues: { billingDetails: { address: { country: 'CA' } } },
-        }} />
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 24, flexWrap: 'wrap' }}>
-        {[
-          { icon: <Lock style={{ width: 12, height: 12 }} />, label: 'SSL Encrypted' },
-          { icon: <Shield style={{ width: 12, height: 12 }} />, label: 'PCI Compliant' },
-          { icon: <CreditCard style={{ width: 12, height: 12 }} />, label: 'Powered by Stripe' },
-        ].map(b => (
-          <span key={b.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '.72rem', color: 'rgba(255,255,255,.3)' }}>
-            {b.icon} {b.label}
-          </span>
-        ))}
-      </div>
-
-      {error && <p style={{ color: '#ef4444', fontSize: '.82rem', textAlign: 'center', marginBottom: 16 }}>{error}</p>}
-
-      <button type="submit" disabled={!stripe || !ready || loading} style={{
-        width: '100%', padding: '16px 24px', borderRadius: 100, border: 'none',
-        fontSize: '.92rem', fontWeight: 600, cursor: loading ? 'wait' : 'pointer',
-        background: '#fff', color: '#03060e', opacity: !stripe || !ready || loading ? 0.5 : 1,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-      }}>
-        {loading ? <><Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> Processing...</> : <>Register {domain} — ${price ?? '...'} CAD</>}
-      </button>
-
-      <p style={{ fontSize: '.68rem', color: 'rgba(255,255,255,.25)', marginTop: 16, textAlign: 'center', lineHeight: 1.6 }}>
-        By completing this purchase you agree to our <a href="/legal/terms" target="_blank" style={{ color: 'rgba(255,255,255,.4)', textDecoration: 'underline' }}>Terms</a> and <a href="/legal/privacy" target="_blank" style={{ color: 'rgba(255,255,255,.4)', textDecoration: 'underline' }}>Privacy Policy</a>.
-      </p>
-    </form>
   );
 }

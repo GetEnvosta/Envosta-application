@@ -42,21 +42,9 @@ export default async function DiagnosticsPage() {
     s.products?.type === 'hosting_plan' && s.users?.id && !userIdsWithSites.has(s.users.id),
   );
 
-  // 2. Active subscriptions (domain type) with NO registered domain
-  const domainSubsAll = aliveSubs.filter((s: any) =>
-    s.products?.type === 'domain_tld' || (s.metadata as any)?.type === 'domain_renewal',
-  );
+  // 2. Phase 3: domain renewals are no longer Stripe subscriptions, so
+  //    "domain sub without a domain record" is a dead drift surface.
   const domainSubsNoDomain: any[] = [];
-  for (const ds of domainSubsAll) {
-    const stripeSub = ds.stripe_subscription_id;
-    if (!stripeSub) { domainSubsNoDomain.push(ds); continue; }
-    const { data: linkedDom } = await supabase
-      .from('domains')
-      .select('id')
-      .or(`renewal_stripe_subscription_id.eq.${stripeSub},metadata->>renewal_stripe_subscription_id.eq.${stripeSub}`)
-      .maybeSingle();
-    if (!linkedDom) domainSubsNoDomain.push(ds);
-  }
 
   // 3. Sites stuck in provisioning > 1 hour
   const { data: stuckSites } = await supabase
@@ -96,9 +84,10 @@ export default async function DiagnosticsPage() {
     .order('name');
   const plans = (allProducts ?? []).filter((p: any) => p.type === 'hosting_plan');
   const oneTimeProducts = (allProducts ?? []).filter((p: any) => p.type === 'one_time_service');
-  const domainTlds = (allProducts ?? []).filter((p: any) => p.type === 'domain_tld');
+  // Phase 3: domain_tld rows no longer exist in public.products — TLDs
+  // live in public.tlds and never get a Stripe Product.
   const addons = (allProducts ?? []).filter((p: any) => p.type === 'plan_addon');
-  const otherProducts = (allProducts ?? []).filter((p: any) => !['hosting_plan', 'one_time_service', 'domain_tld', 'plan_addon'].includes(p.type));
+  const otherProducts = (allProducts ?? []).filter((p: any) => !['hosting_plan', 'one_time_service', 'plan_addon'].includes(p.type));
 
   const levelBadge: Record<string, string> = { info: 'badge-blue', warn: 'badge-yellow', error: 'badge-red', debug: 'badge-gray' };
 
@@ -146,23 +135,8 @@ export default async function DiagnosticsPage() {
         ))}
       </DiagCard>
 
-      {/* Domain subscriptions without a registered domain */}
-      <DiagCard
-        icon={<Globe className="w-4 h-4" />}
-        title="Domain Subscriptions — No Domain Record"
-        count={domainSubsNoDomain.length}
-        description="Customer is paying for a domain renewal but no domain record is linked."
-      >
-        {domainSubsNoDomain.map((s: any) => (
-          <DiagRow key={s.id}
-            primary={s.stripe_subscription_id?.slice(-12) ?? 'Unknown'}
-            secondary={(s.users as any)?.email ?? 'Unknown'}
-            date={s.created_at}
-            link={s.stripe_subscription_id ? `https://dashboard.stripe.com/subscriptions/${s.stripe_subscription_id}` : '#'}
-            external
-          />
-        ))}
-      </DiagCard>
+      {/* Phase 3: "domain subscriptions without a record" is no longer
+          a real drift surface — domain renewals are not Stripe subs. */}
 
       {/* Stuck provisioning */}
       <DiagCard
@@ -242,7 +216,6 @@ export default async function DiagnosticsPage() {
             <StripeProducts
               initialPlans={plans as any}
               initialOneTime={oneTimeProducts as any}
-              initialTlds={domainTlds as any}
               initialAddons={addons as any}
               initialOther={otherProducts as any}
             />

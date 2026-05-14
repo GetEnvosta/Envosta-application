@@ -22,14 +22,14 @@ export function DomainSearch() {
   const [error, setError] = useState('');
   const [tldPrices, setTldPrices] = useState<Record<string, number>>({});
 
-  // Fetch TLD prices from products table on mount
+  // Fetch TLD prices from public.tlds (Phase 3: dedicated catalog,
+  // no more domain_tld rows in public.products).
   useEffect(() => {
     const supabase = createClient();
-    supabase.from('products').select('slug, price_cad, metadata').eq('type', 'domain_tld').eq('is_active', true).then(({ data }) => {
+    supabase.from('tlds').select('tld, register_price_cad_cents').eq('is_active', true).then(({ data }) => {
       const prices: Record<string, number> = {};
       for (const p of data ?? []) {
-        const tld = (p.metadata as any)?.tld ?? p.slug?.replace('tld-', '');
-        prices[tld] = ((p.metadata as any)?.registration_price_cad ?? p.price_cad ?? 0) / 100;
+        prices[p.tld] = (p.register_price_cad_cents ?? 0) / 100;
       }
       setTldPrices(prices);
     });

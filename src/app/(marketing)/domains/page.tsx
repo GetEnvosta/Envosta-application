@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getDomainPricing } from '@/services/plans';
+import { getActiveTlds } from '@/services/tlds';
 import { DomainSearch } from '@/components/marketing/domain-search';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 export default async function DomainsPage() {
-  const tlds = await getDomainPricing();
+  const tlds = await getActiveTlds();
 
   return (
     <>
@@ -123,12 +123,11 @@ export default async function DomainsPage() {
           <h2>Simple, transparent pricing</h2>
           <p>All prices in CAD. Registration includes 1 year and free WHOIS privacy.</p>
           <div className="tld-grid">
-            {tlds.map((tld: any) => {
-              const ext = (tld.metadata as any)?.tld ?? tld.slug?.replace('tld-', '') ?? '';
-              const price = ((tld.metadata as any)?.registration_price_cad ?? tld.price_cad ?? tld.price_usd ?? 0) / 100;
+            {tlds.map(tld => {
+              const price = tld.register_price_cad_cents / 100;
               return (
                 <div key={tld.id} className="tld-card">
-                  <div className="tld-name">.{ext}</div>
+                  <div className="tld-name">.{tld.tld}</div>
                   <div className="tld-price">
                     ${price.toFixed(0)} <span>CAD/yr</span>
                   </div>

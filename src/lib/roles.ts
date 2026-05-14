@@ -94,7 +94,6 @@ export const API_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/api/admin/provision-site':             ['admin', 'staff'],
   '/api/admin/delete-site':                ['admin', 'staff'],
   '/api/admin/cleanup-site':               ['admin'],
-  '/api/admin/attach-domain-subscription': ['admin', 'staff'],
   '/api/admin/create-unclaimed-account':   ['admin', 'staff'],
   '/api/admin/coupons':                    ['admin'],
   '/api/admin/delete-ticket':              ['admin', 'staff'],

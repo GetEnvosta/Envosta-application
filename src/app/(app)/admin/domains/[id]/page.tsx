@@ -7,7 +7,6 @@ import { ArrowLeft, Globe, Server, ExternalLink, User } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { DnsManager } from '@/components/domains/dns-manager';
 import { DomainSettings } from '@/components/domains/domain-settings';
-import { AttachDomainSubscription } from '@/components/admin/attach-domain-subscription';
 import { DomainRetryRegister } from '@/components/domains/domain-retry-register';
 import { DomainOwnerAssign } from '@/components/admin/domain-owner-assign';
 import { ImpersonateButton } from '@/components/admin/impersonate-button';
@@ -39,7 +38,7 @@ export default async function AdminDomainDetailPage({ params }: { params: Promis
                 <h1 className="text-xl font-semibold text-gray-900">{domain.domain_name}</h1>
                 <div className="flex items-center gap-3 mt-1">
                   <span className={statusColor(domain.status)}>{domain.status}</span>
-                  <span className="text-sm text-gray-500">Expires {formatDate(domain.expires_at)}</span>
+                  <span className="text-sm text-gray-500">Expires {formatDate(domain.expiry_date)}</span>
                 </div>
               </div>
             </div>
@@ -87,18 +86,13 @@ export default async function AdminDomainDetailPage({ params }: { params: Promis
             domainName={domain.domain_name}
             initialAutoRenew={domain.auto_renew ?? true}
             initialWhoisPrivacy={meta.whois_privacy ?? true}
-            expiresAt={domain.expires_at}
+            expiresAt={domain.expiry_date}
           />
 
-          {/* Subscription */}
-          <div className="mt-4">
-            <AttachDomainSubscription
-              domainName={domain.domain_name}
-              domainId={domain.id}
-              userId={domain.user_id}
-              renewalSubId={meta.renewal_stripe_subscription_id}
-            />
-          </div>
+          {/* Phase 3: domain renewals are off-session PaymentIntents fired
+              by /api/cron/process-domain-renewals daily — no Stripe sub
+              to attach. Auto-renew is governed by the domain row's
+              auto_renew flag in DomainSettings above. */}
         </div>
       </div>
 

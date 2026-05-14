@@ -84,13 +84,16 @@ export function StripeProducts({
 }: {
   initialPlans: Product[];
   initialOneTime: Product[];
-  initialTlds: Product[];
+  /** @deprecated Phase 3: TLDs no longer sync to Stripe. Kept to avoid
+   * a breaking type change for callers; the value is ignored. */
+  initialTlds?: Product[];
   initialAddons?: Product[];
   initialOther?: Product[];
 }) {
   const [plans, setPlans] = useState(initialPlans);
   const [oneTime, setOneTime] = useState(initialOneTime);
-  const [tlds, setTlds] = useState(initialTlds);
+  // Phase 3: TLDs are stored in public.tlds with inline checkout prices —
+  // no Stripe Products. The TLDs section is removed from this UI.
   const [addons, setAddons] = useState(initialAddons);
   const [other, setOther] = useState(initialOther);
   const [stripeOnly, setStripeOnly] = useState<StripeOnlyProduct[]>([]);
@@ -146,11 +149,10 @@ export function StripeProducts({
         } : p;
         setPlans(prev => prev.map(update));
         setOneTime(prev => prev.map(update));
-        setTlds(prev => prev.map(update));
         setAddons(prev => prev.map(update));
         setOther(prev => prev.map(update));
         if (data.stripe_price_amount !== undefined) {
-          const dbPrice = [...plans, ...oneTime, ...tlds, ...addons, ...other].find(p => p.id === id);
+          const dbPrice = [...plans, ...oneTime, ...addons, ...other].find(p => p.id === id);
           const effectivePrice = (dbPrice?.price_usd || dbPrice?.price_cad) ?? 0;
           setVerification(prev => ({
             ...prev,
@@ -221,7 +223,6 @@ export function StripeProducts({
         }
         setPlans(prev => prev.filter(p => p.id !== id));
         setOneTime(prev => prev.filter(p => p.id !== id));
-        setTlds(prev => prev.filter(p => p.id !== id));
         setAddons(prev => prev.filter(p => p.id !== id));
         setOther(prev => prev.filter(p => p.id !== id));
       } else {
@@ -277,7 +278,6 @@ export function StripeProducts({
         const updateFn = (p: any) => p.id === editProduct.id ? { ...p, ...updates } : p;
         setPlans(prev => prev.map(updateFn));
         setOneTime(prev => prev.map(updateFn));
-        setTlds(prev => prev.map(updateFn));
         setAddons(prev => prev.map(updateFn));
         setOther(prev => prev.map(updateFn));
         setEditProduct(prev => prev ? { ...prev, ...updates } : null);
@@ -313,7 +313,6 @@ export function StripeProducts({
         } : p;
         setPlans(prev => prev.map(updateFn));
         setOneTime(prev => prev.map(updateFn));
-        setTlds(prev => prev.map(updateFn));
         setAddons(prev => prev.map(updateFn));
         setOther(prev => prev.map(updateFn));
         setEditProduct(prev => prev ? {
@@ -471,22 +470,8 @@ export function StripeProducts({
         </Section>
       )}
 
-      {/* ═══ DOMAIN TLDs ═══ */}
-      <Section title="Domain TLDs" subtitle="Annual domain registration pricing.">
-        <table className="w-full table-fixed">
-          <TableHead onAdd={() => quickCreate('domain_tld', 'New TLD', 'yearly', 0)} addLabel="Add TLD" creating={creating} />
-          <tbody>
-            {tlds.map(tld => (
-              <tr key={tld.id} className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer" onClick={() => openEdit(tld)}>
-                <ProductRow p={tld} displayName={`.${tld.slug}`} />
-              </tr>
-            ))}
-            {tlds.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-6 text-center text-sm text-gray-400">No domain TLDs configured.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </Section>
+      {/* Phase 3: Domain TLDs section removed. TLDs live in public.tlds
+          and use inline price_data at checkout — no Stripe Products. */}
 
       {/* ═══ OTHER PRODUCTS ═══ */}
       {other.length > 0 && (

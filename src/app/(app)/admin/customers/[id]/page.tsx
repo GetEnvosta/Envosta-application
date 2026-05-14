@@ -11,7 +11,6 @@ import {
   AlertTriangle, Link2, Zap, HardDrive, PauseCircle,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
-import { AttachDomainSubscription } from '@/components/admin/attach-domain-subscription';
 import { ImpersonateButton } from '@/components/admin/impersonate-button';
 import { PlanSwitcher } from '@/components/sites/plan-switcher';
 import { ClaimLinkBanner } from '@/components/admin/claim-link-banner';
@@ -39,16 +38,10 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const relatedData = await getCustomerRelatedData(user.id);
   const { services, domains, subscriptions, invoices, logs } = relatedData;
 
-  // Account-centric model: the user has at most one subscription. The
-  // shape from getCustomerRelatedData() is normalized so the existing
-  // template can still treat it as an array. Domain renewals will move
-  // to cron-based one-time charges in Phase 3 — for now there are no
-  // domain sub rows surfaced here.
-  const hostingSubs = subscriptions.filter((s: any) => {
-    const meta = (s.metadata as any) ?? {};
-    return meta.type !== 'domain_renewal' && meta.is_domain_purchase !== 'true' && s.products?.type !== 'domain_tld';
-  });
-  const domainSubs: any[] = [];
+  // Account-centric model: the user has at most one subscription.
+  // Phase 3: domain renewals are off-session PaymentIntents fired by a
+  // daily cron — never Stripe Subscriptions — so nothing to filter out.
+  const hostingSubs = subscriptions;
 
   // The subscription covers an allotment of sites; price is the sub's billing
   // period price, not a per-site sum.
@@ -70,32 +63,20 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     ?? null;
   const sitesUsed = activeSites.length;
 
-  // Calculate annual total from domain subscriptions
-  const annualDomainTotal = domainSubs.reduce((sum: number, sub: any) => sum + ((sub.products as any)?.price_cad ?? 0), 0);
+  // Phase 3: no more annual domain sub total — auto_renew flag per
+  // domain row is the only signal we still track here.
 
-  // Split invoices: domain renewals vs hosting. The Stripe webhook doesn't
-  // currently store a strong link between invoice → subscription, so this is
-  // best-effort. Signals (any one matches → domain):
-  //   - invoice.subscription_id matches a domain sub's DB id
-  //   - metadata.stripe_subscription_id matches a domain sub's stripe id
-  //   - metadata.product_type === 'domain_tld' (set by newer webhook)
-  //   - metadata flags from older code (type === 'domain_renewal', etc)
-  //   - description contains the word "domain" or any of this customer's
-  //     actual registered domain names
-  //   - amount matches a known domain TLD product price for this customer
-  const domainSubDbIds = new Set(domainSubs.map((s: any) => s.id).filter(Boolean));
-  const domainSubStripeIds = new Set(
-    domainSubs.map((s: any) => s.stripe_subscription_id).filter(Boolean)
-  );
-  const domainAmounts = new Set(
-    domainSubs.map((s: any) => (s.products as any)?.price_cad).filter((n: any) => typeof n === 'number' && n > 0)
-  );
+  // Split invoices: domain (registration/renewal) vs hosting. Phase 3
+  // domain registrations are inline-priced one-time Stripe Checkout
+  // sessions; renewals are off-session PaymentIntents. Both stamp
+  // `product_type = 'domain_registration'` or `'domain_renewal'` on
+  // metadata, so prefer that signal. Falls back to text/legacy flags.
   const domainNames = (domains ?? []).map((d: any) => String(d.domain_name || '').toLowerCase()).filter(Boolean);
 
   function isDomainInvoice(inv: any): boolean {
     const meta = (inv.metadata as any) ?? {};
-    if (inv.subscription_id && domainSubDbIds.has(inv.subscription_id)) return true;
-    if (meta.stripe_subscription_id && domainSubStripeIds.has(meta.stripe_subscription_id)) return true;
+    if (meta.product_type === 'domain_registration' || meta.product_type === 'domain_renewal') return true;
+    // Legacy flags from pre-Phase-3 — kept so old invoices still bucket right.
     if (meta.product_type === 'domain_tld' || meta.product_type === 'domain') return true;
     if (meta.type === 'domain_renewal') return true;
     if (meta.is_domain_purchase === 'true' || meta.is_domain_purchase === true) return true;
@@ -105,15 +86,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     if (desc) {
       if (/\bdomain\b/.test(desc)) return true;
       if (/\b(?:com|ca|net|org|io|co|app|dev|store|shop|xyz|me|tech)\b/i.test(desc) && /\./.test(desc)) {
-        // Has a TLD-looking token AND a dot — likely "<name>.<tld>"
         return true;
       }
       if (domainNames.some(d => d && desc.includes(d))) return true;
-    }
-
-    // Last resort: amount matches a known domain TLD price for this customer.
-    if (domainAmounts.size > 0 && typeof inv.amount_cad === 'number' && domainAmounts.has(inv.amount_cad)) {
-      return true;
     }
     return false;
   }
@@ -317,44 +292,28 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
       {/* ── Domains & Renewals ── */}
       <div className="card overflow-hidden mb-6">
-        {/* Renewals band — domain-side equivalent of the subscription band on
-            the Sites card. Aggregates renewal stats + total annual revenue
-            so per-row clutter can be minimal. */}
+        {/* Renewals band — Phase 3: renewals are fired by the daily cron
+            against each domain's auto_renew flag (no Stripe sub). */}
         <div className="px-5 py-4 bg-gray-50/60 border-b border-gray-100 flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Globe className="w-4 h-4 text-gray-400 shrink-0" />
             <span className="text-sm font-semibold text-gray-900">Domain Renewals</span>
           </div>
-          {domainSubs.length > 0 ? (
-            <>
-              <span className="text-xs text-gray-600">
-                {domainSubs.filter((s: any) => s.status === 'active' || s.status === 'trialing').length} <span className="text-gray-300">of</span> {domainSubs.length} renewing
-              </span>
-              {annualDomainTotal > 0 && (
-                <span className="text-sm font-semibold text-gray-900">{formatCents(annualDomainTotal, 'cad')}/yr</span>
-              )}
-            </>
-          ) : (
-            <span className="text-xs text-gray-400">— No renewal subscriptions attached</span>
-          )}
+          <span className="text-xs text-gray-600">
+            {domains.filter((d: any) => d.auto_renew !== false).length} <span className="text-gray-300">of</span> {domains.length} auto-renewing
+          </span>
         </div>
 
         <div className="section-card-header">
           <h2 className="section-card-title">Domains ({domains.length})</h2>
         </div>
 
-        {domains.length === 0 && domainSubs.length === 0 ? (
+        {domains.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-400">No domains.</div>
         ) : (
           <div className="divide-y divide-gray-100">
             {domains.map((d: any) => {
-              const linkedSub = domainSubs.find((sub: any) =>
-                (sub.metadata as any)?.domain_name === d.domain_name ||
-                sub.stripe_subscription_id === d.renewal_stripe_subscription_id ||
-                sub.stripe_subscription_id === (d.metadata as any)?.renewal_stripe_subscription_id
-              );
               const linkedSite = services.find((s: any) => s.id === d.site_id);
-              const domainPrice = (linkedSub?.products as any)?.price_cad ?? 0;
               return (
                 <Link key={d.id} href={`/admin/domains/${d.id}`} className="block px-5 py-3 hover:bg-gray-50/50 transition-colors">
                   <div className="flex items-center gap-3 flex-wrap">
@@ -366,54 +325,18 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                         <Server className="w-3 h-3" /> {linkedSite.label}
                       </span>
                     )}
-                    {d.expires_at && <span className="text-xs text-gray-400">Exp {formatDate(d.expires_at)}</span>}
-                    {d.auto_renew === false && <span className="text-xs text-amber-600">Auto-renew off</span>}
-                    {linkedSub ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">
-                        <Link2 className="w-3 h-3" /> Renewal {linkedSub.status}
+                    {d.expiry_date && <span className="text-xs text-gray-400">Exp {formatDate(d.expiry_date)}</span>}
+                    {d.auto_renew === false ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
+                        <AlertTriangle className="w-3 h-3" /> Auto-renew off
                       </span>
                     ) : (
-                      <span onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
-                        <AttachDomainSubscription domainName={d.domain_name} domainId={d.id} userId={user.id} renewalSubId={null} compact />
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">
+                        <Link2 className="w-3 h-3" /> Auto-renews
                       </span>
                     )}
-                    <div className="ml-auto shrink-0">
-                      {domainPrice > 0 && (
-                        <p className="text-sm font-semibold text-gray-900 whitespace-nowrap">
-                          {formatCents(domainPrice, 'cad')}<span className="text-xs font-normal text-gray-400">/yr</span>
-                        </p>
-                      )}
-                    </div>
                   </div>
                 </Link>
-              );
-            })}
-
-            {/* Orphaned domain subscriptions */}
-            {domainSubs.filter((sub: any) => {
-              const dn = (sub.metadata as any)?.domain_name;
-              return !domains.find((d: any) =>
-                d.domain_name === dn ||
-                sub.stripe_subscription_id === d.renewal_stripe_subscription_id ||
-                sub.stripe_subscription_id === (d.metadata as any)?.renewal_stripe_subscription_id
-              );
-            }).map((sub: any) => {
-              const dn = (sub.metadata as any)?.domain_name;
-              return (
-                <div key={sub.id} className="px-5 py-3 bg-amber-50/30">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <Globe className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                    <p className="text-sm font-medium text-gray-900">{dn ?? sub.products?.name ?? 'Domain renewal'}</p>
-                    <span className={statusColor(sub.status)}>{sub.status}</span>
-                    <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
-                      <AlertTriangle className="w-3 h-3" /> No domain linked
-                    </span>
-                    {sub.stripe_subscription_id && (
-                      <a href={`https://dashboard.stripe.com/subscriptions/${sub.stripe_subscription_id}`} target="_blank" rel="noopener noreferrer"
-                        className="text-[11px] text-gray-400 hover:text-admin-600 font-mono ml-auto">{sub.stripe_subscription_id.slice(-8)}</a>
-                    )}
-                  </div>
-                </div>
               );
             })}
           </div>

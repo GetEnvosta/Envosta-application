@@ -131,20 +131,19 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
         if (match) setSelectedPlan(match);
       }
 
-      // Pre-fill domain from URL param and fetch its price
+      // Pre-fill domain from URL param and fetch its price (Phase 3:
+      // pricing lives in public.tlds, not public.products).
       if (initialDomain) {
         setDomainMode('new');
         setSelectedDomain(initialDomain);
         const tld = initialDomain.split('.').pop()?.toLowerCase() ?? '';
         const { data: pricing } = await supabase
-          .from('products')
-          .select('price_usd, price_cad, metadata')
-          .eq('type', 'domain_tld')
-          .eq('slug', `tld-${tld}`)
+          .from('tlds')
+          .select('register_price_cad_cents')
+          .eq('tld', tld)
+          .eq('is_active', true)
           .maybeSingle();
-        if (pricing) setDomainPriceCents(
-          (pricing.metadata as any)?.registration_price_cad ?? pricing.price_cad ?? pricing.price_usd
-        );
+        if (pricing) setDomainPriceCents(pricing.register_price_cad_cents ?? null);
       }
 
       // Skip to the right step based on what's pre-filled
@@ -186,16 +185,16 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
       const data = await res.json();
       if (res.ok) {
         setDomainResult({ domain, available: data.available });
-        // Fetch TLD price
+        // Fetch TLD price from public.tlds (Phase 3 catalog).
         if (data.available) {
           const tld = domain.split('.').pop()?.toLowerCase() ?? '';
           const { data: pricing } = await supabase
-            .from('products')
-            .select('price_usd, price_cad, metadata')
-            .eq('type', 'domain_tld')
-            .eq('slug', `tld-${tld}`)
+            .from('tlds')
+            .select('register_price_cad_cents')
+            .eq('tld', tld)
+            .eq('is_active', true)
             .maybeSingle();
-          setDomainPriceCents(pricing ? ((pricing.metadata as any)?.registration_price_cad ?? pricing.price_cad ?? pricing.price_usd) : null);
+          setDomainPriceCents(pricing?.register_price_cad_cents ?? null);
         }
       } else {
         setDomainError(data.error ?? 'Could not check availability');

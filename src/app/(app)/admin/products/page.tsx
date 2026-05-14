@@ -1,6 +1,6 @@
 export const revalidate = 5;
 import { formatCents } from '@/lib/utils';
-import { CheckCircle, AlertTriangle, Pencil } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Pencil, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import { ProductsClient } from './products-client';
@@ -13,6 +13,18 @@ function getSupabase() {
   );
 }
 
+interface TldRow {
+  id: string;
+  tld: string;
+  display_name: string;
+  registry: string | null;
+  is_active: boolean;
+  register_price_cad_cents: number;
+  renew_price_cad_cents: number;
+  register_price_usd_cents: number | null;
+  renew_price_usd_cents: number | null;
+}
+
 export default async function ProductsPage({
   searchParams,
 }: {
@@ -20,24 +32,31 @@ export default async function ProductsPage({
 }) {
   const params = await searchParams;
   const typeFilter = params.type ?? 'hosting_plan';
+  const sb = getSupabase();
 
-  const { data: allProducts } = await getSupabase()
+  const { data: allProducts } = await sb
     .from('products')
     .select('*')
     .order('type')
     .order('sort_order', { ascending: true });
 
-  const products = allProducts ?? [];
+  const products = (allProducts ?? []).filter(p => p.type !== 'domain_tld');
+
+  // Phase 3: TLDs live in public.tlds (no Stripe Products).
+  const { data: allTlds } = await sb
+    .from('tlds')
+    .select('id, tld, display_name, registry, is_active, register_price_cad_cents, renew_price_cad_cents, register_price_usd_cents, renew_price_usd_cents')
+    .order('tld', { ascending: true });
+  const tlds: TldRow[] = (allTlds ?? []) as any[];
 
   const counts: Record<string, number> = {
-    all: products.length,
     hosting_plan: products.filter(p => p.type === 'hosting_plan').length,
-    domain_tld: products.filter(p => p.type === 'domain_tld').length,
+    domain_tld: tlds.length,
     plan_addon: products.filter(p => p.type === 'plan_addon').length,
     one_time_service: products.filter(p => p.type === 'one_time_service').length,
   };
 
-  const filtered = typeFilter === 'all' ? products : products.filter(p => p.type === typeFilter);
+  const filtered = typeFilter === 'domain_tld' ? [] : products.filter(p => p.type === typeFilter);
   const synced = products.filter(p => p.stripe_product_id && p.stripe_price_id).length;
 
   return (
@@ -74,7 +93,53 @@ export default async function ProductsPage({
         ))}
       </div>
 
-      {/* Products table */}
+      {/* TLD list — Phase 3: lives in public.tlds, no Stripe. */}
+      {typeFilter === 'domain_tld' ? (
+        <div className="card overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+            <p className="text-xs text-gray-500">
+              <Globe className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" />
+              TLDs are stored in <span className="font-mono">public.tlds</span> with inline pricing. No Stripe Products. Edit via <span className="font-mono">/api/admin/update-tld-price</span>.
+            </p>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100">
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TLD</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registry</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Register (CAD)</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Renew (CAD)</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Register (USD)</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Renew (USD)</th>
+                <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {tlds.length === 0 ? (
+                <tr><td colSpan={7} className="p-8 text-center text-sm text-gray-400">No TLDs configured.</td></tr>
+              ) : tlds.map(t => (
+                <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-5 py-3.5">
+                    <p className="font-medium text-gray-900">{t.display_name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 font-mono">{t.tld}</p>
+                  </td>
+                  <td className="px-5 py-3.5 text-xs text-gray-500">{t.registry ?? '—'}</td>
+                  <td className="px-5 py-3.5 text-gray-700">{formatCents(t.register_price_cad_cents, 'cad')}</td>
+                  <td className="px-5 py-3.5 text-gray-700">{formatCents(t.renew_price_cad_cents, 'cad')}</td>
+                  <td className="px-5 py-3.5 text-gray-500">{t.register_price_usd_cents != null ? formatCents(t.register_price_usd_cents, 'usd') : '—'}</td>
+                  <td className="px-5 py-3.5 text-gray-500">{t.renew_price_usd_cents != null ? formatCents(t.renew_price_usd_cents, 'usd') : '—'}</td>
+                  <td className="px-5 py-3.5">
+                    <span className={t.is_active ? 'badge-green' : 'badge-gray'}>
+                      {t.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+      /* Products table — non-TLD products only after Phase 3. */
       <div className="card overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -147,6 +212,7 @@ export default async function ProductsPage({
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

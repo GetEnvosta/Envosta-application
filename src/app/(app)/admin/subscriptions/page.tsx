@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase-server';
 import { getAllSubscriptionsAdmin } from '@/services/billing';
 import { formatDate, formatCents, statusColor } from '@/lib/utils';
 import Link from 'next/link';
-import { CreditCard, Search, AlertTriangle, Server, Globe, ExternalLink } from 'lucide-react';
+import { CreditCard, Search, AlertTriangle, Server, ExternalLink } from 'lucide-react';
 
 /**
  * Admin: all subscriptions across the platform. Reads from stripe.*
@@ -51,15 +51,8 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
     }
   }
 
-  const domainSubs = subs.filter((s: any) => s.products?.type === 'domain_tld' && ['active', 'trialing'].includes(s.status));
-  const domainLinkSet = new Set<string>();
-  if (domainSubs.length > 0) {
-    const { data: linkedDomains } = await supabase.from('domains').select('metadata').not('metadata->renewal_stripe_subscription_id', 'is', null);
-    for (const d of linkedDomains ?? []) {
-      const rsid = (d.metadata as any)?.renewal_stripe_subscription_id;
-      if (rsid) domainLinkSet.add(rsid);
-    }
-  }
+  // Phase 3: domain renewals no longer create Stripe Subscriptions. The
+  // domain-sub orphan check is therefore a dead surface — drop it.
 
   // Counts (across all returned subs, not just filtered)
   const counts: Record<string, number> = { all: allSubs.length };
@@ -123,13 +116,9 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
                 </tr>
               ) : subs.map((s: any) => {
                 const isHosting = s.products?.type === 'hosting_plan';
-                const isDomain = s.products?.type === 'domain_tld';
                 const isActive = ['active', 'trialing'].includes(s.status);
                 const userId = s.users?.id ?? null;
-                const isOrphan = isActive && (
-                  (isHosting && userId && !userIdsWithSites.has(userId)) ||
-                  (isDomain && !domainLinkSet.has(s.stripe_subscription_id))
-                );
+                const isOrphan = isActive && isHosting && userId && !userIdsWithSites.has(userId);
 
                 return (
                   <tr key={s.id} className={`hover:bg-gray-50 transition-colors ${isOrphan ? 'bg-amber-50/50' : ''}`}>
@@ -141,9 +130,9 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">{s.products?.name ?? '—'}</td>
                     <td className="px-5 py-3.5">
-                      {isHosting && <span className="inline-flex items-center gap-1 text-xs text-gray-500"><Server className="w-3 h-3" /> Hosting</span>}
-                      {isDomain && <span className="inline-flex items-center gap-1 text-xs text-gray-500"><Globe className="w-3 h-3" /> Domain</span>}
-                      {!isHosting && !isDomain && <span className="text-xs text-gray-400">Other</span>}
+                      {isHosting
+                        ? <span className="inline-flex items-center gap-1 text-xs text-gray-500"><Server className="w-3 h-3" /> Hosting</span>
+                        : <span className="text-xs text-gray-400">Other</span>}
                     </td>
                     <td className="px-5 py-3.5">
                       <span className={statusColor(s.status)}>{s.status}</span>

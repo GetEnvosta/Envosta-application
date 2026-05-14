@@ -22,8 +22,14 @@
  * What this handler explicitly DOES NOT do:
  *   - Write to public.subscriptions / public.invoices (tables dropped)
  *   - Write to sites.subscription_id (column dropped — account-centric)
- *   - Manage the domain_renewal subscription mirror
- *     (TODO Phase 3: domain renewal moves to cron-based one-time charges)
+ *   - Create or manage Stripe Subscriptions for domain renewals
+ *     (Phase 3 cutover: renewals are off-session PaymentIntents fired by
+ *      /api/cron/process-domain-renewals, NOT Stripe Subscriptions)
+ *
+ * Phase 3 inbound surfaces:
+ *   - checkout.session.completed with metadata.product_type ==
+ *     'domain_registration' → register domain via OpenSRS internal route,
+ *     stamp domains.auto_renew=true so the daily cron picks it up.
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -365,9 +371,9 @@ export async function POST(req: Request) {
       }
 
       // ── Auto-create / pre-link site + provision (hosting only) ──
-      const isDomainRenewal = (sub.metadata as any)?.type === 'domain_renewal';
-      const isDomainPurchase = (sub.metadata as any)?.is_domain_purchase === 'true';
-      const isDomainTld = primaryPlan?.type === 'domain_tld';
+      // Phase 3: TLDs are no longer Stripe products and domain renewals
+      // are no longer Stripe subscriptions — these legacy flags only
+      // ever fire on pre-Phase-3 subs being mirrored during cutover.
       const hasPaymentMethod = !!sub.default_payment_method;
       const shouldProvision = sub.status === 'active' || (sub.status === 'trialing' && hasPaymentMethod);
 
@@ -388,12 +394,7 @@ export async function POST(req: Request) {
         }
       }
 
-      // TODO Phase 3: domain renewal moves to cron-based one-time charges.
-      // For now we silently ignore domain_renewal / domain_purchase /
-      // domain_tld subs in the provisioning path — they only need the
-      // OpenSRS registration step further down.
-
-      if (shouldProvision && primaryPlan?.type === 'hosting_plan' && !isDomainRenewal && !isDomainPurchase && !isDomainTld) {
+      if (shouldProvision && primaryPlan?.type === 'hosting_plan') {
         const name = (cust.full_name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 30) || 'my-site';
         const domainFromMeta = (sub.metadata as any)?.domain_name ?? null;
         const planMeta = (primaryPlan?.metadata as any) ?? {};
@@ -508,11 +509,9 @@ export async function POST(req: Request) {
               if (reg.ok) {
                 await supabase
                   .from('domains')
-                  .update({ site_id: svc.id })
+                  .update({ site_id: svc.id, auto_renew: true })
                   .eq('domain_name', domainFromMeta)
                   .eq('user_id', cust.id);
-                // TODO Phase 3: domain renewal moves to cron-based one-time charges
-                // (no more Stripe domain_renewal subscription created here).
               } else {
                 console.error('[stripe-webhook] domain registration failed:', domainFromMeta, reg.error);
               }
@@ -622,43 +621,17 @@ export async function POST(req: Request) {
         }
       }
 
-      // ── Standalone domain purchases (no site creation) ──
-      if ((isDomainPurchase || isDomainTld) && (sub.status === 'active' || sub.status === 'trialing')) {
-        const domainFromMeta = (sub.metadata as any)?.domain_name ?? null;
-        if (domainFromMeta) {
-          const { data: existingDomain } = await supabase
-            .from('domains')
-            .select('id')
-            .eq('domain_name', domainFromMeta)
-            .eq('user_id', cust.id)
-            .maybeSingle();
-
-          if (!existingDomain) {
-            console.log('[stripe-webhook] domain purchase — registering:', domainFromMeta);
-            const reg = await registerDomainViaOpenSrs({
-              userId: cust.id,
-              domainName: domainFromMeta,
-              years: 1,
-            });
-            if (reg.ok) {
-              await supabase
-                .from('domains')
-                .update({ metadata: { renewal_stripe_subscription_id: sub.id } })
-                .eq('domain_name', domainFromMeta)
-                .eq('user_id', cust.id);
-            } else {
-              console.error('[stripe-webhook] domain purchase registration failed:', reg.error);
-            }
-          }
-        }
-      }
+      // Phase 3: standalone domain purchases no longer ride a Stripe
+      // Subscription — they're checkout.session.completed events handled
+      // in the dedicated block below. Nothing to do here.
     }
 
-    // ── checkout.session.completed (one-time payments: studio_request) ──
+    // ── checkout.session.completed (one-time payments) ──
     else if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       const metadata = (session.metadata ?? {}) as Record<string, string>;
 
+      // ── Studio request (one-time) ──
       if (metadata.type === 'studio_request') {
         const userId = metadata.supabase_user_id;
         if (userId) {
@@ -686,6 +659,80 @@ export async function POST(req: Request) {
             });
           }
           console.log('[stripe-webhook] studio ticket created:', ticket?.id);
+        }
+      }
+
+      // ── Domain registration (Phase 3 inline-checkout flow) ──
+      else if (metadata.product_type === 'domain_registration') {
+        const domainName = (metadata.domain_name ?? '').toLowerCase();
+        const years = Math.max(1, Math.min(10, parseInt(metadata.years ?? '1', 10) || 1));
+        let userId = metadata.supabase_user_id ?? '';
+
+        // Resolve user via metadata first, then customer_email fallback.
+        if (!userId) {
+          const custEmail =
+            session.customer_details?.email ?? session.customer_email ?? null;
+          const custStripeId = typeof session.customer === 'string' ? session.customer : (session.customer as any)?.id;
+          if (custStripeId) {
+            const { data: byStripe } = await supabase
+              .from('users')
+              .select('id')
+              .eq('stripe_customer_id', custStripeId)
+              .maybeSingle();
+            if (byStripe?.id) userId = byStripe.id;
+          }
+          if (!userId && custEmail) {
+            const { data: byEmail } = await supabase
+              .from('users')
+              .select('id')
+              .eq('email', custEmail.toLowerCase())
+              .maybeSingle();
+            if (byEmail?.id) userId = byEmail.id;
+          }
+        }
+
+        if (!userId || !domainName) {
+          console.warn('[stripe-webhook] domain_registration session missing user or domain', { sessionId: session.id, userId, domainName });
+        } else {
+          console.log('[stripe-webhook] registering paid domain:', domainName, 'for', userId);
+          // Reuse the internal OpenSRS register endpoint (preferred path
+          // — it already handles audit_log + opensrs_domains mirror).
+          const origin = internalOrigin(req);
+          let reg: { ok: boolean; error?: string } = { ok: false };
+          try {
+            const res = await fetch(`${origin}/api/internal/opensrs/register-domain`, {
+              method: 'POST',
+              headers: internalHeaders(),
+              body: JSON.stringify({ userId, domainName, years }),
+            });
+            const data = await res.json().catch(() => ({}));
+            reg = { ok: res.ok, error: data?.error };
+          } catch (e) {
+            reg = { ok: false, error: String(e) };
+          }
+
+          if (reg.ok) {
+            // Stamp auto_renew=true so the daily cron picks it up.
+            await supabase
+              .from('domains')
+              .update({ auto_renew: true })
+              .eq('domain_name', domainName)
+              .eq('user_id', userId);
+          } else {
+            // Internal route failure — fall back to the in-process helper
+            // so we still produce a domains row + opensrs_domains mirror.
+            console.warn('[stripe-webhook] internal register-domain failed, falling back to inline:', reg.error);
+            const fallback = await registerDomainViaOpenSrs({ userId, domainName, years });
+            if (fallback.ok) {
+              await supabase
+                .from('domains')
+                .update({ auto_renew: true })
+                .eq('domain_name', domainName)
+                .eq('user_id', userId);
+            } else {
+              console.error('[stripe-webhook] domain registration failed:', domainName, fallback.error);
+            }
+          }
         }
       }
     }
@@ -740,19 +787,9 @@ export async function POST(req: Request) {
         await sendEmail({ to: cust.email, ...email });
       }
 
-      // Domain renewal subscription cancellation → disable auto-renew at OpenSRS.
-      // TODO Phase 3: domain renewal moves to cron-based one-time charges.
-      const domainMeta = sub.metadata as Record<string, string>;
-      if (domainMeta?.type === 'domain_renewal' && domainMeta?.domain_name) {
-        await supabase.from('domains').update({ auto_renew: false }).eq('domain_name', domainMeta.domain_name);
-        try {
-          const opensrs = createOpenSrsClient();
-          await opensrs.setAutoRenew(domainMeta.domain_name, false);
-          console.log('[stripe-webhook] OpenSRS auto-renew disabled for', domainMeta.domain_name);
-        } catch (e) {
-          console.error('[stripe-webhook] OpenSRS auto-renew disable failed:', e);
-        }
-      }
+      // Phase 3: domain renewal subscriptions no longer exist. Customers
+      // toggle auto_renew via the domains UI; the daily renewal cron
+      // honours that flag directly.
     }
 
     // ── invoice.paid / invoice.payment_failed ──

@@ -103,18 +103,12 @@ export function ProductsClient() {
             </button>
             <button
               onClick={() => quickCreate('one_time_service', 'New Service', `service-${Date.now()}`, 'one_time', 0)}
-              className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100"
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
             >
               <p className="text-sm font-medium text-gray-900">One-Time Service</p>
               <p className="text-xs text-gray-500">Single charge (studio, migration)</p>
             </button>
-            <button
-              onClick={() => quickCreate('domain_tld', 'New TLD', `tld-${Date.now()}`, 'yearly', 0)}
-              className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
-            >
-              <p className="text-sm font-medium text-gray-900">Domain TLD</p>
-              <p className="text-xs text-gray-500">Yearly domain registration</p>
-            </button>
+            {/* Phase 3: Domain TLDs are managed in public.tlds, not public.products. */}
           </div>
         )}
       </div>
