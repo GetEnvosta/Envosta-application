@@ -107,6 +107,18 @@ export interface WpCloudClient {
   }): Promise<{ site_id: string; status: string; raw: Record<string, unknown> }>;
 
   /**
+   * Lightweight connectivity probe. Calls `GET /get-php-versions/{client}/verbose`
+   * — a read-only, parameter-light endpoint that returns 200 if auth +
+   * IP whitelist are correct. Used by the admin health-check UI to
+   * confirm Vercel→wp.cloud reachability without depending on the
+   * (currently buggy) list-sites endpoint.
+   *
+   * Returns the raw response body on success; throws WpCloudError on
+   * non-2xx.
+   */
+  ping(): Promise<unknown>;
+
+  /**
    * Fetch a wp.cloud site's primary IP address.
    * Maps to `GET /api/v1.0/get-ips/{client}/{siteRef}`. `siteRef` may
    * be a wp.cloud site ID or a domain name.
@@ -365,6 +377,15 @@ export function createWpCloudClient(): WpCloudClient {
         status: (data?.status as string | undefined) ?? 'provisioning',
         raw: data,
       };
+    },
+
+    async ping() {
+      const path = `/api/v1.0/get-php-versions/${env.client}/verbose`;
+      const raw = await withApiCallLogging<unknown>(
+        { provider: 'wpcloud', method: 'GET', path },
+        () => wpcloudFetch(env, 'GET', path),
+      );
+      return unwrap(raw);
     },
 
     async getSiteIp(siteRef) {

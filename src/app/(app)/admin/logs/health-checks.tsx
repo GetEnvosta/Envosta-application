@@ -65,19 +65,19 @@ export function SystemHealthChecks() {
       updateCheck('Stripe', { status: 'down', detail: e.message, latency: Date.now() - t2 });
     }
 
-    // wp.cloud — call the internal list-all-sites endpoint (no proxy after Phase 2D)
+    // wp.cloud — call a lightweight read-only endpoint to confirm
+    // Vercel→wp.cloud reachability + IP whitelist. Uses the `health-check`
+    // action which probes wp.cloud's get-php-versions endpoint (200 = OK).
     const t3 = Date.now();
     try {
       const res = await fetch('/api/site-actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'list-all-sites' }),
+        body: JSON.stringify({ action: 'health-check' }),
       });
       const lat = Date.now() - t3;
       if (res.ok) {
-        const data = await res.json();
-        const count = Array.isArray(data) ? data.length : 0;
-        updateCheck('wp.cloud', { status: 'healthy', latency: lat, detail: `${count} sites` });
+        updateCheck('wp.cloud', { status: 'healthy', latency: lat, detail: 'Reachable via Vercel static IP' });
       } else if (res.status < 500) {
         updateCheck('wp.cloud', { status: 'degraded', detail: `HTTP ${res.status}`, latency: lat });
       } else {

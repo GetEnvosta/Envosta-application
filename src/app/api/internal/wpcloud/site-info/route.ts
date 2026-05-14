@@ -147,6 +147,22 @@ async function handleListAllSites() {
   }
 }
 
+/**
+ * Lightweight connectivity probe. Calls wp.cloud's get-php-versions
+ * endpoint (read-only, parameter-light, returns 200 if auth + IP
+ * whitelist are correct). Used by the admin Service Status panel to
+ * confirm Vercel → wp.cloud reachability.
+ */
+async function handleHealthCheck() {
+  const client = createWpCloudClient();
+  try {
+    await client.ping();
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return wpErrorResponse(e);
+  }
+}
+
 async function handleUpdateMeta(siteId: string, key: string, value: unknown) {
   if (!ALLOWED_META_KEYS.includes(key)) {
     return NextResponse.json(
@@ -418,6 +434,9 @@ async function dispatch(action: string, body: any): Promise<Response> {
 
     case 'list-all-sites':
       return handleListAllSites();
+
+    case 'health-check':
+      return handleHealthCheck();
 
     case 'update-meta':
     case 'update-site-meta':

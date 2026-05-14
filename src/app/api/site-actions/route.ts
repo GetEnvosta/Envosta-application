@@ -23,6 +23,7 @@ const INTERNAL_ACTIONS = new Set([
   'list-backups',
   'get-ssl-status',
   'list-all-sites',
+  'health-check',
   'update-meta',
   'update-site-meta',
   'software-bootstrap',
