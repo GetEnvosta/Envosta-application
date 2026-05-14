@@ -35,8 +35,7 @@ export async function POST(req: Request) {
   if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
   // Register via Vercel internal route — calls OpenSRS directly from
-  // Vercel static IPs (whitelisted at OpenSRS) instead of the legacy
-  // Supabase edge-function path that routed through the Cloud Run proxy.
+  // Vercel static IPs (whitelisted at OpenSRS).
   try {
     const origin = process.env.NEXT_PUBLIC_APP_URL
       ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')

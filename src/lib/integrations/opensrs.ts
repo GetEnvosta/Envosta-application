@@ -1,17 +1,14 @@
 /**
  * OpenSRS XML-over-HTTPS API client.
  *
- * Calls upstream OpenSRS directly (no Cloud Run proxy). Intended to be
- * invoked from Vercel API routes once Vercel's static IPs are whitelisted
- * by OpenSRS. While the cutover is in flight, the Supabase edge functions
- * keep using the proxy via supabase/functions/_shared/opensrs.ts — both
- * paths coexist and target the same upstream.
+ * Called from Vercel API routes. Vercel's static IPs (184.72.2.216,
+ * 54.241.78.174) are whitelisted in the OpenSRS Reseller Control
+ * Panel so direct HTTPS calls work without any proxy layer.
  *
  * Auth: every request body is XML signed with
  *   sig = md5(md5(xml + apiKey) + apiKey)
- * delivered via the `X-Signature` header along with `X-Username`. We
- * use Node's built-in `crypto` for MD5 (no Deno-specific imports —
- * Vercel runs on Node).
+ * delivered via the `X-Signature` header along with `X-Username`.
+ * Node's built-in `crypto` is used for MD5.
  *
  * Endpoint: `https://${OPENSRS_HOST}:55443`. Defaults to
  * `horizon.opensrs.net` (sandbox); production resellers should set

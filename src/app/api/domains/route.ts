@@ -39,10 +39,8 @@ export async function PUT(req: Request) {
 }
 
 /**
- * Phase 2D — the legacy `register-domain` Supabase edge function has
- * been deleted along with the OpenSRS Cloud Run proxy. The fallback
- * path now returns 501 for any action that hasn't been ported to a
- * Vercel internal route yet:
+ * Returns 501 for any OpenSRS action that doesn't yet have a Vercel
+ * internal route:
  *
  *   update-nameservers, set-dns-mode, set-auto-renew, set-whois-privacy,
  *   get-lock-status, set-lock, get-epp-code, transfer, list-all-domains,

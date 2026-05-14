@@ -1,15 +1,13 @@
 /**
  * /api/internal/wpcloud/site-info
  *
- * Internal route mirroring supabase/functions/site-info/index.ts so the
- * Stripe webhook + admin/cron routes can hit wp.cloud directly from
- * Vercel without going through the Cloud Run proxy. Coexists with the
- * edge function — the edge function stays until Phase 2D burn-in is
- * complete.
+ * Internal Vercel route that the Stripe webhook, admin tools, and cron
+ * jobs use to talk to wp.cloud. All wp.cloud calls originate from a
+ * Vercel static IP (whitelisted at wp.cloud).
  *
  * Two transports:
  *   - POST with JSON body `{ action, siteId?, key?, value?, ... }`
- *     (the legacy shape used by callers ported from the edge function).
+ *     (action-based dispatch).
  *   - GET  `?action=<action>&siteId=<id>` (Phase 2B read-only entrypoint).
  *
  * Auth: X-Internal-Token header must match INTERNAL_API_TOKEN env var.

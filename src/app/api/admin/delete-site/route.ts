@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   }
 
   // Forward to the Vercel internal route (calls wp.cloud directly from
-  // Vercel static IPs instead of via the Cloud Run proxy).
+  // Vercel static IPs).
   const origin = process.env.NEXT_PUBLIC_APP_URL
     ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
     : new URL(req.url).origin;

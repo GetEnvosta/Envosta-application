@@ -11,9 +11,8 @@ export const dynamic = 'force-dynamic';
  * internal /api/internal/wpcloud/site-info handler so wp.cloud calls
  * originate from a Vercel static IP (whitelisted at wp.cloud).
  *
- * The legacy Supabase site-info edge function and Cloud Run proxy were
- * decommissioned in Phase 2D. Actions not yet ported to the internal
- * route return 501 — port them by extending /api/internal/wpcloud/site-info.
+ * Actions not yet supported return 501 — extend
+ * /api/internal/wpcloud/site-info to add new ones.
  */
 
 // Actions that have a Vercel internal-route handler today.

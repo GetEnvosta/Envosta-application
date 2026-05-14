@@ -1,14 +1,11 @@
 /**
  * wp.cloud Atomic API client.
  *
- * Calls upstream wp.cloud directly (no Cloud Run proxy). Intended to be
- * invoked from Vercel API routes once Vercel's static IPs are whitelisted
- * by wp.cloud. While the cutover is in flight, the Supabase edge functions
- * keep using the proxy via supabase/functions/_shared/deps.ts — both
- * paths coexist and target the same upstream.
+ * Called from Vercel API routes. Vercel's static IPs (184.72.2.216,
+ * 54.241.78.174) are whitelisted at wp.cloud so direct HTTPS calls
+ * work without any proxy layer.
  *
- * Auth: `Auth: <WPCLOUD_API_KEY>` header (the proxy adds `X-Proxy-Secret`
- * which we omit since we're skipping the proxy). The Atomic API uses
+ * Auth: `Auth: <WPCLOUD_API_KEY>` header. The Atomic API uses
  * application/x-www-form-urlencoded for POST bodies and JSON-encodes
  * responses.
  *
@@ -16,23 +13,8 @@
  * table gets a row with timing, status, and parsed body. Non-2xx
  * responses throw `WpCloudError`.
  *
- * --------------------------------------------------------------------
- * UPSTREAM URL HINT
- * --------------------------------------------------------------------
- * The audit (docs/architecture-audit.md) describes the proxy as
- * "presumed similar to the OpenSRS proxy — strips X-Proxy-Secret,
- * forwards to https://atomic-api.wordpress.com". That's the canonical
- * wp.cloud Atomic API host based on memory/reference docs.
- *
- * Default base URL: `https://atomic-api.wordpress.com`
- * Override via env var: `WPCLOUD_BASE_URL`
- *
- * TODO(phase-2c): once Vercel static IPs are whitelisted at wp.cloud,
- * verify that `https://atomic-api.wordpress.com` is reachable end-to-end
- * with just the `Auth` header (no proxy secret). If wp.cloud surfaces a
- * different canonical host (e.g. `https://public-api.wordpress.com/wpcom/v2`),
- * update WPCLOUD_BASE_URL and the path prefixes below accordingly.
- * --------------------------------------------------------------------
+ * Base URL: `https://atomic-api.wordpress.com` (override via
+ * `WPCLOUD_BASE_URL` env var).
  */
 import { withApiCallLogging } from '../api-call-logger';
 
