@@ -9,7 +9,7 @@
  */
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Server, Globe, Package, Plug } from 'lucide-react';
+import { Server, Globe, Package, Briefcase, Plug } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 type Tab = {
@@ -19,10 +19,11 @@ type Tab = {
 };
 
 const TABS: Tab[] = [
-  { href: '/admin/settings/plans',        label: 'Hosting Plans',      icon: Server },
-  { href: '/admin/settings/tlds',         label: 'Domain TLDs',        icon: Globe },
-  { href: '/admin/settings/products',     label: 'Add-ons & Services', icon: Package },
-  { href: '/admin/settings/integrations', label: 'Integrations',       icon: Plug },
+  { href: '/admin/settings/plans',        label: 'Hosting Plans', icon: Server },
+  { href: '/admin/settings/tlds',         label: 'Domain TLDs',   icon: Globe },
+  { href: '/admin/settings/addons',       label: 'Add-ons',       icon: Package },
+  { href: '/admin/settings/services',     label: 'Services',      icon: Briefcase },
+  { href: '/admin/settings/integrations', label: 'Integrations',  icon: Plug },
 ];
 
 export function SettingsTabs() {
