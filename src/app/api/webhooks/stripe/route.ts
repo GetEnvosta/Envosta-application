@@ -42,6 +42,27 @@ import {
   paymentFailedEmail,
   sitesPausedEmail,
 } from '@/lib/email';
+import { recordAudit } from '@/lib/audit';
+
+/**
+ * Parse the `addon_slugs` metadata field stamped on hosting
+ * Subscriptions by /api/create-subscription. Stored as a JSON-stringified
+ * array of strings so a single Stripe metadata key can carry the whole
+ * bundle without colliding with reserved characters. Falls back to a
+ * comma-delimited string for any legacy / hand-edited subs.
+ */
+function parseAddonSlugs(raw: unknown): string[] {
+  if (!raw || typeof raw !== 'string') return [];
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) return parsed.filter((s): s is string => typeof s === 'string' && s.length > 0);
+  } catch {
+    // Not JSON — fall through to comma-split fallback.
+  }
+  return trimmed.split(',').map(s => s.trim()).filter(Boolean);
+}
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -619,6 +640,32 @@ export async function POST(req: Request) {
             console.log(`[stripe-webhook] subscription resumed: ${sub.id}, restored ${flagged?.length} site(s)`);
           }
         }
+      }
+
+      // ── Add-on bundle audit ─────────────────────────────────────
+      // When /api/create-subscription bundles plan-addons onto the new
+      // sub (e.g. customer ticked Jetpack at signup), the slug list is
+      // stamped as `metadata.addon_slugs` (JSON-string). Log it to the
+      // audit trail so operators can see what shipped with the sub.
+      //
+      // TODO when the first addon ships: per-slug side effects here —
+      // wp.cloud manageSoftware + site-meta toggle for things like
+      // Jetpack, premium SSL flags, WAF rules, etc.
+      const addonSlugs = parseAddonSlugs((sub.metadata as any)?.addon_slugs);
+      if (addonSlugs.length > 0) {
+        await recordAudit({
+          actorType: 'webhook',
+          action: 'subscription.addons.attached',
+          resourceType: 'subscription',
+          resourceId: sub.id,
+          metadata: {
+            stripe_subscription_id: sub.id,
+            stripe_customer_id: custStripeId,
+            user_id: cust.id,
+            event_type: event.type,
+            addon_slugs: addonSlugs,
+          },
+        });
       }
 
       // Phase 3: standalone domain purchases no longer ride a Stripe

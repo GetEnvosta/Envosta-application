@@ -6,9 +6,10 @@
  * /admin/settings/services with a fixed type filter passed in.
  *
  * Inline-editable monthly + yearly CAD price columns, status toggle,
- * and a deep-edit link per row. Saving routes through the existing
- * /api/admin/products/[id]/update-pricing endpoint so the entire
- * Settings area shares one price-update path.
+ * per-row Sync-to-Stripe button (visible whether synced or not — re-sync
+ * is the recommended path after a price change), and a deep-edit link.
+ * Saving routes through /api/admin/products/[id]/update-pricing; sync
+ * routes through /api/admin/products/[id]/sync-stripe.
  */
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -54,6 +55,8 @@ export function ProductsTable({
   const router = useRouter();
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [, startToggle] = useTransition();
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [syncMsg, setSyncMsg] = useState<{ id: string; text: string; ok: boolean } | null>(null);
 
   function toggleActive(row: Row) {
     setTogglingId(row.id);
@@ -63,6 +66,28 @@ export function ProductsTable({
       if (!ok) alert(error ?? 'Failed to toggle status');
       router.refresh();
     });
+  }
+
+  async function syncOne(id: string) {
+    setSyncingId(id);
+    setSyncMsg(null);
+    try {
+      const res = await fetch(`/api/admin/products/${id}/sync-stripe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        setSyncMsg({ id, text: 'Synced', ok: true });
+        router.refresh();
+      } else {
+        setSyncMsg({ id, text: data.error ?? 'Sync failed', ok: false });
+      }
+    } catch (e: any) {
+      setSyncMsg({ id, text: e?.message ?? 'Sync failed', ok: false });
+    }
+    setSyncingId(null);
+    setTimeout(() => setSyncMsg(null), 3000);
   }
 
   return (
@@ -100,7 +125,11 @@ export function ProductsTable({
                 {emptyLabel}
               </td>
             </tr>
-          ) : rows.map(row => (
+          ) : rows.map(row => {
+            const synced = Boolean(row.stripe_product_id && row.stripe_price_id);
+            const showingSyncMsg = syncMsg?.id === row.id;
+            const isSyncing = syncingId === row.id;
+            return (
             <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
               <td className="px-5 py-3.5">
                 <p className="font-medium text-gray-900">{row.name}</p>
@@ -147,20 +176,45 @@ export function ProductsTable({
                 </button>
               </td>
               <td className="px-3 py-3.5">
-                {row.stripe_product_id && row.stripe_price_id
-                  ? <CheckCircle className="w-4 h-4 text-emerald-500" />
-                  : <AlertTriangle className="w-4 h-4 text-amber-400" />}
+                <button
+                  type="button"
+                  onClick={() => syncOne(row.id)}
+                  disabled={isSyncing}
+                  className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5 ring-1 transition disabled:opacity-50 ${
+                    synced
+                      ? 'text-emerald-700 bg-emerald-50 ring-emerald-600/10 hover:bg-emerald-100'
+                      : 'text-amber-700 bg-amber-50 ring-amber-600/10 hover:bg-amber-100'
+                  }`}
+                  title={synced ? 'Re-sync this product to Stripe' : 'Sync this product to Stripe'}
+                >
+                  {isSyncing ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : synced ? (
+                    <CheckCircle className="w-3 h-3" />
+                  ) : (
+                    <AlertTriangle className="w-3 h-3" />
+                  )}
+                  {isSyncing ? 'Syncing' : synced ? 'Synced' : 'Sync'}
+                </button>
               </td>
               <td className="px-3 py-3.5 text-right">
-                <Link
-                  href={`/admin/settings/plans/${row.id}`}
-                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium inline-flex items-center gap-1"
-                >
-                  <Pencil className="w-3 h-3" /> Edit
-                </Link>
+                <div className="inline-flex items-center gap-3 justify-end">
+                  {showingSyncMsg && (
+                    <span className={`text-xs ${syncMsg.ok ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {syncMsg.text}
+                    </span>
+                  )}
+                  <Link
+                    href={`/admin/settings/plans/${row.id}`}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium inline-flex items-center gap-1"
+                  >
+                    <Pencil className="w-3 h-3" /> Edit
+                  </Link>
+                </div>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

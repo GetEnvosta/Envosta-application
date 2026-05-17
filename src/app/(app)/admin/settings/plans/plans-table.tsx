@@ -65,13 +65,12 @@ export function PlansTable({ plans }: { plans: PlanRow[] }) {
     setSyncingId(id);
     setSyncMsg(null);
     try {
-      const res = await fetch('/api/admin/sync-stripe', {
+      const res = await fetch(`/api/admin/products/${id}/sync-stripe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'product', id }),
       });
-      const data = await res.json();
-      if (res.ok && data.success) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
         setSyncMsg({ id, text: 'Synced', ok: true });
         router.refresh();
       } else {

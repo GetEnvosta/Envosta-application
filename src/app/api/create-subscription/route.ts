@@ -29,12 +29,61 @@ export async function POST(req: Request) {
 
   try {
   const body = await req.json();
-  const { priceId, domainName, name, email, password, trial, promoCode, billing } = body;
+  const { priceId, domainName, name, email, password, trial, promoCode, billing, addonSlugs } = body as {
+    priceId?: string;
+    domainName?: string;
+    name?: string;
+    email?: string;
+    password?: string;
+    trial?: boolean;
+    promoCode?: string;
+    billing?: 'monthly' | 'yearly';
+    /** Optional bundle of plan-addon slugs to attach as extra SubscriptionItems. */
+    addonSlugs?: string[];
+  };
 
   if (!priceId) return NextResponse.json({ error: 'priceId is required' }, { status: 400 });
 
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false } });
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
+
+  // ── Resolve optional add-on bundle ─────────────────────────────
+  // For each requested addonSlug, look up the products row and pick
+  // the Stripe Price matching the billing period (yearly → monthly fallback).
+  // Any addon that isn't synced to Stripe yet is a hard error — the
+  // admin needs to hit "Sync to Stripe" on the addon row first.
+  const cleanedAddonSlugs = Array.isArray(addonSlugs)
+    ? Array.from(new Set(addonSlugs.filter((s): s is string => typeof s === 'string' && s.length > 0)))
+    : [];
+  const addonItems: { price: string; quantity: number }[] = [];
+  if (cleanedAddonSlugs.length > 0) {
+    const { data: addonRows } = await sb
+      .from('products')
+      .select('id, slug, type, is_active, stripe_price_id, stripe_price_id_yearly, stripe_price_id_cad, stripe_price_id_yearly_cad')
+      .eq('type', 'plan_addon')
+      .in('slug', cleanedAddonSlugs);
+
+    const bySlug = new Map<string, any>((addonRows ?? []).map((r: any) => [r.slug, r]));
+    for (const slug of cleanedAddonSlugs) {
+      const row = bySlug.get(slug);
+      if (!row || !row.is_active) {
+        return NextResponse.json({ error: `Addon "${slug}" is not available.` }, { status: 400 });
+      }
+      const wantYearly = billing === 'yearly';
+      // Prefer USD price IDs to match the hosting plan path (priceId from
+      // the caller is whichever currency the checkout already chose).
+      const priceForAddon = wantYearly
+        ? (row.stripe_price_id_yearly ?? row.stripe_price_id ?? row.stripe_price_id_yearly_cad ?? row.stripe_price_id_cad)
+        : (row.stripe_price_id ?? row.stripe_price_id_cad ?? row.stripe_price_id_yearly ?? row.stripe_price_id_yearly_cad);
+      if (!priceForAddon) {
+        return NextResponse.json(
+          { error: `Addon "${slug}" has no Stripe price. Admin should sync it first.` },
+          { status: 400 },
+        );
+      }
+      addonItems.push({ price: priceForAddon, quantity: 1 });
+    }
+  }
 
   let userId: string;
   let userEmail: string;
@@ -124,7 +173,10 @@ export async function POST(req: Request) {
   // is needed here.
   const subParams: Stripe.SubscriptionCreateParams = {
     customer: customerId,
-    items: [{ price: priceId }],
+    items: [
+      { price: priceId },
+      ...addonItems.map(a => ({ price: a.price, quantity: a.quantity })),
+    ],
     payment_behavior: 'default_incomplete',
     payment_settings: { save_default_payment_method: 'on_subscription' },
     expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
@@ -133,6 +185,9 @@ export async function POST(req: Request) {
       domain_name: domainName ?? '',
       billing_period: billing ?? 'monthly',
       subscription_type: 'hosting',
+      // JSON-string of the addon slugs bundled at signup. Read by the
+      // stripe-webhook to drive per-addon side effects + audit log.
+      addon_slugs: JSON.stringify(cleanedAddonSlugs),
     },
   };
 
