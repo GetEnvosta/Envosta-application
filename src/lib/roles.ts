@@ -55,6 +55,7 @@ const ADMIN_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/admin/services':      ['admin', 'staff'],
   '/admin/domains':       ['admin', 'staff'],
   '/admin/sites/cleanup': ['admin'],
+  '/admin/settings':      ['admin'],
 };
 
 /**

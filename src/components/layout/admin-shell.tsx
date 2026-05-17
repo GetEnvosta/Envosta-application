@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import {
   LayoutDashboard, Users, Server, Globe, CreditCard, BarChart3,
-  Activity, LogOut, ArrowLeft, PenSquare, MessageSquare, AlertTriangle,
+  Activity, LogOut, ArrowLeft, PenSquare, MessageSquare, AlertTriangle, Settings,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { canAccessAdminNav } from '@/lib/roles';
@@ -21,6 +21,7 @@ const allNav: NavItem[] = [
   { name: 'Reporting', href: '/admin/reporting', icon: BarChart3 },
   { name: 'Cleanup', href: '/admin/sites/cleanup', icon: AlertTriangle },
   { name: 'System', href: '/admin/diagnostics', icon: Activity },
+  { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
 export function AdminShell({
