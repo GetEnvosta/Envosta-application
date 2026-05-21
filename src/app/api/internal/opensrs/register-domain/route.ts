@@ -173,14 +173,19 @@ export async function POST(req: Request) {
       })
       .eq('id', domainRowId);
 
+    // Mirror upsert. The SW_REGISTER response carries little detail —
+    // expiry is computed locally, contacts/registry-dates/lock_state
+    // are backfilled by the reconcile-opensrs cron's all_info sweep.
     await sb.from('opensrs_domains').upsert(
       {
         upstream_id: body.domainName,
-        upstream_status: result.status,
-        upstream_payload: { registerDomain: result },
         domain_id: domainRowId,
-        expires_at: expiryIso,
+        upstream_status: result.status,
         auto_renew: true,
+        let_expire: false,
+        whois_privacy: 'enabled',
+        expires_at: expiryIso,
+        upstream_payload: { registerDomain: result },
         last_synced_at: nowIso,
       },
       { onConflict: 'upstream_id' },

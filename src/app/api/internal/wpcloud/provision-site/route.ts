@@ -407,13 +407,41 @@ export async function POST(req: Request) {
     })
     .eq('id', site.id);
 
-  // Mirror table upsert
+  // ── Mirror table upsert ───────────────────────────────────────
+  // Populate every column known at provision time from the create-site
+  // response. Fields that only become known later (ssl_status,
+  // ip_address may be null here, space_used_mb) are left for the
+  // reconcile-wpcloud cron to backfill.
+  const wpcomBlogId =
+    (wpResponse as any)?.wpcom_blog_id ?? (wpResponse as any)?.blog_id ?? null;
+  const upstreamCreatedRaw =
+    (wpResponse as any)?.created_at ?? (wpResponse as any)?.created ?? null;
+  let upstreamCreatedAt: string | null = null;
+  if (upstreamCreatedRaw) {
+    const d = new Date(
+      typeof upstreamCreatedRaw === 'number' && upstreamCreatedRaw < 1e12
+        ? upstreamCreatedRaw * 1000
+        : upstreamCreatedRaw,
+    );
+    if (!Number.isNaN(d.getTime())) upstreamCreatedAt = d.toISOString();
+  }
   await sb.from('wpcloud_sites').upsert(
     {
       upstream_id: wpSiteIdStr,
-      upstream_status: createResult.status,
-      upstream_payload: { createSite: createResult.raw },
       site_id: site.id,
+      wpcom_blog_id: wpcomBlogId != null ? String(wpcomBlogId) : null,
+      primary_domain: wpDomain ?? null,
+      upstream_status: createResult.status,
+      php_version: php,
+      geo_affinity: geoAffinity,
+      space_quota_gb: storageGb,
+      php_memory_mb: phpMemory,
+      php_workers: defaultWorkers,
+      burst_enabled: false,
+      site_type: 'billable',
+      ip_address: siteIp,
+      upstream_created_at: upstreamCreatedAt,
+      upstream_payload: { createSite: createResult.raw },
       last_synced_at: nowIso,
     },
     { onConflict: 'upstream_id' },

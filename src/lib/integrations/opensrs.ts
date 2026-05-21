@@ -55,6 +55,41 @@ export interface OpenSrsDomainInfo {
   raw?: unknown;
 }
 
+/**
+ * Full domain detail merged from an OpenSRS `get` type=all_info call
+ * and a `get` type=status call. This is what the reconcile-opensrs
+ * cron consumes to populate the opensrs_domains + opensrs_contacts
+ * mirrors.
+ *
+ * Note: `domain_auth_info` (the EPP transfer code) is deliberately
+ * NEVER requested or surfaced — it's a transfer secret.
+ */
+export interface OpenSrsDomainDetail {
+  domain: string;
+  /** OpenSRS lifecycle status (e.g. registered / expired). */
+  status?: string;
+  expiredate?: string;
+  auto_renew?: boolean;
+  let_expire?: boolean;
+  /** Registrar lock — true when transfers are blocked. */
+  lock_state?: boolean;
+  /** WHOIS-privacy state string (e.g. enabled / disabled). */
+  whois_privacy_state?: string;
+  transfer_away_in_progress?: boolean;
+  sponsoring_rsp?: boolean;
+  /** Registry-side dates (distinct from OpenSRS expiredate). */
+  registry_createdate?: string;
+  registry_expiredate?: string;
+  registry_updateddate?: string;
+  registry_transferreddate?: string;
+  gdpr_consent_status?: string;
+  nameservers?: string[];
+  /** All four contact roles, where present in the all_info payload. */
+  contact_set?: OpenSrsContacts;
+  /** Raw text of both upstream responses for debugging / full mirror. */
+  raw?: { all_info?: string; status?: string };
+}
+
 export interface DnsRecord {
   type: 'A' | 'AAAA' | 'CNAME' | 'MX' | 'TXT' | 'SRV';
   subdomain: string;
@@ -135,6 +170,20 @@ export interface OpenSrsClient {
    * that need fields we haven't surfaced yet.
    */
   getDomainInfo(domain: string): Promise<OpenSrsDomainInfo>;
+
+  /**
+   * Fetch the full domain detail used by the reconcile cron. Issues
+   * TWO OpenSRS `get` calls and merges them:
+   *   - type=all_info → expiredate, registry dates, auto_renew,
+   *     nameserver_list, contact_set (all 4 roles), gdpr_consent
+   *   - type=status   → lock_state, transfer_away_in_progress,
+   *     whois_privacy_state, sponsoring_rsp
+   *
+   * The status call is best-effort: if it fails the result still
+   * carries everything from all_info. EPP auth code (domain_auth_info)
+   * is never requested.
+   */
+  getDomainAllInfo(domain: string): Promise<OpenSrsDomainDetail>;
 
   /**
    * Replace the entire DNS zone (action `SET_DNS_ZONE`). OpenSRS
@@ -356,6 +405,20 @@ function buildGetAllInfoXml(domain: string): string {
   `);
 }
 
+function buildGetStatusXml(domain: string): string {
+  // type=status returns lock_state, transfer-away progress and the
+  // WHOIS-privacy state — fields the all_info payload doesn't carry.
+  return envelope(`
+    <item key="protocol">XCP</item>
+    <item key="action">get</item>
+    <item key="object">domain</item>
+    <item key="domain">${xmlEscape(domain)}</item>
+    <item key="attributes"><dt_assoc>
+      <item key="type">status</item>
+    </dt_assoc></item>
+  `);
+}
+
 function buildCreateDnsZoneXml(domain: string): string {
   return envelope(`
     <item key="protocol">XCP</item>
@@ -491,6 +554,123 @@ function parseDomainInfoFromXml(domain: string, xml: string): OpenSrsDomainInfo 
   };
 }
 
+/**
+ * Pull a single contact-role block out of an all_info contact_set.
+ * Returns null when the role block isn't present.
+ */
+function parseContactBlock(xml: string, role: string): OpenSrsContact | null {
+  // The contact_set is keyed by role; isolate that role's dt_assoc.
+  const re = new RegExp(`<item key="${role}">\\s*<dt_assoc>([\\s\\S]*?)</dt_assoc>\\s*</item>`);
+  const m = xml.match(re);
+  if (!m) return null;
+  const block = m[1];
+  const get = (k: string) => getXmlValue(block, k);
+  const first = get('first_name');
+  const last = get('last_name');
+  const email = get('email');
+  // Skip a block with nothing usable in it.
+  if (!first && !last && !email && !get('phone')) return null;
+  return {
+    first_name: first,
+    last_name: last,
+    org_name: get('org_name') || undefined,
+    email,
+    phone: get('phone'),
+    address1: get('address1'),
+    city: get('city'),
+    state: get('state'),
+    postal_code: get('postal_code'),
+    country: get('country'),
+  };
+}
+
+/**
+ * Parse the contact_set out of an all_info response into the four
+ * role buckets. owner is always present for a registered domain;
+ * admin/tech/billing may be absent (registries vary).
+ */
+function parseContactSet(xml: string): OpenSrsContacts | undefined {
+  const setBlock = xml.match(/<item key="contact_set">([\s\S]*?)<\/dt_assoc>\s*<\/item>/);
+  const search = setBlock?.[1] ?? xml;
+  const owner = parseContactBlock(search, 'owner');
+  const admin = parseContactBlock(search, 'admin');
+  const tech = parseContactBlock(search, 'tech');
+  const billing = parseContactBlock(search, 'billing');
+  if (!owner && !admin && !tech && !billing) return undefined;
+  // owner is the canonical fallback if the registry didn't echo it.
+  const fallback = owner ?? admin ?? tech ?? billing!;
+  return {
+    owner: owner ?? fallback,
+    admin: admin ?? undefined,
+    tech: tech ?? undefined,
+    billing: billing ?? undefined,
+  };
+}
+
+/**
+ * Parse the merged all_info + status responses into an
+ * OpenSrsDomainDetail. `statusXml` may be empty when the status call
+ * failed — in that case lock/transfer/whois fields stay undefined.
+ */
+function parseDomainDetailFromXml(
+  domain: string,
+  allInfoXml: string,
+  statusXml: string,
+): OpenSrsDomainDetail {
+  const autoRenew = getXmlValue(allInfoXml, 'auto_renew');
+  const letExpire = getXmlValue(allInfoXml, 'let_expire');
+
+  // nameservers come back inside a dt_array under nameserver_list.
+  const nameservers: string[] = [];
+  const nsBlock = allInfoXml.match(/<item key="nameserver_list">([\s\S]*?)<\/item>\s*<\/dt_array>\s*<\/item>/) ??
+    allInfoXml.match(/<item key="nameserver_list">([\s\S]*?)<\/item>/);
+  if (nsBlock) {
+    const hostMatches = nsBlock[1].matchAll(/<item key="name">(.*?)<\/item>/g);
+    for (const m of hostMatches) {
+      const name = m[1].trim();
+      if (name) nameservers.push(name);
+    }
+  }
+
+  // status XML carries lock_state, transfer-away and whois privacy.
+  const lock = getXmlValue(statusXml, 'lock_state');
+  const transferAway = getXmlValue(statusXml, 'transfer_away_in_progress') ||
+    getXmlValue(statusXml, 'transferaway_in_progress');
+  const whois = getXmlValue(statusXml, 'whois_privacy_state') ||
+    getXmlValue(allInfoXml, 'whois_privacy_state');
+  const sponsoring = getXmlValue(statusXml, 'sponsoring_rsp');
+
+  const truthy = (v: string): boolean | undefined =>
+    v === '1' || v.toLowerCase() === 'true' || v.toLowerCase() === 'enabled'
+      ? true
+      : v === '0' || v.toLowerCase() === 'false' || v.toLowerCase() === 'disabled'
+        ? false
+        : undefined;
+
+  return {
+    domain,
+    status: getXmlValue(allInfoXml, 'status') || getXmlValue(statusXml, 'status') || undefined,
+    expiredate: getXmlValue(allInfoXml, 'expiredate') || undefined,
+    auto_renew: autoRenew === '1' ? true : autoRenew === '0' ? false : undefined,
+    let_expire: letExpire === '1' ? true : letExpire === '0' ? false : undefined,
+    lock_state: lock === '1' ? true : lock === '0' ? false : undefined,
+    whois_privacy_state: whois || undefined,
+    transfer_away_in_progress: transferAway ? truthy(transferAway) : undefined,
+    sponsoring_rsp: sponsoring ? truthy(sponsoring) : undefined,
+    registry_createdate: getXmlValue(allInfoXml, 'registry_createdate') || undefined,
+    registry_expiredate: getXmlValue(allInfoXml, 'registry_expiredate') || undefined,
+    registry_updateddate: getXmlValue(allInfoXml, 'registry_updateddate') || undefined,
+    registry_transferreddate: getXmlValue(allInfoXml, 'registry_transferreddate') || undefined,
+    gdpr_consent_status:
+      getXmlValue(allInfoXml, 'gdpr_consent_status') ||
+      getXmlValue(allInfoXml, 'tld_data_consent') ||
+      undefined,
+    nameservers: nameservers.length ? nameservers : undefined,
+    contact_set: parseContactSet(allInfoXml),
+    raw: { all_info: allInfoXml, status: statusXml || undefined },
+  };
+}
+
 function parseDnsRecordsFromXml(xml: string): DnsRecord[] {
   // OpenSRS GET_DNS_ZONE returns records grouped by type under
   // <item key="records"><dt_assoc>...</dt_assoc></item>. We extract
@@ -588,6 +768,20 @@ export function createOpenSrsClient(): OpenSrsClient {
       const xml = buildGetAllInfoXml(domain);
       const responseXml = await call('get_domain_info', xml);
       return parseDomainInfoFromXml(domain, responseXml);
+    },
+
+    async getDomainAllInfo(domain) {
+      // 1. all_info — the authoritative fetch (dates, contacts, NS).
+      const allInfoXml = await call('get_domain_all_info', buildGetAllInfoXml(domain));
+      // 2. status — best-effort: lock_state / transfer-away / whois.
+      //    A failure here must not blank the all_info result.
+      let statusXml = '';
+      try {
+        statusXml = await call('get_domain_status', buildGetStatusXml(domain));
+      } catch (e) {
+        console.warn('[opensrs] get type=status non-fatal:', e);
+      }
+      return parseDomainDetailFromXml(domain, allInfoXml, statusXml);
     },
 
     async setDnsZone(domain, records) {

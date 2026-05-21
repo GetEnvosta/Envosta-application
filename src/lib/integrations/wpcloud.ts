@@ -114,6 +114,19 @@ export interface WpCloudClient {
   getSite(siteId: string): Promise<WpCloudSite>;
 
   /**
+   * Fetch SSL certificate status + expiry for a domain.
+   * Maps to `POST /api/v1.0/ssl-info/{domain}`. Returns the parsed
+   * cert status, the certificate's expiry (when present), and the
+   * raw upstream body. Used by the reconcile-wpcloud cron to mirror
+   * SSL state and flag certs expiring soon.
+   */
+  getSslInfo(domain: string): Promise<{
+    status: string | null;
+    expires_at: string | null;
+    raw: unknown;
+  }>;
+
+  /**
    * List all wp.cloud sites in the reseller account.
    * Maps to `GET /api/v1.0/get-sites/{client}/+`. Pagination params
    * are accepted but currently ignored (the Atomic API returns the
@@ -404,6 +417,40 @@ export function createWpCloudClient(): WpCloudClient {
         () => wpcloudFetch(env, 'GET', path),
       );
       return unwrap(raw) as WpCloudSite;
+    },
+
+    async getSslInfo(domain) {
+      // wp.cloud's SSL-info endpoint is POST-only and takes the domain
+      // in the path. Different cert states surface the expiry under
+      // slightly different keys depending on provider — tolerate all.
+      const path = `/api/v1.0/ssl-info/${encodeURIComponent(domain)}`;
+      const raw = await withApiCallLogging<unknown>(
+        { provider: 'wpcloud', method: 'POST', path },
+        () => wpcloudFetch(env, 'POST', path),
+      );
+      const data = unwrap(raw) as Record<string, unknown>;
+      const status =
+        (data?.status as string | undefined) ??
+        (data?.ssl_status as string | undefined) ??
+        (data?.state as string | undefined) ??
+        null;
+      const expiresRaw =
+        (data?.expires_at as string | number | undefined) ??
+        (data?.expiry as string | number | undefined) ??
+        (data?.expire_date as string | number | undefined) ??
+        (data?.valid_to as string | number | undefined) ??
+        (data?.not_after as string | number | undefined);
+      let expires_at: string | null = null;
+      if (expiresRaw !== undefined && expiresRaw !== null && expiresRaw !== '') {
+        // wp.cloud may return a unix epoch (seconds) or an ISO string.
+        const asNum = Number(expiresRaw);
+        const d =
+          Number.isFinite(asNum) && String(expiresRaw).trim() === String(asNum)
+            ? new Date(asNum < 1e12 ? asNum * 1000 : asNum)
+            : new Date(String(expiresRaw));
+        if (!Number.isNaN(d.getTime())) expires_at = d.toISOString();
+      }
+      return { status, expires_at, raw: data };
     },
 
     async listSites(_opts) {

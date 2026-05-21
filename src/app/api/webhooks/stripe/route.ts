@@ -220,14 +220,18 @@ async function registerDomainViaOpenSrs(params: {
       })
       .eq('id', domainRowId);
 
+    // Mirror upsert — expanded columns. Contacts / registry dates /
+    // lock_state get backfilled by the reconcile-opensrs cron.
     await supabase.from('opensrs_domains').upsert(
       {
         upstream_id: params.domainName,
-        upstream_status: result.status,
-        upstream_payload: { registerDomain: result },
         domain_id: domainRowId,
-        expires_at: expiryIso,
+        upstream_status: result.status,
         auto_renew: true,
+        let_expire: false,
+        whois_privacy: 'enabled',
+        expires_at: expiryIso,
+        upstream_payload: { registerDomain: result },
         last_synced_at: nowIso,
       },
       { onConflict: 'upstream_id' },
