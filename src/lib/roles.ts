@@ -47,6 +47,7 @@ const ADMIN_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/admin/blog':          ['admin'],
   '/admin/emails':        ['admin'],
   '/admin/diagnostics':   ['admin'],
+  '/admin/audit':         ['admin'],
   '/admin/logs':          ['admin'],
   '/admin/plans':         ['admin'],
   '/admin/promotions':    ['admin'],
@@ -98,6 +99,7 @@ export const API_ROUTE_ROLES: Record<string, StaffRole[]> = {
   '/api/admin/create-unclaimed-account':   ['admin', 'staff'],
   '/api/admin/coupons':                    ['admin'],
   '/api/admin/delete-ticket':              ['admin', 'staff'],
+  '/api/admin/drift':                      ['admin'],
 };
 
 /** Check if a role can access a given admin API route. */

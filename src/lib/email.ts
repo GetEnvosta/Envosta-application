@@ -179,3 +179,49 @@ export function provisioningFailedEmail(name: string, siteName: string): { subje
     `),
   };
 }
+
+/**
+ * One group of drift rows sharing a provider + drift_type, as composed
+ * by the drift-alerter cron.
+ */
+export interface DriftAlertGroup {
+  provider: string;
+  driftType: string;
+  count: number;
+  exampleResourceIds: string[];
+}
+
+/**
+ * Internal ops digest summarising unresolved sync_drift the
+ * reconciliation crons flagged. Sent to ADMIN_ALERT_EMAIL by
+ * /api/cron/drift-alerter. Not a customer-facing email.
+ */
+export function driftAlertEmail(groups: DriftAlertGroup[]): { subject: string; html: string } {
+  const total = groups.reduce((sum, g) => sum + g.count, 0);
+  const rows = groups
+    .map(
+      (g) => `
+      <div class="detail">
+        <div class="detail-row"><span class="detail-label">Provider</span><span class="detail-value">${g.provider}</span></div>
+        <div class="detail-row"><span class="detail-label">Drift type</span><span class="detail-value">${g.driftType}</span></div>
+        <div class="detail-row"><span class="detail-label">Count</span><span class="detail-value">${g.count}</span></div>
+        <div class="detail-row"><span class="detail-label">Examples</span><span class="detail-value" style="font-size:12px;">${
+          g.exampleResourceIds.length ? g.exampleResourceIds.join(', ') : '—'
+        }</span></div>
+      </div>`,
+    )
+    .join('');
+
+  return {
+    subject: `[Envosta ops] ${total} unresolved sync drift ${total === 1 ? 'issue' : 'issues'}`,
+    html: template(`
+      <h1>Sync drift detected</h1>
+      <p>The reconciliation crons flagged <strong>${total}</strong> unresolved drift ${
+        total === 1 ? 'row' : 'rows'
+      } that ${total === 1 ? 'has' : 'have'} been outstanding for over an hour. Grouped by provider and type:</p>
+      ${rows}
+      <a href="https://my.envosta.com/admin/audit?tab=sync" class="btn">Open Audit Dashboard</a>
+      <p style="font-size:13px;color:#888;">Each of these rows has been stamped so you won't be alerted about them again. Resolve them from the Sync &amp; Drift tab once handled.</p>
+    `),
+  };
+}
