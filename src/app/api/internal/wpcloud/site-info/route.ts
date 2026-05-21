@@ -28,7 +28,8 @@
  *                                        removal + flag_for_deletion)
  *     - hard-delete-site               ─ permanent wp.cloud delete
  *     - software-bootstrap             ─ re-run parent-theme/Akismet
- *                                        install + Jetpack/Akismet unlock
+ *                                        install + Akismet unlock, and
+ *                                        remove the pre-installed Jetpack
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -215,16 +216,19 @@ async function handleSoftwareBootstrap(siteId: string) {
     results.akismet = { ok: false, error: String(e) };
   }
   try {
-    const r = await client.manageSoftware(row.wp_cloud_site_id, 'unlock', 'plugin', 'jetpack');
-    results.jetpack_unlock = { ok: true, message: r.message };
-  } catch (e) {
-    results.jetpack_unlock = { ok: false, error: String(e) };
-  }
-  try {
     const r = await client.manageSoftware(row.wp_cloud_site_id, 'unlock', 'plugin', 'akismet');
     results.akismet_unlock = { ok: true, message: r.message };
   } catch (e) {
     results.akismet_unlock = { ok: false, error: String(e) };
+  }
+  // Jetpack is pre-installed by wp.cloud — remove it so backfilled sites
+  // also ship Jetpack-free.
+  try {
+    await client.manageSoftware(row.wp_cloud_site_id, 'deactivate', 'plugin', 'jetpack');
+    await client.manageSoftware(row.wp_cloud_site_id, 'delete', 'plugin', 'jetpack');
+    results.jetpack_removed = { ok: true };
+  } catch (e) {
+    results.jetpack_removed = { ok: false, error: String(e) };
   }
 
   await recordLog(supabase, {

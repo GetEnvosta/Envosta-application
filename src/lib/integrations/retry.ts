@@ -54,7 +54,7 @@ export async function withRetry<T>(
 export async function fetchWithTimeout(
   url: string,
   init: RequestInit,
-  opts: { timeoutMs?: number; provider: 'wpcloud' | 'opensrs' | 'stripe' | 'jetpack' | 'resend'; path?: string },
+  opts: { timeoutMs?: number; provider: 'wpcloud' | 'opensrs' | 'stripe' | 'resend'; path?: string },
 ): Promise<Response> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? 30000);

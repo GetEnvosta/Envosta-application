@@ -9,9 +9,10 @@
  *  - Inserts a row into the `wpcloud_sites` mirror table
  *  - Applies plan-tier features (storage quota, PHP workers, backups,
  *    CDN, WAF, staging) via site-meta
- *  - Installs the Envosta parent theme + Akismet, unlocks Jetpack +
- *    Akismet so customers can manage them
- *  - Registers Envosta's Jetpack partner attribution
+ *  - Installs + unlocks the Envosta parent theme + Akismet so customers
+ *    can manage them
+ *  - Removes the Jetpack plugin that wp.cloud pre-installs (Envosta sites
+ *    ship Jetpack-free)
  *  - Auto-configures OpenSRS DNS for Envosta-registered domains
  *  - Sends site-ready / provisioning-failed transactional emails
  *  - Records the state change to `audit_log`
@@ -47,7 +48,6 @@ import { createClient } from '@supabase/supabase-js';
 import { verifyInternalToken } from '@/lib/internal-auth';
 import { createWpCloudClient, WpCloudError } from '@/lib/integrations/wpcloud';
 import { createOpenSrsClient, buildWpCloudDnsRecords } from '@/lib/integrations/opensrs';
-import { jetpackPartnerProvision } from '@/lib/integrations/jetpack';
 import { recordAudit } from '@/lib/audit';
 import { sendEmail, siteReadyEmail, provisioningFailedEmail } from '@/lib/email';
 
@@ -454,7 +454,7 @@ export async function POST(req: Request) {
     })
     .eq('id', site.id);
 
-  // ── Software bootstrap (parent theme + Akismet + Jetpack unlock) ──
+  // ── Software bootstrap (parent theme + Akismet, remove Jetpack) ──
   const softwareResults: Record<string, unknown> = {};
   try {
     const r = await client.runWpCli(wpSiteIdStr, ['theme', 'install', ENVOSTA_PARENT_THEME_ZIP_URL, '--activate', '--force']);
@@ -469,66 +469,27 @@ export async function POST(req: Request) {
     softwareResults.akismet = { ok: false, error: String(e) };
   }
   try {
-    const r = await client.manageSoftware(wpSiteIdStr, 'unlock', 'plugin', 'jetpack');
-    softwareResults.jetpack_unlock = { ok: true, message: r.message };
-  } catch (e) {
-    softwareResults.jetpack_unlock = { ok: false, error: String(e) };
-  }
-  try {
     const r = await client.manageSoftware(wpSiteIdStr, 'unlock', 'plugin', 'akismet');
     softwareResults.akismet_unlock = { ok: true, message: r.message };
   } catch (e) {
     softwareResults.akismet_unlock = { ok: false, error: String(e) };
   }
+  // Jetpack is pre-installed by wp.cloud — remove it. Envosta sites ship
+  // without Jetpack; wp.cloud's platform WAF/CDN/backups cover those needs.
+  try {
+    await client.manageSoftware(wpSiteIdStr, 'deactivate', 'plugin', 'jetpack');
+    await client.manageSoftware(wpSiteIdStr, 'delete', 'plugin', 'jetpack');
+    softwareResults.jetpack_removed = { ok: true };
+  } catch (e) {
+    softwareResults.jetpack_removed = { ok: false, error: String(e) };
+  }
   await recordLog(sb, {
     userId: effectiveUserId,
     siteId: site.id,
     action: 'site.software.bootstrap',
-    message: 'parent theme + Akismet installed, Jetpack/Akismet unlocked',
+    message: 'parent theme + Akismet installed/unlocked, Jetpack removed',
     res: softwareResults,
   });
-
-  // ── Jetpack partner attribution ──────────────────────────────
-  let jetpackAttribution: Record<string, unknown> | null = null;
-  if (wpUrl) {
-    try {
-      const jpResult = await jetpackPartnerProvision(wpUrl, adminUser);
-      jetpackAttribution = {
-        ok: jpResult.ok,
-        status: jpResult.status,
-        success: jpResult.success,
-        error_code: jpResult.error_code,
-        error_message: jpResult.error_message,
-        attributed_at: new Date().toISOString(),
-      };
-      await recordLog(sb, {
-        userId: effectiveUserId,
-        siteId: site.id,
-        level: jpResult.ok ? 'info' : 'warn',
-        action: jpResult.ok ? 'jetpack.partner.attributed' : 'jetpack.partner.failed',
-        message: jpResult.error_message ?? `${wpUrl} → partner`,
-        res: jpResult.raw,
-      });
-      // Persist attribution onto site metadata.
-      await sb
-        .from('sites')
-        .update({
-          metadata: {
-            ...updatedMetadata,
-            jetpack_attribution: jetpackAttribution,
-          },
-        })
-        .eq('id', site.id);
-    } catch (jpErr) {
-      await recordLog(sb, {
-        userId: effectiveUserId,
-        siteId: site.id,
-        level: 'error',
-        action: 'jetpack.partner.error',
-        message: String(jpErr),
-      });
-    }
-  }
 
   // ── Domain link + DNS auto-setup ─────────────────────────────
   let dnsSetup: { siteIp: string; records: number } | null = null;

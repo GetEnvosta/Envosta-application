@@ -1,6 +1,6 @@
 /**
  * Outbound API-call logger. Wraps a fetch-style call so every request
- * to wp.cloud / OpenSRS / Stripe / Jetpack / Resend is recorded in the
+ * to wp.cloud / OpenSRS / Stripe / Resend is recorded in the
  * api_calls table along with its timing, request payload, response, and
  * any error. Used by integration wrappers in Phases 3+.
  *
@@ -10,7 +10,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-export type ApiProvider = 'stripe' | 'wpcloud' | 'opensrs' | 'jetpack' | 'resend';
+export type ApiProvider = 'stripe' | 'wpcloud' | 'opensrs' | 'resend';
 
 export interface ApiCallLogParams {
   provider: ApiProvider;

@@ -4,8 +4,7 @@
  *   2. Register OpenSRS domain (if applicable)
  *   3. Set DNS at OpenSRS
  *   4. Attach domain to wp.cloud site
- *   5. Attribute Jetpack partner
- *   6. Send welcome email
+ *   5. Send welcome email
  *
  * Idempotency key: subscription_id (one provisioning per subscription).
  * Triggered by: stripe-webhook on customer.subscription.created.

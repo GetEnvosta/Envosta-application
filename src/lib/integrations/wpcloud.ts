@@ -183,7 +183,7 @@ export interface WpCloudClient {
    * Install / activate / deactivate / delete / unlock a plugin or theme.
    * Maps to `POST /api/v1.0/site-manage-software/{type}/{id}`.
    * `unlock` toggles off the "hosting-managed" flag on plugins that
-   * wp.cloud auto-installs (e.g. Jetpack) so the customer can remove
+   * wp.cloud auto-installs (e.g. Akismet) so the customer can remove
    * them.
    */
   manageSoftware(
@@ -530,8 +530,8 @@ export function createWpCloudClient(): WpCloudClient {
       const path = `/api/v1.0/site-manage-software/${type}/${siteId}`;
       // wp.cloud's API uses "remove" for delete; map for ergonomics.
       // `unlock` is passed through verbatim — it removes the
-      // hosting-managed flag from a pre-installed plugin (Jetpack /
-      // Akismet) so users can deactivate/delete it.
+      // hosting-managed flag from a pre-installed plugin (e.g. Akismet)
+      // so users can deactivate/delete it.
       const upstreamAction = action === 'delete' ? 'remove' : action;
       const requestPayload: Record<string, unknown> = {
         action: upstreamAction,

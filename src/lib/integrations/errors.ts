@@ -8,7 +8,7 @@
 export class IntegrationError extends Error {
   constructor(
     message: string,
-    public provider: 'wpcloud' | 'opensrs' | 'stripe' | 'jetpack' | 'resend',
+    public provider: 'wpcloud' | 'opensrs' | 'stripe' | 'resend',
     public retryable: boolean,
     public status?: number,
     public body?: unknown,

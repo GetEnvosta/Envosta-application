@@ -6,9 +6,10 @@ import { createServerClient } from '@supabase/ssr';
 export const dynamic = 'force-dynamic';
 
 /**
- * Re-run the software bootstrap (parent theme + Akismet install, Jetpack/Akismet unlock)
- * on one or all existing sites. Useful for backfilling sites provisioned before
- * these steps were wired into provision-hosting.
+ * Re-run the software bootstrap (parent theme + Akismet install/unlock, and
+ * removal of the pre-installed Jetpack plugin) on one or all existing sites.
+ * Useful for backfilling sites provisioned before these steps were wired into
+ * provision-hosting.
  *
  * POST /api/admin/site-bootstrap  { siteId }  or  { all: true }
  */

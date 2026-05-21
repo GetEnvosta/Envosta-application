@@ -1,8 +1,8 @@
 /**
  * Add-ons service — read-only helpers for `products` rows with
  * type='plan_addon'. These are the recurring extras (bursting capacity,
- * premium WAF, Jetpack, etc.) that a customer attaches on top of their
- * hosting subscription as additional Stripe SubscriptionItems.
+ * premium WAF, etc.) that a customer attaches on top of their hosting
+ * subscription as additional Stripe SubscriptionItems.
  *
  * Mutation paths (attach / detach an add-on to a sub) live in
  * /api/account/addons/* — this file is reads only.

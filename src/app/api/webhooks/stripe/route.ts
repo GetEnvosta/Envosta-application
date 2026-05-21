@@ -644,13 +644,13 @@ export async function POST(req: Request) {
 
       // ── Add-on bundle audit ─────────────────────────────────────
       // When /api/create-subscription bundles plan-addons onto the new
-      // sub (e.g. customer ticked Jetpack at signup), the slug list is
+      // sub (e.g. customer ticked an add-on at signup), the slug list is
       // stamped as `metadata.addon_slugs` (JSON-string). Log it to the
       // audit trail so operators can see what shipped with the sub.
       //
       // TODO when the first addon ships: per-slug side effects here —
       // wp.cloud manageSoftware + site-meta toggle for things like
-      // Jetpack, premium SSL flags, WAF rules, etc.
+      // premium SSL flags, WAF rules, etc.
       const addonSlugs = parseAddonSlugs((sub.metadata as any)?.addon_slugs);
       if (addonSlugs.length > 0) {
         await recordAudit({
