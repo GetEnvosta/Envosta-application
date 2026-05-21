@@ -52,6 +52,12 @@ export async function POST(req: Request) {
   // the Stripe Price matching the billing period (yearly → monthly fallback).
   // Any addon that isn't synced to Stripe yet is a hard error — the
   // admin needs to hit "Sync to Stripe" on the addon row first.
+  //
+  // NOTE: we deliberately do NOT write `site_addons` rows here. The site
+  // row does not exist yet at signup — the Stripe webhook provisions it
+  // on `customer.subscription.created`. The webhook is what inserts the
+  // `site_addons` row(s) once the site exists; here we only attach the
+  // Stripe line items and stamp `metadata.addon_slugs` for it to read.
   const cleanedAddonSlugs = Array.isArray(addonSlugs)
     ? Array.from(new Set(addonSlugs.filter((s): s is string => typeof s === 'string' && s.length > 0)))
     : [];

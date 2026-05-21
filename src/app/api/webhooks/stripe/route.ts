@@ -542,6 +542,71 @@ export async function POST(req: Request) {
             }
           }
 
+          // ── Write site_addons rows for the signup add-on bundle ──
+          // /api/create-subscription stamps metadata.addon_slugs and
+          // attaches the add-ons as Stripe line items, but it can't
+          // create site_addons rows because the site row doesn't exist
+          // yet at signup. Now that `svc` (the signup site) exists, we
+          // record one site_addons row per add-on slug, resolving the
+          // matching Stripe SubscriptionItem on this sub to capture its
+          // stripe_subscription_item_id. Non-fatal — wrapped so a
+          // failure here never blocks provisioning.
+          //
+          // This assumes the account-centric one-site-at-signup model:
+          // the bundle attaches to the single site created above. For a
+          // multi-site agency flow, add-on assignment would move to a
+          // post-signup step keyed by siteId.
+          if (wasNewlyInserted) {
+            try {
+              const signupAddonSlugs = parseAddonSlugs((sub.metadata as any)?.addon_slugs);
+              if (signupAddonSlugs.length > 0) {
+                const { data: addonProducts } = await supabase
+                  .from('products')
+                  .select('id, slug, stripe_price_id, stripe_price_id_yearly, stripe_price_id_cad, stripe_price_id_yearly_cad')
+                  .eq('type', 'plan_addon')
+                  .in('slug', signupAddonSlugs);
+
+                const nowIso = new Date().toISOString();
+                for (const slug of signupAddonSlugs) {
+                  const product = (addonProducts ?? []).find((p: any) => p.slug === slug);
+                  if (!product) {
+                    console.warn('[stripe-webhook] addon slug has no product row:', slug);
+                    continue;
+                  }
+                  // Resolve the Stripe SubscriptionItem for this add-on by
+                  // matching the item's price.id against any of the
+                  // product's known price IDs (currency/period agnostic).
+                  const priceIds = [
+                    product.stripe_price_id,
+                    product.stripe_price_id_yearly,
+                    product.stripe_price_id_cad,
+                    product.stripe_price_id_yearly_cad,
+                  ].filter((x): x is string => typeof x === 'string' && x.length > 0);
+                  const matchedItem = items.find(it => it.price?.id && priceIds.includes(it.price.id));
+
+                  await supabase
+                    .from('site_addons')
+                    .upsert(
+                      {
+                        site_id: svc.id,
+                        product_id: product.id,
+                        quantity: 1,
+                        status: 'active',
+                        stripe_subscription_item_id: matchedItem?.id ?? null,
+                        enabled_at: nowIso,
+                        disabled_at: null,
+                        updated_at: nowIso,
+                      },
+                      { onConflict: 'site_id,product_id' },
+                    );
+                  console.log('[stripe-webhook] site_addon recorded:', svc.id, slug, matchedItem?.id ?? '(no stripe item)');
+                }
+              }
+            } catch (addonErr) {
+              console.error('[stripe-webhook] site_addons write failed (non-fatal):', addonErr);
+            }
+          }
+
           // ── Idempotent wp.cloud provisioning ──
           if (!svc.wp_cloud_site_id) {
             console.log('[stripe-webhook] auto-provisioning site:', svc.id);

@@ -1,15 +1,17 @@
 /**
  * POST /api/account/addons/remove
  *
- * Detach a plan add-on from the caller's hosting subscription by
- * deleting the Stripe SubscriptionItem. Stripe prorates automatically.
+ * Detach a plan add-on from a SPECIFIC SITE the caller owns.
  *
- * Body: { subscriptionItemId: string }
+ * Body: { siteId: string, addonSlug: string }
  * Auth: regular user session (auth.uid()).
  *
- * Ownership check: the SubscriptionItem must belong to a subscription
- * whose customer matches the caller's stripe_customer_id — prevents
- * one user from removing items off another user's sub.
+ * Model — site-scoped add-ons:
+ *   One Stripe SubscriptionItem per add-on TYPE, `quantity` = the number
+ *   of the account's sites using it. Removing an add-on from one site
+ *   decrements that quantity; when the last site drops it the Stripe
+ *   item is deleted outright. The (site, add-on) `site_addons` row is
+ *   marked `cancelled` rather than hard-deleted (forensic trail).
  */
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -30,9 +32,13 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ ok: false, error: 'Invalid JSON body' }, { status: 400 });
   }
-  const subscriptionItemId = typeof body.subscriptionItemId === 'string' ? body.subscriptionItemId : '';
-  if (!subscriptionItemId) {
-    return NextResponse.json({ ok: false, error: 'subscriptionItemId is required' }, { status: 400 });
+  const siteId = typeof body.siteId === 'string' ? body.siteId : '';
+  const addonSlug = typeof body.addonSlug === 'string' ? body.addonSlug : '';
+  if (!siteId) {
+    return NextResponse.json({ ok: false, error: 'siteId is required' }, { status: 400 });
+  }
+  if (!addonSlug) {
+    return NextResponse.json({ ok: false, error: 'addonSlug is required' }, { status: 400 });
   }
 
   const sbService = createClient(
@@ -41,65 +47,93 @@ export async function POST(req: Request) {
     { auth: { persistSession: false } },
   );
 
-  // Caller's Stripe customer ID — required for ownership check.
-  const { data: profile } = await sbService
-    .from('users').select('stripe_customer_id').eq('id', user.id).maybeSingle();
-  const callerCustomerId = profile?.stripe_customer_id;
-  if (!callerCustomerId) {
-    return NextResponse.json({ ok: false, error: 'No Stripe customer on file.' }, { status: 400 });
-  }
-
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
-
-  // ── Ownership verification ──────────────────────────
-  let item: Stripe.SubscriptionItem;
-  try {
-    item = await stripe.subscriptionItems.retrieve(subscriptionItemId);
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message ?? 'Subscription item not found' }, { status: 404 });
-  }
-
-  let parentSub: Stripe.Subscription;
-  try {
-    parentSub = await stripe.subscriptions.retrieve(item.subscription as string);
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message ?? 'Parent subscription not found' }, { status: 404 });
-  }
-
-  const subCustomerId = typeof parentSub.customer === 'string' ? parentSub.customer : parentSub.customer.id;
-  if (subCustomerId !== callerCustomerId) {
+  // ── Verify site ownership ───────────────────────────
+  const { data: site } = await sbService
+    .from('sites')
+    .select('id, user_id')
+    .eq('id', siteId)
+    .maybeSingle();
+  if (!site) return NextResponse.json({ ok: false, error: 'Site not found.' }, { status: 404 });
+  if (site.user_id !== user.id) {
     return NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 });
   }
 
-  // Disallow removing the LAST item — Stripe rejects this anyway, but
-  // surface a cleaner error message before the API call.
-  if ((parentSub.items?.data ?? []).length <= 1) {
-    return NextResponse.json(
-      { ok: false, error: 'Cannot remove the last item from a subscription.' },
-      { status: 400 },
-    );
+  // ── Lookup the add-on row ───────────────────────────
+  const { data: addon } = await sbService
+    .from('products')
+    .select('id, slug, type')
+    .eq('type', 'plan_addon')
+    .eq('slug', addonSlug)
+    .maybeSingle();
+  if (!addon) return NextResponse.json({ ok: false, error: `Addon "${addonSlug}" not found.` }, { status: 404 });
+
+  // ── Find the active site_addons row for (site, add-on) ──
+  const { data: addonRow } = await sbService
+    .from('site_addons')
+    .select('id, stripe_subscription_item_id')
+    .eq('site_id', siteId)
+    .eq('product_id', addon.id)
+    .eq('status', 'active')
+    .maybeSingle();
+  if (!addonRow) {
+    return NextResponse.json({ ok: false, error: `Add-on "${addonSlug}" is not active on this site.` }, { status: 404 });
   }
 
-  // ── Delete with proration ───────────────────────────
-  try {
-    await stripe.subscriptionItems.del(subscriptionItemId);
+  const stripeItemId = addonRow.stripe_subscription_item_id;
 
-    await recordAudit({
-      actorId: user.id,
-      actorType: 'user',
-      action: 'subscription.addon.removed',
-      resourceType: 'subscription',
-      resourceId: parentSub.id,
-      metadata: {
-        stripe_subscription_id: parentSub.id,
-        stripe_subscription_item_id: subscriptionItemId,
-        addon_slug: (item.metadata as any)?.envosta_addon_slug ?? null,
-        price_id: item.price?.id ?? null,
-      },
-    });
-
-    return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message ?? 'Failed to remove addon' }, { status: 500 });
+  // ── Count OTHER active rows sharing the same Stripe item ──
+  // These are other sites on the account still using this add-on TYPE;
+  // they determine whether the Stripe item is decremented or deleted.
+  let otherSitesUsing = 0;
+  if (stripeItemId) {
+    const { count } = await sbService
+      .from('site_addons')
+      .select('id', { count: 'exact', head: true })
+      .eq('stripe_subscription_item_id', stripeItemId)
+      .eq('status', 'active')
+      .neq('id', addonRow.id);
+    otherSitesUsing = count ?? 0;
   }
+
+  // ── Stripe: decrement or delete the SubscriptionItem ──
+  if (stripeItemId) {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
+    try {
+      if (otherSitesUsing > 0) {
+        const item = await stripe.subscriptionItems.retrieve(stripeItemId);
+        const nextQty = Math.max(1, (item.quantity ?? 1) - 1);
+        await stripe.subscriptionItems.update(stripeItemId, { quantity: nextQty });
+      } else {
+        // Last site using this add-on TYPE → remove the item entirely.
+        await stripe.subscriptionItems.del(stripeItemId);
+      }
+    } catch (e: any) {
+      return NextResponse.json({ ok: false, error: e?.message ?? 'Failed to update Stripe subscription' }, { status: 500 });
+    }
+  }
+
+  // ── Mark the row cancelled (kept for the forensic trail) ──
+  const nowIso = new Date().toISOString();
+  const { error: updErr } = await sbService
+    .from('site_addons')
+    .update({ status: 'cancelled', disabled_at: nowIso, updated_at: nowIso })
+    .eq('id', addonRow.id);
+  if (updErr) {
+    return NextResponse.json({ ok: false, error: updErr.message ?? 'Failed to record removal' }, { status: 500 });
+  }
+
+  await recordAudit({
+    actorId: user.id,
+    actorType: 'user',
+    action: 'site.addon.removed',
+    resourceType: 'site',
+    resourceId: siteId,
+    metadata: {
+      addon_slug: addonSlug,
+      stripe_subscription_item_id: stripeItemId,
+      stripe_item_deleted: otherSitesUsing === 0,
+    },
+  });
+
+  return NextResponse.json({ ok: true });
 }

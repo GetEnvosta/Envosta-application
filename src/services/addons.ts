@@ -82,3 +82,79 @@ export function resolveAddonPriceId(
   if (billing === 'yearly') return usdYearly ?? usdMonthly ?? cadYearly ?? cadMonthly;
   return usdMonthly ?? cadMonthly ?? usdYearly ?? cadYearly;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Site-scoped add-on reads — backed by the `site_addons` table.
+//
+// Add-on billing is site-scoped: one Stripe SubscriptionItem per add-on
+// TYPE (quantity = sites using it), one `site_addons` row per
+// (site, add-on) pairing. These helpers join site_addons → products
+// (and → sites for the account summary).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface SiteAddon {
+  id: string;
+  product_id: string;
+  addon_slug: string;
+  addon_name: string;
+  stripe_subscription_item_id: string | null;
+  status: string;
+}
+
+/** Active add-ons attached to a specific site. */
+export async function getSiteAddons(siteId: string): Promise<SiteAddon[]> {
+  const sb = await createClient();
+  const { data } = await sb
+    .from('site_addons')
+    .select('id, product_id, status, stripe_subscription_item_id, products:product_id(slug, name)')
+    .eq('site_id', siteId)
+    .eq('status', 'active');
+  return ((data as any[] | null) ?? []).map((r) => ({
+    id: r.id,
+    product_id: r.product_id,
+    addon_slug: r.products?.slug ?? '',
+    addon_name: r.products?.name ?? '',
+    stripe_subscription_item_id: r.stripe_subscription_item_id ?? null,
+    status: r.status,
+  }));
+}
+
+/** Does a site have a specific add-on active? */
+export async function siteHasAddon(siteId: string, addonSlug: string): Promise<boolean> {
+  const sb = await createClient();
+  const { data } = await sb
+    .from('site_addons')
+    .select('id, status, products:product_id!inner(slug)')
+    .eq('site_id', siteId)
+    .eq('status', 'active')
+    .eq('products.slug', addonSlug)
+    .maybeSingle();
+  return !!data;
+}
+
+export interface AccountAddonSummaryRow {
+  site_id: string;
+  site_label: string;
+  addon_slug: string;
+  addon_name: string;
+  status: string;
+}
+
+/**
+ * All add-ons across an account's sites — admin / billing summary.
+ * Includes cancelled rows (the `status` field distinguishes them).
+ */
+export async function getAccountAddonSummary(userId: string): Promise<AccountAddonSummaryRow[]> {
+  const sb = await createClient();
+  const { data } = await sb
+    .from('site_addons')
+    .select('status, products:product_id(slug, name), sites:site_id!inner(id, label, user_id)')
+    .eq('sites.user_id', userId);
+  return ((data as any[] | null) ?? []).map((r) => ({
+    site_id: r.sites?.id ?? '',
+    site_label: r.sites?.label ?? '',
+    addon_slug: r.products?.slug ?? '',
+    addon_name: r.products?.name ?? '',
+    status: r.status,
+  }));
+}
