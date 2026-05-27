@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
 import { findHostingSubscription, addSiteLineItem, resolvePlanPrice, resumeSubscription } from '@/lib/stripe-subscription';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -172,12 +173,20 @@ export async function POST(req: Request) {
     }
 
     // Log it
-    await supabase.from('logs').insert({
-      user_id: user.id,
-      site_id: siteId,
+    await recordAudit({
+      actorId: user.id,
+      actorType: 'user',
       action: 'site.reactivated',
-      details: `Site "${site.label}" reactivated on ${planSlug} plan. ${newSubscriptionCreated ? 'New subscription created.' : 'Added back to existing subscription.'}`,
-      level: 'info',
+      resourceType: 'site',
+      resourceId: siteId,
+      before: { status: 'cancelled' },
+      after: { status: 'active' },
+      metadata: {
+        level: 'info',
+        details: `Site "${site.label}" reactivated on ${planSlug} plan. ${newSubscriptionCreated ? 'New subscription created.' : 'Added back to existing subscription.'}`,
+        plan_slug: planSlug,
+        new_subscription: newSubscriptionCreated,
+      },
     });
 
     return NextResponse.json({

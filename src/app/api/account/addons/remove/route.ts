@@ -18,6 +18,7 @@ import Stripe from 'stripe';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { createClient } from '@supabase/supabase-js';
 import { recordAudit } from '@/lib/audit';
+import { applySiteAddonEffects } from '@/lib/addon-effects';
 
 export const dynamic = 'force-dynamic';
 
@@ -135,5 +136,11 @@ export async function POST(req: Request) {
     },
   });
 
-  return NextResponse.json({ ok: true });
+  // Re-apply effective config — since the removed addon is now
+  // status='cancelled', the helper recomputes from (plan + remaining
+  // active addons). If no other addons contribute the same field, the
+  // value falls back to the plan default (e.g. php_workers: 4 → 2).
+  const appliedConfig = await applySiteAddonEffects(siteId, user.id);
+
+  return NextResponse.json({ ok: true, applied_config: appliedConfig });
 }

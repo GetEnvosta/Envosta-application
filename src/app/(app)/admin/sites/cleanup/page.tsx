@@ -9,15 +9,26 @@ export const dynamic = 'force-dynamic';
 export default async function SitesCleanupPage() {
   const supabase = await createClient();
 
+  // Cleanup queue includes:
+  //   - status='paused' sites (admin can flag them for deletion)
+  //   - any site with flagged_for_deletion_at set (legacy
+  //     status='flagged_for_deletion' OR new workflow path
+  //     status='cancelled' + flagged_for_deletion_at)
+  // It explicitly EXCLUDES subscription-paused-then-cancelled sites
+  // (those have recovery_deadline instead of flagged_for_deletion_at
+  // and are auto-handled by the delete-expired-sites cron).
   const { data: sites } = await supabase
     .from('sites')
     .select('id, label, domain_name, status, paused_at, flagged_for_deletion_at, flag_reason, users:user_id(id, full_name, email)')
-    .in('status', ['paused', 'flagged_for_deletion'])
+    .or('status.eq.paused,flagged_for_deletion_at.not.is.null')
     .order('flagged_for_deletion_at', { ascending: true, nullsFirst: false })
     .order('paused_at', { ascending: true });
 
   const rows = sites ?? [];
-  const flaggedCount = rows.filter((r: any) => r.status === 'flagged_for_deletion').length;
+  const isInDeleteQueue = (r: any) =>
+    r.status === 'flagged_for_deletion' ||
+    (r.status === 'cancelled' && r.flagged_for_deletion_at != null);
+  const flaggedCount = rows.filter(isInDeleteQueue).length;
 
   return (
     <div>
@@ -60,7 +71,7 @@ export default async function SitesCleanupPage() {
             <tbody className="divide-y divide-gray-100">
               {rows.map((site: any) => {
                 const owner = site.users;
-                const isFlagged = site.status === 'flagged_for_deletion';
+                const isFlagged = isInDeleteQueue(site);
                 return (
                   <tr key={site.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-3">
@@ -84,7 +95,7 @@ export default async function SitesCleanupPage() {
                     <td className="px-5 py-3 text-xs text-gray-500">{site.paused_at ? formatDate(site.paused_at) : '—'}</td>
                     <td className="px-5 py-3 text-xs text-gray-500">{site.flagged_for_deletion_at ? formatDate(site.flagged_for_deletion_at) : '—'}</td>
                     <td className="px-5 py-3 text-right">
-                      <CleanupActions siteId={site.id} status={site.status} label={site.label || site.domain_name || 'this site'} />
+                      <CleanupActions siteId={site.id} status={site.status} label={site.label || site.domain_name || 'this site'} isFlagged={isFlagged} />
                     </td>
                   </tr>
                 );

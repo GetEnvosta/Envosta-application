@@ -235,15 +235,31 @@ export async function getServiceDomains(siteId: string) {
 }
 
 /**
- * Logs for a specific site.
+ * Logs for a specific site. Reads from audit_log (the legacy `logs`
+ * table was dropped). Maps audit_log rows back to the legacy logs
+ * shape so consumers don't need touching.
  */
 export async function getServiceLogs(siteId: string, limit: number = 20) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('logs')
+    .from('audit_log')
     .select('*')
-    .eq('site_id', siteId)
+    .eq('resource_type', 'site')
+    .eq('resource_id', siteId)
     .order('created_at', { ascending: false })
     .limit(limit);
-  return data ?? [];
+  return (data ?? []).map((row: any) => {
+    const md = (row?.metadata ?? {}) as Record<string, any>;
+    return {
+      id: row.id,
+      user_id: row.actor_id,
+      site_id: row.resource_id,
+      action: row.action,
+      details: md.details ?? null,
+      message: md.details ?? null,
+      level: md.level ?? 'info',
+      metadata: md,
+      created_at: row.created_at,
+    };
+  });
 }

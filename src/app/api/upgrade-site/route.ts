@@ -4,6 +4,9 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
 import { updateSiteLineItem, resolvePlanPrice } from '@/lib/stripe-subscription';
+import { recordAudit } from '@/lib/audit';
+import { start } from 'workflow/api';
+import { updateSitePlan } from '@/app/workflows/update-site-plan';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,62 +80,97 @@ export async function POST(req: Request) {
     .single();
   const planMeta = (newPlanProduct?.metadata as any) ?? {};
 
+  // Build new resource config from plan metadata (shared by both
+  // workflow + inline paths so the response shape stays stable).
+  const newConfig = {
+    storage_gb: planMeta.storage_gb ?? 25,
+    php_workers: planMeta.php_workers_default ?? 2,
+    php_memory_mb: planMeta.php_memory_mb ?? 512,
+    has_backups: planMeta.has_backups ?? true,
+    has_cdn: planMeta.has_cdn ?? true,
+    has_waf: planMeta.has_waf ?? true,
+    has_staging: planMeta.has_staging ?? true,
+  };
+
   try {
-    // Swap the line item's price in Stripe
-    await updateSiteLineItem(stripe, site.stripe_subscription_item_id, newPlan.priceId);
+    // Plan changes run as a Vercel Workflow so Stripe + wp.cloud retries
+    // are durable. Inline fallback preserves the original imperative path
+    // when the workflow runtime is unavailable.
+    let workflowStarted = false;
+    try {
+      await start(updateSitePlan, [{
+        siteId,
+        newProductId: newPlan.productId,
+        prorationBehavior: 'create_prorations',
+        actorId: user.id,
+      }]);
+      workflowStarted = true;
+    } catch (e) {
+      console.error('[upgrade-site] updateSitePlan workflow start failed, falling back to inline:', e);
+    }
 
-    // Build new resource config from plan metadata
-    const newConfig = {
-      storage_gb: planMeta.storage_gb ?? 25,
-      php_workers: planMeta.php_workers_default ?? 2,
-      php_memory_mb: planMeta.php_memory_mb ?? 512,
-      has_backups: planMeta.has_backups ?? true,
-      has_cdn: planMeta.has_cdn ?? true,
-      has_waf: planMeta.has_waf ?? true,
-      has_staging: planMeta.has_staging ?? true,
-    };
+    if (!workflowStarted) {
+      // Swap the line item's price in Stripe
+      await updateSiteLineItem(stripe, site.stripe_subscription_item_id, newPlan.priceId);
 
-    // Update the site's product_id + config in our DB
-    await supabase.from('sites').update({
-      product_id: newPlan.productId,
-      config: newConfig,
-      max_php_workers: newConfig.php_workers,
-      max_ssd_gb: newConfig.storage_gb,
-      bursting_enabled: planMeta.bursting_enabled ?? false,
-      metadata: {
-        plan_slug: newPlanSlug,
-        upgraded_at: new Date().toISOString(),
-        previous_plan: currentPlan?.slug ?? null,
-      },
-    }).eq('id', siteId);
+      // Update the site's product_id + config in our DB
+      await supabase.from('sites').update({
+        product_id: newPlan.productId,
+        config: newConfig,
+        max_php_workers: newConfig.php_workers,
+        max_ssd_gb: newConfig.storage_gb,
+        bursting_enabled: planMeta.bursting_enabled ?? false,
+        metadata: {
+          plan_slug: newPlanSlug,
+          upgraded_at: new Date().toISOString(),
+          previous_plan: currentPlan?.slug ?? null,
+        },
+      }).eq('id', siteId);
 
-    // Push resource changes to wp.cloud
-    const { data: siteData } = await supabase
-      .from('sites')
-      .select('wp_cloud_site_id')
-      .eq('id', siteId)
-      .single();
+      // Push resource changes to wp.cloud
+      const { data: siteData } = await supabase
+        .from('sites')
+        .select('wp_cloud_site_id')
+        .eq('id', siteId)
+        .single();
 
-    if (siteData?.wp_cloud_site_id) {
-      const origin = process.env.NEXT_PUBLIC_APP_URL
-        ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
-        : new URL(req.url).origin;
-      const internalHeaders = {
-        'Content-Type': 'application/json',
-        'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
-      };
+      if (siteData?.wp_cloud_site_id) {
+        const origin = process.env.NEXT_PUBLIC_APP_URL
+          ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+          : new URL(req.url).origin;
+        const internalHeaders = {
+          'Content-Type': 'application/json',
+          'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
+        };
 
-      const wpUpdates = [
-        { key: 'default_php_conns', value: newConfig.php_workers },
-        { key: 'php_memory_limit', value: newConfig.php_memory_mb },
-        { key: 'burst_php_conns', value: planMeta.bursting_enabled ? newConfig.php_workers * 2 : 0 },
-        { key: 'jetpack_backup', value: newConfig.has_backups ? '1' : '0' },
-        { key: 'page_optimize', value: newConfig.has_cdn ? '1' : '0' },
-        { key: 'jetpack_waf', value: newConfig.has_waf ? '1' : '0' },
-        { key: 'has_staging', value: newConfig.has_staging ? '1' : '0' },
-      ];
+        const wpUpdates = [
+          { key: 'default_php_conns', value: newConfig.php_workers },
+          { key: 'php_memory_limit', value: newConfig.php_memory_mb },
+          { key: 'burst_php_conns', value: planMeta.bursting_enabled ? newConfig.php_workers * 2 : 0 },
+          { key: 'jetpack_backup', value: newConfig.has_backups ? '1' : '0' },
+          { key: 'page_optimize', value: newConfig.has_cdn ? '1' : '0' },
+          { key: 'jetpack_waf', value: newConfig.has_waf ? '1' : '0' },
+          { key: 'has_staging', value: newConfig.has_staging ? '1' : '0' },
+        ];
 
-      for (const update of wpUpdates) {
+        for (const update of wpUpdates) {
+          try {
+            await fetch(`${origin}/api/internal/wpcloud/site-info`, {
+              method: 'POST',
+              headers: internalHeaders,
+              body: JSON.stringify({
+                action: 'update-site-meta',
+                siteId,
+                key: update.key,
+                value: update.value,
+              }),
+            });
+          } catch (e) {
+            console.error(`wp.cloud update failed for ${update.key}:`, e);
+          }
+        }
+
+        // Update storage quota separately (uses space_quota format)
         try {
           await fetch(`${origin}/api/internal/wpcloud/site-info`, {
             method: 'POST',
@@ -140,43 +178,33 @@ export async function POST(req: Request) {
             body: JSON.stringify({
               action: 'update-site-meta',
               siteId,
-              key: update.key,
-              value: update.value,
+              key: 'space_quota',
+              value: `${newConfig.storage_gb}G`,
             }),
           });
         } catch (e) {
-          console.error(`wp.cloud update failed for ${update.key}:`, e);
+          console.error('wp.cloud storage update failed:', e);
         }
-      }
-
-      // Update storage quota separately (uses space_quota format)
-      try {
-        await fetch(`${origin}/api/internal/wpcloud/site-info`, {
-          method: 'POST',
-          headers: internalHeaders,
-          body: JSON.stringify({
-            action: 'update-site-meta',
-            siteId,
-            key: 'space_quota',
-            value: `${newConfig.storage_gb}G`,
-          }),
-        });
-      } catch (e) {
-        console.error('wp.cloud storage update failed:', e);
       }
     }
 
-    // Log the change
-    await supabase.from('logs').insert({
-      user_id: user.id,
-      site_id: siteId,
+    // Log the user-facing action. The workflow itself records a separate
+    // completion audit; this row gives us the customer's action attribution.
+    await recordAudit({
+      actorId: user.id,
+      actorType: 'user',
       action: 'site.plan_changed',
-      details: `${site.label}: ${currentPlan?.name ?? 'Unknown'} → ${newPlan.planName}`,
-      level: 'info',
+      resourceType: 'site',
+      resourceId: siteId,
+      before: { product_id: site.product_id, plan_slug: currentPlan?.slug },
+      after: { product_id: newPlan.productId, plan_slug: newPlanSlug },
       metadata: {
+        level: 'info',
+        details: `${site.label}: ${currentPlan?.name ?? 'Unknown'} → ${newPlan.planName}`,
         from_plan: currentPlan?.slug,
         to_plan: newPlanSlug,
         resources_applied: newConfig,
+        via_workflow: workflowStarted,
       },
     });
 

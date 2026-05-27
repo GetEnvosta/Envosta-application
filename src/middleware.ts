@@ -91,6 +91,9 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|assets|favicon.ico).*)',
+    // Exclude Vercel Workflows internal paths (.well-known/workflow/*) so
+    // the workflow runtime can hit its own checkpoint/resume endpoints
+    // without going through Supabase auth.
+    '/((?!_next/static|_next/image|assets|favicon.ico|\\.well-known/workflow).*)',
   ],
 };

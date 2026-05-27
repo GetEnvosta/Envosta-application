@@ -8,7 +8,7 @@
  * Side effects:
  *  - Calls OpenSRS SET_DNS_ZONE (preceded by CREATE_DNS_ZONE if first
  *    use — the client handles that internally).
- *  - Replaces all rows in the `dns_records` table for the domain to
+ *  - Replaces all rows in the `opensrs_dns_records` table for the domain to
  *    reflect the new zone.
  *  - Records the change to `audit_log` with before/after snapshots.
  *
@@ -115,7 +115,7 @@ function normalizeRecord(r: unknown): DnsRecord | null {
 
 /**
  * Map a DnsRecord (from the OpenSRS client surface) onto the
- * dns_records.value column. Each record type stores its primary value
+ * opensrs_dns_records.value column. Each record type stores its primary value
  * in a different field.
  */
 function recordValue(r: DnsRecord): string {
@@ -197,7 +197,7 @@ export async function POST(req: Request) {
   }
 
   const { data: existingRecords } = await sb
-    .from('dns_records')
+    .from('opensrs_dns_records')
     .select('id, record_type, name, value, ttl, priority')
     .eq('domain_id', domain.id);
 
@@ -208,21 +208,30 @@ export async function POST(req: Request) {
 
     const nowIso = new Date().toISOString();
 
-    // Replace dns_records rows wholesale: delete then insert. OpenSRS
+    // Replace opensrs_dns_records rows wholesale: delete then insert. OpenSRS
     // replaces the zone wholesale so our mirror should match.
-    await sb.from('dns_records').delete().eq('domain_id', domain.id);
+    //
+    // Mirror columns: every row we write here is in-sync as of now()
+    // because OpenSRS just confirmed the push above. The reconcile cron
+    // will re-stamp last_synced_at and may flip upstream_status if
+    // OpenSRS drifts later.
+    await sb.from('opensrs_dns_records').delete().eq('domain_id', domain.id);
     if (records.length > 0) {
       const insertRows = records.map((r) => ({
         domain_id: domain.id,
         record_type: r.type,
-        // Use "@" for apex per dns_records convention; empty subdomain
+        // Use "@" for apex per opensrs_dns_records convention; empty subdomain
         // means apex in OpenSRS terms.
         name: r.subdomain === '' ? '@' : r.subdomain,
         value: recordValue(r),
         ttl: r.ttl ?? 3600,
         priority: r.priority ?? null,
+        source: 'customer',
+        upstream_status: 'synced',
+        last_synced_at: nowIso,
+        upstream_payload: r as unknown as Record<string, unknown>,
       }));
-      await sb.from('dns_records').insert(insertRows);
+      await sb.from('opensrs_dns_records').insert(insertRows);
     }
 
     // Reflect the change in domains.metadata so legacy callers that

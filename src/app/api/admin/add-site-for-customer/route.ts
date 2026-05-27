@@ -13,6 +13,7 @@ import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { isStaffRole } from '@/lib/roles';
 import { preCreateAdminSubscription } from '@/lib/admin-precreate-subscription';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,13 +137,20 @@ export async function POST(req: Request) {
     console.error('add-site-for-customer: provision-hosting fire failed (will retry via cron)', e);
   }
 
-  await sb.from('logs').insert({
-    user_id: user.id,
-    site_id: site.id,
+  await recordAudit({
+    actorId: user.id,
+    actorType: 'admin',
     action: comp === true ? 'admin.site_added_comped' : 'admin.site_added',
-    details: `Admin added ${comp === true ? 'comped ' : ''}site "${siteLabel}" for customer ${customerId}`,
-    level: 'info',
-    metadata: { target_user: customerId, plan_id: plan.id, comp: comp === true, coupon_code: couponCode ?? null },
+    resourceType: 'site',
+    resourceId: site.id,
+    metadata: {
+      level: 'info',
+      details: `Admin added ${comp === true ? 'comped ' : ''}site "${siteLabel}" for customer ${customerId}`,
+      target_user: customerId,
+      plan_id: plan.id,
+      comp: comp === true,
+      coupon_code: couponCode ?? null,
+    },
   });
 
   return NextResponse.json({

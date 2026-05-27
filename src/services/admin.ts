@@ -52,16 +52,40 @@ export async function getRecentCustomers(limit: number = 10) {
 }
 
 /**
- * Recent activity logs with user info.
+ * Re-shape an `audit_log` row into the legacy `logs` shape so the
+ * existing admin/dashboard UI doesn't need touching. Pulls level +
+ * details out of the audit metadata JSONB where the migration stashed
+ * them.
+ */
+function auditLogToLegacyShape(row: any) {
+  const md = (row?.metadata ?? {}) as Record<string, any>;
+  return {
+    id: row.id,
+    user_id: row.actor_id,
+    site_id: row.resource_type === 'site' ? row.resource_id : null,
+    action: row.action,
+    details: md.details ?? null,
+    message: md.details ?? null,
+    level: md.level ?? 'info',
+    ip_address: md.ip_address ?? null,
+    metadata: md,
+    created_at: row.created_at,
+    users: row.users ?? null,
+  };
+}
+
+/**
+ * Recent activity logs with user info. Reads from audit_log (the old
+ * `logs` table is dropped); shaped back to the legacy row format.
  */
 export async function getRecentActivity(limit: number = 10) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('logs')
-    .select('*, users(full_name, email)')
+    .from('audit_log')
+    .select('*, users:actor_id (full_name, email)')
     .order('created_at', { ascending: false })
     .limit(limit);
-  return data ?? [];
+  return (data ?? []).map(auditLogToLegacyShape);
 }
 
 /**
@@ -210,9 +234,9 @@ export async function getCustomerRelatedData(userId: string) {
     getAccountSubscriptionWithProduct(userId),
     getAccountInvoices(userId, 20),
     supabase
-      .from('logs')
+      .from('audit_log')
       .select('*')
-      .eq('user_id', userId)
+      .eq('actor_id', userId)
       .order('created_at', { ascending: false })
       .limit(20),
   ]);
@@ -249,43 +273,46 @@ export async function getCustomerRelatedData(userId: string) {
     domains: domains ?? [],
     subscriptions,
     invoices,
-    logs: logs ?? [],
+    logs: (logs ?? []).map(auditLogToLegacyShape),
   };
 }
 
 /**
- * Admin logs with optional level/search filters.
+ * Admin logs with optional level/search filters. Reads from audit_log.
+ * `level` lives in metadata JSONB post-migration, so the level filter
+ * uses the `->>` JSON accessor.
  */
 export async function getAdminLogs(filters?: { level?: string; q?: string }, limit: number = 50) {
   const supabase = await createClient();
 
   let query = supabase
-    .from('logs')
-    .select('*, users(full_name, email)')
+    .from('audit_log')
+    .select('*, users:actor_id (full_name, email)')
     .order('created_at', { ascending: false })
     .limit(limit);
 
   if (filters?.level) {
-    query = query.eq('level', filters.level);
+    query = query.eq('metadata->>level', filters.level);
   }
 
   if (filters?.q) {
-    query = query.or(`action.ilike.%${filters.q}%,message.ilike.%${filters.q}%`);
+    // `details` and `action` are both candidates — search both.
+    query = query.or(`action.ilike.%${filters.q}%,metadata->>details.ilike.%${filters.q}%`);
   }
 
   const { data } = await query;
-  return data ?? [];
+  return (data ?? []).map(auditLogToLegacyShape);
 }
 
 /**
- * User-facing logs for dashboard.
+ * User-facing logs for dashboard. Reads from audit_log.
  */
 export async function getUserLogs(limit: number = 50) {
   const supabase = await createClient();
   const { data } = await supabase
-    .from('logs')
+    .from('audit_log')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit);
-  return data ?? [];
+  return (data ?? []).map(auditLogToLegacyShape);
 }

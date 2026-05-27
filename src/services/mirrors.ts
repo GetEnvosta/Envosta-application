@@ -157,40 +157,6 @@ export async function getRecentWebhookEvents(filters: {
   return data ?? [];
 }
 
-/** Counts of jobs grouped by status — for the Jobs tab summary cards. */
-export async function getJobStats(): Promise<Record<string, number>> {
-  const sb = svc();
-  const statuses = ['pending', 'running', 'completed', 'failed', 'dead_letter', 'cancelled'];
-  const counts: Record<string, number> = {};
-  await Promise.all(
-    statuses.map(async (status) => {
-      const { count } = await sb
-        .from('jobs')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', status);
-      counts[status] = count ?? 0;
-    }),
-  );
-  return counts;
-}
-
-/** Recent jobs (jobs), newest first. Filter: status. */
-export async function getRecentJobs(filters: { status?: string; limit?: number } = {}) {
-  const sb = svc();
-  let q = sb
-    .from('jobs')
-    .select('id, type, status, error, created_at, started_at, completed_at')
-    .order('created_at', { ascending: false })
-    .limit(filters.limit ?? 100);
-
-  if (filters.status && filters.status !== 'all') {
-    q = q.eq('status', filters.status);
-  }
-
-  const { data } = await q;
-  return data ?? [];
-}
-
 /**
  * Recent audit_log rows, newest first.
  * Filters: resource_type, action (free-text contains), time range,

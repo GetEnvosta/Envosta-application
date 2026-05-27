@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,12 +89,15 @@ export async function POST(req: Request) {
     const paid = await stripe.invoices.pay(invoice.id);
 
     // Log
-    await supabase.from('logs').insert({
-      user_id: auth.userId,
+    await recordAudit({
+      actorId: auth.userId,
+      actorType: 'admin',
       action: 'admin.charge_customer',
-      details: `Charged ${customer.full_name ?? customer.email} $${(amount / 100).toFixed(2)}: ${description.trim()}`,
-      level: 'info',
+      resourceType: 'user',
+      resourceId: customerId,
       metadata: {
+        level: 'info',
+        details: `Charged ${customer.full_name ?? customer.email} $${(amount / 100).toFixed(2)}: ${description.trim()}`,
         customer_id: customerId,
         stripe_invoice_id: invoice.id,
         amount,

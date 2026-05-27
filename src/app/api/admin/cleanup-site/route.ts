@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import { recordAudit } from '@/lib/audit';
+import { start } from 'workflow/api';
+import { cancelSite } from '@/app/workflows/cancel-site';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +40,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid action' }, { status: 400 });
   }
 
-  const { data: site } = await sb.from('sites').select('id, status, label, wp_cloud_site_id, user_id, users:user_id(email, full_name)').eq('id', siteId).maybeSingle();
+  const { data: site } = await sb.from('sites').select('id, status, label, wp_cloud_site_id, user_id, flagged_for_deletion_at, users:user_id(email, full_name)').eq('id', siteId).maybeSingle();
   if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 });
 
   const owner = (site as any).users as { email: string; full_name: string | null } | null;
@@ -47,16 +50,33 @@ export async function POST(req: Request) {
     if (site.status !== 'paused') {
       return NextResponse.json({ error: `Only paused sites can be flagged (status=${site.status})` }, { status: 409 });
     }
-    await sb.from('sites').update({
-      status: 'flagged_for_deletion',
-      flagged_for_deletion_at: new Date().toISOString(),
-      flag_reason: 'admin_review',
-    }).eq('id', siteId);
-    await sb.from('logs').insert({
-      user_id: user.id,
+    // Cancellation runs as a Vercel Workflow. Inline fallback preserves
+    // the legacy 'flagged_for_deletion' status when the workflow runtime
+    // is unavailable; admin UI treats both 'cancelled' (with
+    // flagged_for_deletion_at) and 'flagged_for_deletion' as queue entries.
+    try {
+      await start(cancelSite, [{ siteId, reason: 'admin_review' }]);
+    } catch (e) {
+      console.error('[cleanup-site] cancelSite workflow start failed, falling back to inline:', e);
+      // Match the workflow: status='cancelled' + flagged_for_deletion_at.
+      // Admin UI's "is flagged" check (in this file's `unflag` action and
+      // in admin-site-cleanup-table.tsx) accepts both this shape and the
+      // legacy 'flagged_for_deletion' status.
+      await sb.from('sites').update({
+        status: 'cancelled',
+        flagged_for_deletion_at: new Date().toISOString(),
+        flag_reason: 'admin_review',
+      }).eq('id', siteId);
+    }
+    await recordAudit({
+      actorId: user.id,
+      actorType: 'admin',
       action: 'admin.site_flagged',
-      details: `Admin flagged ${siteName} for deletion.`,
-      level: 'warn',
+      resourceType: 'site',
+      resourceId: siteId,
+      before: { status: site.status },
+      after: { status: 'flagged_for_deletion' },
+      metadata: { level: 'warn', details: `Admin flagged ${siteName} for deletion.` },
     });
     if (owner?.email) {
       await sendOwnerEmail(owner.email, siteFlaggedForDeletionSubject(siteName), siteFlaggedForDeletionHtml(owner.full_name, siteName));
@@ -65,7 +85,14 @@ export async function POST(req: Request) {
   }
 
   if (action === 'unflag') {
-    if (site.status !== 'flagged_for_deletion') {
+    // The flag action can leave the site in either:
+    //   - status='flagged_for_deletion' (legacy inline path)
+    //   - status='cancelled' with flagged_for_deletion_at set (post-workflow)
+    // Treat both as "in the cleanup queue" — unflag must accept either.
+    const inQueue =
+      site.status === 'flagged_for_deletion' ||
+      (site.status === 'cancelled' && (site as any).flagged_for_deletion_at != null);
+    if (!inQueue) {
       return NextResponse.json({ error: `Site is not flagged (status=${site.status})` }, { status: 409 });
     }
     await sb.from('sites').update({
@@ -73,17 +100,25 @@ export async function POST(req: Request) {
       flagged_for_deletion_at: null,
       flag_reason: null,
     }).eq('id', siteId);
-    await sb.from('logs').insert({
-      user_id: user.id,
+    await recordAudit({
+      actorId: user.id,
+      actorType: 'admin',
       action: 'admin.site_unflagged',
-      details: `Admin restored ${site.label ?? siteId} back to paused.`,
-      level: 'info',
+      resourceType: 'site',
+      resourceId: siteId,
+      before: { status: site.status },
+      after: { status: 'paused' },
+      metadata: { level: 'info', details: `Admin restored ${site.label ?? siteId} back to paused.` },
     });
     return NextResponse.json({ ok: true, unflagged: true });
   }
 
-  // action === 'delete' — only flagged sites can be permanently deleted.
-  if (site.status !== 'flagged_for_deletion') {
+  // action === 'delete' — only sites in the cleanup queue can be deleted.
+  // Accept either status state (same logic as unflag above).
+  const isInQueueForDelete =
+    site.status === 'flagged_for_deletion' ||
+    (site.status === 'cancelled' && (site as any).flagged_for_deletion_at != null);
+  if (!isInQueueForDelete) {
     return NextResponse.json({ error: `Flag the site for deletion before deleting (status=${site.status})` }, { status: 409 });
   }
 
@@ -105,11 +140,15 @@ export async function POST(req: Request) {
   }
 
   await sb.from('sites').update({ status: 'deleted' }).eq('id', siteId);
-  await sb.from('logs').insert({
-    user_id: user.id,
+  await recordAudit({
+    actorId: user.id,
+    actorType: 'admin',
     action: 'admin.site_deleted',
-    details: `Admin permanently deleted ${siteName} from cleanup queue.`,
-    level: 'warn',
+    resourceType: 'site',
+    resourceId: siteId,
+    before: { status: 'flagged_for_deletion' },
+    after: { status: 'deleted' },
+    metadata: { level: 'warn', details: `Admin permanently deleted ${siteName} from cleanup queue.` },
   });
 
   if (owner?.email) {

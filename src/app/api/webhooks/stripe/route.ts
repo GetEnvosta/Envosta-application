@@ -43,6 +43,12 @@ import {
   sitesPausedEmail,
 } from '@/lib/email';
 import { recordAudit } from '@/lib/audit';
+import { start } from 'workflow/api';
+import { provisionSite } from '@/app/workflows/provision-site';
+import { suspendSite } from '@/app/workflows/suspend-site';
+import { unsuspendSite } from '@/app/workflows/unsuspend-site';
+import { cancelSite } from '@/app/workflows/cancel-site';
+import { registerDomain } from '@/app/workflows/register-domain';
 
 /**
  * Parse the `addon_slugs` metadata field stamped on hosting
@@ -83,6 +89,11 @@ function getStripe(): Stripe {
 }
 
 // ─── Audit log helper ─────────────────────────────────────────
+//
+// Thin shim over recordAudit() so the many call sites in this file can stay
+// stable. Site-scoped events get resourceType='site' + the site id as
+// resourceId; the rare event without a siteId gets a generic 'webhook'
+// resource type. recordAudit() already swallows its own errors.
 
 async function logEvent(p: {
   userId?: string | null;
@@ -91,18 +102,17 @@ async function logEvent(p: {
   action: string;
   message?: string;
 }): Promise<void> {
-  try {
-    const supabase = sb();
-    await supabase.from('logs').insert({
-      user_id: p.userId ?? null,
-      site_id: p.siteId ?? null,
+  await recordAudit({
+    actorType: 'webhook',
+    actorId: p.userId ?? undefined,
+    action: p.action,
+    resourceType: p.siteId ? 'site' : 'webhook',
+    resourceId: p.siteId ?? undefined,
+    metadata: {
       level: p.level ?? 'info',
-      action: p.action,
-      message: p.message ?? null,
-    });
-  } catch (e) {
-    console.error('[stripe-webhook] log write failed:', e);
-  }
+      ...(p.message ? { details: p.message } : {}),
+    },
+  });
 }
 
 // ─── Internal route helpers ──────────────────────────────────
@@ -525,20 +535,37 @@ export async function POST(req: Request) {
 
             if (!existingDomain) {
               console.log('[stripe-webhook] auto-registering domain:', domainFromMeta);
-              const reg = await registerDomainViaOpenSrs({
-                userId: cust.id,
-                domainName: domainFromMeta,
-                years: 1,
-                siteId: svc.id,
-              });
-              if (reg.ok) {
+              // Registration runs as a Vercel Workflow so OpenSRS retries
+              // are durable. Inline fallback preserves the original path
+              // when the workflow runtime is unavailable.
+              let regOk = false;
+              try {
+                await start(registerDomain, [{
+                  userId: cust.id,
+                  domainName: domainFromMeta,
+                  registrationYears: 1,
+                  siteId: svc.id,
+                }]);
+                regOk = true;
+              } catch (e) {
+                console.error('[stripe-webhook] registerDomain workflow start failed, falling back to inline:', e);
+                const reg = await registerDomainViaOpenSrs({
+                  userId: cust.id,
+                  domainName: domainFromMeta,
+                  years: 1,
+                  siteId: svc.id,
+                });
+                regOk = reg.ok;
+                if (!reg.ok) {
+                  console.error('[stripe-webhook] domain registration failed:', domainFromMeta, reg.error);
+                }
+              }
+              if (regOk) {
                 await supabase
                   .from('domains')
                   .update({ site_id: svc.id, auto_renew: true })
                   .eq('domain_name', domainFromMeta)
                   .eq('user_id', cust.id);
-              } else {
-                console.error('[stripe-webhook] domain registration failed:', domainFromMeta, reg.error);
               }
             } else {
               await supabase.from('domains').update({ site_id: svc.id }).eq('id', existingDomain.id);
@@ -612,21 +639,36 @@ export async function POST(req: Request) {
           }
 
           // ── Idempotent wp.cloud provisioning ──
+          // Provisioning runs as a Vercel Workflow so the webhook returns
+          // 200 to Stripe immediately. The workflow checkpoints each step
+          // and retries durably — if wp.cloud is down we don't tie up
+          // Stripe's webhook retry budget waiting for it.
           if (!svc.wp_cloud_site_id) {
-            console.log('[stripe-webhook] auto-provisioning site:', svc.id);
-            const provRes = await provisionSiteViaInternal(req, {
-              siteId: svc.id,
-              serviceId: svc.id,
-              label: svc.label ?? `${name}-site`,
-              region: 'dca',
-              phpVersion: '8.4',
-              planId: primaryPlan?.id ?? null,
-              userId: cust.id,
-              ...(domainFromMeta && { domainName: domainFromMeta }),
-            });
-            console.log('[stripe-webhook] auto-provision result:', provRes.status);
-            if (!provRes.ok) {
-              console.error('[stripe-webhook] auto-provision failed (admin can retry):', provRes.data?.error);
+            console.log('[stripe-webhook] starting provisionSite workflow:', svc.id);
+            try {
+              await start(provisionSite, [{
+                siteId: svc.id,
+                userId: cust.id,
+                planSlug: primaryPlan?.slug ?? undefined,
+              }]);
+            } catch (e) {
+              // start() failures are infrastructure-level (workflow runtime
+              // misconfigured). Log loudly and fall back to inline fetch so
+              // provisioning still happens — admin can investigate later.
+              console.error('[stripe-webhook] workflow start failed, falling back to inline call:', e);
+              const provRes = await provisionSiteViaInternal(req, {
+                siteId: svc.id,
+                serviceId: svc.id,
+                label: svc.label ?? `${name}-site`,
+                region: 'dca',
+                phpVersion: '8.4',
+                planId: primaryPlan?.id ?? null,
+                userId: cust.id,
+                ...(domainFromMeta && { domainName: domainFromMeta }),
+              });
+              if (!provRes.ok) {
+                console.error('[stripe-webhook] fallback auto-provision failed:', provRes.data?.error);
+              }
             }
           } else {
             console.log('[stripe-webhook] site already provisioned, skipping:', svc.id, svc.wp_cloud_site_id);
@@ -655,19 +697,32 @@ export async function POST(req: Request) {
             const meta = (site.metadata as any) ?? {};
             if (site.status === 'cancelled' && meta.recovery_deadline) continue;
 
-            await supabase
-              .from('sites')
-              .update({
-                status: 'cancelled',
-                paused_at: new Date().toISOString(),
-                flag_reason: 'subscription_paused',
-                metadata: {
-                  ...meta,
-                  recovery_deadline: periodEndIso,
-                  cancelled_at: new Date().toISOString(),
-                },
-              })
-              .eq('id', site.id);
+            // Suspension runs as a Vercel Workflow so the webhook returns
+            // 200 to Stripe immediately. If the workflow runtime is
+            // unavailable, we fall back to the inline pause-cascade so a
+            // misconfigured runtime never strands a paused subscription.
+            try {
+              await start(suspendSite, [{
+                siteId: site.id,
+                reason: 'subscription_paused',
+                recoveryDeadlineIso: periodEndIso,
+              }]);
+            } catch (e) {
+              console.error('[stripe-webhook] suspendSite workflow start failed, falling back to inline:', e);
+              await supabase
+                .from('sites')
+                .update({
+                  status: 'cancelled',
+                  paused_at: new Date().toISOString(),
+                  flag_reason: 'subscription_paused',
+                  metadata: {
+                    ...meta,
+                    recovery_deadline: periodEndIso,
+                    cancelled_at: new Date().toISOString(),
+                  },
+                })
+                .eq('id', site.id);
+            }
 
             await logEvent({
               siteId: site.id,
@@ -683,7 +738,9 @@ export async function POST(req: Request) {
           }
           console.log(`[stripe-webhook] subscription paused: ${sub.id}, flagged ${flagged} site(s)`);
         } else if (sub.status === 'active' && !sub.pause_collection && itemIds.length > 0) {
-          // Resume → restore sites we flagged.
+          // Resume → restore sites we flagged. Use the unsuspendSite
+          // workflow with inline fallback for the same reliability story
+          // as the pause path above.
           const { data: flagged } = await supabase
             .from('sites')
             .select('id, label, metadata')
@@ -692,17 +749,22 @@ export async function POST(req: Request) {
             .eq('flag_reason', 'subscription_paused');
 
           for (const site of flagged ?? []) {
-            const meta = (site.metadata as any) ?? {};
-            const { recovery_deadline, cancelled_at, ...keptMeta } = meta;
-            await supabase
-              .from('sites')
-              .update({
-                status: 'active',
-                paused_at: null,
-                flag_reason: null,
-                metadata: { ...keptMeta, restored_at: new Date().toISOString() },
-              })
-              .eq('id', site.id);
+            try {
+              await start(unsuspendSite, [{ siteId: site.id }]);
+            } catch (e) {
+              console.error('[stripe-webhook] unsuspendSite workflow start failed, falling back to inline:', e);
+              const meta = (site.metadata as any) ?? {};
+              const { recovery_deadline, cancelled_at, ...keptMeta } = meta;
+              await supabase
+                .from('sites')
+                .update({
+                  status: 'active',
+                  paused_at: null,
+                  flag_reason: null,
+                  metadata: { ...keptMeta, restored_at: new Date().toISOString() },
+                })
+                .eq('id', site.id);
+            }
             await logEvent({ siteId: site.id, action: 'site.restored', message: `${site.label} restored after subscription resumed` });
           }
           if ((flagged ?? []).length > 0) {
@@ -811,43 +873,50 @@ export async function POST(req: Request) {
           console.warn('[stripe-webhook] domain_registration session missing user or domain', { sessionId: session.id, userId, domainName });
         } else {
           console.log('[stripe-webhook] registering paid domain:', domainName, 'for', userId);
-          // Reuse the internal OpenSRS register endpoint (preferred path
-          // — it already handles audit_log + opensrs_domains mirror).
-          const origin = internalOrigin(req);
-          let reg: { ok: boolean; error?: string } = { ok: false };
+          // Registration runs as a Vercel Workflow. Two fallbacks: the
+          // existing internal HTTP route, then the in-process helper.
+          let regOk = false;
           try {
-            const res = await fetch(`${origin}/api/internal/opensrs/register-domain`, {
-              method: 'POST',
-              headers: internalHeaders(),
-              body: JSON.stringify({ userId, domainName, years }),
-            });
-            const data = await res.json().catch(() => ({}));
-            reg = { ok: res.ok, error: data?.error };
+            await start(registerDomain, [{
+              userId,
+              domainName,
+              registrationYears: years,
+            }]);
+            regOk = true;
           } catch (e) {
-            reg = { ok: false, error: String(e) };
+            console.error('[stripe-webhook] registerDomain workflow start failed, falling back to internal route:', e);
+            const origin = internalOrigin(req);
+            let reg: { ok: boolean; error?: string } = { ok: false };
+            try {
+              const res = await fetch(`${origin}/api/internal/opensrs/register-domain`, {
+                method: 'POST',
+                headers: internalHeaders(),
+                body: JSON.stringify({ userId, domainName, years }),
+              });
+              const data = await res.json().catch(() => ({}));
+              reg = { ok: res.ok, error: data?.error };
+            } catch (fetchErr) {
+              reg = { ok: false, error: String(fetchErr) };
+            }
+            if (reg.ok) {
+              regOk = true;
+            } else {
+              console.warn('[stripe-webhook] internal register-domain failed, falling back to inline:', reg.error);
+              const fallback = await registerDomainViaOpenSrs({ userId, domainName, years });
+              regOk = fallback.ok;
+              if (!fallback.ok) {
+                console.error('[stripe-webhook] domain registration failed:', domainName, fallback.error);
+              }
+            }
           }
 
-          if (reg.ok) {
+          if (regOk) {
             // Stamp auto_renew=true so the daily cron picks it up.
             await supabase
               .from('domains')
               .update({ auto_renew: true })
               .eq('domain_name', domainName)
               .eq('user_id', userId);
-          } else {
-            // Internal route failure — fall back to the in-process helper
-            // so we still produce a domains row + opensrs_domains mirror.
-            console.warn('[stripe-webhook] internal register-domain failed, falling back to inline:', reg.error);
-            const fallback = await registerDomainViaOpenSrs({ userId, domainName, years });
-            if (fallback.ok) {
-              await supabase
-                .from('domains')
-                .update({ auto_renew: true })
-                .eq('domain_name', domainName)
-                .eq('user_id', userId);
-            } else {
-              console.error('[stripe-webhook] domain registration failed:', domainName, fallback.error);
-            }
           }
         }
       }
@@ -880,14 +949,25 @@ export async function POST(req: Request) {
           .in('status', ['active', 'provisioning']);
 
         for (const site of sites ?? []) {
-          await supabase
-            .from('sites')
-            .update({
-              status: 'paused',
-              paused_at: new Date().toISOString(),
-              flag_reason: 'subscription_cancelled_via_stripe',
-            })
-            .eq('id', site.id);
+          // Cancellation runs as a Vercel Workflow with an inline fallback
+          // so the cascade survives even if the workflow runtime is down.
+          try {
+            await start(cancelSite, [{ siteId: site.id, reason: 'subscription_cancelled_via_stripe' }]);
+          } catch (e) {
+            console.error('[stripe-webhook] cancelSite workflow start failed, falling back to inline:', e);
+            // Match the workflow: status='cancelled' + flagged_for_deletion_at
+            // so the admin review queue picks this up (delete-expired-sites
+            // cron requires recovery_deadline, which we don't set here — admin
+            // makes the deletion call for explicit Stripe-portal cancellations).
+            await supabase
+              .from('sites')
+              .update({
+                status: 'cancelled',
+                flagged_for_deletion_at: new Date().toISOString(),
+                flag_reason: 'subscription_cancelled_via_stripe',
+              })
+              .eq('id', site.id);
+          }
 
           await logEvent({
             siteId: site.id,

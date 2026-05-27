@@ -49,6 +49,7 @@ import { verifyInternalToken } from '@/lib/internal-auth';
 import { createWpCloudClient, WpCloudError } from '@/lib/integrations/wpcloud';
 import { createOpenSrsClient, buildWpCloudDnsRecords } from '@/lib/integrations/opensrs';
 import { recordAudit } from '@/lib/audit';
+import { recordApiCall } from '@/lib/api-call-logger';
 import { sendEmail, siteReadyEmail, provisioningFailedEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
@@ -101,9 +102,19 @@ function siteLabelFromInput(label: string | null | undefined): string {
   return raw || 'site';
 }
 
+/**
+ * Provision-site touches a chain of wp.cloud calls (create-site, install
+ * theme + plugins, manage-software, get-site-ip) and each step is worth
+ * preserving in the api_calls telemetry table along with request payload,
+ * response payload, and elapsed milliseconds. We funnel every internal
+ * log() call through recordApiCall() — the `action` becomes the path,
+ * `message` rides in request_payload alongside the supplied `req` (when
+ * present) so non-API events (state changes recorded mid-flow) still leave
+ * a breadcrumb. recordApiCall() never throws.
+ */
 async function recordLog(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sb: any,
+  _sb: any,
   p: {
     userId?: string | null;
     siteId?: string | null;
@@ -115,20 +126,23 @@ async function recordLog(
     ms?: number;
   },
 ): Promise<void> {
-  try {
-    await sb.from('logs').insert({
-      user_id: p.userId ?? null,
-      site_id: p.siteId ?? null,
+  await recordApiCall({
+    provider: 'wpcloud',
+    method: 'POST',
+    path: p.action,
+    requestPayload: {
+      userId: p.userId ?? null,
+      siteId: p.siteId ?? null,
       level: p.level ?? 'info',
-      action: p.action,
       message: p.message ?? null,
-      request_payload: p.req ?? null,
-      response_payload: p.res ?? null,
-      duration_ms: p.ms ?? null,
-    });
-  } catch (e) {
-    console.error('[provision-site] log write failed (non-fatal):', e);
-  }
+      ...(p.req != null ? { req: p.req } : {}),
+    },
+    responsePayload: p.res ?? null,
+    durationMs: p.ms ?? undefined,
+    ...(p.level === 'error'
+      ? { error: { message: p.message ?? null } }
+      : {}),
+  });
 }
 
 export async function POST(req: Request) {

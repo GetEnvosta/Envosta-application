@@ -2,7 +2,7 @@
 
 import {
   Globe, Globe2, CreditCard, Mail, MessageCircle,
-  Settings, Shield, LayoutDashboard, Building2,
+  Settings, Shield, LayoutDashboard,
 } from 'lucide-react';
 import { isStaffRole } from '@/lib/roles';
 import { LayoutShell, ShellAvatarDropdown, type NavItem } from './layout-shell';
@@ -16,7 +16,6 @@ interface DashboardUser {
 
 const nav: NavItem[] = [
   { name: 'Overview', href: '/dashboard',          icon: LayoutDashboard },
-  { name: 'Business', href: '/dashboard/business', icon: Building2 },
   { name: 'Sites',    href: '/dashboard/sites',    icon: Globe },
   { name: 'Domains',  href: '/dashboard/domains',  icon: Globe2 },
   { name: 'Email',    href: '/dashboard/email',    icon: Mail },

@@ -1,13 +1,16 @@
 /**
  * /admin/audit — Phase 8 observability dashboard.
  *
- * Five tabs over the orchestration tables, selected by a `?tab=`
+ * Four tabs over the orchestration tables, selected by a `?tab=`
  * searchparam (single page, server-rendered, no client tab state):
  *   api       — outbound api_calls
  *   webhooks  — inbound webhook_events
  *   sync      — sync_runs + unresolved sync_drift (with resolve action)
- *   jobs      — jobs + job status summary
  *   audit     — audit_log
+ *
+ * Vercel Workflows handles its own workflow run observability via
+ * `npx workflow web`; the legacy `jobs` / `job_attempts` tables were
+ * removed in migration 20260526000002.
  *
  * All reads go through src/services/mirrors.ts which uses a service-role
  * client (these tables are RLS-locked). The page itself gates on
@@ -17,7 +20,7 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Activity, Webhook, RefreshCw, ListChecks, ScrollText, Search } from 'lucide-react';
+import { Activity, Webhook, RefreshCw, ScrollText, Search } from 'lucide-react';
 import { getCurrentUser, getUserProfile } from '@/services/auth';
 import { formatDateTime } from '@/lib/utils';
 import { ResolveDriftButton } from '@/components/admin/resolve-drift-button';
@@ -26,8 +29,6 @@ import {
   getRecentWebhookEvents,
   getSyncRunsSvc,
   getSyncDriftSvc,
-  getJobStats,
-  getRecentJobs,
   getAuditLog,
 } from '@/services/mirrors';
 
@@ -37,7 +38,6 @@ const TABS = [
   { id: 'api', label: 'API Calls', icon: Activity },
   { id: 'webhooks', label: 'Webhooks', icon: Webhook },
   { id: 'sync', label: 'Sync & Drift', icon: RefreshCw },
-  { id: 'jobs', label: 'Jobs', icon: ListChecks },
   { id: 'audit', label: 'Audit Log', icon: ScrollText },
 ] as const;
 
@@ -116,7 +116,6 @@ export default async function AuditPage({
       {tab === 'api' && <ApiCallsTab sp={sp} />}
       {tab === 'webhooks' && <WebhooksTab sp={sp} />}
       {tab === 'sync' && <SyncTab sp={sp} />}
-      {tab === 'jobs' && <JobsTab sp={sp} />}
       {tab === 'audit' && <AuditLogTab sp={sp} />}
     </div>
   );
@@ -374,85 +373,7 @@ async function SyncTab({ sp }: { sp: SP }) {
   );
 }
 
-// ── Tab 4 — Jobs ────────────────────────────────────────────────────────
-async function JobsTab({ sp }: { sp: SP }) {
-  const [stats, jobs] = await Promise.all([
-    getJobStats(),
-    getRecentJobs({ status: sp.status }),
-  ]);
-
-  const cards: { label: string; key: string; color: string }[] = [
-    { label: 'Pending', key: 'pending', color: 'text-gray-600' },
-    { label: 'Running', key: 'running', color: 'text-blue-600' },
-    { label: 'Completed', key: 'completed', color: 'text-emerald-600' },
-    { label: 'Failed', key: 'failed', color: 'text-amber-600' },
-    { label: 'Dead Letter', key: 'dead_letter', color: 'text-red-600' },
-  ];
-
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        {cards.map((c) => (
-          <div key={c.key} className="card p-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{c.label}</p>
-            <p className={`text-2xl font-semibold mt-1 ${c.color}`}>{stats[c.key] ?? 0}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="card overflow-hidden">
-        <form method="GET" className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 flex flex-wrap gap-3">
-          <input type="hidden" name="tab" value="jobs" />
-          <select name="status" defaultValue={sp.status ?? ''} className="input w-auto">
-            <option value="">All statuses</option>
-            {['pending', 'running', 'completed', 'failed', 'dead_letter', 'cancelled'].map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-          <button type="submit" className="btn-admin">Filter</button>
-        </form>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-left">
-                <th className={TH}>Type</th>
-                <th className={TH}>Status</th>
-                <th className={TH}>Created</th>
-                <th className={TH}>Started</th>
-                <th className={TH}>Completed</th>
-                <th className={TH}>Error</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {jobs.length === 0 ? (
-                <EmptyRow cols={6} label="No jobs yet." />
-              ) : (
-                jobs.map((j: any) => (
-                  <tr key={j.id} className="hover:bg-gray-50">
-                    <td className={`${TD} font-mono text-xs`}>{j.type}</td>
-                    <td className={TD}>
-                      <span className={
-                        j.status === 'completed' ? 'badge-green'
-                        : j.status === 'failed' || j.status === 'dead_letter' ? 'badge-red'
-                        : j.status === 'running' ? 'badge-blue' : 'badge-gray'
-                      }>{j.status}</span>
-                    </td>
-                    <td className={`${TD} whitespace-nowrap text-xs text-gray-400`}>{formatDateTime(j.created_at)}</td>
-                    <td className={`${TD} whitespace-nowrap text-xs text-gray-400`}>{formatDateTime(j.started_at)}</td>
-                    <td className={`${TD} whitespace-nowrap text-xs text-gray-400`}>{formatDateTime(j.completed_at)}</td>
-                    <td className={`${TD} text-xs text-red-500`}>{j.error ? truncate(j.error, 50) : '—'}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Tab 5 — Audit Log ───────────────────────────────────────────────────
+// ── Tab 4 — Audit Log ───────────────────────────────────────────────────
 async function AuditLogTab({ sp }: { sp: SP }) {
   const rows = await getAuditLog({
     resourceType: sp.resourceType,

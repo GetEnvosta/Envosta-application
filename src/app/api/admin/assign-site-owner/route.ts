@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { createClient } from '@supabase/supabase-js';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,13 +20,19 @@ export async function POST(req: Request) {
 
   await sb.from('sites').update({ user_id: userId ?? null, updated_at: new Date().toISOString() }).eq('id', siteId);
 
-  await sb.from('logs').insert({
-    user_id: user.id,
-    site_id: siteId,
+  await recordAudit({
+    actorId: user.id,
+    actorType: 'admin',
     action: 'admin.site_owner_changed',
-    details: userId ? `Site assigned to user ${userId}` : 'Site owner removed (orphaned)',
-    level: 'info',
-    metadata: { new_owner: userId, changed_by: user.id },
+    resourceType: 'site',
+    resourceId: siteId,
+    after: { user_id: userId ?? null },
+    metadata: {
+      level: 'info',
+      details: userId ? `Site assigned to user ${userId}` : 'Site owner removed (orphaned)',
+      new_owner: userId,
+      changed_by: user.id,
+    },
   });
 
   return NextResponse.json({ success: true });

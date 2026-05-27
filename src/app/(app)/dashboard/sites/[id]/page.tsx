@@ -16,6 +16,7 @@ import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-swi
 import { SiteAccess } from '@/components/sites/site-access';
 import { SiteIp } from '@/components/sites/site-ip';
 import { SiteGuardrails } from '@/components/sites/site-guardrails';
+import { SiteAddons } from '@/components/sites/site-addons';
 import { createClient } from '@/lib/supabase-server';
 
 
@@ -154,6 +155,15 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
               <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Performance</h3>
             </div>
             <SitePerformance siteId={id} domain={siteDomain} />
+          </div>
+
+          {/* Add-ons */}
+          <div className="pt-5 border-t border-gray-100">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-3.5 h-3.5 text-purple-500" />
+              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Add-ons</h3>
+            </div>
+            <SiteAddons siteId={id} userId={userId} />
           </div>
 
           {/* SSL */}

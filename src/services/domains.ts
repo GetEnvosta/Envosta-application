@@ -72,6 +72,33 @@ export async function getRegisteredDomainsCount() {
 }
 
 /**
+ * DNS records for a specific domain, read from the canonical
+ * opensrs_dns_records mirror table. Replaces reading from the
+ * domains.metadata.dns_records JSONB cache (which can lag behind
+ * upstream-discovered records that the reconcile-opensrs cron writes).
+ *
+ * Returned in the shape the DnsManager component's mapper expects
+ * ({type, name, value, priority, ttl}) — the mapper falls back through
+ * `value` when type-specific fields aren't present.
+ */
+export async function getDnsRecordsByDomainId(domainId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('opensrs_dns_records')
+    .select('record_type, name, value, priority, ttl, source, upstream_status')
+    .eq('domain_id', domainId)
+    .order('record_type', { ascending: true });
+
+  return (data ?? []).map((r: any) => ({
+    type: r.record_type,
+    name: r.name,
+    value: r.value,
+    priority: r.priority,
+    ttl: r.ttl ?? 3600,
+  }));
+}
+
+/**
  * Admin: all domains with user join and optional filters.
  */
 export async function getAllDomains(filters?: { q?: string; status?: string }) {

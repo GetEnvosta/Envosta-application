@@ -72,12 +72,19 @@ export function DnsManager({ domainId, domainName, initialRecords, siteId, initi
     });
   }, [siteId]);
 
-  // DNS records state
+  // DNS records state.
+  // The mapper handles two shapes:
+  //   (a) OpenSRS API shape: { type, subdomain, ip_address|ipv6_address|hostname|text, ... }
+  //       — used when records come from set-dns response or metadata.dns_records JSONB
+  //   (b) Canonical table shape: { type, name, value, ... }
+  //       — used when records come from opensrs_dns_records table
+  // The final `.value` fallback handles shape (b) once the per-type
+  // fields don't match.
   const storedRecords: DnsRecord[] = (initialRecords ?? []).map((r: any, i: number) => ({
     id: String(i),
     type: r.type ?? 'A',
-    name: r.subdomain === '' ? '@' : r.subdomain ?? '@',
-    value: r.ip_address ?? r.ipv6_address ?? r.hostname ?? r.text ?? '',
+    name: r.subdomain === '' ? '@' : (r.subdomain ?? r.name ?? '@'),
+    value: r.ip_address ?? r.ipv6_address ?? r.hostname ?? r.text ?? r.value ?? '',
     priority: r.priority,
     ttl: r.ttl ?? 3600,
   }));

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { start } from 'workflow/api';
+import { provisionSite } from '@/app/workflows/provision-site';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -7,10 +9,11 @@ export const maxDuration = 300;
 /**
  * GET /api/cron/retry-stuck-provisions
  *
- * Scheduled sweep that re-fires wp.cloud provisioning for sites stuck in
- * status='provisioning' with no wp_cloud_site_id. The original
- * provision-hosting call from the Stripe webhook is fire-and-forget, so
- * transient wp.cloud errors leave sites permanently stuck without this.
+ * Scheduled sweep that re-fires the provisionSite workflow for sites
+ * stuck in status='provisioning' with no wp_cloud_site_id. The
+ * provisionSite workflow has its own step-level retry semantics; this
+ * cron's job is to spot sites where the workflow died entirely (Vercel
+ * runtime error, dead-letter, etc.) and re-fire it.
  *
  * ── Loop protection ──────────────────────────────────────────────────
  * Three layers prevent runaway retries:
@@ -101,44 +104,58 @@ export async function GET(req: Request) {
       },
     }).eq('id', site.id);
 
+    // Re-fire the provisionSite workflow. start() is fire-and-forget; the
+    // workflow handles its own step retries. If start() throws, the
+    // workflow runtime is misconfigured — fall back to inline fetch so
+    // stuck sites still get retried.
     try {
-      const origin = process.env.NEXT_PUBLIC_APP_URL
-        ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
-        : new URL(req.url).origin;
-      const provRes = await fetch(
-        `${origin}/api/internal/wpcloud/provision-site`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
-          },
-          body: JSON.stringify({
-            siteId: site.id,
-            serviceId: site.id,
-            label: site.label || 'site',
-            region: site.server_region || 'dca',
-            phpVersion: (site.metadata as any)?.php_version || '8.4',
-            planId: site.product_id,
-            userId: site.user_id,
-          }),
+      await start(provisionSite, [{
+        siteId: site.id,
+        userId: site.user_id,
+        planSlug: undefined, // not available from sites row; workflow derives from siteId
+      }]);
+      results.push({ siteId: site.id, status: 'retried', attempts });
+    } catch (workflowErr: any) {
+      console.error('[retry-stuck-provisions] workflow start failed, falling back to inline:', site.id, workflowErr);
+      try {
+        const origin = process.env.NEXT_PUBLIC_APP_URL
+          ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
+          : new URL(req.url).origin;
+        const provRes = await fetch(
+          `${origin}/api/internal/wpcloud/provision-site`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
+            },
+            body: JSON.stringify({
+              siteId: site.id,
+              serviceId: site.id,
+              label: site.label || 'site',
+              region: site.server_region || 'dca',
+              phpVersion: (site.metadata as any)?.php_version || '8.4',
+              planId: site.product_id,
+              userId: site.user_id,
+            }),
+          }
+        );
+        const provData = await provRes.json().catch(() => ({}));
+        if (provRes.ok) {
+          results.push({ siteId: site.id, status: 'retried_inline', attempts });
+        } else {
+          results.push({ siteId: site.id, status: 'failed', attempts, error: provData?.error || `HTTP ${provRes.status}` });
         }
-      );
-      const provData = await provRes.json().catch(() => ({}));
-
-      if (provRes.ok) {
-        results.push({ siteId: site.id, status: 'retried', attempts });
-        // Clear giving_up flag if we somehow recovered after marking it.
-        if (givingUp) {
-          await sb.from('sites').update({
-            metadata: { ...meta, provision_attempts: attempts, provision_giving_up: false, provision_last_attempt_at: new Date().toISOString() },
-          }).eq('id', site.id);
-        }
-      } else {
-        results.push({ siteId: site.id, status: 'failed', attempts, error: provData?.error || `HTTP ${provRes.status}` });
+      } catch (fetchErr: any) {
+        results.push({ siteId: site.id, status: 'failed', attempts, error: fetchErr?.message || String(fetchErr) });
       }
-    } catch (e: any) {
-      results.push({ siteId: site.id, status: 'failed', attempts, error: e?.message || String(e) });
+    }
+
+    // Clear giving_up flag if we somehow recovered after marking it.
+    if (givingUp && results[results.length - 1]?.status?.startsWith('retried')) {
+      await sb.from('sites').update({
+        metadata: { ...meta, provision_attempts: attempts, provision_giving_up: false, provision_last_attempt_at: new Date().toISOString() },
+      }).eq('id', site.id);
     }
   }
 

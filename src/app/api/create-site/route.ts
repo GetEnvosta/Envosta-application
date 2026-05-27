@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
 import { findHostingSubscription, addSiteLineItem, resolvePlanPrice, resumeSubscription } from '@/lib/stripe-subscription';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -161,13 +162,19 @@ export async function POST(req: Request) {
           }),
         });
 
-        await supabase.from('logs').insert({
-          user_id: user.id,
-          site_id: site.id,
+        await recordAudit({
+          actorId: user.id,
+          actorType: 'user',
           action: 'site.created',
-          details: `New subscription + site "${siteLabel}" on ${plan.planName} plan`,
-          level: 'info',
-          metadata: { plan: selectedPlan, provisioned: provRes.ok, new_subscription: true },
+          resourceType: 'site',
+          resourceId: site.id,
+          metadata: {
+            level: 'info',
+            details: `New subscription + site "${siteLabel}" on ${plan.planName} plan`,
+            plan: selectedPlan,
+            provisioned: provRes.ok,
+            new_subscription: true,
+          },
         });
 
         return NextResponse.json({
@@ -266,13 +273,18 @@ export async function POST(req: Request) {
       }),
     });
 
-    await supabase.from('logs').insert({
-      user_id: user.id,
-      site_id: site.id,
+    await recordAudit({
+      actorId: user.id,
+      actorType: 'user',
       action: 'site.created',
-      details: `Added site "${siteLabel}" on ${plan.planName} plan`,
-      level: 'info',
-      metadata: { plan: selectedPlan, provisioned: provRes.ok },
+      resourceType: 'site',
+      resourceId: site.id,
+      metadata: {
+        level: 'info',
+        details: `Added site "${siteLabel}" on ${plan.planName} plan`,
+        plan: selectedPlan,
+        provisioned: provRes.ok,
+      },
     });
 
     return NextResponse.json({

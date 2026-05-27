@@ -35,6 +35,8 @@ import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { createOpenSrsClient } from '@/lib/integrations/opensrs';
 import { sendEmail, paymentFailedEmail } from '@/lib/email';
+import { start } from 'workflow/api';
+import { renewDomain } from '@/app/workflows/renew-domain';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -122,6 +124,13 @@ export async function GET(req: Request) {
   }
 
   const outcomes: RenewalOutcome[] = [];
+  // Per-day cyclePin so the workflow's Stripe idempotency key is stable
+  // across any retry within the same UTC day, distinct from the next
+  // day's sweep. Domain renewals are once-per-year — within-day
+  // idempotency is plenty, and prevents double-charge if the cron fires
+  // twice within seconds (Vercel never has, but cheap belt-and-suspenders).
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const cyclePin = `cycle-${today}`;
 
   for (const dom of dueDomains ?? []) {
     const meta = (dom.metadata as any) ?? {};
@@ -146,6 +155,24 @@ export async function GET(req: Request) {
       })
       .eq('id', dom.id);
 
+    // Renewal runs as a Vercel Workflow (durable charge → renew →
+    // mirror chain). On workflow runtime failure we fall through to the
+    // legacy inline implementation below.
+    let workflowStarted = false;
+    try {
+      await start(renewDomain, [{
+        domainId: dom.id,
+        invoiceId: cyclePin,
+        years: 1,
+      }]);
+      workflowStarted = true;
+      outcomes.push({ domainId: dom.id, domainName: dom.domain_name, status: 'renewed', message: 'workflow dispatched' });
+      continue;
+    } catch (e) {
+      console.error('[domain-renewals] renewDomain workflow start failed, falling back to inline:', dom.domain_name, e);
+    }
+
+    void workflowStarted;
     try {
       // 1. Resolve user + Stripe customer.
       const { data: user } = await supabase

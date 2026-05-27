@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,8 +48,9 @@ export async function GET(req: Request) {
       }
       await sb.from('tickets').delete().eq('user_id', user.id);
 
-      // Delete logs
-      await sb.from('logs').delete().eq('user_id', user.id);
+      // Note: audit_log rows reference actor_id but are intentionally
+      // RETAINED on user deletion — they're an immutable audit trail.
+      // (The old `logs` table used to be wiped here; that table is gone.)
 
       // Delete user profile
       await sb.from('users').delete().eq('id', user.id);
@@ -57,11 +59,17 @@ export async function GET(req: Request) {
       await sb.auth.admin.deleteUser(user.id);
 
       // Log the cleanup (to a general log since user is deleted)
-      await sb.from('logs').insert({
+      await recordAudit({
+        actorType: 'system',
         action: 'account.unclaimed_expired',
-        details: `Unclaimed account deleted: ${user.full_name} (${user.email})`,
-        level: 'info',
-        metadata: { deleted_user_id: user.id, email: user.email },
+        resourceType: 'user',
+        resourceId: user.id,
+        metadata: {
+          level: 'info',
+          details: `Unclaimed account deleted: ${user.full_name} (${user.email})`,
+          deleted_user_id: user.id,
+          email: user.email,
+        },
       });
 
       cleaned++;

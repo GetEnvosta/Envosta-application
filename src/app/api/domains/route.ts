@@ -26,6 +26,21 @@ export async function PUT(req: Request) {
   );
 
   if (action === 'disconnect') {
+    // Ownership check: only the owner (or admin) can disconnect a domain.
+    const { data: existing } = await sb
+      .from('domains')
+      .select('user_id')
+      .eq('id', domainId)
+      .maybeSingle();
+    if (!existing) return NextResponse.json({ error: 'Domain not found' }, { status: 404 });
+
+    if (existing.user_id !== user.id) {
+      const { data: profile } = await sb.from('users').select('role').eq('id', user.id).maybeSingle();
+      if (profile?.role !== 'admin') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+
     const { error } = await sb
       .from('domains')
       .update({ site_id: null })
@@ -66,6 +81,53 @@ function internalOrigin(req: Request): string {
   const env = process.env.NEXT_PUBLIC_APP_URL;
   if (env && env.length > 0) return env.replace(/\/$/, '');
   return new URL(req.url).origin;
+}
+
+/**
+ * Verify the authenticated user owns the domain by name, with admin
+ * override. Returns null if authorized; returns a NextResponse with the
+ * appropriate error status if not.
+ *
+ * Without this check, any authenticated customer can mutate any other
+ * customer's domain by passing an arbitrary domainName to /api/domains.
+ * The internal route (/api/internal/opensrs/set-dns) only verifies the
+ * X-Internal-Token header — it trusts the caller for ownership.
+ */
+async function authzDomainOwnership(
+  userId: string,
+  domainName: string,
+): Promise<NextResponse | null> {
+  const sb = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SECRET_KEY!,
+    { auth: { persistSession: false } },
+  );
+
+  const { data: domain } = await sb
+    .from('domains')
+    .select('user_id')
+    .eq('domain_name', domainName)
+    .maybeSingle();
+
+  if (!domain) {
+    return NextResponse.json({ error: 'Domain not found' }, { status: 404 });
+  }
+  if (domain.user_id === userId) {
+    return null; // owner — allowed
+  }
+
+  // Admin override — staff can mutate any domain.
+  const { data: profile } = await sb
+    .from('users')
+    .select('role')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (profile?.role === 'admin') {
+    return null; // admin — allowed
+  }
+
+  return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 }
 
 export async function POST(req: Request) {
@@ -143,6 +205,9 @@ export async function POST(req: Request) {
     if (!body.domainName || !body.siteIp) {
       return NextResponse.json({ error: 'domainName and siteIp are required' }, { status: 400 });
     }
+    const denied = await authzDomainOwnership(user.id, body.domainName);
+    if (denied) return denied;
+
     const res = await fetch(`${origin}/api/internal/opensrs/set-dns`, {
       method: 'POST',
       headers: internalHeaders,
@@ -173,6 +238,9 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
+    const denied = await authzDomainOwnership(user.id, body.domainName);
+    if (denied) return denied;
+
     const res = await fetch(`${origin}/api/internal/opensrs/set-dns`, {
       method: 'POST',
       headers: internalHeaders,

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -120,17 +121,21 @@ export async function GET(req: Request) {
         await sb.from('ticket_messages').delete().eq('ticket_id', t.id);
       }
       await sb.from('tickets').delete().eq('user_id', user.id);
-      await sb.from('logs').delete().eq('user_id', user.id);
+      // audit_log rows retained as immutable audit trail (legacy `logs`
+      // table is dropped — used to be wiped here).
 
       await sb.from('users').delete().eq('id', user.id);
       await sb.auth.admin.deleteUser(user.id);
 
       // Audit log (no user_id — they're gone).
-      await sb.from('logs').insert({
+      await recordAudit({
+        actorType: 'system',
         action: 'account.abandoned_signup_purged',
-        details: `Abandoned signup deleted: ${user.full_name ?? '(no name)'} (${user.email}) — never converted`,
-        level: 'info',
+        resourceType: 'user',
+        resourceId: user.id,
         metadata: {
+          level: 'info',
+          details: `Abandoned signup deleted: ${user.full_name ?? '(no name)'} (${user.email}) — never converted`,
           deleted_user_id: user.id,
           email: user.email,
           last_signup_status: (user.metadata as any)?.signup_status,

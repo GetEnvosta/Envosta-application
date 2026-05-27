@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 
 type Action = 'flag' | 'unflag' | 'delete';
 
-export function CleanupActions({ siteId, status, label }: { siteId: string; status: string; label: string }) {
+export function CleanupActions({ siteId, status, label, isFlagged }: { siteId: string; status: string; label: string; isFlagged?: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState<Action | null>(null);
   const [error, setError] = useState('');
@@ -34,12 +34,16 @@ export function CleanupActions({ siteId, status, label }: { siteId: string; stat
     }
   }
 
-  const isFlagged = status === 'flagged_for_deletion';
+  // Parent passes isFlagged (computed from both legacy
+  // status='flagged_for_deletion' and the new workflow path
+  // status='cancelled' + flagged_for_deletion_at). Fall back to the
+  // legacy check for any caller that hasn't been updated yet.
+  const flagged = isFlagged ?? (status === 'flagged_for_deletion');
 
   return (
     <div className="inline-flex items-center gap-2">
       {error && <span className="text-xs text-red-600 mr-2">{error}</span>}
-      {isFlagged ? (
+      {flagged ? (
         <>
           <button
             onClick={() => run('unflag', `Move "${label}" back to paused?`)}

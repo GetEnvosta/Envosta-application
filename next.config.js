@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const { withWorkflow } = require('workflow/next');
+
 const nextConfig = {
   images: {
     remotePatterns: [
@@ -14,4 +16,8 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// withWorkflow() enables the `'use workflow'` and `'use step'` directives
+// for Vercel Workflows SDK. Required for any file in src/app/workflows/.
+// Without this wrapper, workflow files fall through as plain functions
+// and `start()` from `workflow/api` will throw at runtime.
+module.exports = withWorkflow(nextConfig);

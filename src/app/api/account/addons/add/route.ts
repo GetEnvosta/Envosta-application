@@ -24,6 +24,7 @@ import { createClient as createServerClient } from '@/lib/supabase-server';
 import { createClient } from '@supabase/supabase-js';
 import { getAccountSubscription } from '@/services/billing';
 import { recordAudit } from '@/lib/audit';
+import { applySiteAddonEffects } from '@/lib/addon-effects';
 
 export const dynamic = 'force-dynamic';
 
@@ -186,9 +187,16 @@ export async function POST(req: Request) {
     },
   });
 
+  // Apply any resource effects declared in the addon's metadata.effects
+  // (e.g. Power Pack → php_workers: 4). This pushes the new computed
+  // config to wp.cloud and updates the local sites row. Failure is
+  // audited but never propagated — reconcile-wpcloud catches drift.
+  const appliedConfig = await applySiteAddonEffects(siteId, user.id);
+
   return NextResponse.json({
     ok: true,
     site_addon_id: upserted.id,
     stripe_subscription_item_id: stripeItemId,
+    applied_config: appliedConfig,
   });
 }

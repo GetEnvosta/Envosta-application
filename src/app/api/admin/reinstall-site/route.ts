@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,12 +103,19 @@ export async function POST(req: Request) {
     }
 
     // Log the action
-    await sb.from('logs').insert({
-      user_id: user.id,
-      site_id: siteId,
+    await recordAudit({
+      actorId: user.id,
+      actorType: 'admin',
       action: 'site.reinstall',
-      level: 'info',
-      message: `Fresh WordPress install deployed. Previous wp.cloud ID: ${site.wp_cloud_site_id}`,
+      resourceType: 'site',
+      resourceId: siteId,
+      before: { wp_cloud_site_id: site.wp_cloud_site_id },
+      after: { wp_cloud_site_id: null, status: 'provisioning' },
+      metadata: {
+        level: 'info',
+        details: `Fresh WordPress install deployed. Previous wp.cloud ID: ${site.wp_cloud_site_id}`,
+        previous_wp_cloud_site_id: site.wp_cloud_site_id,
+      },
     });
 
     return NextResponse.json({

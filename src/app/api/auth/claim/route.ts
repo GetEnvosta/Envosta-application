@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,11 +48,18 @@ export async function POST(req: Request) {
   }).eq('id', user.id);
 
   // Log it
-  await sb.from('logs').insert({
-    user_id: user.id,
+  await recordAudit({
+    actorId: user.id,
+    actorType: 'user',
     action: 'account.claimed',
-    details: `Account claimed by ${user.full_name} (${user.email})`,
-    level: 'info',
+    resourceType: 'user',
+    resourceId: user.id,
+    metadata: {
+      level: 'info',
+      details: `Account claimed by ${user.full_name} (${user.email})`,
+      email: user.email,
+      full_name: user.full_name,
+    },
   });
 
   const meta = (user.metadata as any) ?? {};

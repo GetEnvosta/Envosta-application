@@ -1,5 +1,5 @@
 import { getEffectiveUserId } from '@/services/auth';
-import { getDomainById } from '@/services/domains';
+import { getDomainById, getDnsRecordsByDomainId } from '@/services/domains';
 import { getUserServicesList } from '@/services/sites';
 import { formatDate, statusColor } from '@/lib/utils';
 import Link from 'next/link';
@@ -19,6 +19,9 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
   ]);
 
   if (!domain) redirect('/dashboard/domains');
+
+  // Read DNS from canonical mirror table (was: meta.dns_records JSONB cache)
+  const dnsRecords = await getDnsRecordsByDomainId(domain.id);
 
   const meta = (domain.metadata as any) ?? {};
   const connectedSite = domain.site_id
@@ -80,7 +83,7 @@ export default async function DomainDetailPage({ params }: { params: Promise<{ i
         <DnsManager
           domainId={domain.id}
           domainName={domain.domain_name}
-          initialRecords={meta.dns_records}
+          initialRecords={dnsRecords}
           siteId={domain.site_id}
           initialDnsMode={meta.dns_mode}
           currentNameservers={Array.isArray(meta.nameservers) ? meta.nameservers : []}

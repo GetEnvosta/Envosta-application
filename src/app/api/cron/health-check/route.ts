@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -124,11 +125,17 @@ export async function GET(req: Request) {
 
       // Log issues
       if (orphanedInWpCloud.length > 0 || missingFromWpCloud.length > 0 || unlinked.length > 0) {
-        await sb.from('logs').insert({
+        await recordAudit({
+          actorType: 'system',
           action: 'health.site_sync',
-          details: `Site sync: ${orphanedInWpCloud.length} orphaned in wp.cloud, ${missingFromWpCloud.length} missing from wp.cloud, ${unlinked.length} unlinked`,
-          level: orphanedInWpCloud.length > 0 || missingFromWpCloud.length > 0 ? 'warn' : 'info',
-          metadata: { orphanedInWpCloud, missingFromWpCloud, unlinked },
+          resourceType: 'system',
+          metadata: {
+            level: orphanedInWpCloud.length > 0 || missingFromWpCloud.length > 0 ? 'warn' : 'info',
+            details: `Site sync: ${orphanedInWpCloud.length} orphaned in wp.cloud, ${missingFromWpCloud.length} missing from wp.cloud, ${unlinked.length} unlinked`,
+            orphanedInWpCloud,
+            missingFromWpCloud,
+            unlinked,
+          },
         });
 
         // Email admin if issues found

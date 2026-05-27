@@ -37,6 +37,7 @@ import Stripe from 'stripe';
 import { verifyInternalToken } from '@/lib/internal-auth';
 import { createWpCloudClient, WpCloudError } from '@/lib/integrations/wpcloud';
 import { recordAudit } from '@/lib/audit';
+import { recordApiCall } from '@/lib/api-call-logger';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -66,9 +67,16 @@ function sb() {
   );
 }
 
+/**
+ * Funnel every internal log() call through recordApiCall() so the api_calls
+ * table is the single source of truth for wp.cloud invocations driven from
+ * this route. The action becomes the path, and the user/site/message ride
+ * in request_payload so we don't lose context that doesn't map cleanly
+ * onto an HTTP request shape. recordApiCall() never throws.
+ */
 async function recordLog(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  client: any,
+  _client: any,
   p: {
     userId?: string | null;
     siteId?: string | null;
@@ -78,18 +86,21 @@ async function recordLog(
     res?: unknown;
   },
 ): Promise<void> {
-  try {
-    await client.from('logs').insert({
-      user_id: p.userId ?? null,
-      site_id: p.siteId ?? null,
+  await recordApiCall({
+    provider: 'wpcloud',
+    method: 'POST',
+    path: p.action,
+    requestPayload: {
+      userId: p.userId ?? null,
+      siteId: p.siteId ?? null,
       level: p.level ?? 'info',
-      action: p.action,
       message: p.message ?? null,
-      response_payload: p.res ?? null,
-    });
-  } catch (e) {
-    console.error('[site-info] log write failed (non-fatal):', e);
-  }
+    },
+    responsePayload: p.res ?? null,
+    ...(p.level === 'error'
+      ? { error: { message: p.message ?? null } }
+      : {}),
+  });
 }
 
 // ─── Action handlers ───────────────────────────────────────────

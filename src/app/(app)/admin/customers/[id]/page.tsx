@@ -16,6 +16,7 @@ import { PlanSwitcher } from '@/components/sites/plan-switcher';
 import { ClaimLinkBanner } from '@/components/admin/claim-link-banner';
 import { ProvisionStatusBadge } from '@/components/admin/provision-status-badge';
 import { AddSiteForCustomer } from '@/components/admin/add-site-for-customer';
+import { CustomSubscriptionForm } from '@/components/admin/custom-subscription-form';
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -148,6 +149,12 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             {user.phone && <InfoPill icon={<Phone className="w-3.5 h-3.5" />} label="Phone" value={user.phone} />}
             {user.timezone && <InfoPill icon={<Clock className="w-3.5 h-3.5" />} label="Timezone" value={user.timezone} />}
             <InfoPill icon={<Shield className="w-3.5 h-3.5" />} label="Joined" value={formatDate(user.created_at)} />
+          </div>
+
+          {/* Custom-pricing tool: Premium / Reseller bespoke subscriptions.
+              Collapsible — only opens when admin clicks the trigger button. */}
+          <div className="mt-5">
+            <CustomSubscriptionForm userId={user.id} userEmail={user.email} />
           </div>
         </div>
 

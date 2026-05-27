@@ -4,9 +4,10 @@
  * Phase 6 — daily OpenSRS mirror reconciliation (runs 04:00 UTC).
  *
  * A READ-ONLY sweep that keeps the `opensrs_domains` + `opensrs_contacts`
- * mirror tables fresh and surfaces drift. It NEVER mutates upstream
- * OpenSRS state — it only writes local mirror tables (`opensrs_domains`,
- * `opensrs_contacts`, `sync_drift`, `sync_runs`).
+ * + `opensrs_dns_records` mirror tables fresh and surfaces drift. It
+ * NEVER mutates upstream OpenSRS state — it only writes local mirror
+ * tables (`opensrs_domains`, `opensrs_contacts`, `opensrs_dns_records`,
+ * `sync_drift`, `sync_runs`).
  *
  * For every registered `domains` row:
  *   1. getDomainAllInfo() — merged all_info + status fetch (dates,
@@ -14,6 +15,8 @@
  *   2. Upsert `opensrs_domains` with the fresh data.
  *   3. Upsert the (up to) 4 `opensrs_contacts` rows, keyed on
  *      (domain_id, contact_type).
+ *   4. getDnsZone() — fetch upstream DNS records and reconcile against
+ *      `opensrs_dns_records` (mark synced/extra_in_upstream/missing_in_upstream).
  * Each domain is wrapped individually — one failing domain never aborts
  * the run.
  *
@@ -24,6 +27,9 @@
  *     OpenSRS reports.
  *   - transfer_away   — `transfer_away_in_progress` is true (the domain
  *     is leaving — important to surface to ops).
+ *   - dns_zone_drift  — upstream DNS zone has records we don't or is
+ *     missing records we do. SET_DNS_ZONE replaces wholesale so a stale
+ *     mirror = data-loss bug.
  *
  * The EPP auth code (domain_auth_info) is never fetched here.
  *
@@ -33,6 +39,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import {
   createOpenSrsClient,
+  type DnsRecord,
   type OpenSrsContact,
   type OpenSrsContacts,
 } from '@/lib/integrations/opensrs';
@@ -56,6 +63,37 @@ function toIso(v: string | undefined | null): string | null {
   if (!v) return null;
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/**
+ * Extract the canonical value for a DnsRecord — each record type
+ * stores its primary value in a different field. Mirrors the helper
+ * in /api/internal/opensrs/set-dns/route.ts.
+ */
+function dnsRecordValue(r: DnsRecord): string {
+  switch (r.type) {
+    case 'A':     return r.ip_address ?? '';
+    case 'AAAA':  return r.ipv6_address ?? '';
+    case 'CNAME':
+    case 'MX':
+    case 'SRV':   return r.hostname ?? '';
+    case 'TXT':   return r.text ?? '';
+    default:      return '';
+  }
+}
+
+/**
+ * Canonical key for matching a local opensrs_dns_records row against an upstream
+ * DnsRecord — type|name|value|priority. Apex normalizes to "@" both ways.
+ */
+function canonLocal(r: {
+  record_type: string; name: string; value: string; priority: number | null;
+}): string {
+  return `${r.record_type}|${r.name === '' ? '@' : r.name}|${r.value}|${r.priority ?? ''}`;
+}
+function canonUpstream(r: DnsRecord): string {
+  const name = r.subdomain === '' ? '@' : r.subdomain;
+  return `${r.type}|${name}|${dnsRecordValue(r)}|${r.priority ?? ''}`;
 }
 
 /** Map an OpenSRS domain status to our domains.status enum. */
@@ -178,6 +216,97 @@ export async function GET(req: Request) {
               { onConflict: 'domain_id,contact_type' },
             );
           }
+        }
+
+        // ── DNS zone reconciliation ──
+        // OpenSRS owns the truth; SET_DNS_ZONE replaces wholesale, so
+        // stale local rows = data-loss bug. Compare every domain.
+        try {
+          const { records: upstreamRecs } = await opensrs.getDnsZone(domainName);
+
+          const { data: localRecs } = await supabase
+            .from('opensrs_dns_records')
+            .select('id, record_type, name, value, ttl, priority, source, upstream_status')
+            .eq('domain_id', dom.id);
+
+          const localByKey = new Map<string, NonNullable<typeof localRecs>[number]>();
+          for (const lr of (localRecs ?? [])) {
+            localByKey.set(canonLocal(lr as any), lr);
+          }
+          const upstreamByKey = new Map<string, DnsRecord>();
+          for (const ur of upstreamRecs) {
+            upstreamByKey.set(canonUpstream(ur), ur);
+          }
+
+          let dnsExtra = 0;
+          let dnsMissing = 0;
+
+          // Walk upstream: matches stamp synced; missing-local INSERT
+          // with source='upstream' so the row is visible to ops.
+          for (const [key, ur] of upstreamByKey) {
+            const local = localByKey.get(key);
+            if (local) {
+              await supabase.from('opensrs_dns_records')
+                .update({
+                  upstream_status: 'synced',
+                  last_synced_at: nowIso,
+                  upstream_payload: ur as unknown as Record<string, unknown>,
+                  updated_at: nowIso,
+                })
+                .eq('id', local.id);
+            } else {
+              await supabase.from('opensrs_dns_records').insert({
+                domain_id: dom.id,
+                record_type: ur.type,
+                name: ur.subdomain === '' ? '@' : ur.subdomain,
+                value: dnsRecordValue(ur),
+                ttl: ur.ttl ?? 3600,
+                priority: ur.priority ?? null,
+                source: 'upstream',
+                upstream_status: 'extra_in_upstream',
+                last_synced_at: nowIso,
+                upstream_payload: ur as unknown as Record<string, unknown>,
+              });
+              dnsExtra += 1;
+            }
+          }
+
+          // Walk local: anything not in upstream is "missing_in_upstream"
+          // — the record exists in our DB but OpenSRS doesn't have it.
+          for (const [key, local] of localByKey) {
+            if (!upstreamByKey.has(key)) {
+              await supabase.from('opensrs_dns_records')
+                .update({
+                  upstream_status: 'missing_in_upstream',
+                  last_synced_at: nowIso,
+                  updated_at: nowIso,
+                })
+                .eq('id', local.id);
+              dnsMissing += 1;
+            }
+          }
+
+          if (dnsExtra > 0 || dnsMissing > 0) {
+            await supabase.from('sync_drift').insert({
+              sync_run_id: runId ?? null,
+              provider: 'opensrs',
+              resource_type: 'dns_zone',
+              resource_id: domainName,
+              drift_type: 'dns_zone_drift',
+              details: {
+                domain_id: dom.id,
+                extra_in_upstream: dnsExtra,
+                missing_in_upstream: dnsMissing,
+                upstream_count: upstreamRecs.length,
+                local_count: localRecs?.length ?? 0,
+              },
+            });
+            driftCount += 1;
+          }
+        } catch (dnsErr) {
+          // DNS reconciliation failure shouldn't abort domain-level
+          // reconcile — log and continue.
+          console.error(`[reconcile-opensrs] DNS zone for ${domainName} failed:`, dnsErr);
         }
 
         // ── Drift detection ──

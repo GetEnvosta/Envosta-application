@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,13 +70,19 @@ export async function POST(req: Request) {
     const provData = await provRes.json();
 
     // Log
-    await supabase.from('logs').insert({
-      user_id: user.id,
-      site_id: site.id,
+    await recordAudit({
+      actorId: user.id,
+      actorType: 'admin',
       action: 'admin.site_created',
-      details: `Admin created site "${siteLabel}" for user ${targetUser.full_name || userId}`,
-      level: 'info',
-      metadata: { target_user: userId, region, provisioned: provRes.ok },
+      resourceType: 'site',
+      resourceId: site.id,
+      metadata: {
+        level: 'info',
+        details: `Admin created site "${siteLabel}" for user ${targetUser.full_name || userId}`,
+        target_user: userId,
+        region,
+        provisioned: provRes.ok,
+      },
     });
 
     return NextResponse.json({

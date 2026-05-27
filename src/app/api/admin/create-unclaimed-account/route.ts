@@ -4,6 +4,7 @@ import { createClient as createServerClient } from '@/lib/supabase-server';
 import { isStaffRole } from '@/lib/roles';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { preCreateAdminSubscription } from '@/lib/admin-precreate-subscription';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -191,12 +192,20 @@ export async function POST(req: Request) {
     }
 
     // Log it
-    await sb.from('logs').insert({
-      user_id: user.id,
+    await recordAudit({
+      actorId: user.id,
+      actorType: 'admin',
       action: 'account.unclaimed_created',
-      details: `Unclaimed account created for ${name} (${email})`,
-      level: 'info',
-      metadata: { customer_id: userId, site_id: siteId, claim_token: claimToken, expires_at: claimExpiresAt },
+      resourceType: 'user',
+      resourceId: userId,
+      metadata: {
+        level: 'info',
+        details: `Unclaimed account created for ${name} (${email})`,
+        customer_id: userId,
+        site_id: siteId,
+        claim_token: claimToken,
+        expires_at: claimExpiresAt,
+      },
     });
 
     return NextResponse.json({
