@@ -479,24 +479,12 @@ export async function getAllCustomersWithUsers() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LEGACY ALIASES — kept thin for older callers. Prefer the helpers above.
+// LEGACY ALIAS — getUserInvoices / getUserSubscriptions removed (no callers).
+// getActiveSubscription is still used by the dashboard overview; kept as a
+// thin alias for the new account-centric helper.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** @deprecated use getAccountInvoices(userId, limit) */
-export async function getUserInvoices(limit: number = 20, userId?: string) {
-  if (!userId) return [];
-  return getAccountInvoices(userId, limit);
-}
-
-/** @deprecated use getAccountSubscription(userId) */
 export async function getActiveSubscription(userId?: string) {
   if (!userId) return null;
   return getAccountSubscriptionWithProduct(userId);
-}
-
-/** @deprecated use getAccountSubscriptionWithProduct(userId) */
-export async function getUserSubscriptions(userId?: string) {
-  if (!userId) return [];
-  const sub = await getAccountSubscriptionWithProduct(userId);
-  return sub ? [sub] : [];
 }

@@ -12,6 +12,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Plus, Minus, Check } from 'lucide-react';
+import { formatCents } from '@/lib/utils';
 
 export interface SiteAddonRow {
   productId: string;
@@ -22,11 +23,6 @@ export interface SiteAddonRow {
   priceCadYearly: number | null;
   isActive: boolean;
   effectsSummary: string | null;
-}
-
-function formatCents(cents: number | null): string {
-  if (cents == null) return '—';
-  return `$${(cents / 100).toFixed(2)}`;
 }
 
 export function SiteAddonsClient({

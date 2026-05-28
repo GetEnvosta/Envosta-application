@@ -307,15 +307,3 @@ export async function getAdminLogs(filters?: { level?: string; q?: string }, lim
   return (data ?? []).map(auditLogToLegacyShape);
 }
 
-/**
- * User-facing logs for dashboard. Reads from audit_log.
- */
-export async function getUserLogs(limit: number = 50) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('audit_log')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-  return (data ?? []).map(auditLogToLegacyShape);
-}

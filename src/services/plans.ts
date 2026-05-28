@@ -52,21 +52,6 @@ export async function getPlanBySlug(slug: string) {
   return data;
 }
 
-// ─── DOMAIN TLDs ─────────────────────────────────────────
-// Phase 3: TLD pricing moved to public.tlds — use @/services/tlds.
-// These shim functions stay for callers we haven't migrated yet so the
-// type checker still accepts their import path.
-
-import { getActiveTlds, getTldByName, type Tld } from './tlds';
-
-export async function getDomainPricing(): Promise<Tld[]> {
-  return getActiveTlds();
-}
-
-export async function getTldPricing(tld: string): Promise<Tld | null> {
-  return getTldByName(tld);
-}
-
 // ─── ALL PRODUCTS ────────────────────────────────────────
 
 export async function getAllProducts() {
