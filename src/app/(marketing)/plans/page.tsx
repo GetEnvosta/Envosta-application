@@ -140,7 +140,7 @@ export default async function PricingPage() {
 
   const allPlans: HostingPlan[] = ((rawPlans ?? []) as any[])
     .slice()
-    .sort((a, b) => (a.price_cad ?? a.price_usd ?? 0) - (b.price_cad ?? b.price_usd ?? 0));
+    .sort((a, b) => (a.price_usd ?? a.price_cad ?? 0) - (b.price_usd ?? b.price_cad ?? 0));
 
   // Split into core plans (Minimum / Standard / Growth) and Premium.
   // Reseller and anything else is hidden from the public pricing page.
@@ -158,7 +158,7 @@ export default async function PricingPage() {
   const overallSavings = (() => {
     const cheapest = plans[0];
     if (!cheapest) return null;
-    return annualSavings(cheapest.price_cad ?? cheapest.price_usd ?? null, cheapest.price_yearly_cad ?? cheapest.price_yearly_usd ?? null);
+    return annualSavings(cheapest.price_usd ?? cheapest.price_cad ?? null, cheapest.price_yearly_usd ?? cheapest.price_yearly_cad ?? null);
   })();
 
   return (
@@ -318,8 +318,8 @@ export default async function PricingPage() {
           )}
           {plans.map((plan, idx) => {
             const isFeatured = plan.slug === featuredSlug;
-            const monthly = plan.price_cad ?? plan.price_usd ?? 0;
-            const yearly = plan.price_yearly_cad ?? plan.price_yearly_usd ?? 0;
+            const monthly = plan.price_usd ?? plan.price_cad ?? 0;
+            const yearly = plan.price_yearly_usd ?? plan.price_yearly_cad ?? 0;
             const yearlyDisplayPerMonth = annualMonthly(yearly);
             const savings = annualSavings(monthly, yearly);
             const features = getFeatures(plan);
@@ -342,7 +342,7 @@ export default async function PricingPage() {
                     {yearly ? yearlyDisplayPerMonth : dollars(monthly)}
                   </span>
                 </div>
-                <div className="p-card-period">CAD per month</div>
+                <div className="p-card-period">USD per month</div>
                 <div className="annual-note-slot">
                   {yearly > 0 && (
                     <div className="annual-note">
@@ -377,8 +377,8 @@ export default async function PricingPage() {
       {/* PREMIUM — full-width card, visually distinct */}
       {premiumPlan && (() => {
         const pm = premiumPlan;
-        const monthly = pm.price_cad ?? pm.price_usd ?? 0;
-        const yearly = pm.price_yearly_cad ?? pm.price_yearly_usd ?? 0;
+        const monthly = pm.price_usd ?? pm.price_cad ?? 0;
+        const yearly = pm.price_yearly_usd ?? pm.price_yearly_cad ?? 0;
         const yearlyPerMonth = annualMonthly(yearly);
         const savings = annualSavings(monthly, yearly);
         const features = getFeatures(pm);
@@ -398,7 +398,7 @@ export default async function PricingPage() {
                       {yearly ? yearlyPerMonth : dollars(monthly)}
                     </span>
                   </div>
-                  <div className="premium-period">CAD per month</div>
+                  <div className="premium-period">USD per month</div>
                   <div className="premium-annual-note">
                     {yearly > 0 && (
                       <div className="annual-note">
@@ -457,7 +457,7 @@ export default async function PricingPage() {
                 <tr>
                   <td>Price</td>
                   {comparePlans.map((plan) => (
-                    <td key={plan.id}>${dollars(plan.price_cad ?? plan.price_usd)} CAD/mo</td>
+                    <td key={plan.id}>${dollars(plan.price_usd ?? plan.price_cad)} USD/mo</td>
                   ))}
                 </tr>
                 <tr>
