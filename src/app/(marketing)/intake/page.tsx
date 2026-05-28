@@ -45,10 +45,10 @@ const TIMELINES = [
 interface IntakePlan {
   id: string;        // slug — used as form.plan value
   name: string;
-  price: string;     // monthly $X (CAD)
-  annual: string;    // annual displayed per-month $X (CAD)
+  price: string;     // monthly $X (USD)
+  annual: string;    // annual displayed per-month $X (USD)
   annualTotal: string; // annual full charge "$Y/yr"
-  currency: 'CAD';
+  currency: 'USD';
   features: string[];
   featured?: boolean;
 }
@@ -149,15 +149,15 @@ export default function IntakePage() {
         };
 
         const formatted: IntakePlan[] = rows.map((p) => {
-          const monthly = p.price_cad ?? p.price_usd ?? 0;
-          const yearly = p.price_yearly_cad ?? p.price_yearly_usd ?? 0;
+          const monthly = p.price_usd ?? p.price_cad ?? 0;
+          const yearly = p.price_yearly_usd ?? p.price_yearly_cad ?? 0;
           return {
             id: p.slug,
             name: p.name,
             price: dollars(monthly),
             annual: dollars(yearly ? Math.round(yearly / 12) : 0),
             annualTotal: yearly ? `$${Math.round(yearly / 100).toLocaleString()}/yr` : '',
-            currency: 'CAD',
+            currency: 'USD',
             features: buildFeatures(p),
             featured: p.slug === featuredSlug,
           };

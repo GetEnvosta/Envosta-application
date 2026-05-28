@@ -217,8 +217,8 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
 
     try {
       const priceId = billingPeriod === 'annual'
-        ? (selectedPlan.stripe_price_id_yearly_cad ?? selectedPlan.stripe_price_id_yearly)
-        : (selectedPlan.stripe_price_id_cad ?? selectedPlan.stripe_price_id);
+        ? (selectedPlan.stripe_price_id_yearly ?? selectedPlan.stripe_price_id_yearly_cad)
+        : (selectedPlan.stripe_price_id ?? selectedPlan.stripe_price_id_cad);
       if (!priceId) {
         setCheckoutError(`No pricing configured for ${selectedPlan.name} (${billingPeriod}).`);
         setCheckoutLoading(false);

@@ -31,7 +31,7 @@ interface Props {
   dashOnZero?: boolean;
 }
 
-export function InlinePriceCell({ value, currency = 'cad', onSave, onSaved, dashOnZero = false }: Props) {
+export function InlinePriceCell({ value, currency = 'usd', onSave, onSaved, dashOnZero = false }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string>(value == null ? '' : String(value));
   const [savedValue, setSavedValue] = useState<number | null>(value);

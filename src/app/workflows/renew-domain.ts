@@ -166,7 +166,7 @@ async function chargeStripe(input: RenewDomainInput, ctx: RenewContext): Promise
       {
         customer: ctx.stripeCustomerId,
         amount: ctx.amount,
-        currency: 'cad',
+        currency: 'usd',
         payment_method: pmId,
         off_session: true,
         confirm: true,

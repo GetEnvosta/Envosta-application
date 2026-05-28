@@ -53,7 +53,7 @@ const jsonLd = {
   sameAs: [],
   offers: {
     '@type': 'AggregateOffer',
-    priceCurrency: 'CAD',
+    priceCurrency: 'USD',
     lowPrice: '36',
     highPrice: '297',
     offerCount: '2',

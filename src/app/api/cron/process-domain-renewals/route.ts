@@ -7,7 +7,7 @@
  *   1. Skips domains with auto_renew = false
  *   2. Skips domains that already attempted in the last 24h (backoff)
  *   3. Looks up the customer's stripe_customer_id + default PM
- *   4. Computes the renewal cost from public.tlds (renew_price_cad_cents)
+ *   4. Computes the renewal cost from public.tlds (renew_price_usd_cents)
  *   5. Creates an off-session PaymentIntent (confirm: true)
  *   6. On success → calls OpenSRS renewDomain() and bumps expires_at + 1yr
  *   7. On failure → records the error in audit_log + domains.metadata
@@ -198,14 +198,14 @@ export async function GET(req: Request) {
         continue;
       }
 
-      // 2. Compute renew price from public.tlds.
+      // 2. Compute renew price from public.tlds (USD, falling back to CAD).
       const { data: tldRow } = await supabase
         .from('tlds')
-        .select('renew_price_cad_cents')
+        .select('renew_price_usd_cents, renew_price_cad_cents')
         .eq('tld', dom.tld.toLowerCase())
         .maybeSingle();
 
-      const amount = tldRow?.renew_price_cad_cents ?? 0;
+      const amount = tldRow?.renew_price_usd_cents ?? tldRow?.renew_price_cad_cents ?? 0;
       if (amount <= 0) {
         await recordAudit({
           actorType: 'system',
@@ -250,7 +250,7 @@ export async function GET(req: Request) {
         const pi = await stripe.paymentIntents.create({
           customer: user.stripe_customer_id,
           amount,
-          currency: 'cad',
+          currency: 'usd',
           payment_method: pmId,
           off_session: true,
           confirm: true,
@@ -271,7 +271,7 @@ export async function GET(req: Request) {
           provider: 'stripe',
           method: 'POST',
           path: '/v1/payment_intents',
-          requestPayload: { amount, currency: 'cad', customer: user.stripe_customer_id, off_session: true },
+          requestPayload: { amount, currency: 'usd', customer: user.stripe_customer_id, off_session: true },
           responseStatus: e?.statusCode ?? 500,
           error: { message: e?.message ?? String(e), code: e?.code ?? null },
         });

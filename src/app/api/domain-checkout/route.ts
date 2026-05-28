@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     if (!tldRow || !tldRow.is_active) {
       return NextResponse.json({ error: `Domain extension .${tld} is not available for registration` }, { status: 400 });
     }
-    const totalCents = await getRegisterPriceCents(tld, 'cad', years);
+    const totalCents = await getRegisterPriceCents(tld, 'usd', years);
     if (!totalCents || totalCents <= 0) {
       return NextResponse.json({ error: `Pricing not configured for .${tld} domains.` }, { status: 400 });
     }
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
       customer: customerId,
       line_items: [{
         price_data: {
-          currency: 'cad',
+          currency: 'usd',
           product_data: {
             name: `Domain registration: ${fullDomain}`,
             description: `${years}-year registration of ${fullDomain}`,

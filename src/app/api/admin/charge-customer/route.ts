@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     await stripe.invoiceItems.create({
       customer: customer.stripe_customer_id,
       amount,
-      currency: 'cad',
+      currency: 'usd',
       description: description.trim(),
     });
 

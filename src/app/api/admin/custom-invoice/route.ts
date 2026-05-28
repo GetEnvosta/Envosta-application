@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     await stripe.invoiceItems.create({
       customer: stripeCustomerId,
       amount: amountCents,
-      currency: 'cad',
+      currency: 'usd',
       description,
       metadata: {
         envosta_custom_invoice: 'true',
@@ -128,7 +128,7 @@ export async function POST(req: Request) {
         stripe_customer_id: stripeCustomerId,
         stripe_invoice_id: finalized.id,
         amount_cents: amountCents,
-        currency: 'cad',
+        currency: 'usd',
         description,
         recipient_email: targetUser?.email ?? null,
       },

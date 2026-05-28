@@ -10,7 +10,7 @@
  *   planSlug:       'premium' | 'reseller',
  *   monthlyCents:   number,            // custom monthly price in cents
  *   yearlyCents?:   number,            // optional yearly price
- *   currency?:      'cad' | 'usd',     // default 'cad'
+ *   currency?:      'usd' | 'cad',     // default 'usd'
  *   sitesOverride?: number,            // optional per-customer site cap
  *                                      //   stored in users.metadata.custom_plan_sites_override
  *   immediate?:     boolean,           // default true — bills immediately, prorated
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
   const planSlug = typeof body.planSlug === 'string' ? body.planSlug : '';
   const monthlyCents = Number(body.monthlyCents);
   const yearlyCents = body.yearlyCents != null ? Number(body.yearlyCents) : null;
-  const currency = (body.currency === 'usd' ? 'usd' : 'cad') as 'cad' | 'usd';
+  const currency = (body.currency === 'cad' ? 'cad' : 'usd') as 'cad' | 'usd';
   const sitesOverride = body.sitesOverride != null ? Number(body.sitesOverride) : null;
   const immediate = body.immediate !== false; // default true
 
