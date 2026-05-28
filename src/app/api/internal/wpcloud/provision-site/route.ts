@@ -397,6 +397,11 @@ export async function POST(req: Request) {
   }
 
   const nowIso = new Date().toISOString();
+  // SECURITY: never persist wp_admin_password in DB metadata. Any admin
+  // or anyone with SQL access could enumerate all customers' WP-admin
+  // creds. The password ships once in the siteReady email body and
+  // exists only in the wp.cloud side from there on. Customer can reset
+  // via wp-login.php?action=lostpassword.
   const updatedMetadata: Record<string, unknown> = {
     ...(site.metadata ?? {}),
     wp_cloud_response: wpResponse,
@@ -404,7 +409,6 @@ export async function POST(req: Request) {
     domain_name: domainName ?? null,
     site_ip: siteIp,
     wp_admin_user: adminUser,
-    wp_admin_password: wpAdminPassword,
     provisioned_at: nowIso,
     provisioned_by: 'internal-route',
   };

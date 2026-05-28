@@ -7,7 +7,16 @@
  * logic.
  */
 
-const FROM_EMAIL = 'Envosta <hello@email.envosta.com>';
+/**
+ * Canonical sender. Single source of truth — every outbound transactional
+ * email (welcome, payment failed, site ready, etc.) plus every system
+ * notification (sales lead, drift alert, health check) goes through here.
+ *
+ * Configurable via RESEND_FROM_EMAIL — must be a verified sender in your
+ * Resend account. Default matches the historic value; production may
+ * override to whatever sender is verified.
+ */
+export const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'Envosta <noreply@email.envosta.com>';
 
 interface SendEmailParams {
   to: string;

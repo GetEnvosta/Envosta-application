@@ -6,6 +6,7 @@ import { recordAudit } from '@/lib/audit';
 import { start } from 'workflow/api';
 import { cancelSite } from '@/app/workflows/cancel-site';
 import { isAdminRole } from '@/lib/roles';
+import { FROM_EMAIL } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -188,7 +189,7 @@ async function sendOwnerEmail(to: string, subject: string, html: string) {
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: 'Envosta <hello@email.envosta.com>', to, subject, html }),
+      body: JSON.stringify({ from: FROM_EMAIL, to, subject, html }),
     });
   } catch (e) {
     console.error('cleanup-site email send failed:', e);

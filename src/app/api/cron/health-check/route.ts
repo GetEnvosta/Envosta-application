@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { recordAudit } from '@/lib/audit';
+import { FROM_EMAIL } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -150,7 +151,7 @@ export async function GET(req: Request) {
             method: 'POST',
             headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              from: 'Envosta <noreply@email.envosta.com>',
+              from: FROM_EMAIL,
               to: 'admin@envosta.com',
               subject: `[Health] Site sync issues detected`,
               html: `<p>Daily site sync found issues:</p><ul>${issues.map(i => `<li>${i}</li>`).join('')}</ul><p><a href="https://my.envosta.com/admin/services">View Sites</a> · <a href="https://my.envosta.com/admin/diagnostics?view=logs">View Logs</a></p>`,

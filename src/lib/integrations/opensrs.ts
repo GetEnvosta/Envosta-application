@@ -226,7 +226,20 @@ interface OpenSrsEnv {
 }
 
 function readEnv(): OpenSrsEnv {
-  const host = process.env.OPENSRS_HOST ?? DEFAULT_OPENSRS_HOST;
+  // SECURITY: in production, OPENSRS_HOST MUST be set explicitly. The
+  // default is the SANDBOX endpoint (horizon.opensrs.net) — falling back
+  // to it in production would route every domain registration into
+  // OpenSRS's test environment, customers would think their domain is
+  // registered when it isn't. Fail-closed instead.
+  let host = process.env.OPENSRS_HOST;
+  if (!host) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'OPENSRS_HOST is required in production. Set it to your OpenSRS live endpoint (e.g. rr-n1-tor.opensrs.net). Refusing to fall back to the sandbox.',
+      );
+    }
+    host = DEFAULT_OPENSRS_HOST;
+  }
   const username = process.env.OPENSRS_USERNAME ?? '';
   const apiKey = process.env.OPENSRS_API_KEY ?? '';
   if (!username || !apiKey) {

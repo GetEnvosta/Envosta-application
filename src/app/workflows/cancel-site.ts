@@ -27,6 +27,14 @@ import { recordAudit } from '@/lib/audit';
 export interface CancelSiteInput {
   siteId: string;
   reason?: string;
+  /**
+   * ISO timestamp at which delete-expired-sites cron may hard-delete
+   * this site. Pass this from the subscription.deleted webhook so the
+   * cron's filter (status='cancelled' AND recovery_deadline < now())
+   * actually picks the site up. Admin-flag path leaves it undefined
+   * (admin makes the deletion call manually).
+   */
+  recoveryDeadlineIso?: string;
 }
 
 // ───────────────────────────────────────────────────────────────────
@@ -69,6 +77,10 @@ async function markSiteCancelled(input: CancelSiteInput) {
         ...meta,
         cancelled_at: nowIso,
         cancel_reason: reason,
+        // recovery_deadline only set when caller passed one (subscription
+        // .deleted webhook does; admin-flag path doesn't). delete-expired
+        // -sites cron picks up rows with this set.
+        ...(input.recoveryDeadlineIso ? { recovery_deadline: input.recoveryDeadlineIso } : {}),
       },
     })
     .eq('id', input.siteId);

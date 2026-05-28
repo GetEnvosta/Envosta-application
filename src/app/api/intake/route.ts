@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { escapeHtml } from '@/lib/sanitize';
+import { FROM_EMAIL } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -160,7 +161,7 @@ export async function POST(req: Request) {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              from: 'Envosta <noreply@email.envosta.com>',
+              from: FROM_EMAIL,
               to: 'sales@envosta.com',
               subject: `${closedOnSpot ? '🔥 CLOSED DEAL' : 'New Lead'}: ${e.company} — ${e.contactName} (via ${e.salesRep})`,
               html: `<div style="font-family:-apple-system,sans-serif;max-width:560px;margin:0 auto;padding:20px">

@@ -5,6 +5,7 @@ import { isStaffRole } from '@/lib/roles';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { preCreateAdminSubscription } from '@/lib/admin-precreate-subscription';
 import { recordAudit } from '@/lib/audit';
+import { FROM_EMAIL } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -183,7 +184,7 @@ export async function POST(req: Request) {
         method: 'POST',
         headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'Envosta <hello@email.envosta.com>',
+          from: FROM_EMAIL,
           to: email,
           subject: `Your website is ready — claim your Envosta account`,
           html: `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:0;background:#f4f4f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif}.wrap{max-width:560px;margin:0 auto;padding:40px 20px}.card{background:#fff;border-radius:12px;padding:40px 32px;box-shadow:0 1px 3px rgba(0,0,0,.08)}h1{font-size:22px;font-weight:600;color:#111;margin:0 0 16px}p{font-size:15px;color:#555;line-height:1.7;margin:0 0 16px}.btn{display:inline-block;background:#111;color:#fff!important;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:14px;font-weight:600;margin:8px 0 24px}.detail{background:#f8f9fb;border-radius:8px;padding:16px 20px;margin:16px 0}.detail-row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px}.detail-label{color:#888}.detail-value{color:#111;font-weight:500}.footer{text-align:center;padding:24px 0;font-size:12px;color:#aaa}</style></head><body><div class="wrap"><div class="card"><h1>Your website is ready!</h1><p>Hey ${name}, great news — your Envosta account has been set up and your website is being built.</p><p>Click below to claim your account, set your password, and add billing to go live.</p><a href="${claimUrl}" class="btn">Claim Your Account</a><div class="detail"><div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">${email}</span></div>${siteLabel ? `<div class="detail-row"><span class="detail-label">Site</span><span class="detail-value">${siteLabel}</span></div>` : ''}<div class="detail-row"><span class="detail-label">Expires</span><span class="detail-value">${expireDays} days</span></div></div><p style="font-size:13px;color:#888;">If you didn't expect this email, you can safely ignore it. The account will be deleted automatically after ${expireDays} days if not claimed.</p></div><div class="footer"><p>Envosta Inc. · Calgary, Alberta, Canada</p></div></div></body></html>`,

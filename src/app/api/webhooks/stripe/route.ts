@@ -952,23 +952,37 @@ export async function POST(req: Request) {
           .in('stripe_subscription_item_id', itemIds)
           .in('status', ['active', 'provisioning']);
 
+        // 14-day grace period before delete-expired-sites cron auto-deletes.
+        // Customer gets 2 weeks to reactivate; after that, hard-delete fires.
+        const recoveryDeadlineIso = new Date(Date.now() + 14 * 86_400_000).toISOString();
+
         for (const site of sites ?? []) {
           // Cancellation runs as a Vercel Workflow with an inline fallback
           // so the cascade survives even if the workflow runtime is down.
           try {
-            await start(cancelSite, [{ siteId: site.id, reason: 'subscription_cancelled_via_stripe' }]);
+            await start(cancelSite, [{
+              siteId: site.id,
+              reason: 'subscription_cancelled_via_stripe',
+              recoveryDeadlineIso,
+            }]);
           } catch (e) {
             console.error('[stripe-webhook] cancelSite workflow start failed, falling back to inline:', e);
             // Match the workflow: status='cancelled' + flagged_for_deletion_at
-            // so the admin review queue picks this up (delete-expired-sites
-            // cron requires recovery_deadline, which we don't set here — admin
-            // makes the deletion call for explicit Stripe-portal cancellations).
+            // + metadata.recovery_deadline so delete-expired-sites cron picks
+            // up the row after the grace period.
+            const { data: existingSite } = await supabase
+              .from('sites')
+              .select('metadata')
+              .eq('id', site.id)
+              .maybeSingle();
+            const existingMeta = (existingSite?.metadata as Record<string, unknown> | null) ?? {};
             await supabase
               .from('sites')
               .update({
                 status: 'cancelled',
                 flagged_for_deletion_at: new Date().toISOString(),
                 flag_reason: 'subscription_cancelled_via_stripe',
+                metadata: { ...existingMeta, recovery_deadline: recoveryDeadlineIso },
               })
               .eq('id', site.id);
           }
@@ -1072,6 +1086,37 @@ export async function POST(req: Request) {
       if (userId) {
         await supabase.from('users').update({ stripe_customer_id: c.id }).eq('id', userId);
         console.log('[stripe-webhook] user stripe_customer_id updated:', c.id);
+      }
+    }
+
+    // ── setup_intent.succeeded — trial signup PM attachment ──
+    //
+    // The trial signup flow at /api/create-subscription creates a
+    // SetupIntent on the customer (not bound to the sub) and returns
+    // its client_secret to the front-end. Once the customer confirms
+    // the card, Stripe fires setup_intent.succeeded with the PM ID.
+    //
+    // Without this handler the PM lands on the customer but never on
+    // sub.default_payment_method, so when the trial ends the first
+    // invoice can't charge. We attach it to the sub here, which causes
+    // customer.subscription.updated to fire — the existing handler
+    // above then provisions the site because hasPaymentMethod is true.
+    else if (event.type === 'setup_intent.succeeded') {
+      const si = event.data.object as Stripe.SetupIntent;
+      const subId = (si.metadata as any)?.subscription_id ?? null;
+      const pmId = typeof si.payment_method === 'string' ? si.payment_method : si.payment_method?.id ?? null;
+      if (subId && pmId) {
+        try {
+          const stripeClient = getStripe();
+          await stripeClient.subscriptions.update(subId, {
+            default_payment_method: pmId,
+          });
+          console.log('[stripe-webhook] attached PM', pmId, 'to sub', subId);
+        } catch (e) {
+          console.error('[stripe-webhook] failed to attach PM to sub:', e);
+        }
+      } else {
+        console.warn('[stripe-webhook] setup_intent.succeeded missing subscription_id metadata or PM:', si.id);
       }
     }
   } catch (e) {
