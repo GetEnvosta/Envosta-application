@@ -103,6 +103,17 @@ const FEATURES_BY_SLUG: Record<string, string[]> = {
     'WooCommerce + subscriptions + Stripe integrations',
     'Quarterly site audits + strategy consultations',
   ],
+
+  // — PREMIUM (enterprise tier) —
+  premium: [
+    'Everything in Growth',
+    'Unlimited SSD + dedicated PHP worker pool',
+    'White-glove onboarding + full site build',
+    'Dedicated success team + Slack channel',
+    'Custom integrations + API access',
+    'Multi-site management + staging environments',
+    'Monthly strategy calls + priority roadmap input',
+  ],
 };
 
 function getFeatures(plan: HostingPlan): string[] {
@@ -116,33 +127,38 @@ function getFeatures(plan: HostingPlan): string[] {
   return [];
 }
 
+/** Slugs shown in the core 3-column pricing grid (order matters). */
+const CORE_SLUGS = ['minimum', 'standard', 'growth'];
+
 export default async function PricingPage() {
   const supabase = await createClient();
-  // Pull every active hosting plan. We sort client-side by CAD price so the
-  // order is deterministic — sort_order in the DB is unreliable (often left
-  // at 0/NULL when a new plan is added).
   const { data: rawPlans } = await supabase
     .from('products')
     .select('id, name, slug, description, price_usd, price_yearly_usd, price_cad, price_yearly_cad, sort_order, features, metadata')
     .eq('type', 'hosting_plan')
     .eq('is_active', true);
 
-  const plans: HostingPlan[] = ((rawPlans ?? []) as any[])
+  const allPlans: HostingPlan[] = ((rawPlans ?? []) as any[])
     .slice()
     .sort((a, b) => (a.price_cad ?? a.price_usd ?? 0) - (b.price_cad ?? b.price_usd ?? 0));
 
-  // Mark the middle plan featured if there are 3+, else the most expensive.
-  const featuredSlug = plans.length >= 3
-    ? plans[Math.floor(plans.length / 2)]?.slug
-    : plans[plans.length - 1]?.slug;
+  // Split into core plans (Minimum / Standard / Growth) and Premium.
+  // Reseller and anything else is hidden from the public pricing page.
+  const plans = CORE_SLUGS
+    .map((s) => allPlans.find((p) => p.slug === s))
+    .filter(Boolean) as HostingPlan[];
+  const premiumPlan = allPlans.find((p) => p.slug === 'premium') ?? null;
 
-  const gridCols = plans.length >= 3 ? 'repeat(3,1fr)' : 'repeat(2,1fr)';
-  const gridMaxWidth = plans.length >= 3 ? '1200px' : '860px';
+  // Standard is always the featured (middle) card.
+  const featuredSlug = 'standard';
+
+  // All plans shown in the comparison table (core + premium).
+  const comparePlans = premiumPlan ? [...plans, premiumPlan] : plans;
 
   const overallSavings = (() => {
-    // Use the cheapest plan's savings as the badge anchor.
-    const cheapest = [...plans].sort((a, b) => (a.price_cad ?? 0) - (b.price_cad ?? 0))[0];
-    return annualSavings(cheapest?.price_cad ?? cheapest?.price_usd ?? null, cheapest?.price_yearly_cad ?? cheapest?.price_yearly_usd ?? null);
+    const cheapest = plans[0];
+    if (!cheapest) return null;
+    return annualSavings(cheapest.price_cad ?? cheapest.price_usd ?? null, cheapest.price_yearly_cad ?? cheapest.price_yearly_usd ?? null);
   })();
 
   return (
@@ -164,7 +180,7 @@ export default async function PricingPage() {
         .toggle.on{background:var(--gold);border-color:var(--gold)}.toggle.on::after{transform:translateX(24px)}
         .save-badge{display:inline-block;background:rgba(34,197,94,.12);color:#22c55e;font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:100px;margin-left:4px}
         .pricing-grid{padding:0 0 100px}
-        .pricing-grid .c{display:grid;grid-template-columns:${gridCols};gap:20px;max-width:${gridMaxWidth};margin:0 auto;align-items:stretch}
+        .pricing-grid .c{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1200px;margin:0 auto;align-items:stretch}
 
         /* — Card shell — */
         .p-card{background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:40px 36px 32px;position:relative;display:flex;flex-direction:column;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
@@ -202,6 +218,31 @@ export default async function PricingPage() {
         .p-card li{display:flex;align-items:flex-start;gap:11px;font-size:.88rem;color:var(--t2);padding:8px 0;font-weight:400;line-height:1.5;border:none}
         .p-card li .ck-wrap{flex-shrink:0;width:18px;height:18px;border-radius:50%;background:rgba(34,197,94,.12);display:inline-flex;align-items:center;justify-content:center;margin-top:2px}
         .p-card li .ck{width:10px;height:10px;color:#22c55e}
+
+        /* — Premium card (4th column, visually distinct) — */
+        .premium-section{padding:0 0 100px}
+        .premium-section .c{max-width:1200px;margin:0 auto}
+        .premium-wrap{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--card);border:1px solid var(--bdr);border-radius:20px;overflow:hidden;position:relative}
+        .premium-wrap::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(37,99,235,.06),transparent 40%,transparent 60%,rgba(37,99,235,.04));pointer-events:none;z-index:0}
+        .premium-info{padding:48px 44px;position:relative;z-index:1;display:flex;flex-direction:column;justify-content:center}
+        .premium-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:var(--gold);margin-bottom:16px}
+        .premium-info h3{font-size:clamp(1.8rem,3vw,2.4rem);font-weight:600;letter-spacing:-1px;line-height:1.15;margin-bottom:16px;color:var(--t1)}
+        .premium-info .premium-desc{font-size:.95rem;color:var(--t2);font-weight:300;line-height:1.7;margin-bottom:28px}
+        .premium-price-row{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
+        .premium-price-row .currency{font-size:1.1rem;font-weight:500;color:var(--t1)}
+        .premium-price-row .amount{font-size:2.6rem;font-weight:700;letter-spacing:-1.5px;color:var(--t1);font-variant-numeric:tabular-nums}
+        .premium-period{font-size:.84rem;color:var(--t3);font-weight:400;margin-bottom:8px}
+        .premium-annual-note{margin-bottom:28px;min-height:28px}
+        .premium-cta{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;font-size:.9rem;font-weight:600;letter-spacing:.3px;border-radius:12px;background:var(--gold);border:none;color:#fff;text-decoration:none;transition:background .2s,transform .15s;cursor:pointer}
+        .premium-cta:hover{background:var(--gold-bright);transform:translateY(-1px)}
+        .premium-cta svg{width:16px;height:16px}
+        .premium-features{padding:48px 44px;border-left:1px solid var(--bdr);position:relative;z-index:1}
+        .premium-features-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:var(--t3);margin-bottom:20px}
+        .premium-features ul{list-style:none;margin:0;padding:0}
+        .premium-features li{display:flex;align-items:flex-start;gap:11px;font-size:.88rem;color:var(--t2);padding:7px 0;font-weight:400;line-height:1.5}
+        .premium-features li .ck-wrap{flex-shrink:0;width:18px;height:18px;border-radius:50%;background:rgba(37,99,235,.12);display:inline-flex;align-items:center;justify-content:center;margin-top:2px}
+        .premium-features li .ck{width:10px;height:10px;color:var(--gold)}
+
         .all-plans{padding:0 0 100px}
         .all-plans-header{text-align:center;margin-bottom:56px}
         .all-plans-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:600;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
@@ -214,7 +255,7 @@ export default async function PricingPage() {
         .ap-card h4{font-size:.88rem;font-weight:500;margin-bottom:6px}
         .ap-card p{font-size:.76rem;color:var(--t3);line-height:1.6;font-weight:300}
         /* Collapsible "Compare every feature" sits below the pricing grid */
-        .compare-toggle{max-width:${gridMaxWidth};margin:36px auto 0;text-align:center}
+        .compare-toggle{max-width:1200px;margin:36px auto 0;text-align:center}
         .compare-toggle summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:10px;padding:12px 22px;border:1px solid var(--bdr);border-radius:100px;background:var(--card);color:var(--t1);font-size:.86rem;font-weight:500;transition:border-color .2s,background .2s,color .2s;user-select:none}
         .compare-toggle summary::-webkit-details-marker{display:none}
         .compare-toggle summary:hover{border-color:var(--gold);color:var(--gold)}
@@ -247,8 +288,8 @@ export default async function PricingPage() {
         .faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .4s ease}
         .faq-item.open .faq-a{max-height:300px;padding-bottom:20px}
         .faq-a p{font-size:.84rem;color:var(--t2);line-height:1.7;font-weight:300}
-        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:16px}.p-card{padding:36px 28px 28px}.p-card-name{font-size:1.35rem}.p-card-price .amount{font-size:2.5rem;letter-spacing:-1.5px}.all-plans-grid{grid-template-columns:repeat(2,1fr)}}
-        @media(max-width:768px){.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:40px 32px 32px}.p-card-name{font-size:1.45rem}.p-card-price .amount{font-size:2.7rem;letter-spacing:-1.7px}.all-plans-grid{grid-template-columns:1fr}}
+        @media(max-width:1024px){.pricing-grid .c{grid-template-columns:repeat(2,1fr);gap:16px}.p-card{padding:36px 28px 28px}.p-card-name{font-size:1.35rem}.p-card-price .amount{font-size:2.5rem;letter-spacing:-1.5px}.all-plans-grid{grid-template-columns:repeat(2,1fr)}.premium-wrap{grid-template-columns:1fr}.premium-features{border-left:none;border-top:1px solid var(--bdr)}}
+        @media(max-width:768px){.pricing-grid .c{grid-template-columns:1fr}.p-card{padding:40px 32px 32px}.p-card-name{font-size:1.45rem}.p-card-price .amount{font-size:2.7rem;letter-spacing:-1.7px}.all-plans-grid{grid-template-columns:1fr}.premium-info{padding:36px 28px}.premium-features{padding:36px 28px}}
       `}</style>
 
       {/* PRICING HERO */}
@@ -267,7 +308,7 @@ export default async function PricingPage() {
         </div>
       </section>
 
-      {/* PRICING CARDS — rendered live from products table */}
+      {/* PRICING CARDS — 3 core plans */}
       <section className="pricing-grid rv">
         <div className="c">
           {plans.length === 0 && (
@@ -282,17 +323,14 @@ export default async function PricingPage() {
             const yearlyDisplayPerMonth = annualMonthly(yearly);
             const savings = annualSavings(monthly, yearly);
             const features = getFeatures(plan);
-            // Short tagline — use description if set, else a sensible default
-            // keyed off plan position in the ladder.
             const tagline = plan.description
               || (idx === 0
                 ? 'Get online today with a fast, secure WordPress site that just works. No servers to manage, no plugins to babysit, no hosting decisions to second-guess.'
                 : idx === plans.length - 1
-                  ? 'The full stack seven-figure brands run on. Every tool, every service, and a dedicated team that handles the work that builds your category.'
-                  : 'For businesses ready to compound. More sites, AI-powered SEO, priority support, and the growth tools you need — without paying enterprise prices.');
+                  ? 'For businesses ready to compound. More sites, AI-powered SEO, priority support, and the growth tools you need — without paying enterprise prices.'
+                  : 'A hands-on launchpad for growing businesses. Priority support, WooCommerce-ready, and monthly reporting to keep you on track.');
             return (
               <div key={plan.id} className={isFeatured ? 'p-card featured' : 'p-card'}>
-                {/* Stacked header: small uppercase plan name → BIG price → period */}
                 <h3 className="p-card-name">{plan.name}</h3>
                 <div className="p-card-price">
                   <span className="currency">$</span>
@@ -301,7 +339,6 @@ export default async function PricingPage() {
                     data-monthly={dollars(monthly)}
                     data-annual={yearlyDisplayPerMonth}
                   >
-                    {/* Annual is the default selection */}
                     {yearly ? yearlyDisplayPerMonth : dollars(monthly)}
                   </span>
                 </div>
@@ -335,10 +372,68 @@ export default async function PricingPage() {
             );
           })}
         </div>
+      </section>
 
-        {/* Comparison table — collapsed by default, sits below the plans
-            in place of the old "Need a dedicated team — Get in touch"
-            line. Native <details> so no client component required. */}
+      {/* PREMIUM — full-width card, visually distinct */}
+      {premiumPlan && (() => {
+        const pm = premiumPlan;
+        const monthly = pm.price_cad ?? pm.price_usd ?? 0;
+        const yearly = pm.price_yearly_cad ?? pm.price_yearly_usd ?? 0;
+        const yearlyPerMonth = annualMonthly(yearly);
+        const savings = annualSavings(monthly, yearly);
+        const features = getFeatures(pm);
+        return (
+          <section className="premium-section rv">
+            <div className="c">
+              <div className="premium-wrap">
+                <div className="premium-info">
+                  <div className="premium-label">Premium Plan</div>
+                  <h3>The full stack for brands that don&apos;t compromise</h3>
+                  <p className="premium-desc">
+                    {pm.description || 'Everything in Growth plus dedicated infrastructure, a hands-on success team, and the tools and strategy to dominate your category.'}
+                  </p>
+                  <div className="premium-price-row">
+                    <span className="currency">$</span>
+                    <span className="amount price-val" data-monthly={dollars(monthly)} data-annual={yearlyPerMonth}>
+                      {yearly ? yearlyPerMonth : dollars(monthly)}
+                    </span>
+                  </div>
+                  <div className="premium-period">CAD per month</div>
+                  <div className="premium-annual-note">
+                    {yearly > 0 && (
+                      <div className="annual-note">
+                        Billed annually · ${dollars(yearly)}/yr{savings ? ` · save ${savings}%` : ''}
+                      </div>
+                    )}
+                  </div>
+                  <a href={`/get-started?plan=${pm.slug}&billing=annual`} className="premium-cta">
+                    Get started
+                    <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </a>
+                </div>
+                <div className="premium-features">
+                  <div className="premium-features-label">Everything you get</div>
+                  <ul>
+                    {features.map((f, i) => (
+                      <li key={i}>
+                        <span className="ck-wrap">
+                          <svg className="ck" viewBox="0 0 12 12" fill="none">
+                            <path d="M2.5 6.5l2.5 2.5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* Comparison table — all 4 plans */}
+      <section className="pricing-grid" style={{ padding: '0 0 60px' }}>
         <details className="compare-toggle">
           <summary>
             Compare every feature
@@ -351,7 +446,7 @@ export default async function PricingPage() {
               <thead>
                 <tr>
                   <th>Feature</th>
-                  {plans.map((plan) => (
+                  {comparePlans.map((plan) => (
                     <th key={plan.id} className={plan.slug === featuredSlug ? 'feat' : ''}>
                       {plan.name}
                     </th>
@@ -361,44 +456,44 @@ export default async function PricingPage() {
               <tbody>
                 <tr>
                   <td>Price</td>
-                  {plans.map((plan) => (
+                  {comparePlans.map((plan) => (
                     <td key={plan.id}>${dollars(plan.price_cad ?? plan.price_usd)} CAD/mo</td>
                   ))}
                 </tr>
                 <tr>
                   <td>Sites included</td>
-                  {plans.map((plan) => {
+                  {comparePlans.map((plan) => {
                     const allowed = (plan.metadata as any)?.sites_allowed ?? 1;
                     return <td key={plan.id}>{allowed === 1 ? '1' : `Up to ${allowed}`}</td>;
                   })}
                 </tr>
                 <tr>
                   <td>SSD storage</td>
-                  {plans.map((plan) => {
+                  {comparePlans.map((plan) => {
                     const gb = (plan.metadata as any)?.storage_gb;
                     return <td key={plan.id}>{gb ? `${gb} GB` : 'Auto-scaling'}</td>;
                   })}
                 </tr>
-                <tr><td>WordPress on WP.Cloud</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
-                <tr><td>Free SSL + global CDN</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
-                <tr><td>Daily backups</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
-                <tr><td>Automatic updates</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+                <tr><td>WordPress on WP.Cloud</td>{comparePlans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+                <tr><td>Free SSL + global CDN</td>{comparePlans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+                <tr><td>Daily backups</td>{comparePlans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+                <tr><td>Automatic updates</td>{comparePlans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
                 <tr>
                   <td>Support</td>
-                  {plans.map((plan) => {
+                  {comparePlans.map((plan) => {
                     const s = (plan.metadata as any)?.support_type;
                     const label = s === 'priority' ? 'Priority' : s === 'dedicated' ? 'Dedicated' : 'Email';
                     return <td key={plan.id}>{label}</td>;
                   })}
                 </tr>
-                <tr><td>Full onboarding by our team</td>{plans.map(p => {
+                <tr><td>Full onboarding by our team</td>{comparePlans.map(p => {
                   const t = (p.metadata as any)?.onboarding_type;
                   const has = t && t !== 'standard';
                   return <td key={p.id} className={has ? 'check' : 'dash'}>{has ? '✓' : '—'}</td>;
                 })}</tr>
-                <tr><td>Free site migration</td>{plans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
-                <tr><td>WooCommerce ready</td>{plans.map(p => {
-                  const isCheapest = p.slug === plans[0]?.slug;
+                <tr><td>Free site migration</td>{comparePlans.map(p => <td key={p.id} className="check">{'✓'}</td>)}</tr>
+                <tr><td>WooCommerce ready</td>{comparePlans.map(p => {
+                  const isCheapest = p.slug === comparePlans[0]?.slug;
                   return <td key={p.id} className={isCheapest ? 'dash' : 'check'}>{isCheapest ? '—' : '✓'}</td>;
                 })}</tr>
               </tbody>
