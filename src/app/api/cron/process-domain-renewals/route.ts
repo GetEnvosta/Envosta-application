@@ -1,11 +1,8 @@
 /**
  * GET /api/cron/process-domain-renewals
  *
- * Phase 3 — daily domain-renewal sweeper.
- *
- * Replaces the legacy annual-Stripe-Subscription approach. For every
- * domain whose `expires_at` falls inside the renewal window (default
- * 7 days), this job:
+ * Daily domain-renewal sweeper. For every domain whose `expires_at`
+ * falls inside the renewal window (default 7 days), this job:
  *
  *   1. Skips domains with auto_renew = false
  *   2. Skips domains that already attempted in the last 24h (backoff)

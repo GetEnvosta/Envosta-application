@@ -2,14 +2,11 @@
  * Cancel domain renewal workflow (Vercel Workflows SDK).
  *
  * Toggles a domain's auto_renew flag off at OpenSRS and mirrors the
- * change locally. Phase 3 domain renewals are off-session PaymentIntents
- * (fired by /api/cron/process-domain-renewals) not Stripe Subscriptions —
- * so there is no Stripe subscription to cancel here. The cron honours
+ * change locally. Domain renewals are off-session PaymentIntents fired
+ * by /api/cron/process-domain-renewals — not Stripe Subscriptions — so
+ * there is no Stripe subscription to cancel here. The cron honours
  * `domains.auto_renew=false` directly: the next sweep simply skips this
  * domain.
- *
- * Currently dormant — UI does not yet call this. Made available for
- * future use.
  *
  * Idempotency: OpenSRS MODIFY is idempotent; setting auto_renew to its
  * existing value is a no-op upstream. Safe to retry.

@@ -105,8 +105,7 @@ export interface DnsRecord {
 
 /**
  * Build the standard wp.cloud DNS zone for a site (A apex, A www,
- * SPF, two CNAMEs for DKIM, and a DMARC TXT). Mirrors the helper of
- * the same name in supabase/functions/_shared/opensrs.ts.
+ * SPF, two CNAMEs for DKIM, and a DMARC TXT).
  */
 export function buildWpCloudDnsRecords(siteIp: string): DnsRecord[] {
   return [

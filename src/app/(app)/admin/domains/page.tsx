@@ -129,7 +129,7 @@ export default async function DomainsPage({
                     )}
                   </td>
                   <td className="px-5 py-3.5">
-                    {/* Phase 3: renewals are cron-fired off-session charges. */}
+                    {/* Renewals are cron-fired off-session charges. */}
                     {d.auto_renew === false ? (
                       <span className="text-xs text-amber-600 inline-flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" /> Off

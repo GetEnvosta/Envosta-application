@@ -158,8 +158,8 @@ export async function POST(req: Request) {
     }
 
     // ═══ SYNC ALL — push every active product to Stripe ═══
-    // Phase 3: TLDs are no longer in `products` (they live in `tlds`) and
-    // never get synced to Stripe — checkouts use inline price_data instead.
+    // TLDs live in `tlds` (not `products`) and never get synced to Stripe —
+    // checkouts use inline price_data instead.
     if (type === 'sync_all') {
       const { data: products } = await supabase
         .from('products')
@@ -193,7 +193,7 @@ export async function POST(req: Request) {
       return NextResponse.json(result);
     }
 
-    // Legacy type aliases (Phase 3: domain_tld dropped — TLDs no longer have Stripe Products)
+    // Legacy type aliases (domain_tld is dropped — TLDs no longer have Stripe Products)
     if (['plan', 'addon', 'one_time_service'].includes(type) && id) {
       const { data: product } = await supabase.from('products').select('*').eq('id', id).single();
       if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
@@ -201,7 +201,7 @@ export async function POST(req: Request) {
     }
     if (type === 'domain_tld') {
       return NextResponse.json(
-        { error: 'TLDs no longer sync to Stripe (Phase 3). Edit pricing in public.tlds via /api/admin/update-tld-price.' },
+        { error: 'TLDs do not sync to Stripe. Edit pricing in public.tlds via /api/admin/update-tld-price.' },
         { status: 410 },
       );
     }
@@ -216,10 +216,10 @@ export async function POST(req: Request) {
 // ─── Sync DB product → Stripe ───────────────────────────
 
 async function syncProduct(stripe: Stripe, supabase: any, product: any) {
-  // Phase 3: domain_tld products no longer exist in public.products —
-  // catch any stray rows defensively and skip them.
+  // domain_tld products don't exist in public.products — catch any stray
+  // rows defensively and skip them.
   if (product.type === 'domain_tld') {
-    return { success: false, skipped: true, reason: 'domain_tld products removed in Phase 3 — pricing lives in public.tlds with inline checkout' };
+    return { success: false, skipped: true, reason: 'domain_tld products removed — pricing lives in public.tlds with inline checkout' };
   }
 
   const meta = product.metadata ?? {};
@@ -382,9 +382,9 @@ async function importSingleStripeProduct(stripe: Stripe, supabase: any, stripePr
   const prices = await stripe.prices.list({ product: stripeProductId, active: true, limit: 5 });
   const defaultPrice = prices.data[0];
 
-  // Determine product type from metadata or name
-  // Phase 3: never default an imported Stripe product to 'domain_tld' —
-  // TLDs live in public.tlds and have no Stripe representation.
+  // Determine product type from metadata or name.
+  // Never default an imported Stripe product to 'domain_tld' — TLDs live
+  // in public.tlds and have no Stripe representation.
   const meta = sp.metadata ?? {};
   let type = meta.envosta_type || 'one_time_service';
   if (type === 'domain_tld') type = 'one_time_service';

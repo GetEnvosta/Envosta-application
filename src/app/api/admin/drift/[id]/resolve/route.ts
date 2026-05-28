@@ -1,9 +1,9 @@
 /**
  * POST /api/admin/drift/[id]/resolve
  *
- * Phase 8 — observability. Admin-only. Marks a single `sync_drift` row
- * as resolved (sets `resolved=true, resolved_at=now()`). Driven by the
- * "Mark resolved" button on the /admin/audit Sync & Drift tab.
+ * Admin-only. Marks a single `sync_drift` row as resolved (sets
+ * `resolved=true, resolved_at=now()`). Driven by the "Mark resolved"
+ * button on the /admin/audit Sync & Drift tab.
  *
  * Writes an audit_log row so the resolution is itself observable.
  */

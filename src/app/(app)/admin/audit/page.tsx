@@ -1,5 +1,5 @@
 /**
- * /admin/audit — Phase 8 observability dashboard.
+ * /admin/audit — observability dashboard.
  *
  * Four tabs over the orchestration tables, selected by a `?tab=`
  * searchparam (single page, server-rendered, no client tab state):

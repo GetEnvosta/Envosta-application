@@ -66,7 +66,7 @@ export async function PUT(req: Request) {
 function notImplemented(action: string) {
   return NextResponse.json(
     {
-      error: `Action "${action}" has not been ported to a Vercel internal route. The Supabase register-domain edge function was decommissioned in Phase 2D.`,
+      error: `Action "${action}" is not supported by any Vercel internal route.`,
     },
     { status: 501 },
   );
@@ -135,7 +135,7 @@ export async function POST(req: Request) {
   const { action } = body;
 
   // Check action is public (no auth needed). Calls OpenSRS directly
-  // via the internal route added in Phase 2D.
+  // via the /api/domain-check internal route.
   if (action === 'check') {
     const origin = internalOrigin(req);
     const res = await fetch(`${origin}/api/domain-check`, {
@@ -163,8 +163,8 @@ export async function POST(req: Request) {
     'X-Internal-Token': process.env.INTERNAL_API_TOKEN!,
   };
 
-  // ── Phase 2C: routes cut over to the Vercel internal API ──
-  // These hit OpenSRS directly from Vercel static IPs (whitelisted).
+  // These actions hit OpenSRS via the Vercel internal API, which calls
+  // OpenSRS directly from Vercel static IPs (whitelisted).
 
   if (action === 'register') {
     // If the caller is registering on behalf of another user, require
@@ -261,7 +261,6 @@ export async function POST(req: Request) {
     return NextResponse.json(data, { status: res.status });
   }
 
-  // ── Phase 2D: no fallback. Actions without a Vercel internal route
-  //   return 501 until they're ported.
+  // No fallback — actions without a Vercel internal route return 501.
   return notImplemented(action ?? 'unknown');
 }

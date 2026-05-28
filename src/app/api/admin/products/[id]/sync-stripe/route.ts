@@ -50,7 +50,7 @@ export async function POST(
   if (!product) return NextResponse.json({ ok: false, error: 'Product not found' }, { status: 404 });
   if (product.type === 'domain_tld') {
     return NextResponse.json(
-      { ok: false, error: 'TLDs no longer sync to Stripe (Phase 3). Edit pricing in public.tlds.' },
+      { ok: false, error: 'TLDs do not sync to Stripe. Edit pricing in public.tlds.' },
       { status: 410 },
     );
   }

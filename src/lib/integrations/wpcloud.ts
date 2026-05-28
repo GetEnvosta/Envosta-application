@@ -239,8 +239,8 @@ function readEnv(): WpCloudEnv {
 
 /**
  * Encode a Record into application/x-www-form-urlencoded. Nested
- * objects use bracket notation (`meta[key]=value`) — matches what
- * supabase/functions/_shared/deps.ts:wpcloudPost does today.
+ * objects use bracket notation (`meta[key]=value`), which is what the
+ * wp.cloud API expects for nested fields like site meta.
  */
 function encodeFormBody(body: Record<string, unknown>): string {
   const params = new URLSearchParams();

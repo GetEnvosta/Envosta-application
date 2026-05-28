@@ -6,8 +6,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * Domain availability check — calls OpenSRS directly from a Vercel
- * static IP (whitelisted). Phase 2D replaced the legacy register-domain
- * edge function fallback with a direct OpenSRS lookup.
+ * static IP (whitelisted at OpenSRS).
  */
 export async function POST(req: Request) {
   const ip = getClientIp(req);

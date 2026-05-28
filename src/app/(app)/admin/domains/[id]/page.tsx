@@ -91,9 +91,9 @@ export default async function AdminDomainDetailPage({ params }: { params: Promis
             expiresAt={domain.expiry_date}
           />
 
-          {/* Phase 3: domain renewals are off-session PaymentIntents fired
-              by /api/cron/process-domain-renewals daily — no Stripe sub
-              to attach. Auto-renew is governed by the domain row's
+          {/* Domain renewals are off-session PaymentIntents fired by
+              /api/cron/process-domain-renewals daily — no Stripe sub to
+              attach. Auto-renew is governed by the domain row's
               auto_renew flag in DomainSettings above. */}
         </div>
       </div>

@@ -40,8 +40,8 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const { services, domains, subscriptions, invoices, logs } = relatedData;
 
   // Account-centric model: the user has at most one subscription.
-  // Phase 3: domain renewals are off-session PaymentIntents fired by a
-  // daily cron — never Stripe Subscriptions — so nothing to filter out.
+  // Domain renewals are off-session PaymentIntents fired by a daily cron
+  // — never Stripe Subscriptions — so nothing to filter out.
   const hostingSubs = subscriptions;
 
   // The subscription covers an allotment of sites; price is the sub's billing
@@ -64,12 +64,12 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     ?? null;
   const sitesUsed = activeSites.length;
 
-  // Phase 3: no more annual domain sub total — auto_renew flag per
-  // domain row is the only signal we still track here.
+  // No annual domain sub total — the auto_renew flag per domain row is
+  // the only signal we track here.
 
-  // Split invoices: domain (registration/renewal) vs hosting. Phase 3
-  // domain registrations are inline-priced one-time Stripe Checkout
-  // sessions; renewals are off-session PaymentIntents. Both stamp
+  // Split invoices: domain (registration/renewal) vs hosting. Domain
+  // registrations are inline-priced one-time Stripe Checkout sessions;
+  // renewals are off-session PaymentIntents. Both stamp
   // `product_type = 'domain_registration'` or `'domain_renewal'` on
   // metadata, so prefer that signal. Falls back to text/legacy flags.
   const domainNames = (domains ?? []).map((d: any) => String(d.domain_name || '').toLowerCase()).filter(Boolean);
@@ -299,8 +299,8 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
       {/* ── Domains & Renewals ── */}
       <div className="card overflow-hidden mb-6">
-        {/* Renewals band — Phase 3: renewals are fired by the daily cron
-            against each domain's auto_renew flag (no Stripe sub). */}
+        {/* Renewals band — renewals are fired by the daily cron against
+            each domain's auto_renew flag (no Stripe sub). */}
         <div className="px-5 py-4 bg-gray-50/60 border-b border-gray-100 flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Globe className="w-4 h-4 text-gray-400 shrink-0" />

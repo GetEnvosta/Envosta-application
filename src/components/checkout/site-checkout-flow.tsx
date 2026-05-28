@@ -131,8 +131,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
         if (match) setSelectedPlan(match);
       }
 
-      // Pre-fill domain from URL param and fetch its price (Phase 3:
-      // pricing lives in public.tlds, not public.products).
+      // Pre-fill domain from URL param and fetch its price from public.tlds.
       if (initialDomain) {
         setDomainMode('new');
         setSelectedDomain(initialDomain);
@@ -185,7 +184,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
       const data = await res.json();
       if (res.ok) {
         setDomainResult({ domain, available: data.available });
-        // Fetch TLD price from public.tlds (Phase 3 catalog).
+        // Fetch TLD price from public.tlds.
         if (data.available) {
           const tld = domain.split('.').pop()?.toLowerCase() ?? '';
           const { data: pricing } = await supabase

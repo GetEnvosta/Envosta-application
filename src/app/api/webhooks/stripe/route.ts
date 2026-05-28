@@ -23,10 +23,10 @@
  *   - Write to public.subscriptions / public.invoices (tables dropped)
  *   - Write to sites.subscription_id (column dropped — account-centric)
  *   - Create or manage Stripe Subscriptions for domain renewals
- *     (Phase 3 cutover: renewals are off-session PaymentIntents fired by
+ *     (renewals are off-session PaymentIntents fired by
  *      /api/cron/process-domain-renewals, NOT Stripe Subscriptions)
  *
- * Phase 3 inbound surfaces:
+ * Domain-registration entrypoint:
  *   - checkout.session.completed with metadata.product_type ==
  *     'domain_registration' → register domain via OpenSRS internal route,
  *     stamp domains.auto_renew=true so the daily cron picks it up.
@@ -413,9 +413,8 @@ export async function POST(req: Request) {
       }
 
       // ── Auto-create / pre-link site + provision (hosting only) ──
-      // Phase 3: TLDs are no longer Stripe products and domain renewals
-      // are no longer Stripe subscriptions — these legacy flags only
-      // ever fire on pre-Phase-3 subs being mirrored during cutover.
+      // TLDs are not Stripe products and domain renewals are not Stripe
+      // subscriptions, so any sub reaching this branch is hosting.
       const hasPaymentMethod = !!sub.default_payment_method;
       const shouldProvision = sub.status === 'active' || (sub.status === 'trialing' && hasPaymentMethod);
 
@@ -785,10 +784,8 @@ export async function POST(req: Request) {
       // sub (e.g. customer ticked an add-on at signup), the slug list is
       // stamped as `metadata.addon_slugs` (JSON-string). Log it to the
       // audit trail so operators can see what shipped with the sub.
-      //
-      // TODO when the first addon ships: per-slug side effects here —
-      // wp.cloud manageSoftware + site-meta toggle for things like
-      // premium SSL flags, WAF rules, etc.
+      // Per-slug side effects (wp.cloud manageSoftware, site-meta toggles)
+      // are applied by /api/account/addons/add via src/lib/addon-effects.ts.
       const addonSlugs = parseAddonSlugs((sub.metadata as any)?.addon_slugs);
       if (addonSlugs.length > 0) {
         await recordAudit({
@@ -806,9 +803,9 @@ export async function POST(req: Request) {
         });
       }
 
-      // Phase 3: standalone domain purchases no longer ride a Stripe
-      // Subscription — they're checkout.session.completed events handled
-      // in the dedicated block below. Nothing to do here.
+      // Standalone domain purchases don't ride a Stripe Subscription —
+      // they arrive as checkout.session.completed events handled in the
+      // dedicated block below. Nothing to do here.
     }
 
     // ── checkout.session.completed (one-time payments) ──
@@ -847,7 +844,7 @@ export async function POST(req: Request) {
         }
       }
 
-      // ── Domain registration (Phase 3 inline-checkout flow) ──
+      // ── Domain registration (inline-checkout flow) ──
       else if (metadata.product_type === 'domain_registration') {
         const domainName = (metadata.domain_name ?? '').toLowerCase();
         const years = Math.max(1, Math.min(10, parseInt(metadata.years ?? '1', 10) || 1));
@@ -990,9 +987,9 @@ export async function POST(req: Request) {
         await sendEmail({ to: cust.email, ...email });
       }
 
-      // Phase 3: domain renewal subscriptions no longer exist. Customers
-      // toggle auto_renew via the domains UI; the daily renewal cron
-      // honours that flag directly.
+      // Domain renewal subscriptions don't exist — customers toggle
+      // auto_renew via the domains UI and the daily renewal cron honours
+      // that flag directly.
     }
 
     // ── invoice.paid / invoice.payment_failed ──

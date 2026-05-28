@@ -1,7 +1,7 @@
 /**
  * GET /api/cron/reconcile-opensrs
  *
- * Phase 6 — daily OpenSRS mirror reconciliation (runs 04:00 UTC).
+ * Daily OpenSRS mirror reconciliation (runs 04:00 UTC).
  *
  * A READ-ONLY sweep that keeps the `opensrs_domains` + `opensrs_contacts`
  * + `opensrs_dns_records` mirror tables fresh and surfaces drift. It

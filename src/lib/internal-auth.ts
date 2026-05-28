@@ -1,10 +1,10 @@
 /**
  * Internal-route authentication helper.
  *
- * Routes under `/api/internal/*` are server-to-server endpoints — the
- * Stripe webhook + Next.js code call them once cutover happens in
- * Phase 2C. Until then, they're dormant. They authenticate via the
- * `X-Internal-Token` header which must match `INTERNAL_API_TOKEN`.
+ * Routes under `/api/internal/*` are server-to-server endpoints called by
+ * the Stripe webhook, admin routes, and cron jobs. They authenticate via
+ * the `X-Internal-Token` header, which must match `INTERNAL_API_TOKEN`,
+ * so internal routes can't be hit from the outside.
  *
  * Service-role Supabase access is constructed inline at each call
  * site (per the convention in src/lib/supabase-server.ts) — this

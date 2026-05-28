@@ -3,8 +3,8 @@
  *
  * Admin-only. Updates pricing on a row of public.tlds.
  *
- * Phase 3: tlds no longer have Stripe Products/Prices — checkouts use
- * inline price_data computed from this row. No Stripe sync involved.
+ * TLDs have no Stripe Products/Prices — checkouts use inline price_data
+ * computed from this row, so there is no Stripe sync involved.
  *
  * Body shape (all cents, all optional except `tld`):
  *   {

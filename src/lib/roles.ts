@@ -12,6 +12,11 @@ export function isStaffRole(role?: string | null): boolean {
   return STAFF_ROLES.includes(role as StaffRole);
 }
 
+/** Returns true if the role is admin (full power). */
+export function isAdminRole(role?: string | null): boolean {
+  return role === 'admin';
+}
+
 // ── Admin Sidebar Nav Access ────────────────────────────────
 // Maps each staff role to the admin nav hrefs they can see.
 // '*' is a wildcard meaning "all items" (admin only).

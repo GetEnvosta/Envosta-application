@@ -47,7 +47,7 @@ export async function POST(req: Request) {
   if (!INTERNAL_ACTIONS.has(action)) {
     return NextResponse.json(
       {
-        error: `Action "${action}" has not been ported to /api/internal/wpcloud/site-info. The Supabase site-info edge function was decommissioned in Phase 2D.`,
+        error: `Action "${action}" is not supported by /api/internal/wpcloud/site-info.`,
       },
       { status: 501 },
     );

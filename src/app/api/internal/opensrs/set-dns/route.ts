@@ -47,9 +47,8 @@ const VALID_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'SRV'] as const;
 type DnsType = (typeof VALID_TYPES)[number];
 
 /**
- * Standard 6-record DNS zone for a WordPress site hosted on wp.cloud.
- * Mirrors `buildWpCloudDnsRecords()` in supabase/functions/_shared so
- * setup-dns callers don't need to assemble the record set themselves.
+ * Standard 6-record DNS zone for a WordPress site hosted on wp.cloud,
+ * so setup-dns callers don't need to assemble the record set themselves.
  */
 function buildWpCloudDnsRecords(siteIp: string): DnsRecord[] {
   return [

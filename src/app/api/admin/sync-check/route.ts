@@ -129,7 +129,7 @@ export async function POST(req: Request) {
     // For now we skip the OpenSRS comparison and rely on the DB-side
     // checks below.
     const opensrsDomains: string[] = [];
-    const opensrsError = 'OpenSRS bulk listing not yet ported (Phase 2D follow-up)';
+    const opensrsError = 'OpenSRS bulk listing not yet ported';
 
     // Compare DB domains vs OpenSRS domains
     const dbDomainNames = new Set((dbDomains ?? []).map((d: any) => d.domain_name?.toLowerCase()).filter(Boolean));

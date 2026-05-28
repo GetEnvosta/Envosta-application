@@ -22,8 +22,7 @@ export function DomainSearch() {
   const [error, setError] = useState('');
   const [tldPrices, setTldPrices] = useState<Record<string, number>>({});
 
-  // Fetch TLD prices from public.tlds (Phase 3: dedicated catalog,
-  // no more domain_tld rows in public.products).
+  // Fetch TLD prices from public.tlds.
   useEffect(() => {
     const supabase = createClient();
     supabase.from('tlds').select('tld, register_price_cad_cents').eq('is_active', true).then(({ data }) => {

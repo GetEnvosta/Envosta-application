@@ -29,11 +29,9 @@ export default async function BillingPage() {
 
   const sites = sitesResult.data ?? [];
 
-  // Domain renewals are now standalone Stripe subscriptions / one-time
-  // charges driven by cron — the customer dashboard surfaces them via
-  // the domains table, not via separate sub rows. (Phase 3 will rebuild
-  // the dedicated domain renewal section as cron-managed line items.)
-  const domainSubs: any[] = [];
+  // Domain renewals are off-session PaymentIntents driven by
+  // /api/cron/process-domain-renewals — the customer dashboard surfaces
+  // them via the domains table, not via Stripe sub rows.
 
   // Calculate totals
   const sitesTotal = sites.reduce((sum: number, s: any) => sum + ((s.products as any)?.price_cad ?? 0), 0);
@@ -114,38 +112,8 @@ export default async function BillingPage() {
             </div>
           )}
 
-          {/* Domain renewals (legacy stub — Phase 3 rebuilds) */}
-          {domainSubs.length > 0 && (
-            <div className="divide-y divide-gray-100">
-              <div className="px-6 py-2.5 bg-gray-50/50 border-t border-gray-100">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Domains — {domainSubs.length} {domainSubs.length === 1 ? 'domain' : 'domains'}</p>
-              </div>
-              {domainSubs.map((ds: any) => {
-                const meta = (ds.metadata as any) ?? {};
-                const domainName = meta.domain_name ?? (ds.products as any)?.name ?? 'Domain';
-                const yearlyPrice = (ds.products as any)?.price_cad ?? 0;
-                return (
-                  <div key={ds.id} className="px-6 py-3.5 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
-                        <Globe className="w-4 h-4 text-purple-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{domainName}</p>
-                        <p className="text-xs text-gray-500">
-                          Auto-renews {ds.current_period_end ? formatDate(ds.current_period_end) : 'yearly'}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-sm font-semibold text-gray-900">{formatCents(yearlyPrice, 'usd')}<span className="text-xs font-normal text-gray-400">/yr</span></p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
           {/* Empty state */}
-          {sites.length === 0 && domainSubs.length === 0 && (
+          {sites.length === 0 && (
             <div className="px-6 py-12 text-center">
               <Globe className="w-10 h-10 text-gray-300 mx-auto mb-3" />
               <p className="text-sm font-medium text-gray-700 mb-1">No active services</p>

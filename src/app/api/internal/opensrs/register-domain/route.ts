@@ -1,17 +1,13 @@
 /**
  * POST /api/internal/opensrs/register-domain
  *
- * Internal route called server-to-server (Stripe webhook + admin routes
- * will switch to this in Phase 2C). Mirrors the work currently done by
- * supabase/functions/register-domain/index.ts (action="register"):
+ * Internal route called server-to-server by the Stripe webhook and admin
+ * routes. For a SW_REGISTER:
  *  - Inserts a `domains` row if one doesn't exist
- *  - Calls OpenSRS SW_REGISTER via the new direct integration client
+ *  - Calls OpenSRS SW_REGISTER via the integration client
  *  - Updates the customer-facing `domains` row (status, expiry_date)
  *  - Inserts a row into the `opensrs_domains` mirror table
  *  - Records the state change to `audit_log`
- *
- * Not yet wired into any caller — coexists with the edge function
- * until cutover in Phase 2C.
  *
  * Auth: X-Internal-Token header must match INTERNAL_API_TOKEN env var.
  */

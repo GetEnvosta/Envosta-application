@@ -2,9 +2,7 @@
  * POST /api/admin/custom-invoice
  *
  * Admin-only: create + send a one-off Stripe invoice to a customer for
- * custom work (consulting, migration, ad-hoc charges). Replaces the
- * decommissioned `stripe-checkout` Supabase Edge Function — Phase 2
- * moved all Stripe calls to Vercel API routes.
+ * custom work (consulting, migration, ad-hoc charges).
  *
  * Body: {
  *   stripeCustomerId?: string   // when quick mode (customer is fixed)

@@ -1,10 +1,6 @@
 /**
- * Vercel-runtime email helpers.
- *
- * Mirrors supabase/functions/_shared/email.ts so internal API routes
- * (and the Vercel-hosted Stripe webhook) can send branded transactional
- * emails without depending on Deno-specific imports. The templates +
- * subjects are intentionally identical to the edge-function originals.
+ * Email templates and Resend sender — used by API routes, workflows,
+ * and the Stripe webhook to send branded transactional emails.
  *
  * Send-side uses Resend's REST API directly. Failures are logged but
  * never thrown — email is best-effort and should not block business

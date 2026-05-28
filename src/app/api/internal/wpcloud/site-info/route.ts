@@ -8,12 +8,11 @@
  * Two transports:
  *   - POST with JSON body `{ action, siteId?, key?, value?, ... }`
  *     (action-based dispatch).
- *   - GET  `?action=<action>&siteId=<id>` (Phase 2B read-only entrypoint).
+ *   - GET  `?action=<action>&siteId=<id>` (read-only entrypoint).
  *
  * Auth: X-Internal-Token header must match INTERNAL_API_TOKEN env var.
  *
- * Supported actions (subset of the edge function — added as callers
- * are flipped over in Phase 2C):
+ * Supported actions:
  *   READ:
  *     - get              ─ wp.cloud get-site for a sites row
  *     - get-site         ─ alias of `get` (edge function naming)

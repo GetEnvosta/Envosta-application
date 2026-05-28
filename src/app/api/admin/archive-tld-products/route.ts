@@ -9,10 +9,10 @@ export const dynamic = 'force-dynamic';
 /**
  * Archive legacy TLD products in Stripe.
  *
- * Before Phase 3, every TLD (.com, .ca, etc.) was a persistent Stripe
- * Product + Price. After the cutover, domain checkouts use inline
- * `price_data` and there are no Stripe Products for TLDs. The old ones
- * sit in your Stripe account as dead weight.
+ * Domain checkouts use inline `price_data` and there are no Stripe
+ * Products for TLDs. Older Stripe accounts may still have persistent
+ * TLD products (.com, .ca, etc.) sitting around as dead weight from
+ * earlier checkout designs.
  *
  * This route:
  *   - Lists every active Stripe Product

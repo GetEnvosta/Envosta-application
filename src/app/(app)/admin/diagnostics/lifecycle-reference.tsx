@@ -100,7 +100,7 @@ export function LifecycleReference() {
           <RuleRow icon={Lock} title="One hosting subscription per user" detail="Account-centric model. findHostingSubscription() reads stripe.subscriptions (Sync Engine mirror) via users.stripe_customer_id. Adding a second site reuses the sub and adds a Stripe line item." />
           <RuleRow icon={Server} title="Each site = one Stripe line item" detail="sites.stripe_subscription_item_id is the link. The parent subscription is looked up through the user (no per-site subscription FK)." />
           <RuleRow icon={CheckCircle} title="Sites limited per plan" detail="products.metadata.sites_allowed (Minimum=1, Growth=5). Enforced in /api/create-site — returns 403 if cap reached." />
-          <RuleRow icon={Mail} title="Domains are independent" detail="Domain renewals are managed separately (Phase 3 moves them to cron-based one-time charges). Customers can have many in parallel." />
+          <RuleRow icon={Mail} title="Domains are independent" detail="Domain renewals are managed separately as cron-based one-time charges. Customers can have many in parallel." />
         </ul>
       </section>
 

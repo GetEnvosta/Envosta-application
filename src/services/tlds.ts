@@ -1,12 +1,12 @@
 /**
  * TLDs service — read helpers for the public.tlds catalog.
  *
- * Phase 3 architecture:
- *   - public.tlds replaces the old type='domain_tld' rows in public.products.
- *   - NO Stripe Products for TLDs. Checkout uses inline `price_data`
- *     computed from `tlds` at the moment of charge.
- *   - Renewals are cron-fired off-session PaymentIntents, not recurring
- *     Stripe Subscriptions.
+ * Architecture:
+ *   - public.tlds holds the TLD catalog and pricing. There are NO Stripe
+ *     Products for TLDs — checkout uses inline `price_data` computed from
+ *     this table at the moment of charge.
+ *   - Renewals are cron-fired off-session PaymentIntents (see
+ *     /api/cron/process-domain-renewals), not recurring Stripe Subscriptions.
  *
  * All prices stored in CENTS. CAD is primary (required, NOT NULL on the
  * register/renew CAD columns). USD is secondary (nullable).

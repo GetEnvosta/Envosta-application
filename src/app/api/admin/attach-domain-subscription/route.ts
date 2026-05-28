@@ -1,11 +1,11 @@
 /**
  * POST /api/admin/attach-domain-subscription
  *
- * 410 Gone (Phase 3).
+ * Returns 410 Gone.
  *
  * Previously created an annual Stripe Subscription tied to a TLD's
- * persistent Stripe Price so domain renewals would auto-bill. After
- * Phase 3 there are NO Stripe Subscriptions for domain renewals — the
+ * persistent Stripe Price so domain renewals would auto-bill. There are
+ * NO Stripe Subscriptions for domain renewals now — the
  * /api/cron/process-domain-renewals cron fires off-session
  * PaymentIntents instead and OpenSRS handles the renewal itself.
  *
@@ -21,7 +21,7 @@ export async function POST() {
     {
       error: 'Gone',
       message:
-        'Domain renewal subscriptions were retired in Phase 3. Renewals are now fired by /api/cron/process-domain-renewals as off-session one-time charges. Toggle the domain\'s auto_renew flag instead.',
+        'Domain renewal subscriptions are retired. Renewals are fired by /api/cron/process-domain-renewals as off-session one-time charges — toggle the domain\'s auto_renew flag instead.',
     },
     { status: 410 },
   );

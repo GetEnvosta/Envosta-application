@@ -158,8 +158,10 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, deleted: true });
 }
 
-// ── Inline email helpers (mirror supabase/functions/_shared/email.ts) ──
-// Kept inline so we don't have to wire deno imports into the Next.js runtime.
+// ── Inline email helpers ──
+// Match the styling used elsewhere in /lib/email.ts; kept inline so this
+// route can ship its bespoke "site deleted" template without expanding
+// the shared email module.
 function emailShell(content: string): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:0;background:#f4f4f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}.wrap{max-width:560px;margin:0 auto;padding:40px 20px}.card{background:#fff;border-radius:12px;padding:40px 32px;box-shadow:0 1px 3px rgba(0,0,0,.08)}h1{font-size:22px;font-weight:600;color:#111;margin:0 0 16px;line-height:1.3}p{font-size:15px;color:#555;line-height:1.7;margin:0 0 16px}.btn{display:inline-block;background:#111;color:#fff!important;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:500;margin:8px 0 24px}.footer{text-align:center;padding:24px 0;font-size:12px;color:#aaa}.footer a{color:#888;text-decoration:none}</style></head><body><div class="wrap"><div class="card">${content}</div><div class="footer"><p>Envosta Inc. · Calgary, Alberta, Canada</p><p><a href="https://envosta.com">envosta.com</a> · <a href="https://envosta.com/support">Support</a></p></div></div></body></html>`;
 }

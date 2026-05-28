@@ -1,8 +1,8 @@
 /**
  * POST /api/domain-only-checkout
  *
- * Phase 3: domain-only flow for new customers. Creates the user account,
- * then redirects to a Stripe Checkout Session (mode='payment') with inline
+ * Domain-only flow for new customers. Creates the user account, then
+ * redirects to a Stripe Checkout Session (mode='payment') with inline
  * price_data computed from public.tlds. No persistent Stripe Product/Price.
  *
  * On checkout success Stripe calls webhooks/stripe → registers the domain

@@ -1,7 +1,7 @@
 /**
  * GET /api/cron/reconcile-wpcloud
  *
- * Phase 6 — hourly wp.cloud mirror reconciliation.
+ * Hourly wp.cloud mirror reconciliation.
  *
  * A READ-ONLY sweep that keeps the `wpcloud_sites` mirror table fresh
  * and surfaces drift. It NEVER mutates upstream wp.cloud state — it only

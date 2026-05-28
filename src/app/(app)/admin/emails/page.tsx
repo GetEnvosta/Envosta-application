@@ -115,8 +115,8 @@ export default function AdminEmailsPage() {
 
       <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <p className="text-sm text-gray-500">
-          Templates are defined in <code className="text-xs bg-gray-200 px-1 py-0.5 rounded">supabase/functions/_shared/email.ts</code>.
-          Edit the code and redeploy Edge Functions to update. View delivery logs in the <a href="https://resend.com/emails" target="_blank" rel="noopener noreferrer" className="text-admin-600 hover:underline">Resend dashboard</a>.
+          Templates are defined in <code className="text-xs bg-gray-200 px-1 py-0.5 rounded">src/lib/email.ts</code>.
+          Edit the code and redeploy to update. View delivery logs in the <a href="https://resend.com/emails" target="_blank" rel="noopener noreferrer" className="text-admin-600 hover:underline">Resend dashboard</a>.
         </p>
       </div>
     </div>

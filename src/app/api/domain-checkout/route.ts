@@ -1,10 +1,11 @@
 /**
  * POST /api/domain-checkout
  *
- * Phase 3: inline-price Stripe Checkout Session (mode='payment') for a
- * one-time domain registration. No persistent Stripe Product/Price. The
- * unit_amount is computed from public.tlds at request time. Renewals are
- * handled by /api/cron/process-domain-renewals — NOT a Stripe Subscription.
+ * Inline-price Stripe Checkout Session (mode='payment') for a one-time
+ * domain registration. No persistent Stripe Product/Price — the
+ * unit_amount is computed from public.tlds at request time. Renewals
+ * are handled by /api/cron/process-domain-renewals (not a Stripe
+ * Subscription).
  *
  * Body: { domainName: string, years?: number }
  * Returns: { url: string }   (Stripe Checkout URL — redirect the customer)

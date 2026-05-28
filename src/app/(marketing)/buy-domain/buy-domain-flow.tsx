@@ -6,12 +6,11 @@ import { createClient } from '@/lib/supabase-browser';
 import { Globe, Check, Loader2, ArrowRight } from 'lucide-react';
 
 /**
- * Phase 3 — domain-only buy flow.
+ * Domain-only buy flow.
  *
- * The previous flow used Stripe Elements + a domain-renewal subscription
- * with embedded payment. Phase 3 collapses this into a single redirect to
- * a Stripe Checkout Session (mode='payment', inline price_data) created
- * by /api/domain-only-checkout. On return the URL carries ?success=1.
+ * Redirects to a Stripe Checkout Session (mode='payment', inline
+ * price_data) created by /api/domain-only-checkout. On return the URL
+ * carries ?success=1.
  */
 export function BuyDomainFlow() {
   const searchParams = useSearchParams();

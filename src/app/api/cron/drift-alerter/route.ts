@@ -1,7 +1,7 @@
 /**
  * GET /api/cron/drift-alerter
  *
- * Phase 8 — observability. Runs every 6 hours.
+ * Observability digest — runs every 6 hours.
  *
  * Digests unresolved `sync_drift` rows into ONE ops email so drift the
  * reconciliation crons flagged doesn't sit unnoticed. This is NOT a

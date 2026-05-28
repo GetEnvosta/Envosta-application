@@ -41,18 +41,14 @@ export default async function DiagnosticsPage() {
     s.products?.type === 'hosting_plan' && s.users?.id && !userIdsWithSites.has(s.users.id),
   );
 
-  // 2. Phase 3: domain renewals are no longer Stripe subscriptions, so
-  //    "domain sub without a domain record" is a dead drift surface.
-  const domainSubsNoDomain: any[] = [];
-
-  // 3. Sites stuck in provisioning > 1 hour
+  // 2. Sites stuck in provisioning > 1 hour
   const { data: stuckSites } = await supabase
     .from('sites')
     .select('id, label, status, created_at, metadata, users(email)')
     .eq('status', 'provisioning')
     .lt('created_at', new Date(Date.now() - 3600000).toISOString());
 
-  // 4. Sites marked "failed"
+  // 3. Sites marked "failed"
   const { data: failedSites } = await supabase
     .from('sites')
     .select('id, label, status, created_at, metadata, users(email)')
@@ -60,7 +56,7 @@ export default async function DiagnosticsPage() {
     .order('created_at', { ascending: false })
     .limit(20);
 
-  // 5. Domains with status "pending" or "failed"
+  // 4. Domains with status "pending" or "failed"
   const { data: problemDomains } = await supabase
     .from('domains')
     .select('id, domain_name, status, created_at, users(email)')
@@ -68,7 +64,7 @@ export default async function DiagnosticsPage() {
     .order('created_at', { ascending: false })
     .limit(20);
 
-  const totalIssues = hostingSubsNoSite.length + domainSubsNoDomain.length + (stuckSites?.length ?? 0) + (failedSites?.length ?? 0) + (problemDomains?.length ?? 0);
+  const totalIssues = hostingSubsNoSite.length + (stuckSites?.length ?? 0) + (failedSites?.length ?? 0) + (problemDomains?.length ?? 0);
 
   // Fetch logs for the logs tab
   const logs = await getAdminLogs({}, 50);
@@ -122,8 +118,8 @@ export default async function DiagnosticsPage() {
         ))}
       </DiagCard>
 
-      {/* Phase 3: "domain subscriptions without a record" is no longer
-          a real drift surface — domain renewals are not Stripe subs. */}
+      {/* "Domain subscriptions without a record" is not a real drift
+          surface — domain renewals are not Stripe subs. */}
 
       {/* Stuck provisioning */}
       <DiagCard

@@ -8,10 +8,9 @@ import { useRouter } from 'next/navigation';
  * Admin "Provision on wp.cloud" button. Triggers wp.cloud provisioning
  * for an existing sites row.
  *
- * Phase 2C: instead of POSTing the wp.cloud edge function directly from
- * the browser (which would originate from the user's IP and bypass the
- * whitelist), we now POST to /api/admin/provision-site so the wp.cloud
- * call happens server-side from a Vercel static IP.
+ * POSTs to /api/admin/provision-site so the wp.cloud call happens
+ * server-side from a Vercel static IP (whitelisted at wp.cloud) — never
+ * from the user's browser.
  */
 export function ProvisionButton({ siteId, label }: { siteId: string; label: string }) {
   const [loading, setLoading] = useState(false);

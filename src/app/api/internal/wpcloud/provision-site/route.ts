@@ -17,10 +17,8 @@
  *  - Sends site-ready / provisioning-failed transactional emails
  *  - Records the state change to `audit_log`
  *
- * Replaces the legacy provision-hosting edge function call from the
- * Stripe webhook + all admin/cron callers in Phase 2C. The edge
- * function still exists (untouched) as a fallback until the Stripe
- * webhook also moves to Vercel.
+ * Called by the Stripe webhook, admin tools, and provisioning workflows
+ * so wp.cloud calls always originate from a Vercel static IP.
  *
  * Auth: X-Internal-Token header must match INTERNAL_API_TOKEN env var.
  *

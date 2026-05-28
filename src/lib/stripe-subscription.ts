@@ -10,14 +10,15 @@ import Stripe from 'stripe';
  * - Upgrading a site = swapping its line item's price (Stripe prorates automatically)
  * - Removing a site = deleting the line item
  *
- * Phase 3: domain renewals are NOT Stripe Subscriptions — the daily cron
- * fires off-session PaymentIntents instead. There's nothing here that
- * needs to filter them out anymore.
+ * Domain renewals are NOT Stripe Subscriptions — the daily cron fires
+ * off-session PaymentIntents instead, so nothing here needs to filter
+ * them out.
  *
- * Post Stripe-Sync-Engine cutover:
- *   - public.subscriptions was dropped. The Sync Engine mirrors Stripe
- *     into the `stripe` schema continuously, so `findHostingSubscription`
- *     now reads `stripe.subscriptions` via the user's stripe_customer_id.
+ * Data source:
+ *   - public.subscriptions does not exist. The Stripe Sync Engine mirrors
+ *     Stripe into the `stripe` schema continuously, so
+ *     `findHostingSubscription` reads `stripe.subscriptions` via the
+ *     user's stripe_customer_id.
  *   - The returned shape preserves `stripe_subscription_id` (alias of the
  *     stripe.subscriptions.id) so callers don't need to change.
  */
@@ -52,8 +53,8 @@ export async function findHostingSubscription(
     .in('status', ['active', 'trialing', 'paused'])
     .order('created', { ascending: false });
 
-  // Phase 3: domain renewals are no longer Stripe Subscriptions — any
-  // live sub belongs to hosting. Defensive guard kept for legacy rows.
+  // Domain renewals are not Stripe Subscriptions, so any live sub belongs
+  // to hosting. Defensive guard kept for legacy rows.
   const hostingSub = (subs ?? []).find((s: any) => {
     const meta = (s.metadata as any) ?? {};
     return meta.type !== 'domain_renewal' && meta.is_domain_purchase !== 'true';
