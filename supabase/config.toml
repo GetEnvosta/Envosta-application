@@ -16,12 +16,7 @@ additional_redirect_urls = ["https://envosta-application.vercel.app/auth/callbac
 enable_signup = true
 enable_confirmations = false
 
-# Edge function JWT verification — disabled for functions that handle auth internally.
-# This prevents the platform-level JWT check from rejecting valid tokens before
-# our function code runs. Auth is enforced in the function code itself.
-
-[functions.log-action]
-verify_jwt = false
-
-[functions.stripe-checkout]
-verify_jwt = false
+# Edge Functions removed entirely — Phase 2 cutover moved all server-side
+# work to Vercel API routes (/api/internal/*, /api/admin/*, etc.) using
+# Vercel Static IPs. The previous [functions.*] blocks for `log-action`
+# and `stripe-checkout` were deleted along with `supabase/functions/`.

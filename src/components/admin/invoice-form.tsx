@@ -11,11 +11,11 @@
  *                     /admin/billing/invoice/new page where the admin
  *                     picks the customer.
  *
- * Both modes call the same Supabase Edge Function with `customInvoice: true`.
+ * Both modes POST to /api/admin/custom-invoice which creates + finalizes
+ * + sends a one-off Stripe invoice to the customer.
  */
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase-browser';
 import { Send, Loader2, DollarSign } from 'lucide-react';
 
 type Customer = { id: string; full_name: string | null; email: string; stripe_customer_id: string | null };
@@ -49,30 +49,18 @@ export function InvoiceForm(props: Props) {
     setSuccess('');
 
     try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setError('Not authenticated'); setSending(false); return; }
-
       const body: Record<string, any> = {
-        customInvoice: true,
         amount: Math.round(parseFloat(amount) * 100),
         description,
       };
       if (props.mode === 'quick') body.stripeCustomerId = props.stripeCustomerId;
       else body.targetCustomerId = customerId;
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/stripe-checkout`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-          },
-          body: JSON.stringify(body),
-        }
-      );
+      const res = await fetch('/api/admin/custom-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
       const data = await res.json();
 
       if (!res.ok) {

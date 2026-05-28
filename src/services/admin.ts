@@ -10,6 +10,7 @@
  * via `getAccountInvoices(userId)`.
  */
 import { createClient } from '@/lib/supabase-server';
+import { sanitizeSearchQuery } from '@/lib/sanitize';
 import {
   getAccountSubscriptionWithProduct,
   getAccountInvoices,
@@ -104,7 +105,8 @@ export async function getAllCustomers(search?: string) {
     .limit(50);
 
   if (search) {
-    query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
+    const safeSearch = sanitizeSearchQuery(search);
+    query = query.or(`full_name.ilike.%${safeSearch}%,email.ilike.%${safeSearch}%`);
   }
 
   const { data } = await query;
@@ -297,7 +299,8 @@ export async function getAdminLogs(filters?: { level?: string; q?: string }, lim
 
   if (filters?.q) {
     // `details` and `action` are both candidates — search both.
-    query = query.or(`action.ilike.%${filters.q}%,metadata->>details.ilike.%${filters.q}%`);
+    const safeQ = sanitizeSearchQuery(filters.q);
+    query = query.or(`action.ilike.%${safeQ}%,metadata->>details.ilike.%${safeQ}%`);
   }
 
   const { data } = await query;

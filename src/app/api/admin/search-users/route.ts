@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { createClient } from '@supabase/supabase-js';
+import { sanitizeSearchQuery } from '@/lib/sanitize';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ export async function GET(req: Request) {
   if (profile?.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
-  const q = searchParams.get('q');
+  const q = sanitizeSearchQuery(searchParams.get('q'));
   if (!q) return NextResponse.json([]);
 
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false } });

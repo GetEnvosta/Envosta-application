@@ -29,7 +29,8 @@ export async function POST(req: Request) {
 
     const opensrs = createOpenSrsClient();
     const result = await opensrs.checkAvailability(cleanDomain);
-    console.log('Domain check result:', cleanDomain, JSON.stringify(result));
+    // Don't log the full upstream payload — only the boolean we return.
+    console.log('Domain check result:', cleanDomain, result.available);
 
     return NextResponse.json({ domain: cleanDomain, available: result.available });
   } catch (e: any) {

@@ -97,7 +97,9 @@ interface RenewalOutcome {
 export async function GET(req: Request) {
   // ── Auth: Vercel cron sends Bearer CRON_SECRET ──
   const authHeader = req.headers.get('authorization');
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Fail-closed: if CRON_SECRET is unset, reject ALL callers. Previously
+  // this fell open and let anyone trigger off-session charges.
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

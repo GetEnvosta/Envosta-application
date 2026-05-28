@@ -44,7 +44,9 @@ export async function GET(req: Request) {
   // Allow Vercel Cron OR an explicit Bearer match. If CRON_SECRET is set
   // we require it; otherwise we accept any caller (dev convenience).
   const authHeader = req.headers.get('authorization');
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Fail-closed: if CRON_SECRET is unset, reject ALL callers. Previously
+  // this fell open and let anyone hit the route.
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

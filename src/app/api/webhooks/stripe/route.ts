@@ -304,7 +304,14 @@ export async function POST(req: Request) {
       console.log('[stripe-webhook] duplicate event, skipping:', event.id);
       return NextResponse.json({ received: true, duplicate: true });
     }
-    console.error('[stripe-webhook] webhook_events insert failed (continuing):', dedupErr);
+    // Any other failure means we can't dedup this event. Returning 500
+    // makes Stripe retry — better than silently double-processing if
+    // the original handler also throws.
+    console.error('[stripe-webhook] webhook_events insert failed — asking Stripe to retry:', dedupErr);
+    return NextResponse.json(
+      { error: 'webhook_events insert failed; please retry' },
+      { status: 500 },
+    );
   }
 
   try {

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase-server';
+import { sanitizeSearchQuery } from '@/lib/sanitize';
 
 /**
  * Site queries used across customer + admin dashboards.
@@ -120,7 +121,10 @@ export async function getAllServices(filters?: { q?: string; status?: string; qu
   } else if (filters?.status) {
     query = query.eq('status', filters.status);
   }
-  if (filters?.q) query = query.or(`label.ilike.%${filters.q}%`);
+  if (filters?.q) {
+    const safeQ = sanitizeSearchQuery(filters.q);
+    query = query.or(`label.ilike.%${safeQ}%`);
+  }
 
   const { data } = await query;
   const sites = data ?? [];

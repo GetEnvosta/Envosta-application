@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { recordAudit } from '@/lib/audit';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  // Rate-limit token brute-force attempts per-IP. Claim tokens are
+  // high-entropy random in practice but a missing limit is a free
+  // enumeration target.
+  const ip = getClientIp(req);
+  const { allowed } = rateLimit(`claim:${ip}`, 10, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many attempts. Please wait a moment.' }, { status: 429 });
+  }
+
   const { token, password } = await req.json();
 
   if (!token || !password) return NextResponse.json({ error: 'token and password required' }, { status: 400 });

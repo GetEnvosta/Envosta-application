@@ -6,6 +6,7 @@
  * `ticket_messages` and updates `tickets.updated_at` for ordering.
  */
 import { createClient } from '@/lib/supabase-server';
+import { sanitizeSearchQuery } from '@/lib/sanitize';
 
 /**
  * Get all tickets for current user (customer view).
@@ -62,7 +63,8 @@ export async function getAllTickets(filters?: { type?: string; status?: string; 
     query = query.eq('status', filters.status);
   }
   if (filters?.q) {
-    query = query.or(`subject.ilike.%${filters.q}%`);
+    const safeQ = sanitizeSearchQuery(filters.q);
+    query = query.or(`subject.ilike.%${safeQ}%`);
   }
 
   const { data } = await query;

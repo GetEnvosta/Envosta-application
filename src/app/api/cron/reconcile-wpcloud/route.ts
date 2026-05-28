@@ -77,7 +77,8 @@ function toInt(v: unknown): number | null {
 export async function GET(req: Request) {
   // ── Auth ──
   const authHeader = req.headers.get('authorization');
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Fail-closed: reject when CRON_SECRET is unset (was fail-open before).
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

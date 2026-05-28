@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { escapeHtml } from '@/lib/sanitize';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,18 +60,27 @@ export async function POST(req: Request) {
       try {
         const RESEND_KEY = process.env.RESEND_API_KEY;
         if (RESEND_KEY) {
+          // All user-controlled fields must be HTML-escaped before
+          // interpolation — otherwise an attacker submitting
+          // `<img src=x onerror=...>` in any field would XSS the
+          // admin's webmail client when they open the notification.
+          const safeName = escapeHtml(name ?? 'Anonymous');
+          const safeEmail = escapeHtml(email);
+          const safeType = escapeHtml(type ?? 'contact');
+          const safeSubject = escapeHtml(subject ?? '');
+          const safeMessage = escapeHtml(message);
           await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               from: 'Envosta <noreply@email.envosta.com>',
               to: 'sales@envosta.com',
-              subject: `New ${type ?? 'contact'} form: ${subject || 'Website inquiry'}`,
+              subject: `New ${safeType} form: ${safeSubject || 'Website inquiry'}`,
               html: `<div style="font-family:-apple-system,sans-serif;max-width:560px;margin:0 auto;padding:20px">
-                <h2 style="font-size:18px;font-weight:600;margin-bottom:16px">New ${type ?? 'Contact'} Submission</h2>
-                <p style="font-size:14px;color:#555;margin-bottom:4px"><strong>${name ?? 'Anonymous'}</strong> (${email})</p>
-                ${subject ? `<p style="font-size:14px;color:#555;margin-bottom:12px"><strong>Subject:</strong> ${subject}</p>` : ''}
-                <div style="background:#f8f9fb;border-radius:8px;padding:16px;font-size:14px;color:#333;line-height:1.6;white-space:pre-wrap">${message}</div>
+                <h2 style="font-size:18px;font-weight:600;margin-bottom:16px">New ${safeType} Submission</h2>
+                <p style="font-size:14px;color:#555;margin-bottom:4px"><strong>${safeName}</strong> (${safeEmail})</p>
+                ${safeSubject ? `<p style="font-size:14px;color:#555;margin-bottom:12px"><strong>Subject:</strong> ${safeSubject}</p>` : ''}
+                <div style="background:#f8f9fb;border-radius:8px;padding:16px;font-size:14px;color:#333;line-height:1.6;white-space:pre-wrap">${safeMessage}</div>
                 <p style="margin-top:16px;font-size:13px"><a href="https://my.envosta.com/admin/tickets/${ticket.id}" style="color:#2563EB">View ticket →</a></p>
               </div>`,
             }),

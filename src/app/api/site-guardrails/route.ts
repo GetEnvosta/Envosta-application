@@ -43,10 +43,13 @@ export async function PUT(req: Request) {
 
   const supabase = await createServerClient();
 
-  // Get current site with wp_cloud_site_id
+  // Get current site WITH its plan metadata so we can clamp incoming
+  // values to what the plan actually allows. Without this clamp, an
+  // authenticated customer could PUT { php_workers: 999 } and we'd
+  // happily push it to wp.cloud — a silent plan-cap bypass.
   const { data: site } = await supabase
     .from('sites')
-    .select('id, wp_cloud_site_id, config, max_php_workers, max_ssd_gb, bursting_enabled')
+    .select('id, wp_cloud_site_id, config, max_php_workers, max_ssd_gb, bursting_enabled, product_id, products:product_id(metadata)')
     .eq('id', siteId)
     .eq('user_id', userId)
     .maybeSingle();
@@ -58,10 +61,38 @@ export async function PUT(req: Request) {
   const oldStorage = currentConfig.storage_gb ?? 25;
   const oldBursting = site.bursting_enabled ?? false;
 
-  // Determine new values (use current if not provided)
-  const newWorkers = php_workers ?? oldWorkers;
-  const newStorage = ssd_gb ?? oldStorage;
-  const newBursting = bursting_enabled ?? oldBursting;
+  // ── Clamp incoming values to the plan's ceiling ─────────────
+  const planMeta = ((site as any).products?.metadata ?? {}) as Record<string, any>;
+  const planMaxWorkers = Number(planMeta.php_workers_included ?? planMeta.php_workers_default ?? 4);
+  const planMaxStorage = Number(planMeta.storage_gb ?? 25);
+  const planAllowsBursting = planMeta.bursting_enabled === true || planMeta.auto_scaling === true;
+
+  const reqWorkers = php_workers != null ? Number(php_workers) : oldWorkers;
+  const reqStorage = ssd_gb != null ? Number(ssd_gb) : oldStorage;
+  const reqBursting = bursting_enabled != null ? Boolean(bursting_enabled) : oldBursting;
+
+  if (!Number.isFinite(reqWorkers) || reqWorkers < 1 || reqWorkers > planMaxWorkers) {
+    return NextResponse.json(
+      { error: `php_workers must be between 1 and ${planMaxWorkers} for your plan.` },
+      { status: 400 },
+    );
+  }
+  if (!Number.isFinite(reqStorage) || reqStorage < 1 || reqStorage > planMaxStorage) {
+    return NextResponse.json(
+      { error: `ssd_gb must be between 1 and ${planMaxStorage} for your plan.` },
+      { status: 400 },
+    );
+  }
+  if (reqBursting && !planAllowsBursting) {
+    return NextResponse.json(
+      { error: 'Bursting is not available on your plan. Upgrade or add the Bursting add-on.' },
+      { status: 400 },
+    );
+  }
+
+  const newWorkers = reqWorkers;
+  const newStorage = reqStorage;
+  const newBursting = reqBursting;
 
   // Update the sites row: config JSONB + guardrail columns
   const newConfig = {

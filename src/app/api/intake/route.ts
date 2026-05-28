@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { escapeHtml } from '@/lib/sanitize';
 
 export const dynamic = 'force-dynamic';
 
@@ -137,34 +138,52 @@ export async function POST(req: Request) {
       try {
         const RESEND_KEY = process.env.RESEND_API_KEY;
         if (RESEND_KEY) {
+          // All user-supplied fields must be HTML-escaped before
+          // interpolating into the email body to prevent stored-HTML
+          // XSS against the staff inbox.
+          const e = {
+            salesRep: escapeHtml(salesRep),
+            contactName: escapeHtml(contactName),
+            email: escapeHtml(email),
+            phone: escapeHtml(phone),
+            company: escapeHtml(company),
+            website: escapeHtml(website),
+            industry: escapeHtml(industry),
+            projectType: escapeHtml(projectType),
+            budget: escapeHtml(budget),
+            timeline: escapeHtml(timeline),
+            plan: escapeHtml(plan),
+            billing: escapeHtml(billing || 'monthly'),
+            notes: escapeHtml(notes),
+          };
           await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               from: 'Envosta <noreply@email.envosta.com>',
               to: 'sales@envosta.com',
-              subject: `${closedOnSpot ? '🔥 CLOSED DEAL' : 'New Lead'}: ${company} — ${contactName} (via ${salesRep})`,
+              subject: `${closedOnSpot ? '🔥 CLOSED DEAL' : 'New Lead'}: ${e.company} — ${e.contactName} (via ${e.salesRep})`,
               html: `<div style="font-family:-apple-system,sans-serif;max-width:560px;margin:0 auto;padding:20px">
                 <h2 style="font-size:18px;font-weight:600;margin-bottom:16px">New Sales Intake</h2>
                 <table style="font-size:14px;color:#333;line-height:1.8;border-collapse:collapse;width:100%">
-                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Sales Rep</td><td>${salesRep}</td></tr>
-                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Contact</td><td>${contactName}</td></tr>
-                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Email</td><td>${email}</td></tr>
-                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Phone</td><td>${phone}</td></tr>
-                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Company</td><td>${company}</td></tr>
-                  ${website ? `<tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Website</td><td>${website}</td></tr>` : ''}
-                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Industry</td><td>${industry}</td></tr>
-                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Project</td><td>${projectType}</td></tr>
-                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Budget</td><td>${budget}</td></tr>
-                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Timeline</td><td>${timeline}</td></tr>
+                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Sales Rep</td><td>${e.salesRep}</td></tr>
+                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Contact</td><td>${e.contactName}</td></tr>
+                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Email</td><td>${e.email}</td></tr>
+                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Phone</td><td>${e.phone}</td></tr>
+                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Company</td><td>${e.company}</td></tr>
+                  ${e.website ? `<tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Website</td><td>${e.website}</td></tr>` : ''}
+                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Industry</td><td>${e.industry}</td></tr>
+                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Project</td><td>${e.projectType}</td></tr>
+                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Budget</td><td>${e.budget}</td></tr>
+                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Timeline</td><td>${e.timeline}</td></tr>
                   ${closedOnSpot ? `
                   <tr><td colspan="2" style="padding:12px 0 4px;border-top:2px solid #22c55e"><strong style="color:#22c55e;font-size:13px;text-transform:uppercase;letter-spacing:1px">✅ Closed on the spot</strong></td></tr>
-                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Plan</td><td>${plan} (${billing || 'monthly'})</td></tr>
+                  <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Plan</td><td>${e.plan} (${e.billing})</td></tr>
                   <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Hosting</td><td>Charge upfront</td></tr>
                   <tr><td style="font-weight:600;padding:4px 12px 4px 0;white-space:nowrap">Design Fee</td><td>$500 — invoice after approval</td></tr>
                   ` : ''}
                 </table>
-                ${notes ? `<div style="background:#f8f9fb;border-radius:8px;padding:16px;font-size:14px;color:#333;line-height:1.6;margin-top:16px;white-space:pre-wrap"><strong>Notes:</strong>\n${notes}</div>` : ''}
+                ${e.notes ? `<div style="background:#f8f9fb;border-radius:8px;padding:16px;font-size:14px;color:#333;line-height:1.6;margin-top:16px;white-space:pre-wrap"><strong>Notes:</strong>\n${e.notes}</div>` : ''}
                 <p style="margin-top:16px;font-size:13px"><a href="https://my.envosta.com/admin/tickets/${ticket.id}" style="color:#2563EB">View ticket →</a></p>
               </div>`,
             }),
