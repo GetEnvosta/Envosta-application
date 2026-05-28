@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { isAdminRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 min timeout for Vercel
@@ -2110,7 +2111,7 @@ export async function POST(req: Request) {
   );
 
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (profile?.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 });
+  if (!isAdminRole(profile?.role)) return NextResponse.json({ error: 'Admin only' }, { status: 403 });
 
   let inserted = 0;
   let skipped = 0;

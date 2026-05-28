@@ -35,6 +35,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { recordAudit } from '@/lib/audit';
+import { isAdminRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
   );
 
   const { data: callerProfile } = await sb.from('users').select('role').eq('id', caller.id).maybeSingle();
-  if (callerProfile?.role !== 'admin') {
+  if (!isAdminRole(callerProfile?.role)) {
     return NextResponse.json({ error: 'Admin only' }, { status: 403 });
   }
 

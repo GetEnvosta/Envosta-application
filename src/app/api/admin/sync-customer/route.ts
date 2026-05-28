@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { isAdminRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +39,7 @@ async function getAdminUser() {
   if (!user) return null;
   const sb = getSupabaseAdmin();
   const { data: profile } = await sb.from('users').select('role').eq('id', user.id).single();
-  return profile?.role === 'admin' ? user : null;
+  return isAdminRole(profile?.role) ? user : null;
 }
 
 export async function POST(req: Request) {

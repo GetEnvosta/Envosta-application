@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import { isAdminRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +37,7 @@ export async function PUT(req: Request) {
 
     if (existing.user_id !== user.id) {
       const { data: profile } = await sb.from('users').select('role').eq('id', user.id).maybeSingle();
-      if (profile?.role !== 'admin') {
+      if (!isAdminRole(profile?.role)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
@@ -123,7 +124,7 @@ async function authzDomainOwnership(
     .eq('id', userId)
     .maybeSingle();
 
-  if (profile?.role === 'admin') {
+  if (isAdminRole(profile?.role)) {
     return null; // admin — allowed
   }
 
@@ -181,7 +182,7 @@ export async function POST(req: Request) {
         .select('role')
         .eq('id', user.id)
         .single();
-      if (profile?.role !== 'admin') {
+      if (!isAdminRole(profile?.role)) {
         return NextResponse.json({ error: 'Admin only' }, { status: 403 });
       }
       targetUserId = body.userId;

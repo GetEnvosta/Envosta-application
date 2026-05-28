@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { isAdminRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -131,7 +132,7 @@ async function verifyAdmin() {
   if (!user) return null;
   const supabase = getSupabase();
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  return profile?.role === 'admin' ? user : null;
+  return isAdminRole(profile?.role) ? user : null;
 }
 
 // ─── Route ───────────────────────────────────────────────

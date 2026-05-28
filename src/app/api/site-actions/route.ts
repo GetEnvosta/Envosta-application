@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import { isStaffRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,7 +66,7 @@ export async function POST(req: Request) {
     const { data: site } = await sbAdmin.from('sites').select('user_id').eq('id', body.siteId).maybeSingle();
     if (site && site.user_id && site.user_id !== user.id) {
       const { data: profile } = await sbAdmin.from('users').select('role').eq('id', user.id).maybeSingle();
-      if (!['admin', 'staff'].includes(profile?.role ?? '')) {
+      if (!isStaffRole(profile?.role)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }

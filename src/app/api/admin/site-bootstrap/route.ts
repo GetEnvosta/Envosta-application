@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { isStaffRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
     { auth: { persistSession: false } },
   );
   const { data: profile } = await sb.from('users').select('role').eq('id', user.id).single();
-  if (!['admin', 'staff'].includes(profile?.role)) {
+  if (!isStaffRole(profile?.role)) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
   }
 

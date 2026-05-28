@@ -16,6 +16,7 @@
  */
 import { createClient } from '@/lib/supabase-server';
 import { cookies } from 'next/headers';
+import { isAdminRole } from '@/lib/roles';
 export { isStaffRole, STAFF_ROLES, type StaffRole, type UserRole } from '@/lib/roles';
 
 export async function getCurrentUser() {
@@ -44,7 +45,7 @@ export async function getEffectiveUserId(): Promise<string | null> {
       .single();
 
     // Admin can impersonate anyone
-    if (profile?.role === 'admin') return impersonating;
+    if (isAdminRole(profile?.role)) return impersonating;
   }
 
   return user.id;
@@ -68,7 +69,7 @@ export async function getImpersonationInfo() {
     .eq('id', user.id)
     .single();
 
-  if (callerProfile?.role === 'admin') {
+  if (isAdminRole(callerProfile?.role)) {
     const { data: target } = await supabase
       .from('users')
       .select('id, full_name, email')

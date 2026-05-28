@@ -2,6 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { getCurrentUser, getUserProfile } from '@/services/auth';
+import { isAdminRole } from '@/lib/roles';
 import { redirect } from 'next/navigation';
 
 export async function startImpersonation(targetUserId: string) {
@@ -9,7 +10,7 @@ export async function startImpersonation(targetUserId: string) {
   if (!user) throw new Error('Not authenticated');
 
   const profile = await getUserProfile(user.id);
-  if (profile?.role !== 'admin') throw new Error('Not authorized');
+  if (!isAdminRole(profile?.role)) throw new Error('Not authorized');
 
   const cookieStore = await cookies();
   cookieStore.set('impersonating_user_id', targetUserId, {

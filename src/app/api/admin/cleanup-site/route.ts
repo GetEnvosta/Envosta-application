@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { recordAudit } from '@/lib/audit';
 import { start } from 'workflow/api';
 import { cancelSite } from '@/app/workflows/cancel-site';
+import { isAdminRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
   );
 
   const { data: profile } = await sb.from('users').select('role').eq('id', user.id).single();
-  if (profile?.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 });
+  if (!isAdminRole(profile?.role)) return NextResponse.json({ error: 'Admin only' }, { status: 403 });
 
   const { siteId, action } = await req.json();
   if (!siteId) return NextResponse.json({ error: 'siteId required' }, { status: 400 });

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { getAccountSubscription } from '@/services/billing';
+import { isStaffRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
   );
 
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (!['admin', 'staff'].includes(profile?.role)) return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+  if (!isStaffRole(profile?.role)) return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
 
   const reqBody = await req.json();
   const { userId, planId, label } = reqBody;

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { isStaffRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ async function verifyAdmin() {
     { auth: { persistSession: false } },
   );
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  return ['admin', 'staff'].includes(profile?.role) ? supabase : null;
+  return isStaffRole(profile?.role) ? supabase : null;
 }
 
 export async function PUT(req: Request) {

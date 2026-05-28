@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import { isAdminRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,10 +89,10 @@ export async function POST(req: Request) {
 
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false } });
   const { data: profile } = await sb.from('users').select('role, email').eq('id', user.id).single();
-  if (profile?.role !== 'admin') return NextResponse.json({ error: 'Admin required' }, { status: 403 });
+  if (!isAdminRole(profile?.role)) return NextResponse.json({ error: 'Admin required' }, { status: 403 });
 
   const { template: templateKey, to } = await req.json();
-  const sendTo = to || profile.email || user.email;
+  const sendTo = to || profile?.email || user.email;
   const tmpl = TEMPLATES[templateKey];
 
   if (!tmpl) return NextResponse.json({ error: `Unknown template: ${templateKey}` }, { status: 400 });

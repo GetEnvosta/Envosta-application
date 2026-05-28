@@ -5,6 +5,7 @@ import { createServerClient } from '@supabase/ssr';
 import { recordAudit } from '@/lib/audit';
 import { start } from 'workflow/api';
 import { registerDomain } from '@/app/workflows/register-domain';
+import { isAdminRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
   );
 
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (profile?.role !== 'admin') {
+  if (!isAdminRole(profile?.role)) {
     return NextResponse.json({ error: 'Admin only' }, { status: 403 });
   }
 

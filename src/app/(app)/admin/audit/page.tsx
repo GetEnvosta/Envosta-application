@@ -22,6 +22,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Activity, Webhook, RefreshCw, ScrollText, Search } from 'lucide-react';
 import { getCurrentUser, getUserProfile } from '@/services/auth';
+import { isAdminRole } from '@/lib/roles';
 import { formatDateTime } from '@/lib/utils';
 import { ResolveDriftButton } from '@/components/admin/resolve-drift-button';
 import {
@@ -78,7 +79,7 @@ export default async function AuditPage({
   const user = await getCurrentUser();
   if (!user) redirect('/auth/login');
   const profile = await getUserProfile(user.id);
-  if (profile?.role !== 'admin') redirect('/admin');
+  if (!isAdminRole(profile?.role)) redirect('/admin');
 
   const sp = await searchParams;
   const tab = TABS.some((t) => t.id === sp.tab) ? (sp.tab as string) : 'api';

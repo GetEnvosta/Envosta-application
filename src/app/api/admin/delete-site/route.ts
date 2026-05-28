@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import { isStaffRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
   );
 
   const { data: profile } = await sb.from('users').select('role').eq('id', user.id).single();
-  const isAdmin = ['admin', 'staff'].includes(profile?.role);
+  const isAdmin = isStaffRole(profile?.role);
 
   const { siteId, action } = await req.json();
   if (!siteId) return NextResponse.json({ error: 'siteId required' }, { status: 400 });

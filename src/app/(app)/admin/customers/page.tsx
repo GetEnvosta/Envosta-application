@@ -6,7 +6,7 @@ import { Search, Users, Server, Globe, UserCheck, Eye } from 'lucide-react';
 import { getCurrentUser, getUserProfile } from '@/services/auth';
 import { CustomersHeader } from './customers-header';
 import { UsersTabs } from './users-tabs';
-import { ROLE_BADGE_CLASSES } from '@/lib/roles';
+import { ROLE_BADGE_CLASSES, isStaffRole } from '@/lib/roles';
 import { StatCard } from '@/components/admin/stat-card';
 
 export default async function UsersPage({
@@ -21,7 +21,7 @@ export default async function UsersPage({
   const isAdmin = currentProfile?.role === 'admin';
 
   const customers = allUsers.filter((u: any) => u.role === 'customer');
-  const staff = allUsers.filter((u: any) => ['admin', 'staff'].includes(u.role));
+  const staff = allUsers.filter((u: any) => isStaffRole(u.role));
 
   const activeCustomers = customers.filter((u: any) => u.sub_status === 'active' || u.sub_status === 'trialing').length;
   const withSites = customers.filter((u: any) => u.site_count > 0).length;

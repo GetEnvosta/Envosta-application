@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import { isAdminRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ async function verifyAdmin() {
 
   const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false } });
   const { data: profile } = await admin.from('users').select('role').eq('id', user.id).single();
-  return profile?.role === 'admin' ? user : null;
+  return isAdminRole(profile?.role) ? user : null;
 }
 
 function getStripe() {

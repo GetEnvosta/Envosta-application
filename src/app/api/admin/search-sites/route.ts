@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { isStaffRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export async function GET(req: Request) {
   );
 
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (!['admin', 'staff'].includes(profile?.role)) return NextResponse.json([], { status: 403 });
+  if (!isStaffRole(profile?.role)) return NextResponse.json([], { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get('q')?.trim();

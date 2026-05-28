@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { recordAudit } from '@/lib/audit';
+import { isAdminRole } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ async function verifyAdmin() {
   if (!user) return null;
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false } });
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  return profile?.role === 'admin' ? { supabase, userId: user.id } : null;
+  return isAdminRole(profile?.role) ? { supabase, userId: user.id } : null;
 }
 
 /**

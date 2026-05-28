@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
-import { ALL_ROLES, type UserRole } from '@/lib/roles';
+import { ALL_ROLES, isAdminRole, type UserRole } from '@/lib/roles';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     .select('role')
     .eq('id', user.id)
     .single();
-  if (profile?.role !== 'admin') {
+  if (!isAdminRole(profile?.role)) {
     return NextResponse.json({ error: 'Forbidden — admin only' }, { status: 403 });
   }
 
