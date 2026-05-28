@@ -32,6 +32,8 @@ import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { createOpenSrsClient } from '@/lib/integrations/opensrs';
 import { sendEmail, paymentFailedEmail } from '@/lib/email';
+import { recordAudit } from '@/lib/audit';
+import { recordApiCall } from '@/lib/api-call-logger';
 import { start } from 'workflow/api';
 import { renewDomain } from '@/app/workflows/renew-domain';
 
@@ -181,11 +183,11 @@ export async function GET(req: Request) {
         .maybeSingle();
 
       if (!user?.stripe_customer_id) {
-        await supabase.from('audit_log').insert({
-          actor_type: 'system',
+        await recordAudit({
+          actorType: 'system',
           action: 'domain.renewal.skip_no_customer',
-          resource_type: 'domain',
-          resource_id: dom.id,
+          resourceType: 'domain',
+          resourceId: dom.id,
           metadata: { domain_name: dom.domain_name, reason: 'user missing stripe_customer_id' },
         });
         await supabase
@@ -205,11 +207,11 @@ export async function GET(req: Request) {
 
       const amount = tldRow?.renew_price_cad_cents ?? 0;
       if (amount <= 0) {
-        await supabase.from('audit_log').insert({
-          actor_type: 'system',
+        await recordAudit({
+          actorType: 'system',
           action: 'domain.renewal.skip_no_price',
-          resource_type: 'domain',
-          resource_id: dom.id,
+          resourceType: 'domain',
+          resourceId: dom.id,
           metadata: { domain_name: dom.domain_name, tld: dom.tld },
         });
         await supabase
@@ -223,11 +225,11 @@ export async function GET(req: Request) {
       // 3. Resolve default PM.
       const pmId = await fetchDefaultPaymentMethod(stripe, user.stripe_customer_id);
       if (!pmId) {
-        await supabase.from('audit_log').insert({
-          actor_type: 'system',
+        await recordAudit({
+          actorType: 'system',
           action: 'domain.renewal.skip_no_pm',
-          resource_type: 'domain',
-          resource_id: dom.id,
+          resourceType: 'domain',
+          resourceId: dom.id,
           metadata: { domain_name: dom.domain_name },
         });
         await supabase
@@ -265,19 +267,19 @@ export async function GET(req: Request) {
           throw new Error(`PaymentIntent status: ${pi.status}`);
         }
       } catch (e: any) {
-        await supabase.from('api_calls').insert({
+        await recordApiCall({
           provider: 'stripe',
           method: 'POST',
           path: '/v1/payment_intents',
-          request_payload: { amount, currency: 'cad', customer: user.stripe_customer_id, off_session: true },
-          response_status: e?.statusCode ?? 500,
+          requestPayload: { amount, currency: 'cad', customer: user.stripe_customer_id, off_session: true },
+          responseStatus: e?.statusCode ?? 500,
           error: { message: e?.message ?? String(e), code: e?.code ?? null },
         });
-        await supabase.from('audit_log').insert({
-          actor_type: 'system',
+        await recordAudit({
+          actorType: 'system',
           action: 'domain.renewal.charge_failed',
-          resource_type: 'domain',
-          resource_id: dom.id,
+          resourceType: 'domain',
+          resourceId: dom.id,
           metadata: { domain_name: dom.domain_name, error: e?.message },
         });
         await supabase
@@ -315,22 +317,22 @@ export async function GET(req: Request) {
           })
           .eq('id', dom.id);
 
-        await supabase.from('audit_log').insert({
-          actor_type: 'system',
+        await recordAudit({
+          actorType: 'system',
           action: 'domain.renewal.success',
-          resource_type: 'domain',
-          resource_id: dom.id,
+          resourceType: 'domain',
+          resourceId: dom.id,
           metadata: { domain_name: dom.domain_name, payment_intent_id: piId, opensrs_order_id: result.order_id, amount },
         });
 
         outcomes.push({ domainId: dom.id, domainName: dom.domain_name, status: 'renewed', message: `paid ${amount / 100} CAD` });
       } catch (e: any) {
         // Renewal failed AFTER successful charge — needs ops attention.
-        await supabase.from('audit_log').insert({
-          actor_type: 'system',
+        await recordAudit({
+          actorType: 'system',
           action: 'domain.renewal.opensrs_failed',
-          resource_type: 'domain',
-          resource_id: dom.id,
+          resourceType: 'domain',
+          resourceId: dom.id,
           metadata: { domain_name: dom.domain_name, error: e?.message ?? String(e), payment_intent_id: piId },
         });
         await supabase

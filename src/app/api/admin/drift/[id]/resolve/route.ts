@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { createClient } from '@supabase/supabase-js';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,11 +52,11 @@ export async function POST(
     .eq('id', id);
   if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 });
 
-  await sb.from('audit_log').insert({
-    actor_id: user.id,
-    actor_type: 'admin',
+  await recordAudit({
+    actorId: user.id,
+    actorType: 'admin',
     action: 'drift.resolved',
-    resource_type: 'sync_drift',
+    resourceType: 'sync_drift',
     metadata: {
       drift_id: id,
       provider: drift.provider,

@@ -26,6 +26,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { driftAlertEmail, sendEmail, type DriftAlertGroup } from '@/lib/email';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -129,10 +130,10 @@ export async function GET(req: Request) {
   }
 
   // ── Audit log — system actor, drift.alerted ──
-  await supabase.from('audit_log').insert({
-    actor_type: 'system',
+  await recordAudit({
+    actorType: 'system',
     action: 'drift.alerted',
-    resource_type: 'sync_drift',
+    resourceType: 'sync_drift',
     metadata: {
       total: drift.length,
       groups: groups.map((g) => ({
