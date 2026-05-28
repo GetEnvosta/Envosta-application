@@ -8,8 +8,8 @@
  *                     Customer is fixed (passed via stripeCustomerId).
  *                     Used inside customer detail headers.
  *   - mode="full"   : full card with customer dropdown — used on the
- *                     /admin/products/invoices page where the admin picks
- *                     the customer.
+ *                     /admin/billing/invoice/new page where the admin
+ *                     picks the customer.
  *
  * Both modes call the same Supabase Edge Function with `customInvoice: true`.
  */

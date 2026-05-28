@@ -1,5 +1,19 @@
 'use client';
 
+/**
+ * Admin action buttons for the site cleanup queue (paused →
+ * flagged_for_deletion → deleted). Renders inline on a site row inside
+ * /admin/services?view=cleanup; POSTs to /api/admin/cleanup-site.
+ *
+ * Status semantics:
+ *   - status='paused'        → show "Flag for deletion" button
+ *   - status='flagged_for_deletion' (legacy) → show Unflag + Delete
+ *   - status='cancelled' WITH flagged_for_deletion_at != null (new
+ *     workflow path) → also show Unflag + Delete
+ *
+ * The parent computes `isFlagged` (handles both states); fall back to
+ * the legacy check if the prop wasn't passed.
+ */
 import { useState } from 'react';
 import { Loader2, Trash2, Flag, Undo2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -34,10 +48,6 @@ export function CleanupActions({ siteId, status, label, isFlagged }: { siteId: s
     }
   }
 
-  // Parent passes isFlagged (computed from both legacy
-  // status='flagged_for_deletion' and the new workflow path
-  // status='cancelled' + flagged_for_deletion_at). Fall back to the
-  // legacy check for any caller that hasn't been updated yet.
   const flagged = isFlagged ?? (status === 'flagged_for_deletion');
 
   return (

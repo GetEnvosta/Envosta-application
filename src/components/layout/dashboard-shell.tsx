@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  Globe, Globe2, CreditCard, Mail, MessageCircle,
+  Globe, Globe2, CreditCard, MessageCircle,
   Settings, Shield, LayoutDashboard,
 } from 'lucide-react';
 import { isStaffRole } from '@/lib/roles';
@@ -18,7 +18,6 @@ const nav: NavItem[] = [
   { name: 'Overview', href: '/dashboard',          icon: LayoutDashboard },
   { name: 'Sites',    href: '/dashboard/sites',    icon: Globe },
   { name: 'Domains',  href: '/dashboard/domains',  icon: Globe2 },
-  { name: 'Email',    href: '/dashboard/email',    icon: Mail },
   { name: 'Tickets',  href: '/dashboard/tickets',  icon: MessageCircle },
   { name: 'Billing',  href: '/dashboard/billing',  icon: CreditCard },
 ];

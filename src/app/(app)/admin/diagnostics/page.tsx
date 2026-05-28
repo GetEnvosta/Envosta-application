@@ -10,7 +10,6 @@ import { getAdminLogs } from '@/services/admin';
 import { SystemHealthChecks } from '@/app/(app)/admin/logs/health-checks';
 import AdminEmailsPage from '@/app/(app)/admin/emails/page';
 import { CouponManager } from '@/components/admin/coupon-manager';
-import { StripeProducts } from '@/components/admin/stripe-products';
 import { SystemTabs } from './system-tabs';
 import { LifecycleReference } from './lifecycle-reference';
 import { ProvisionButton } from '@/components/admin/provision-button';
@@ -74,20 +73,8 @@ export default async function DiagnosticsPage() {
   // Fetch logs for the logs tab
   const logs = await getAdminLogs({}, 50);
 
-  // Fetch product data
-  const productCols = 'id, type, name, slug, billing, price_cad, price_usd, price_yearly_cad, price_yearly_usd, is_active, stripe_product_id, stripe_price_id, stripe_price_id_yearly, stripe_price_id_cad, stripe_price_id_yearly_cad, metadata';
-  const { data: allProducts } = await supabase
-    .from('products')
-    .select(productCols)
-    .order('type')
-    .order('sort_order', { ascending: true, nullsFirst: false })
-    .order('name');
-  const plans = (allProducts ?? []).filter((p: any) => p.type === 'hosting_plan');
-  const oneTimeProducts = (allProducts ?? []).filter((p: any) => p.type === 'one_time_service');
-  // Phase 3: domain_tld rows no longer exist in public.products — TLDs
-  // live in public.tlds and never get a Stripe Product.
-  const addons = (allProducts ?? []).filter((p: any) => p.type === 'plan_addon');
-  const otherProducts = (allProducts ?? []).filter((p: any) => !['hosting_plan', 'one_time_service', 'plan_addon'].includes(p.type));
+  // Product catalog moved entirely to /admin/settings (Plans / Addons /
+  // Services / TLDs). Diagnostics no longer fetches it.
 
   const levelBadge: Record<string, string> = { info: 'badge-blue', warn: 'badge-yellow', error: 'badge-red', debug: 'badge-gray' };
 
@@ -95,8 +82,8 @@ export default async function DiagnosticsPage() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">System</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Diagnostics, logs, and health checks.</p>
+          <h1 className="text-xl font-semibold text-gray-900">Health</h1>
+          <p className="text-sm text-gray-500 mt-0.5">System diagnostics, lifecycle docs, logs, email previews, and promotions.</p>
         </div>
         <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${totalIssues === 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
           {totalIssues === 0 ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
@@ -211,15 +198,6 @@ export default async function DiagnosticsPage() {
           ),
 
           emails: <AdminEmailsPage />,
-
-          stripe: (
-            <StripeProducts
-              initialPlans={plans as any}
-              initialOneTime={oneTimeProducts as any}
-              initialAddons={addons as any}
-              initialOther={otherProducts as any}
-            />
-          ),
 
           promotions: <CouponManager />,
         }}

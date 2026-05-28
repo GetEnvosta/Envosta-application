@@ -36,7 +36,7 @@ export function LifecycleReference() {
         <div className="space-y-3">
           <FlowRow from="active" to="paused" trigger="Stripe `customer.subscription.deleted`" detail="Stripe gave up on dunning, OR customer cancelled from portal. Site stays online." />
           <FlowRow from="paused" to="active" trigger="Customer restarts subscription" detail="A new active hosting subscription is created; sites reactivate (currently manual via support)." />
-          <FlowRow from="paused" to="flagged_for_deletion" trigger="Admin clicks Flag in /admin/sites/cleanup" detail="Final-warning email sent to owner. Site still live." />
+          <FlowRow from="paused" to="flagged_for_deletion" trigger="Admin clicks Flag in /admin/services?view=cleanup" detail="Final-warning email sent to owner. Site still live." />
           <FlowRow from="flagged_for_deletion" to="paused" trigger="Admin clicks Unflag in cleanup queue" detail="Pulls the site back out of the queue. No customer email." />
           <FlowRow from="flagged_for_deletion" to="deleted" trigger="Admin clicks Delete in cleanup queue" detail="Calls wp.cloud hard-delete-site. Owner gets a 'site deleted' email. Permanent." />
           <FlowRow from="active" to="flagged_for_deletion" trigger="Customer deletes site from dashboard" detail="Soft-delete routes through cleanup queue rather than purging immediately. Same admin-confirms-delete flow." />
@@ -110,10 +110,10 @@ export function LifecycleReference() {
         <p className="text-xs text-gray-500 mb-5">Where to do what. All hard deletes are manual.</p>
 
         <ul className="space-y-3">
-          <ActionRow icon={Flag} label="Cleanup queue" path="/admin/sites/cleanup" detail="View paused + flagged sites. Flag for deletion, unflag, or confirm delete." />
+          <ActionRow icon={Flag} label="Cleanup queue" path="/admin/services?view=cleanup" detail="View paused + flagged sites. Flag for deletion, unflag, or confirm delete." />
           <ActionRow icon={CreditCard} label="Stripe products + prices" path="/admin/diagnostics → Stripe tab" detail="Set USD/CAD prices for monthly + yearly. Save triggers sync; 4 Stripe prices land under one product." />
           <ActionRow icon={Mail} label="Test any email" path="/admin/diagnostics → Emails tab" detail="Preview + send any template to your own inbox." />
-          <ActionRow icon={RotateCcw} label="Restore a flagged site" path="/admin/sites/cleanup → Unflag" detail="Pulls site back to paused so customer can restart subscription." />
+          <ActionRow icon={RotateCcw} label="Restore a flagged site" path="/admin/services?view=cleanup → Unflag" detail="Pulls site back to paused so customer can restart subscription." />
         </ul>
       </section>
     </div>

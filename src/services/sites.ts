@@ -102,15 +102,24 @@ export async function getUserServicesBasic() {
  * mirror) batched by stripe_customer_id, then stitched into each user's
  * `subscriptions` array so the admin page keeps the old shape.
  */
-export async function getAllServices(filters?: { q?: string; status?: string }) {
+export async function getAllServices(filters?: { q?: string; status?: string; queue?: string }) {
   const supabase = await createClient();
   let query = supabase
     .from('sites')
-    .select('*, users(id, full_name, email, stripe_customer_id), domains(id, domain_name, status)')
+    .select('*, users(id, full_name, email, stripe_customer_id), domains(id, domain_name, status), flagged_for_deletion_at, flag_reason, paused_at')
     .order('created_at', { ascending: false })
     .limit(50);
 
-  if (filters?.status) query = query.eq('status', filters.status);
+  // Cleanup queue: status='paused' (admin can flag) OR anything with
+  // flagged_for_deletion_at set (legacy 'flagged_for_deletion' OR new
+  // workflow path 'cancelled' + flagged_for_deletion_at). Excludes
+  // subscription-paused-cancelled sites — those have recovery_deadline
+  // and are auto-handled by the delete-expired-sites cron.
+  if (filters?.queue === 'cleanup') {
+    query = query.or('status.eq.paused,flagged_for_deletion_at.not.is.null');
+  } else if (filters?.status) {
+    query = query.eq('status', filters.status);
+  }
   if (filters?.q) query = query.or(`label.ilike.%${filters.q}%`);
 
   const { data } = await query;
