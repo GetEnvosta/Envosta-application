@@ -12,14 +12,22 @@ export function SitePerformance({ siteId, domain }: { siteId: string; domain: st
 
   useEffect(() => {
     if (!domain) { setLoading(false); return; }
-    // Fetch edge cache status
-    fetch('/api/site-actions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'edge-cache', siteId, key: 'status', domain }),
-    }).then(r => r.json()).then(data => {
-      setCacheStatus(data?.enabled ? 'enabled' : data?.disabled ? 'disabled' : 'unknown');
-    }).catch(() => {}).finally(() => setLoading(false));
+    const post = (body: Record<string, unknown>) =>
+      fetch('/api/site-actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).then(r => r.json());
+
+    // Load edge cache + defensive mode status in parallel.
+    Promise.all([
+      post({ action: 'edge-cache', siteId, key: 'status', domain })
+        .then(data => setCacheStatus(data?.enabled ? 'enabled' : data?.disabled ? 'disabled' : 'unknown'))
+        .catch(() => {}),
+      post({ action: 'defensive-mode', siteId, domain })
+        .then(data => { if (typeof data?.enabled === 'boolean') setDefensiveMode(data.enabled); })
+        .catch(() => {}),
+    ]).finally(() => setLoading(false));
   }, [siteId, domain]);
 
   async function siteAction(action: string, extra: Record<string, unknown> = {}) {

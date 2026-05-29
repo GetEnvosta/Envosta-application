@@ -29,6 +29,9 @@ const INTERNAL_ACTIONS = new Set([
   'software-bootstrap',
   'hard-delete-site',
   'delete-site',
+  'edge-cache',
+  'defensive-mode',
+  'wp-feature',
 ]);
 
 export async function POST(req: Request) {

@@ -56,13 +56,17 @@ export async function PUT(req: Request) {
 
 /**
  * Returns 501 for any OpenSRS action that doesn't yet have a Vercel
- * internal route:
+ * internal route. Currently still 501:
  *
- *   update-nameservers, set-dns-mode, set-auto-renew, set-whois-privacy,
- *   get-lock-status, set-lock, get-epp-code, transfer, list-all-domains,
- *   create-nameserver
+ *   update-nameservers, set-dns-mode, get-epp-code, transfer,
+ *   list-all-domains, create-nameserver
  *
- * Each of these needs its own /api/internal/opensrs/* handler.
+ * `get-epp-code` is intentionally never implemented: the EPP/auth code
+ * is a transfer secret and is delivered to the registrant out-of-band
+ * by support, never surfaced through the dashboard.
+ *
+ * Implemented above: register, setup-dns, update-dns, set-auto-renew,
+ * set-whois-privacy, get-lock-status, set-lock.
  */
 function notImplemented(action: string) {
   return NextResponse.json(
@@ -258,6 +262,111 @@ export async function POST(req: Request) {
         records: data.recordCount ?? 0,
         success: true,
       });
+    }
+    return NextResponse.json(data, { status: res.status });
+  }
+
+  if (action === 'set-auto-renew') {
+    if (!body.domainName || typeof body.autoRenew !== 'boolean') {
+      return NextResponse.json(
+        { error: 'domainName and autoRenew (boolean) are required' },
+        { status: 400 },
+      );
+    }
+    const denied = await authzDomainOwnership(user.id, body.domainName);
+    if (denied) return denied;
+
+    // Customer preference lives on `domains.auto_renew` — the cron
+    // filter that decides whether to charge + manually renew. We do
+    // NOT mirror this to OpenSRS: OpenSRS auto_renew stays at 0 for
+    // every Envosta domain so the cron is the sole renewal driver.
+    // See note on opensrs.setAutoRenew() in src/lib/integrations/opensrs.ts.
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SECRET_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: updErr } = await sb
+      .from('domains')
+      .update({ auto_renew: body.autoRenew })
+      .eq('domain_name', body.domainName);
+    if (updErr) {
+      return NextResponse.json({ error: updErr.message }, { status: 500 });
+    }
+    return NextResponse.json({
+      domainName: body.domainName,
+      autoRenew: body.autoRenew,
+      success: true,
+    });
+  }
+
+  if (action === 'set-whois-privacy') {
+    if (!body.domainName || typeof body.enabled !== 'boolean') {
+      return NextResponse.json(
+        { error: 'domainName and enabled (boolean) are required' },
+        { status: 400 },
+      );
+    }
+    const denied = await authzDomainOwnership(user.id, body.domainName);
+    if (denied) return denied;
+
+    const res = await fetch(`${origin}/api/internal/opensrs/set-whois-privacy`, {
+      method: 'POST',
+      headers: internalHeaders,
+      body: JSON.stringify({
+        domainName: body.domainName,
+        enabled: body.enabled,
+        actorId: user.id,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return NextResponse.json({
+        domainName: body.domainName,
+        whoisPrivacy: body.enabled,
+        success: true,
+      });
+    }
+    return NextResponse.json(data, { status: res.status });
+  }
+
+  if (action === 'get-lock-status') {
+    if (!body.domainName) {
+      return NextResponse.json({ error: 'domainName is required' }, { status: 400 });
+    }
+    const denied = await authzDomainOwnership(user.id, body.domainName);
+    if (denied) return denied;
+
+    const res = await fetch(`${origin}/api/internal/opensrs/registrar-lock`, {
+      method: 'POST',
+      headers: internalHeaders,
+      body: JSON.stringify({ domainName: body.domainName, actorId: user.id }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return NextResponse.json({ domainName: body.domainName, locked: data.locked });
+    }
+    return NextResponse.json(data, { status: res.status });
+  }
+
+  if (action === 'set-lock') {
+    if (!body.domainName || typeof body.locked !== 'boolean') {
+      return NextResponse.json(
+        { error: 'domainName and locked (boolean) are required' },
+        { status: 400 },
+      );
+    }
+    const denied = await authzDomainOwnership(user.id, body.domainName);
+    if (denied) return denied;
+
+    const res = await fetch(`${origin}/api/internal/opensrs/registrar-lock`, {
+      method: 'POST',
+      headers: internalHeaders,
+      body: JSON.stringify({ domainName: body.domainName, locked: body.locked, actorId: user.id }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      return NextResponse.json({ domainName: body.domainName, locked: body.locked, success: true });
     }
     return NextResponse.json(data, { status: res.status });
   }

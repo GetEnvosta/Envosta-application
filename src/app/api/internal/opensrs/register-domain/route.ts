@@ -172,13 +172,18 @@ export async function POST(req: Request) {
     // Mirror upsert. The SW_REGISTER response carries little detail —
     // expiry is computed locally, contacts/registry-dates/lock_state
     // are backfilled by the reconcile-opensrs cron's all_info sweep.
+    // Mirror reflects the OpenSRS-side state, which we deliberately set
+    // to auto_renew=0 / let_expire=1 in the register XML so Envosta's
+    // process-domain-renewals cron is the sole renewal driver. Customer
+    // preference for auto-renew lives separately on `domains.auto_renew`
+    // (the cron filter).
     await sb.from('opensrs_domains').upsert(
       {
         upstream_id: body.domainName,
         domain_id: domainRowId,
         upstream_status: result.status,
-        auto_renew: true,
-        let_expire: false,
+        auto_renew: false,
+        let_expire: true,
         whois_privacy: 'enabled',
         expires_at: expiryIso,
         upstream_payload: { registerDomain: result },

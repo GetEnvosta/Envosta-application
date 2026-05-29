@@ -214,6 +214,27 @@ export interface WpCloudClient {
    * wpcom_blog_id / blog_id / domain_name).
    */
   listAllSitesRaw(): Promise<unknown[]>;
+
+  /**
+   * Edge cache (global CDN page cache) control for a site's domain.
+   * Maps to wp.cloud `GET/POST /api/v1.0/edge-cache/{site}/active/{domain}`.
+   *   - getEdgeCacheStatus → current on/off state
+   *   - setEdgeCache       → enable/disable page caching
+   *   - purgeEdgeCache     → POST /edge-cache/{site}/purge/{domain}
+   * NOTE: the {action} segment (`active`/`purge`) follows the documented
+   * Atomic edge-cache surface; confirm against the live API on deploy.
+   */
+  getEdgeCacheStatus(siteId: string, domain: string): Promise<{ enabled: boolean; raw: unknown }>;
+  setEdgeCache(siteId: string, domain: string, enabled: boolean): Promise<void>;
+  purgeEdgeCache(siteId: string, domain: string): Promise<void>;
+
+  /**
+   * Defensive (anti-DDoS) mode. Maps to
+   * `GET/POST /api/v1.0/edge-cache/{site}/ddos_until/{domain}`.
+   * `until` is a unix timestamp: -1 = indefinite, 0 = disable.
+   */
+  getDefensiveMode(siteId: string, domain: string): Promise<{ enabled: boolean; until: number | null; raw: unknown }>;
+  setDefensiveMode(siteId: string, domain: string, until: number): Promise<void>;
 }
 
 // ─── Implementation ────────────────────────────────────────
@@ -598,6 +619,71 @@ export function createWpCloudClient(): WpCloudClient {
         status: (data?.status as number | undefined) ?? 200,
         message: data?.message as string | undefined,
       };
+    },
+
+    async getEdgeCacheStatus(siteId, domain) {
+      const path = `/api/v1.0/edge-cache/${siteId}/active/${encodeURIComponent(domain)}`;
+      const raw = await withApiCallLogging<unknown>(
+        { provider: 'wpcloud', method: 'GET', path },
+        () => wpcloudFetch(env, 'GET', path),
+      );
+      const data = unwrap(raw);
+      // Tolerate several shapes: { active: 1 }, { enabled: true }, 1, "1", true.
+      const truthy = (v: unknown) => v === true || v === 1 || v === '1' || v === 'true';
+      let enabled = false;
+      if (data && typeof data === 'object') {
+        const d = data as Record<string, unknown>;
+        enabled = truthy(d.active) || truthy(d.enabled) || truthy(d.value);
+      } else {
+        enabled = truthy(data);
+      }
+      return { enabled, raw: data };
+    },
+
+    async setEdgeCache(siteId, domain, enabled) {
+      const path = `/api/v1.0/edge-cache/${siteId}/active/${encodeURIComponent(domain)}`;
+      const requestPayload = { value: enabled ? 1 : 0 };
+      await withApiCallLogging<unknown>(
+        { provider: 'wpcloud', method: 'POST', path, requestPayload },
+        () => wpcloudFetch(env, 'POST', path, requestPayload),
+      );
+    },
+
+    async purgeEdgeCache(siteId, domain) {
+      const path = `/api/v1.0/edge-cache/${siteId}/purge/${encodeURIComponent(domain)}`;
+      await withApiCallLogging<unknown>(
+        { provider: 'wpcloud', method: 'POST', path },
+        () => wpcloudFetch(env, 'POST', path),
+      );
+    },
+
+    async getDefensiveMode(siteId, domain) {
+      const path = `/api/v1.0/edge-cache/${siteId}/ddos_until/${encodeURIComponent(domain)}`;
+      const raw = await withApiCallLogging<unknown>(
+        { provider: 'wpcloud', method: 'GET', path },
+        () => wpcloudFetch(env, 'GET', path),
+      );
+      const data = unwrap(raw);
+      let until: number | null = null;
+      if (data && typeof data === 'object') {
+        const d = data as Record<string, unknown>;
+        const v = d.ddos_until ?? d.value ?? d.until;
+        until = v == null ? null : Number(v);
+      } else if (typeof data === 'number' || typeof data === 'string') {
+        until = Number(data);
+      }
+      const now = Math.floor(Date.now() / 1000);
+      const enabled = until === -1 || (typeof until === 'number' && until > now);
+      return { enabled, until, raw: data };
+    },
+
+    async setDefensiveMode(siteId, domain, until) {
+      const path = `/api/v1.0/edge-cache/${siteId}/ddos_until/${encodeURIComponent(domain)}`;
+      const requestPayload = { until };
+      await withApiCallLogging<unknown>(
+        { provider: 'wpcloud', method: 'POST', path, requestPayload },
+        () => wpcloudFetch(env, 'POST', path, requestPayload),
+      );
     },
   };
 }

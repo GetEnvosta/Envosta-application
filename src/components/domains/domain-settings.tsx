@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, Lock, Unlock, Copy, Check, AlertTriangle, RefreshCw, Eye, EyeOff, ChevronDown } from 'lucide-react';
+import { Loader2, Lock, Unlock, AlertTriangle, RefreshCw, Eye, EyeOff, ChevronDown, Mail } from 'lucide-react';
 
 function Toggle({ enabled, loading, color, onToggle }: {
   enabled: boolean;
@@ -47,11 +47,8 @@ export function DomainSettings({ domainName, initialAutoRenew, initialWhoisPriva
   const [lockLoading, setLockLoading] = useState(false);
   const [lockFetching, setLockFetching] = useState(true);
 
-  // EPP code
+  // Transfer-out guidance section
   const [showTransfer, setShowTransfer] = useState(false);
-  const [eppCode, setEppCode] = useState<string | null>(null);
-  const [eppLoading, setEppLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const [error, setError] = useState('');
 
@@ -107,26 +104,8 @@ export function DomainSettings({ domainName, initialAutoRenew, initialWhoisPriva
     try {
       await apiCall({ action: 'set-lock', domainName, locked: !locked });
       setLocked(!locked);
-      if (!locked) setEppCode(null); // re-locking clears EPP
     } catch (e: any) { setError(e.message); }
     setLockLoading(false);
-  }
-
-  async function fetchEppCode() {
-    setEppLoading(true);
-    setError('');
-    try {
-      const data = await apiCall({ action: 'get-epp-code', domainName });
-      setEppCode(data.eppCode);
-    } catch (e: any) { setError(e.message); }
-    setEppLoading(false);
-  }
-
-  function copyCode() {
-    if (!eppCode) return;
-    navigator.clipboard.writeText(eppCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -196,35 +175,31 @@ export function DomainSettings({ domainName, initialAutoRenew, initialWhoisPriva
         {showTransfer && (
           <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
             <p className="text-xs text-gray-500 mb-3">
-              To transfer your domain, unlock the transfer lock above, then get your EPP code below.
+              To move this domain to another registrar:
             </p>
+            <ol className="space-y-2 text-xs text-gray-600">
+              <li className="flex gap-2">
+                <span className="font-semibold text-gray-900">1.</span>
+                <span>Turn off <span className="font-medium text-gray-900">Transfer Lock</span> above.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-gray-900">2.</span>
+                <span>Request your authorization (EPP) code from support — for your security it&apos;s emailed only to the registrant on file, never shown in the dashboard.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-gray-900">3.</span>
+                <span>Give that code to your new registrar to start the transfer.</span>
+              </li>
+            </ol>
 
-            {eppCode ? (
-              <div className="flex items-center gap-2">
-                <div className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 font-mono text-sm text-gray-900 select-all">
-                  {eppCode}
-                </div>
-                <button onClick={copyCode} className="btn-secondary text-xs py-2 px-2.5">
-                  {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={fetchEppCode}
-                disabled={eppLoading || locked === true}
-                className="btn-secondary text-xs"
-              >
-                {eppLoading ? (
-                  <><Loader2 className="w-3 h-3 animate-spin" /> Retrieving...</>
-                ) : locked ? (
-                  'Unlock domain first'
-                ) : (
-                  'Get EPP Code'
-                )}
-              </button>
-            )}
+            <a
+              href={`mailto:support@envosta.com?subject=${encodeURIComponent(`Domain transfer auth code for ${domainName}`)}`}
+              className="btn-secondary text-xs mt-3 inline-flex items-center gap-1.5"
+            >
+              <Mail className="w-3.5 h-3.5" /> Request auth code
+            </a>
 
-            {locked === false && !eppCode && !eppLoading && (
+            {locked === false && (
               <div className="flex items-start gap-2 mt-3 rounded-lg bg-amber-50 border border-amber-200 p-2.5">
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
                 <p className="text-[11px] text-amber-700">

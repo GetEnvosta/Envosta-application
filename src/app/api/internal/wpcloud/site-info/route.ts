@@ -58,6 +58,41 @@ const ALLOWED_META_KEYS = [
   'space_quota',
 ];
 
+/**
+ * Customer-safe WordPress feature toggles → the exact WP-CLI command
+ * run for each state. This map is the ONLY thing `wp-feature` can
+ * execute, so the endpoint is never an arbitrary command runner.
+ * `metaKey` is where we mirror the intended state on `sites.metadata`
+ * so the dashboard can render the toggle immediately (the WP-CLI task
+ * itself runs async on wp.cloud).
+ */
+const WP_FEATURE_COMMANDS: Record<
+  string,
+  { on: string[]; off: string[]; metaKey: string }
+> = {
+  'search-visibility': {
+    // blog_public=1 → visible to search engines; 0 → discouraged.
+    on: ['option', 'update', 'blog_public', '1'],
+    off: ['option', 'update', 'blog_public', '0'],
+    metaKey: 'wp_search_visible',
+  },
+  'maintenance-mode': {
+    on: ['maintenance-mode', 'activate'],
+    off: ['maintenance-mode', 'deactivate'],
+    metaKey: 'wp_maintenance',
+  },
+  'auto-update-plugins': {
+    on: ['plugin', 'auto-updates', 'enable', '--all'],
+    off: ['plugin', 'auto-updates', 'disable', '--all'],
+    metaKey: 'wp_auto_update_plugins',
+  },
+  'auto-update-themes': {
+    on: ['theme', 'auto-updates', 'enable', '--all'],
+    off: ['theme', 'auto-updates', 'disable', '--all'],
+    metaKey: 'wp_auto_update_themes',
+  },
+};
+
 function sb() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -380,6 +415,185 @@ async function handleSoftDelete(siteId: string, actorId: string | null) {
   return NextResponse.json({ deleted: true, queuedForCleanup: true, subscriptionPaused });
 }
 
+/**
+ * Resolve the domain wp.cloud should target for edge-cache / defensive-mode
+ * calls. Prefer the caller-supplied custom domain; fall back to the host of
+ * the site's wp.cloud URL (e.g. example.wpcomstaging.com).
+ */
+function resolveCacheDomain(
+  supplied: string | undefined | null,
+  wpCloudUrl: string | null,
+): string | null {
+  if (supplied && supplied.trim()) return supplied.trim();
+  if (wpCloudUrl) {
+    const bare = wpCloudUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    if (bare) return bare;
+  }
+  return null;
+}
+
+/**
+ * Edge cache management. `key` is one of:
+ *   status  → { enabled, disabled }   (shape the SitePerformance UI expects)
+ *   enable  → turn page caching on
+ *   disable → turn page caching off
+ *   purge   → clear cached pages
+ */
+async function handleEdgeCache(
+  siteId: string,
+  key: string,
+  domain: string | undefined,
+) {
+  const client = createWpCloudClient();
+  const supabase = sb();
+  const { data: row } = await supabase
+    .from('sites')
+    .select('id, wp_cloud_site_id, wp_cloud_url, user_id')
+    .eq('id', siteId)
+    .single();
+  if (!row?.wp_cloud_site_id) {
+    return NextResponse.json({ error: 'Site has no wp_cloud_site_id' }, { status: 400 });
+  }
+  const cacheDomain = resolveCacheDomain(domain, row.wp_cloud_url);
+  if (!cacheDomain) {
+    return NextResponse.json(
+      { error: 'No domain available for edge-cache operation' },
+      { status: 400 },
+    );
+  }
+  try {
+    switch (key) {
+      case 'status': {
+        const { enabled } = await client.getEdgeCacheStatus(row.wp_cloud_site_id, cacheDomain);
+        return NextResponse.json({ enabled, disabled: !enabled });
+      }
+      case 'enable':
+      case 'disable': {
+        const enable = key === 'enable';
+        await client.setEdgeCache(row.wp_cloud_site_id, cacheDomain, enable);
+        await recordLog(supabase, {
+          userId: row.user_id,
+          siteId: row.id,
+          action: `hosting.edge-cache.${key}`,
+          message: `Edge cache ${key}d for ${cacheDomain}`,
+        });
+        return NextResponse.json({ ok: true, enabled: enable, disabled: !enable });
+      }
+      case 'purge': {
+        await client.purgeEdgeCache(row.wp_cloud_site_id, cacheDomain);
+        await recordLog(supabase, {
+          userId: row.user_id,
+          siteId: row.id,
+          action: 'hosting.edge-cache.purge',
+          message: `Edge cache purged for ${cacheDomain}`,
+        });
+        return NextResponse.json({ ok: true, purged: true });
+      }
+      default:
+        return NextResponse.json({ error: `Invalid edge-cache key: ${key}` }, { status: 400 });
+    }
+  } catch (e) {
+    return wpErrorResponse(e);
+  }
+}
+
+/**
+ * Defensive (anti-DDoS) mode. With no `value` we read current status;
+ * otherwise `value` is a unix timestamp, -1 (indefinite) or 0 (off).
+ */
+async function handleDefensiveMode(
+  siteId: string,
+  value: unknown,
+  domain: string | undefined,
+) {
+  const client = createWpCloudClient();
+  const supabase = sb();
+  const { data: row } = await supabase
+    .from('sites')
+    .select('id, wp_cloud_site_id, wp_cloud_url, user_id')
+    .eq('id', siteId)
+    .single();
+  if (!row?.wp_cloud_site_id) {
+    return NextResponse.json({ error: 'Site has no wp_cloud_site_id' }, { status: 400 });
+  }
+  const cacheDomain = resolveCacheDomain(domain, row.wp_cloud_url);
+  if (!cacheDomain) {
+    return NextResponse.json(
+      { error: 'No domain available for defensive-mode operation' },
+      { status: 400 },
+    );
+  }
+  try {
+    if (value === undefined || value === null) {
+      const { enabled, until } = await client.getDefensiveMode(row.wp_cloud_site_id, cacheDomain);
+      return NextResponse.json({ enabled, until });
+    }
+    const until = Number(value);
+    if (Number.isNaN(until)) {
+      return NextResponse.json(
+        { error: 'value must be a number (-1 indefinite, 0 off, or unix timestamp)' },
+        { status: 400 },
+      );
+    }
+    await client.setDefensiveMode(row.wp_cloud_site_id, cacheDomain, until);
+    const enabled = until === -1 || until > Math.floor(Date.now() / 1000);
+    await recordLog(supabase, {
+      userId: row.user_id,
+      siteId: row.id,
+      action: 'hosting.defensive-mode',
+      message: `Defensive mode ${enabled ? 'enabled' : 'disabled'} for ${cacheDomain} (until=${until})`,
+    });
+    return NextResponse.json({ ok: true, enabled, until });
+  } catch (e) {
+    return wpErrorResponse(e);
+  }
+}
+
+/**
+ * Customer-safe WordPress feature toggles run via WP-CLI (async on
+ * wp.cloud). The intended state is mirrored onto sites.metadata[metaKey]
+ * so the dashboard renders the toggle immediately.
+ */
+async function handleWpFeature(siteId: string, feature: string, enabled: boolean) {
+  const spec = WP_FEATURE_COMMANDS[feature];
+  if (!spec) {
+    return NextResponse.json(
+      { error: `Invalid feature: ${feature}. Allowed: ${Object.keys(WP_FEATURE_COMMANDS).join(', ')}` },
+      { status: 400 },
+    );
+  }
+  const client = createWpCloudClient();
+  const supabase = sb();
+  const { data: row } = await supabase
+    .from('sites')
+    .select('id, wp_cloud_site_id, user_id, metadata')
+    .eq('id', siteId)
+    .single();
+  if (!row?.wp_cloud_site_id) {
+    return NextResponse.json({ error: 'Site has no wp_cloud_site_id' }, { status: 400 });
+  }
+  try {
+    const args = enabled ? spec.on : spec.off;
+    const r = await client.runWpCli(row.wp_cloud_site_id, args);
+    await supabase
+      .from('sites')
+      .update({
+        metadata: { ...((row.metadata as any) ?? {}), [spec.metaKey]: enabled },
+      })
+      .eq('id', row.id);
+    await recordLog(supabase, {
+      userId: row.user_id,
+      siteId: row.id,
+      action: `hosting.wp-feature.${feature}`,
+      message: `${feature} ${enabled ? 'enabled' : 'disabled'}`,
+      res: { task_id: r.task_id },
+    });
+    return NextResponse.json({ ok: true, feature, enabled, task_id: r.task_id });
+  } catch (e) {
+    return wpErrorResponse(e);
+  }
+}
+
 function wpErrorResponse(e: unknown) {
   const isWp = e instanceof WpCloudError;
   const status = isWp ? e.status : 502;
@@ -468,6 +682,20 @@ async function dispatch(action: string, body: any): Promise<Response> {
     case 'delete-site':
       if (!siteId) return NextResponse.json({ error: 'siteId is required' }, { status: 400 });
       return handleSoftDelete(siteId, actorId);
+
+    case 'edge-cache':
+      if (!siteId) return NextResponse.json({ error: 'siteId is required' }, { status: 400 });
+      return handleEdgeCache(siteId, body.key ?? 'status', body.domain);
+
+    case 'defensive-mode':
+      if (!siteId) return NextResponse.json({ error: 'siteId is required' }, { status: 400 });
+      return handleDefensiveMode(siteId, body.value, body.domain);
+
+    case 'wp-feature':
+      if (!siteId || !body.feature) {
+        return NextResponse.json({ error: 'siteId and feature are required' }, { status: 400 });
+      }
+      return handleWpFeature(siteId, body.feature, body.enabled === true || body.enabled === 'true');
 
     default:
       return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });

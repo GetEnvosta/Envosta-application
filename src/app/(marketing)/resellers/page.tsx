@@ -31,9 +31,9 @@ export default function ResellersPage() {
               Hosting your clients<br />will thank you for.
             </h1>
             <p className="text-lg text-gray-600 mb-7 leading-relaxed">
-              Bulk WordPress hosting for agencies running 5, 25, or 100+ client sites.
-              Custom pricing tailored to your volume. White-glove onboarding. One
-              dashboard, every client.
+              Bulk WordPress hosting for agencies. Starts at <strong>$517 CAD/mo for 50 client
+              sites</strong> — the same per-site infra as Growth, with white-glove onboarding and
+              consolidated billing. Need more than 50? We&apos;ll quote you.
             </p>
             <a
               href="#contact"
@@ -92,12 +92,12 @@ export default function ResellersPage() {
       {/* ── Pricing intent ─────────────────────────────────── */}
       <section className="border-b border-gray-100">
         <div className="mx-auto max-w-3xl px-6 py-16 text-center">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Pricing depends on your shape</h2>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Starts at $517 CAD/mo · 50 sites</h2>
           <p className="text-base text-gray-600 leading-relaxed">
-            Every agency is different. Some have 8 small portfolio sites, some have 80 e-commerce
-            stores. We price each reseller account based on your site count, expected traffic,
-            and the level of support you need. No catalog tier will fit you perfectly — so we
-            don&apos;t pretend one does.
+            Our Reseller tier starts at the same price as Growth — $517 CAD/mo — but gives you 50
+            client sites instead of 25. That&apos;s about $10/site if you fill it. Need more than
+            50 sites or higher-traffic plans? We&apos;ll size a custom quote based on your portfolio
+            and the support level you want.
           </p>
         </div>
       </section>

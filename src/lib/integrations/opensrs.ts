@@ -206,8 +206,24 @@ export interface OpenSrsClient {
   /**
    * Toggle auto-renew (action `MODIFY`, data=expire_action,
    * let_expire=0|1 → auto_renew=1|0).
+   *
+   * NOTE on architecture: Envosta is the source of truth for renewal
+   * billing — the daily `process-domain-renewals` cron charges the
+   * customer's card and calls `renewDomain()` manually. OpenSRS's own
+   * auto-renew is held at 0 for all Envosta-registered domains so the
+   * two systems don't race and double-charge. This method exists for
+   * admin operations and rare overrides; the customer-facing UI toggle
+   * only writes to `domains.auto_renew` (the cron filter).
    */
   setAutoRenew(domain: string, enabled: boolean): Promise<void>;
+
+  /**
+   * Toggle WHOIS privacy (action `MODIFY`, data=whois_privacy_state,
+   * state=enable|disable). Unlike auto-renew, whois privacy is a
+   * service OpenSRS provides — the customer toggle mirrors directly
+   * to OpenSRS via this call.
+   */
+  setWhoisPrivacy(domain: string, enabled: boolean): Promise<void>;
 
   /**
    * Check whether a domain is available (action `LOOKUP`). Returns
@@ -379,7 +395,15 @@ function buildRegisterXml(domain: string, years: number, contacts: OpenSrsContac
         <item key="2"><dt_assoc><item key="name">ns3.systemdns.com</item><item key="sortorder">3</item></dt_assoc></item>
       </dt_array></item>
       <item key="f_whois_privacy">1</item>
-      <item key="auto_renew">1</item>
+      <!--
+        auto_renew=0: Envosta's process-domain-renewals cron is the
+        source of truth for renewal billing. Keeping OpenSRS's own
+        auto-renew off prevents double-charge races (OpenSRS would
+        otherwise renew using our prepaid balance on the expiry date
+        while our cron is also charging the customer's card).
+      -->
+      <item key="auto_renew">0</item>
+      <item key="let_expire">1</item>
       <item key="contact_set"><dt_assoc>
         ${buildContactBlock('owner', contacts.owner)}
         ${buildContactBlock('admin', admin)}
@@ -534,6 +558,23 @@ function buildSetAutoRenewXml(domain: string, enabled: boolean): string {
       </dt_array></item>
       <item key="auto_renew">${enabled ? 1 : 0}</item>
       <item key="let_expire">${enabled ? 0 : 1}</item>
+    </dt_assoc></item>
+  `);
+}
+
+function buildSetWhoisPrivacyXml(domain: string, enabled: boolean): string {
+  // whois_privacy_state takes 'enable' or 'disable' strings (not 0/1).
+  return envelope(`
+    <item key="protocol">XCP</item>
+    <item key="action">modify</item>
+    <item key="object">domain</item>
+    <item key="attributes"><dt_assoc>
+      <item key="affect_domains">0</item>
+      <item key="data">whois_privacy_state</item>
+      <item key="domain_list"><dt_array>
+        <item key="0">${xmlEscape(domain)}</item>
+      </dt_array></item>
+      <item key="state">${enabled ? 'enable' : 'disable'}</item>
     </dt_assoc></item>
   `);
 }
@@ -850,6 +891,11 @@ export function createOpenSrsClient(): OpenSrsClient {
     async setAutoRenew(domain, enabled) {
       const xml = buildSetAutoRenewXml(domain, enabled);
       await call('set_auto_renew', xml);
+    },
+
+    async setWhoisPrivacy(domain, enabled) {
+      const xml = buildSetWhoisPrivacyXml(domain, enabled);
+      await call('set_whois_privacy', xml);
     },
 
     async checkAvailability(domain) {
