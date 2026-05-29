@@ -3,6 +3,7 @@ export const revalidate = 5;
 import { Globe } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { TldsTable } from './tlds-table';
+import { SyncPricingButton } from './sync-pricing';
 
 function getSupabase() {
   return createClient(
@@ -38,6 +39,10 @@ export default async function TldsSettingsPage() {
           <span className="font-mono"> /api/admin/update-tld-price</span> endpoint. Checkout reads inline price_data —
           no Stripe sync needed.
         </p>
+      </div>
+
+      <div className="mb-4">
+        <SyncPricingButton />
       </div>
 
       <TldsTable tlds={tlds} />
