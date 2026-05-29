@@ -231,6 +231,20 @@ export interface OpenSrsClient {
    * returned when available — OpenSRS doesn't always populate it.
    */
   checkAvailability(domain: string): Promise<{ available: boolean; price?: number }>;
+
+  /**
+   * Fetch the registry price for `domain` for a given reg type (action
+   * `GET_PRICE`). `regType` is 'new' | 'renewal' | 'transfer' (default
+   * 'new'); `period` is years (default 1). Price is returned in the
+   * OpenSRS account's billing currency (dollars), or undefined if OpenSRS
+   * returned no usable price. Unlike LOOKUP, this works regardless of
+   * whether the domain is currently registered.
+   */
+  getPrice(
+    domain: string,
+    regType?: 'new' | 'renewal' | 'transfer',
+    period?: number,
+  ): Promise<{ price?: number }>;
 }
 
 // ─── Internals: signing, transport, XML helpers ─────────────
@@ -370,6 +384,19 @@ function buildLookupXml(domain: string): string {
     <item key="attributes"><dt_assoc>
       <item key="domain">${xmlEscape(domain)}</item>
       <item key="no_cache">1</item>
+    </dt_assoc></item>
+  `);
+}
+
+function buildGetPriceXml(domain: string, regType: string, period: number): string {
+  return envelope(`
+    <item key="protocol">XCP</item>
+    <item key="object">DOMAIN</item>
+    <item key="action">GET_PRICE</item>
+    <item key="attributes"><dt_assoc>
+      <item key="domain">${xmlEscape(domain)}</item>
+      <item key="reg_type">${xmlEscape(regType)}</item>
+      <item key="period">${period}</item>
     </dt_assoc></item>
   `);
 }
@@ -926,6 +953,14 @@ export function createOpenSrsClient(): OpenSrsClient {
         'check_availability',
         parsed.responseCode,
       );
+    },
+
+    async getPrice(domain, regType = 'new', period = 1) {
+      const xml = buildGetPriceXml(domain, regType, period);
+      const responseBody = await call('get_price', xml);
+      const priceStr = getXmlValue(responseBody, 'price');
+      const price = priceStr ? Number(priceStr) : undefined;
+      return { price: Number.isFinite(price) ? price : undefined };
     },
   };
 }

@@ -20,9 +20,13 @@ interface PreviewRow {
   status: 'ok' | 'error';
   error?: string;
   openSrsUsd: number | null;
+  openSrsRenewUsd: number | null;
   currentUsdCents: number | null;
   currentCadCents: number | null;
+  currentRenewUsdCents: number | null;
+  currentRenewCadCents: number | null;
   proposedUsdCents: number | null;
+  proposedRenewUsdCents: number | null;
 }
 
 interface PreviewResponse {
@@ -51,6 +55,7 @@ export function SyncPricingButton() {
     return data.rows.map(r => ({
       ...r,
       proposedCadCents: r.proposedUsdCents != null ? Math.round(r.proposedUsdCents * fxRate) : null,
+      proposedRenewCadCents: r.proposedRenewUsdCents != null ? Math.round(r.proposedRenewUsdCents * fxRate) : null,
     }));
   }, [data, fxRate]);
 
@@ -86,6 +91,8 @@ export function SyncPricingButton() {
         tld: r.tld,
         usdCents: r.proposedUsdCents,
         cadCents: r.proposedCadCents,
+        renewUsdCents: r.proposedRenewUsdCents,
+        renewCadCents: r.proposedRenewCadCents,
       }));
       const res = await fetch('/api/admin/sync-tld-pricing', {
         method: 'POST',
@@ -129,9 +136,10 @@ export function SyncPricingButton() {
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">OpenSRS price check — register price, +25%</h3>
+          <h3 className="text-sm font-semibold text-gray-900">OpenSRS price check — register + renew, +25%</h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            USD = OpenSRS cost × 1.25. CAD = USD × the rate below. Nothing is saved until you click Apply.
+            USD = OpenSRS cost × 1.25. CAD = USD × the rate below. Each cell shows registration on top, renewal
+            (<span className="font-medium">ren</span>) below. Nothing is saved until you click Apply.
           </p>
         </div>
         <button type="button" onClick={close} className="text-gray-400 hover:text-gray-600" aria-label="Close">
@@ -201,19 +209,37 @@ export function SyncPricingButton() {
               <tbody className="divide-y divide-gray-100">
                 {rowsWithCad.map(r => (
                   <tr key={r.tld} className={r.status === 'error' ? 'bg-amber-50/40' : 'hover:bg-gray-50/50'}>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2 align-top">
                       <span className="font-mono text-gray-900">.{r.tld}</span>
                       {r.status === 'error' && (
                         <span className="block text-[11px] text-amber-600 mt-0.5">{r.error}</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-gray-500">
-                      {r.openSrsUsd == null ? '—' : `$${r.openSrsUsd.toFixed(2)}`}
+                    {/* OpenSRS cost */}
+                    <td className="px-3 py-2 text-right tabular-nums align-top text-gray-500">
+                      <div>{r.openSrsUsd == null ? '—' : `$${r.openSrsUsd.toFixed(2)}`}</div>
+                      {r.openSrsRenewUsd != null && (
+                        <div className="text-[11px] text-gray-400">ren ${r.openSrsRenewUsd.toFixed(2)}</div>
+                      )}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums font-medium text-gray-900">{fmt(r.proposedUsdCents)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums font-medium text-gray-900">{fmt(r.proposedCadCents)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-xs text-gray-400">
-                      {fmt(r.currentUsdCents)} / {fmt(r.currentCadCents)}
+                    {/* Proposed USD */}
+                    <td className="px-3 py-2 text-right tabular-nums align-top">
+                      <div className="font-medium text-gray-900">{fmt(r.proposedUsdCents)}</div>
+                      {r.proposedRenewUsdCents != null && (
+                        <div className="text-[11px] text-gray-400">ren {fmt(r.proposedRenewUsdCents)}</div>
+                      )}
+                    </td>
+                    {/* Proposed CAD */}
+                    <td className="px-3 py-2 text-right tabular-nums align-top">
+                      <div className="font-medium text-gray-900">{fmt(r.proposedCadCents)}</div>
+                      {r.proposedRenewCadCents != null && (
+                        <div className="text-[11px] text-gray-400">ren {fmt(r.proposedRenewCadCents)}</div>
+                      )}
+                    </td>
+                    {/* Current */}
+                    <td className="px-3 py-2 text-right tabular-nums align-top text-xs text-gray-400">
+                      <div>{fmt(r.currentUsdCents)} / {fmt(r.currentCadCents)}</div>
+                      <div className="text-[11px]">ren {fmt(r.currentRenewUsdCents)} / {fmt(r.currentRenewCadCents)}</div>
                     </td>
                   </tr>
                 ))}

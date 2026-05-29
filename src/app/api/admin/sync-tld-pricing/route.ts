@@ -41,11 +41,16 @@ interface PreviewRow {
   displayName: string;
   status: 'ok' | 'error';
   error?: string;
-  openSrsUsd: number | null; // dollars, as returned by OpenSRS
+  openSrsUsd: number | null; // register cost (dollars)
+  openSrsRenewUsd: number | null; // renew cost (dollars)
   currentUsdCents: number | null;
   currentCadCents: number | null;
-  proposedUsdCents: number | null;
+  currentRenewUsdCents: number | null;
+  currentRenewCadCents: number | null;
+  proposedUsdCents: number | null; // register
   proposedCadCents: number | null;
+  proposedRenewUsdCents: number | null; // renew
+  proposedRenewCadCents: number | null;
 }
 
 interface ApplyItem {
@@ -104,14 +109,19 @@ export async function POST(req: Request) {
         errors.push({ tld, error: `price out of range ($${MIN_CENTS / 100}–$${MAX_CENTS / 100})` });
         continue;
       }
-      const { error } = await sb
-        .from('tlds')
-        .update({
-          register_price_usd_cents: usdCents,
-          register_price_cad_cents: cadCents,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('tld', tld);
+      const update: Record<string, any> = {
+        register_price_usd_cents: usdCents,
+        register_price_cad_cents: cadCents,
+        updated_at: new Date().toISOString(),
+      };
+      // Renew prices are optional — only written when both are present + valid.
+      const renewUsd = Number(item?.renewUsdCents);
+      const renewCad = Number(item?.renewCadCents);
+      if (inBounds(renewUsd) && inBounds(renewCad)) {
+        update.renew_price_usd_cents = renewUsd;
+        update.renew_price_cad_cents = renewCad;
+      }
+      const { error } = await sb.from('tlds').update(update).eq('tld', tld);
       if (error) errors.push({ tld, error: error.message });
       else applied++;
     }
@@ -135,7 +145,7 @@ export async function POST(req: Request) {
 
   const { data: tlds, error: tldErr } = await sb
     .from('tlds')
-    .select('tld, display_name, register_price_usd_cents, register_price_cad_cents')
+    .select('tld, display_name, register_price_usd_cents, register_price_cad_cents, renew_price_usd_cents, renew_price_cad_cents')
     .eq('is_active', true)
     .order('tld', { ascending: true });
   if (tldErr) return NextResponse.json({ error: tldErr.message }, { status: 500 });
@@ -148,10 +158,15 @@ export async function POST(req: Request) {
       displayName: t.display_name,
       status: 'error',
       openSrsUsd: null,
+      openSrsRenewUsd: null,
       currentUsdCents: t.register_price_usd_cents ?? null,
       currentCadCents: t.register_price_cad_cents ?? null,
+      currentRenewUsdCents: t.renew_price_usd_cents ?? null,
+      currentRenewCadCents: t.renew_price_cad_cents ?? null,
       proposedUsdCents: null,
       proposedCadCents: null,
+      proposedRenewUsdCents: null,
+      proposedRenewCadCents: null,
     };
 
     // Probe a synthetic, almost-certainly-available name to read the standard
@@ -168,12 +183,36 @@ export async function POST(req: Request) {
       if (!inBounds(proposedUsdCents) || !inBounds(proposedCadCents)) {
         return { ...base, openSrsUsd: res.price, error: 'Computed price out of range' };
       }
+
+      // Renew price via GET_PRICE — best effort; the register price still
+      // applies even if the renewal lookup fails for this TLD.
+      let openSrsRenewUsd: number | null = null;
+      let proposedRenewUsdCents: number | null = null;
+      let proposedRenewCadCents: number | null = null;
+      try {
+        const renew = await client.getPrice(probe, 'renewal');
+        if (typeof renew.price === 'number' && renew.price > 0) {
+          const usdC = Math.round(renew.price * MARKUP * 100);
+          const cadC = Math.round(usdC * fxRate);
+          if (inBounds(usdC) && inBounds(cadC)) {
+            openSrsRenewUsd = renew.price;
+            proposedRenewUsdCents = usdC;
+            proposedRenewCadCents = cadC;
+          }
+        }
+      } catch {
+        // leave renew null — register still applies
+      }
+
       return {
         ...base,
         status: 'ok',
         openSrsUsd: res.price,
+        openSrsRenewUsd,
         proposedUsdCents,
         proposedCadCents,
+        proposedRenewUsdCents,
+        proposedRenewCadCents,
       };
     } catch (e) {
       return { ...base, error: e instanceof Error ? e.message : String(e) };
