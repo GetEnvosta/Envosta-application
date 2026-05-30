@@ -40,7 +40,6 @@ const TABS = [
   { id: 'api', label: 'API Calls', icon: Activity },
   { id: 'webhooks', label: 'Webhooks', icon: Webhook },
   { id: 'sync', label: 'Sync & Drift', icon: RefreshCw },
-  { id: 'audit', label: 'Audit Log', icon: ScrollText },
   { id: 'lifecycle', label: 'Lifecycle', icon: BookOpen },
 ] as const;
 
@@ -55,7 +54,12 @@ export default async function HealthPage({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   // Accept the legacy `?view=` alias (old deep links used ?view=logs).
   const raw = sp.tab ?? sp.view;
-  const tab = TABS.some((t) => t.id === raw) ? (raw as string) : 'overview';
+  // The audit log is now a sub-view of the Logs tab. Map the legacy
+  // ?tab=audit (and the /admin/audit redirect) onto Logs → Audit trail.
+  let logView: 'activity' | 'audit' = sp.logView === 'audit' ? 'audit' : 'activity';
+  let tab: string;
+  if (raw === 'audit') { tab = 'logs'; logView = 'audit'; }
+  else tab = TABS.some((t) => t.id === raw) ? (raw as string) : 'overview';
 
   return (
     <div>
@@ -88,11 +92,10 @@ export default async function HealthPage({ searchParams }: { searchParams: Promi
       </div>
 
       {tab === 'overview' && <OverviewTab />}
-      {tab === 'logs' && <LogsTab />}
+      {tab === 'logs' && <LogsTab sp={sp} logView={logView} />}
       {tab === 'api' && <ApiCallsTab sp={sp} />}
       {tab === 'webhooks' && <WebhooksTab sp={sp} />}
       {tab === 'sync' && <SyncTab sp={sp} />}
-      {tab === 'audit' && <AuditLogTab sp={sp} />}
       {tab === 'lifecycle' && <LifecycleReference />}
     </div>
   );
@@ -221,8 +224,31 @@ async function OverviewTab() {
   );
 }
 
-// ── Logs: admin logs ────────────────────────────────────────────────────
-async function LogsTab() {
+// ── Logs: admin activity log + audit trail (sub-toggle) ─────────────────
+async function LogsTab({ sp, logView }: { sp: SP; logView: 'activity' | 'audit' }) {
+  const subTab = (id: 'activity' | 'audit', label: string) => (
+    <Link
+      href={`/admin/diagnostics?tab=logs&logView=${id}`}
+      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+        logView === id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+      }`}
+    >
+      {label}
+    </Link>
+  );
+
+  return (
+    <div>
+      <div className="inline-flex items-center gap-1 bg-gray-100 rounded-lg p-1 mb-4">
+        {subTab('activity', 'Activity')}
+        {subTab('audit', 'Audit trail')}
+      </div>
+      {logView === 'audit' ? <AuditLogTab sp={sp} /> : <AdminActivityTable />}
+    </div>
+  );
+}
+
+async function AdminActivityTable() {
   const logs = await getAdminLogs({}, 50);
   const levelBadge: Record<string, string> = { info: 'badge-blue', warn: 'badge-yellow', error: 'badge-red', debug: 'badge-gray' };
   return (

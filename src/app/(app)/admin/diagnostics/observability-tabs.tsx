@@ -317,13 +317,14 @@ export async function AuditLogTab({ sp }: { sp: SP }) {
       {sp.resourceId && (
         <div className="px-4 py-2.5 bg-admin-50 border-b border-gray-100 text-xs text-gray-600 flex items-center justify-between">
           <span>Filtered to resource <span className="font-mono">{sp.resourceId}</span></span>
-          <Link href="/admin/diagnostics?tab=audit" className="text-admin-600 hover:text-admin-700 font-medium">
+          <Link href="/admin/diagnostics?tab=logs&logView=audit" className="text-admin-600 hover:text-admin-700 font-medium">
             Clear
           </Link>
         </div>
       )}
       <form method="GET" className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 flex flex-wrap gap-3">
-        <input type="hidden" name="tab" value="audit" />
+        <input type="hidden" name="tab" value="logs" />
+        <input type="hidden" name="logView" value="audit" />
         {sp.resourceId && <input type="hidden" name="resourceId" value={sp.resourceId} />}
         <input
           type="text"
@@ -377,7 +378,7 @@ export async function AuditLogTab({ sp }: { sp: SP }) {
                     {r.resource_id
                       ? (
                         <Link
-                          href={`/admin/diagnostics?tab=audit&resourceId=${r.resource_id}`}
+                          href={`/admin/diagnostics?tab=logs&logView=audit&resourceId=${r.resource_id}`}
                           className="text-admin-600 hover:text-admin-700"
                         >
                           {truncate(r.resource_id, 28)}

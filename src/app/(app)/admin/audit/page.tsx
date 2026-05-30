@@ -9,8 +9,16 @@ type SP = { [key: string]: string | undefined };
 
 export default async function AuditRedirect({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const tab = sp.tab && ['api', 'webhooks', 'sync', 'audit'].includes(sp.tab) ? sp.tab : 'api';
-  const params = new URLSearchParams({ tab });
+  const params = new URLSearchParams();
+  if (sp.tab === 'audit') {
+    // Audit Log is now Logs → Audit trail.
+    params.set('tab', 'logs');
+    params.set('logView', 'audit');
+  } else if (sp.tab && ['api', 'webhooks', 'sync'].includes(sp.tab)) {
+    params.set('tab', sp.tab);
+  } else {
+    params.set('tab', 'api');
+  }
   if (sp.resourceId) params.set('resourceId', sp.resourceId);
   redirect(`/admin/diagnostics?${params.toString()}`);
 }
