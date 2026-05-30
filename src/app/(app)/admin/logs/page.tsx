@@ -6,5 +6,5 @@
 import { redirect } from 'next/navigation';
 
 export default function LegacyLogsRedirect() {
-  redirect('/admin/diagnostics?view=logs');
+  redirect('/admin/diagnostics?tab=logs');
 }

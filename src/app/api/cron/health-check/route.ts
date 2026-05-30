@@ -154,7 +154,7 @@ export async function GET(req: Request) {
               from: FROM_EMAIL,
               to: 'admin@envosta.com',
               subject: `[Health] Site sync issues detected`,
-              html: `<p>Daily site sync found issues:</p><ul>${issues.map(i => `<li>${i}</li>`).join('')}</ul><p><a href="https://my.envosta.com/admin/services">View Sites</a> · <a href="https://my.envosta.com/admin/diagnostics?view=logs">View Logs</a></p>`,
+              html: `<p>Daily site sync found issues:</p><ul>${issues.map(i => `<li>${i}</li>`).join('')}</ul><p><a href="https://my.envosta.com/admin/services">View Sites</a> · <a href="https://my.envosta.com/admin/diagnostics?tab=logs">View Logs</a></p>`,
             }),
           });
         }

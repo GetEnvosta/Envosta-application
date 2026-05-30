@@ -225,7 +225,7 @@ export function driftAlertEmail(groups: DriftAlertGroup[]): { subject: string; h
         total === 1 ? 'row' : 'rows'
       } that ${total === 1 ? 'has' : 'have'} been outstanding for over an hour. Grouped by provider and type:</p>
       ${rows}
-      <a href="https://my.envosta.com/admin/audit?tab=sync" class="btn">Open Audit Dashboard</a>
+      <a href="https://my.envosta.com/admin/diagnostics?tab=sync" class="btn">Open Health Dashboard</a>
       <p style="font-size:13px;color:#888;">Each of these rows has been stamped so you won't be alerted about them again. Resolve them from the Sync &amp; Drift tab once handled.</p>
     `),
   };

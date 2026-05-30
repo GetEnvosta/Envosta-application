@@ -143,7 +143,7 @@ export default async function AdminDashboardPage() {
         <div className="card">
           <div className="section-card-header">
             <h2 className="section-card-title">Recent activity</h2>
-            <Link href="/admin/diagnostics?view=logs" className="text-xs text-admin-600 hover:text-admin-700 font-medium flex items-center gap-1">
+            <Link href="/admin/diagnostics?tab=logs" className="text-xs text-admin-600 hover:text-admin-700 font-medium flex items-center gap-1">
               View all <ArrowRight className="w-3 h-3" />
             </Link>
           </div>

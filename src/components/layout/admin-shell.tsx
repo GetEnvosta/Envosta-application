@@ -5,7 +5,6 @@ import { useMemo } from 'react';
 import {
   LayoutDashboard, Users, Server, Globe, CreditCard,
   Activity, LogOut, ArrowLeft, PenSquare, MessageSquare, Settings,
-  ScrollText,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { canAccessAdminNav } from '@/lib/roles';
@@ -24,7 +23,6 @@ const allNav: NavItem[] = [
   // Cleanup queue folded into /admin/services as a filter chip
   // (?view=cleanup). The standalone page was removed.
   { name: 'Health', href: '/admin/diagnostics', icon: Activity },
-  { name: 'Audit', href: '/admin/audit', icon: ScrollText },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 

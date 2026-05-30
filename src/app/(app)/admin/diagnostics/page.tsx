@@ -1,28 +1,108 @@
+/**
+ * /admin/diagnostics — "Health": the single system observability + triage hub.
+ *
+ * Merges the former /admin/audit dashboard in. Server-rendered tabs via a
+ * `?tab=` searchparam (so the per-tab filter forms work):
+ *   overview  — connectivity checks + issue triage cards
+ *   logs      — admin logs
+ *   api       — outbound api_calls            (was /admin/audit)
+ *   webhooks  — inbound webhook_events        (was /admin/audit)
+ *   sync      — sync_runs + sync_drift        (was /admin/audit)
+ *   audit     — audit_log                     (was /admin/audit)
+ *   lifecycle — status lifecycle reference docs
+ *
+ * Promotions (coupons) and Emails moved out to /admin/settings. Admin-only:
+ * the observability tabs read RLS-locked mirror tables via service role.
+ */
 export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase-server';
-import { formatDate, statusColor } from '@/lib/utils';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { AlertTriangle, Server, Globe, CreditCard, CheckCircle, Activity, ScrollText } from 'lucide-react';
+import {
+  AlertTriangle, Server, Globe, CreditCard, CheckCircle, Activity,
+  ScrollText, Webhook, RefreshCw, BookOpen,
+} from 'lucide-react';
 import { StatCard } from '@/components/admin/stat-card';
-// External sync now integrated into SystemHealthChecks recheck button
 import { getAdminLogs } from '@/services/admin';
+import { getCurrentUser, getUserProfile } from '@/services/auth';
+import { isAdminRole } from '@/lib/roles';
 import { SystemHealthChecks } from '@/app/(app)/admin/logs/health-checks';
-import AdminEmailsPage from '@/app/(app)/admin/emails/page';
-import { CouponManager } from '@/components/admin/coupon-manager';
-import { SystemTabs } from './system-tabs';
-import { LifecycleReference } from './lifecycle-reference';
-import { ProvisionButton } from '@/components/admin/provision-button';
 import { UnlinkedStripeProducts } from '@/components/admin/unlinked-stripe-products';
-import { formatDateTime } from '@/lib/utils';
+import { ProvisionButton } from '@/components/admin/provision-button';
+import { LifecycleReference } from './lifecycle-reference';
+import { ApiCallsTab, WebhooksTab, SyncTab, AuditLogTab, type SP } from './observability-tabs';
+import { formatDate, formatDateTime } from '@/lib/utils';
 
-export default async function DiagnosticsPage() {
+const TABS = [
+  { id: 'overview', label: 'Overview', icon: Activity },
+  { id: 'logs', label: 'Logs', icon: ScrollText },
+  { id: 'api', label: 'API Calls', icon: Activity },
+  { id: 'webhooks', label: 'Webhooks', icon: Webhook },
+  { id: 'sync', label: 'Sync & Drift', icon: RefreshCw },
+  { id: 'audit', label: 'Audit Log', icon: ScrollText },
+  { id: 'lifecycle', label: 'Lifecycle', icon: BookOpen },
+] as const;
+
+export default async function HealthPage({ searchParams }: { searchParams: Promise<SP> }) {
+  // Admin-only gate — defense in depth on top of middleware. The observability
+  // tabs surface RLS-locked orchestration tables.
+  const user = await getCurrentUser();
+  if (!user) redirect('/auth/login');
+  const profile = await getUserProfile(user.id);
+  if (!isAdminRole(profile?.role)) redirect('/admin');
+
+  const sp = await searchParams;
+  // Accept the legacy `?view=` alias (old deep links used ?view=logs).
+  const raw = sp.tab ?? sp.view;
+  const tab = TABS.some((t) => t.id === raw) ? (raw as string) : 'overview';
+
+  return (
+    <div>
+      <div className="page-header">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Health</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            System triage, logs, API / webhook / sync observability, and the audit log.
+          </p>
+        </div>
+      </div>
+
+      {/* Tab nav — searchparam-driven */}
+      <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 mb-6 overflow-x-auto">
+        {TABS.map((t) => {
+          const active = t.id === tab;
+          return (
+            <Link
+              key={t.id}
+              href={`/admin/diagnostics?tab=${t.id}`}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                active ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <t.icon className="w-3.5 h-3.5" />
+              {t.label}
+            </Link>
+          );
+        })}
+      </div>
+
+      {tab === 'overview' && <OverviewTab />}
+      {tab === 'logs' && <LogsTab />}
+      {tab === 'api' && <ApiCallsTab sp={sp} />}
+      {tab === 'webhooks' && <WebhooksTab sp={sp} />}
+      {tab === 'sync' && <SyncTab sp={sp} />}
+      {tab === 'audit' && <AuditLogTab sp={sp} />}
+      {tab === 'lifecycle' && <LifecycleReference />}
+    </div>
+  );
+}
+
+// ── Overview: connectivity + issue triage ───────────────────────────────
+async function OverviewTab() {
   const supabase = await createClient();
 
-  // 1. Active subscriptions with NO site — read from stripe.* via
-  //    the new admin billing helper (returns user + product shape-compat
-  //    fields). Account-centric: a hosting sub is "orphaned" if the
-  //    owner has no active sites.
+  // 1. Active hosting subscriptions whose owner has NO live site.
   const { getAllSubscriptionsAdmin } = await import('@/services/billing');
   const allSubs = await getAllSubscriptionsAdmin(500);
   const aliveSubs = allSubs.filter((s: any) => ['active', 'trialing'].includes(s.status));
@@ -64,44 +144,25 @@ export default async function DiagnosticsPage() {
     .order('created_at', { ascending: false })
     .limit(20);
 
-  const totalIssues = hostingSubsNoSite.length + (stuckSites?.length ?? 0) + (failedSites?.length ?? 0) + (problemDomains?.length ?? 0);
-
-  // Fetch logs for the logs tab
-  const logs = await getAdminLogs({}, 50);
-
-  // Product catalog moved entirely to /admin/settings (Plans / Addons /
-  // Services / TLDs). Diagnostics no longer fetches it.
-
-  const levelBadge: Record<string, string> = { info: 'badge-blue', warn: 'badge-yellow', error: 'badge-red', debug: 'badge-gray' };
+  const totalIssues =
+    hostingSubsNoSite.length + (stuckSites?.length ?? 0) + (failedSites?.length ?? 0) + (problemDomains?.length ?? 0);
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Health</h1>
-          <p className="text-sm text-gray-500 mt-0.5">System diagnostics, lifecycle docs, logs, email previews, and promotions.</p>
-        </div>
-        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${totalIssues === 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-          {totalIssues === 0 ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-          {totalIssues === 0 ? 'All clear' : `${totalIssues} issues found`}
-        </div>
-      </div>
-
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <StatCard label="Total Issues" value={totalIssues} icon={AlertTriangle} color={totalIssues > 0 ? 'red' : 'green'} />
         <StatCard label="Orphaned Subs" value={hostingSubsNoSite.length} icon={CreditCard} color={hostingSubsNoSite.length > 0 ? 'amber' : 'gray'} />
         <StatCard label="Stuck Sites" value={(stuckSites?.length ?? 0) + (failedSites?.length ?? 0)} icon={Server} color={(stuckSites?.length ?? 0) + (failedSites?.length ?? 0) > 0 ? 'amber' : 'gray'} />
         <StatCard label="Problem Domains" value={problemDomains?.length ?? 0} icon={Globe} color={(problemDomains?.length ?? 0) > 0 ? 'amber' : 'gray'} />
+        <div className={`flex items-center justify-center gap-2 rounded-xl text-sm font-medium ${totalIssues === 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+          {totalIssues === 0 ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+          {totalIssues === 0 ? 'All clear' : `${totalIssues} issues`}
+        </div>
       </div>
 
-      <SystemTabs>
-        {{
-          health: (
-            <div>
       <SystemHealthChecks />
 
-      {/* Hosting subscriptions without a site */}
       <DiagCard
         icon={<Server className="w-4 h-4" />}
         title="Active Hosting Subscriptions — No Site"
@@ -118,10 +179,6 @@ export default async function DiagnosticsPage() {
         ))}
       </DiagCard>
 
-      {/* "Domain subscriptions without a record" is not a real drift
-          surface — domain renewals are not Stripe subs. */}
-
-      {/* Stuck provisioning */}
       <DiagCard
         icon={<Server className="w-4 h-4" />}
         title="Stuck Provisioning (> 1 hour)"
@@ -133,7 +190,6 @@ export default async function DiagnosticsPage() {
         ))}
       </DiagCard>
 
-      {/* Failed sites */}
       <DiagCard
         icon={<Server className="w-4 h-4" />}
         title="Failed Sites"
@@ -145,10 +201,8 @@ export default async function DiagnosticsPage() {
         ))}
       </DiagCard>
 
-      {/* Stripe products not linked to a DB product */}
       <UnlinkedStripeProducts />
 
-      {/* Problem domains */}
       <DiagCard
         icon={<Globe className="w-4 h-4" />}
         title="Pending / Failed Domains"
@@ -163,45 +217,39 @@ export default async function DiagnosticsPage() {
           />
         ))}
       </DiagCard>
-
-
-            </div>
-          ),
-
-          lifecycle: <LifecycleReference />,
-
-          logs: (
-            <div className="card overflow-hidden">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b border-gray-100 text-left">
-                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
-                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
-                  <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                </tr></thead>
-                <tbody className="divide-y divide-gray-100">
-                  {(logs ?? []).map((log: any) => (
-                    <tr key={log.id} className="hover:bg-gray-50">
-                      <td className="px-5 py-2.5 text-xs font-mono text-gray-700">{log.action}</td>
-                      <td className="px-5 py-2.5 text-xs text-gray-500 max-w-[300px] truncate">{log.details ?? '—'}</td>
-                      <td className="px-5 py-2.5"><span className={levelBadge[log.level] ?? 'badge-gray'}>{log.level}</span></td>
-                      <td className="px-5 py-2.5 text-xs text-gray-400">{formatDateTime(log.created_at)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ),
-
-          emails: <AdminEmailsPage />,
-
-          promotions: <CouponManager />,
-        }}
-      </SystemTabs>
     </div>
   );
 }
 
+// ── Logs: admin logs ────────────────────────────────────────────────────
+async function LogsTab() {
+  const logs = await getAdminLogs({}, 50);
+  const levelBadge: Record<string, string> = { info: 'badge-blue', warn: 'badge-yellow', error: 'badge-red', debug: 'badge-gray' };
+  return (
+    <div className="card overflow-hidden">
+      <table className="w-full text-sm">
+        <thead><tr className="border-b border-gray-100 text-left">
+          <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+          <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+          <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
+          <th className="px-5 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+        </tr></thead>
+        <tbody className="divide-y divide-gray-100">
+          {(logs ?? []).map((log: any) => (
+            <tr key={log.id} className="hover:bg-gray-50">
+              <td className="px-5 py-2.5 text-xs font-mono text-gray-700">{log.action}</td>
+              <td className="px-5 py-2.5 text-xs text-gray-500 max-w-[300px] truncate">{log.details ?? '—'}</td>
+              <td className="px-5 py-2.5"><span className={levelBadge[log.level] ?? 'badge-gray'}>{log.level}</span></td>
+              <td className="px-5 py-2.5 text-xs text-gray-400">{formatDateTime(log.created_at)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── shared triage card helpers ──────────────────────────────────────────
 function DiagCard({ icon, title, count, description, severity = 'normal', children }: {
   icon: React.ReactNode; title: string; count: number; description: string; severity?: 'normal' | 'low'; children: React.ReactNode;
 }) {

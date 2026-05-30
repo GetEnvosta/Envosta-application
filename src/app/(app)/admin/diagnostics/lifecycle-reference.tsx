@@ -111,8 +111,8 @@ export function LifecycleReference() {
 
         <ul className="space-y-3">
           <ActionRow icon={Flag} label="Cleanup queue" path="/admin/services?view=cleanup" detail="View paused + flagged sites. Flag for deletion, unflag, or confirm delete." />
-          <ActionRow icon={CreditCard} label="Stripe products + prices" path="/admin/diagnostics → Stripe tab" detail="Set USD/CAD prices for monthly + yearly. Save triggers sync; 4 Stripe prices land under one product." />
-          <ActionRow icon={Mail} label="Test any email" path="/admin/diagnostics → Emails tab" detail="Preview + send any template to your own inbox." />
+          <ActionRow icon={CreditCard} label="Plan products + prices" path="/admin/settings → Hosting Plans" detail="Set USD/CAD prices for monthly + yearly. Save triggers sync; 4 Stripe prices land under one product." />
+          <ActionRow icon={Mail} label="Test any email" path="/admin/settings → Emails" detail="Preview + send any template to your own inbox." />
           <ActionRow icon={RotateCcw} label="Restore a flagged site" path="/admin/services?view=cleanup → Unflag" detail="Pulls site back to paused so customer can restart subscription." />
         </ul>
       </section>
