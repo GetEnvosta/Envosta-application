@@ -169,7 +169,7 @@ export default function CareersPage() {
 .careers-hero{padding:160px 0 80px;text-align:center;position:relative;overflow:hidden}
 .careers-hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 65%);pointer-events:none}
 .careers-hero .c{position:relative;z-index:1}
-.careers-hero h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:600;letter-spacing:-1.5px;line-height:1.12;margin-bottom:20px}
+.careers-hero h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:600;letter-spacing:-2px;line-height:1.12;margin-bottom:20px}
 .careers-hero p{font-size:1.05rem;color:var(--t2);max-width:560px;margin:0 auto;line-height:1.8;font-weight:300}
 
 /* ═══ PROCESS ═══ */

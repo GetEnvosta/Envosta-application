@@ -92,7 +92,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     <>
       <style>{`
 /* ── Post Hero ── */
-.post-hero{padding:140px 0 0;position:relative;overflow:hidden}
+.post-hero{padding:160px 0 0;position:relative;overflow:hidden}
 .post-hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 65%);pointer-events:none}
 .post-hero .c{position:relative;z-index:1}
 .post-hero-inner{max-width:780px;margin:0 auto;text-align:center}
@@ -101,7 +101,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 .post-breadcrumb a:hover{color:var(--t1)}
 .post-breadcrumb .sep{opacity:.5}
 .post-hero-cat{display:inline-block;padding:5px 16px;background:var(--gold);color:#fff;font-size:.68rem;font-weight:600;border-radius:100px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:20px}
-.post-hero h1{font-size:clamp(2rem,4.5vw,3.2rem);font-weight:500;letter-spacing:-1.5px;line-height:1.12;margin-bottom:20px;color:var(--t1)}
+.post-hero h1{font-size:clamp(2.2rem,4.5vw,3.4rem);font-weight:600;letter-spacing:-2px;line-height:1.12;margin-bottom:20px;color:var(--t1)}
 .post-hero-excerpt{font-size:1.05rem;color:var(--t2);max-width:600px;margin:0 auto 28px;line-height:1.75;font-weight:300}
 
 /* ── Author & Meta Row ── */

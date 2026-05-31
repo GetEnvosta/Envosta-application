@@ -61,32 +61,32 @@ export default function MethodPage() {
         .method-step{background:var(--card);border:1px solid var(--bdr);border-radius:24px;overflow:hidden;transition:all .3s;display:grid;grid-template-columns:100px 1fr;align-items:stretch;counter-increment:step}
         .method-step:hover{border-color:var(--bdr2);transform:translateY(-3px)}
         .method-step:nth-child(1){background:linear-gradient(135deg,rgba(37,99,235,.06),var(--card));border-color:rgba(37,99,235,.12)}
-        .method-step:nth-child(2){background:linear-gradient(135deg,rgba(52,211,153,.04),var(--card));border-color:rgba(52,211,153,.1)}
-        .method-step:nth-child(3){background:linear-gradient(135deg,rgba(159,122,234,.04),var(--card));border-color:rgba(159,122,234,.1)}
-        .method-step:nth-child(4){background:linear-gradient(135deg,rgba(99,179,237,.04),var(--card));border-color:rgba(99,179,237,.1)}
-        .method-step:nth-child(5){background:linear-gradient(135deg,rgba(252,176,69,.04),var(--card));border-color:rgba(252,176,69,.1)}
-        .method-step:nth-child(6){background:linear-gradient(135deg,rgba(252,129,129,.04),var(--card));border-color:rgba(252,129,129,.1)}
-        .method-step:nth-child(7){background:linear-gradient(135deg,rgba(56,178,172,.04),var(--card));border-color:rgba(56,178,172,.1)}
+        .method-step:nth-child(2){background:linear-gradient(135deg,rgba(59,130,246,.05),var(--card));border-color:rgba(59,130,246,.1)}
+        .method-step:nth-child(3){background:linear-gradient(135deg,rgba(96,165,250,.05),var(--card));border-color:rgba(96,165,250,.1)}
+        .method-step:nth-child(4){background:linear-gradient(135deg,rgba(139,92,246,.05),var(--card));border-color:rgba(139,92,246,.1)}
+        .method-step:nth-child(5){background:linear-gradient(135deg,rgba(167,139,250,.05),var(--card));border-color:rgba(167,139,250,.1)}
+        .method-step:nth-child(6){background:linear-gradient(135deg,rgba(34,197,94,.05),var(--card));border-color:rgba(34,197,94,.1)}
+        .method-step:nth-child(7){background:linear-gradient(135deg,rgba(52,211,153,.05),var(--card));border-color:rgba(52,211,153,.1)}
         .step-letter{display:flex;align-items:center;justify-content:center;border-right:1px solid var(--bdr);position:relative}
         .step-letter span{font-family:'Inter',sans-serif;font-size:2.4rem;font-weight:700;opacity:.15}
         .method-step:nth-child(1) .step-letter span{color:#2563EB}
-        .method-step:nth-child(2) .step-letter span{color:#34d399}
-        .method-step:nth-child(3) .step-letter span{color:#9f7aea}
-        .method-step:nth-child(4) .step-letter span{color:#63b3ed}
-        .method-step:nth-child(5) .step-letter span{color:#fcb045}
-        .method-step:nth-child(6) .step-letter span{color:#fc8181}
-        .method-step:nth-child(7) .step-letter span{color:#38b2ac}
+        .method-step:nth-child(2) .step-letter span{color:#3b82f6}
+        .method-step:nth-child(3) .step-letter span{color:#60a5fa}
+        .method-step:nth-child(4) .step-letter span{color:#8b5cf6}
+        .method-step:nth-child(5) .step-letter span{color:#a78bfa}
+        .method-step:nth-child(6) .step-letter span{color:#22c55e}
+        .method-step:nth-child(7) .step-letter span{color:#34d399}
         .step-body{padding:32px 36px}
         .step-body h3{font-size:1.15rem;font-weight:500;margin-bottom:8px;color:var(--t1);line-height:1.3}
         .step-body p{font-size:.88rem;color:var(--t2);line-height:1.7;font-weight:300}
         .step-tag{display:inline-block;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;border-radius:100px;padding:3px 10px}
         .method-step:nth-child(1) .step-tag{background:rgba(37,99,235,.1);color:#5B9AF6}
-        .method-step:nth-child(2) .step-tag{background:rgba(52,211,153,.1);color:#34d399}
-        .method-step:nth-child(3) .step-tag{background:rgba(159,122,234,.1);color:#9f7aea}
-        .method-step:nth-child(4) .step-tag{background:rgba(99,179,237,.1);color:#63b3ed}
-        .method-step:nth-child(5) .step-tag{background:rgba(252,176,69,.1);color:#fcb045}
-        .method-step:nth-child(6) .step-tag{background:rgba(252,129,129,.1);color:#fc8181}
-        .method-step:nth-child(7) .step-tag{background:rgba(56,178,172,.1);color:#38b2ac}
+        .method-step:nth-child(2) .step-tag{background:rgba(59,130,246,.1);color:#60a5fa}
+        .method-step:nth-child(3) .step-tag{background:rgba(96,165,250,.12);color:#93c5fd}
+        .method-step:nth-child(4) .step-tag{background:rgba(139,92,246,.1);color:#a78bfa}
+        .method-step:nth-child(5) .step-tag{background:rgba(167,139,250,.12);color:#c4b5fd}
+        .method-step:nth-child(6) .step-tag{background:rgba(34,197,94,.1);color:#4ade80}
+        .method-step:nth-child(7) .step-tag{background:rgba(52,211,153,.12);color:#6ee7b7}
 
         /* ── Why section ── */
         .why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
@@ -94,17 +94,17 @@ export default function MethodPage() {
         .why-card:hover{border-color:var(--bdr2);transform:translateY(-3px)}
         .why-card:nth-child(1){background:linear-gradient(135deg,rgba(52,211,153,.06),var(--card));border-color:rgba(52,211,153,.12)}
         .why-card:nth-child(2){background:linear-gradient(135deg,rgba(37,99,235,.06),var(--card));border-color:rgba(37,99,235,.12)}
-        .why-card:nth-child(3){background:linear-gradient(135deg,rgba(252,176,69,.06),var(--card));border-color:rgba(252,176,69,.12)}
+        .why-card:nth-child(3){background:linear-gradient(135deg,rgba(139,92,246,.06),var(--card));border-color:rgba(139,92,246,.12)}
         .why-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:18px}
         .why-card:nth-child(1) .why-icon{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.2)}
         .why-card:nth-child(2) .why-icon{background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.2)}
-        .why-card:nth-child(3) .why-icon{background:rgba(252,176,69,.12);border:1px solid rgba(252,176,69,.2)}
+        .why-card:nth-child(3) .why-icon{background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.2)}
         .why-card h4{font-size:1rem;font-weight:500;margin-bottom:8px;color:var(--t1)}
         .why-card p{font-size:.82rem;color:var(--t3);line-height:1.7;font-weight:300}
 
         /* ── CTA ── */
         .cta-section{padding:100px 0;text-align:center}
-        .cta-section h2{font-family:'Inter',sans-serif;font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:500;letter-spacing:-.8px;line-height:1.15;margin-bottom:16px}
+        .cta-section h2{font-family:'Inter',sans-serif;font-size:clamp(2rem,4vw,3rem);font-weight:600;letter-spacing:-1.2px;line-height:1.15;margin-bottom:16px}
         .cta-section p{color:var(--t2);font-size:.95rem;max-width:520px;margin:0 auto 32px;font-weight:300;line-height:1.7}
         .cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 
@@ -123,12 +123,12 @@ export default function MethodPage() {
       `}</style>
 
       {/* ZONE A - The 7 Steps */}
-      <div className="zone-a" style={{ marginTop: 0, borderRadius: 0, paddingTop: '140px' }}>
+      <div className="zone-a" style={{ marginTop: 0, borderRadius: 0, paddingTop: '160px' }}>
         <section style={{ padding: '0 0 80px' }}>
           <div className="c">
             <div className="sh sh-center rv">
               <span className="sh-tag">Our Signature Framework</span>
-              <h1 style={{ fontSize: 'clamp(2.4rem,5.5vw,3.6rem)', fontWeight: 600, letterSpacing: '-1.5px', lineHeight: 1.08, marginBottom: '16px' }}>
+              <h1 style={{ fontSize: 'clamp(2.4rem,5vw,3.8rem)', fontWeight: 600, letterSpacing: '-2px', lineHeight: 1.08, marginBottom: '16px' }}>
                 The{' '}
                 <span className="envosta">
                   <span>E</span>

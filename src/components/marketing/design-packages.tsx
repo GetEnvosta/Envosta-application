@@ -105,12 +105,12 @@ export function DesignPackages() {
         .design-packages{padding:0 0 100px}
         .design-packages-header{text-align:center;margin-bottom:56px}
         .dp-eyebrow{display:inline-flex;align-items:center;gap:7px;border-radius:100px;padding:5px 12px;font-size:.66rem;font-weight:500;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:20px;align-self:flex-start;border:1px solid transparent}
-        .dp-eyebrow-gold{background:rgba(201,164,92,.08);border-color:rgba(201,164,92,.22);color:#c9a45c}
-        .dp-eyebrow-gold .dp-eyebrow-dot{background:#c9a45c;animation:dpPulseGold 2s ease-in-out infinite}
+        .dp-eyebrow-blue{background:rgba(37,99,235,.08);border-color:rgba(37,99,235,.22);color:#3B82F6}
+        .dp-eyebrow-blue .dp-eyebrow-dot{background:#3B82F6;animation:dpPulseBlue 2s ease-in-out infinite}
         .dp-eyebrow-green{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.22);color:#22c55e}
         .dp-eyebrow-green .dp-eyebrow-dot{background:#22c55e;animation:dpPulseGreen 2s ease-in-out infinite}
         .dp-eyebrow-dot{width:5px;height:5px;border-radius:50%}
-        @keyframes dpPulseGold{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(201,164,92,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(201,164,92,0)}}
+        @keyframes dpPulseBlue{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(37,99,235,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(37,99,235,0)}}
         @keyframes dpPulseGreen{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(34,197,94,0)}}
         .design-packages-header h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:600;letter-spacing:-1px;line-height:1.15;margin-bottom:14px}
         .design-packages-header p{font-size:.95rem;color:var(--t3);font-weight:300;max-width:580px;margin:0 auto;line-height:1.7}
@@ -169,7 +169,7 @@ export function DesignPackages() {
                     aligns to the same vertical position across the two tiers,
                     even though the eyebrow content differs. */}
                 {pkg.id === 'premium' ? (
-                  <div className="dp-eyebrow dp-eyebrow-gold" aria-label="By application only">
+                  <div className="dp-eyebrow dp-eyebrow-blue" aria-label="By application only">
                     <span className="dp-eyebrow-dot" />
                     By application · Limited quarterly intake
                   </div>
@@ -183,7 +183,7 @@ export function DesignPackages() {
                   <h3 className="dp-name">{pkg.name}</h3>
                   <div className="dp-price">
                     {pkg.price}
-                    <span className="dp-price-period">CAD · one-time</span>
+                    <span className="dp-price-period">USD · one-time</span>
                   </div>
                 </div>
                 <p className="dp-blurb">{pkg.blurb}</p>

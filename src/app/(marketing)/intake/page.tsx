@@ -215,7 +215,7 @@ export default function IntakePage() {
       <style>{`
         .sh{text-align:left;margin-bottom:56px}
         .sh-tag{display:inline-block;font-size:.72rem;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:var(--gold);margin-bottom:10px}
-        .sh h2{font-family:'Inter',sans-serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:500;letter-spacing:-1px;line-height:1.1;color:var(--t1)}
+        .sh h2{font-family:'Inter',sans-serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:600;letter-spacing:-1px;line-height:1.1;color:var(--t1)}
         .sh-desc{font-size:.95rem;color:var(--t2);line-height:1.75;font-weight:300;margin-top:16px;max-width:560px}
         .rv{opacity:0;transform:translateY(20px);transition:opacity .6s,transform .6s}.rv.v{opacity:1;transform:none}
 
@@ -267,7 +267,7 @@ export default function IntakePage() {
         .error-msg{grid-column:1/-1;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px 18px;font-size:.88rem;color:#f87171;font-weight:400}
 
         .section-divider{
-          grid-column:1/-1;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;
+          grid-column:1/-1;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:3px;
           color:var(--gold);padding:16px 0 4px;border-top:1px solid var(--bdr);margin-top:8px
         }
 
@@ -302,10 +302,10 @@ export default function IntakePage() {
         .billing-save{font-size:.68rem;font-weight:600;color:#22c55e;background:rgba(34,197,94,.12);padding:2px 10px;border-radius:100px}
 
         .design-note{
-          grid-column:1/-1;background:rgba(201,164,92,.06);border:1px solid rgba(201,164,92,.15);
+          grid-column:1/-1;background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.15);
           border-radius:14px;padding:20px 24px;display:flex;gap:14px;align-items:flex-start
         }
-        .design-note-icon{flex-shrink:0;width:36px;height:36px;border-radius:10px;background:rgba(201,164,92,.12);display:flex;align-items:center;justify-content:center;color:#c9a45c;font-size:18px}
+        .design-note-icon{flex-shrink:0;width:36px;height:36px;border-radius:10px;background:rgba(37,99,235,.12);display:flex;align-items:center;justify-content:center;color:#3B82F6;font-size:18px}
         .design-note h4{font-size:.86rem;font-weight:500;color:var(--t1);margin-bottom:4px}
         .design-note p{font-size:.78rem;color:var(--t2);line-height:1.6;font-weight:300}
 

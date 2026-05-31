@@ -169,7 +169,7 @@ export default async function PricingPage() {
         .pricing-hero{padding:160px 0 80px;text-align:center;position:relative;overflow:hidden}
         .pricing-hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 65%);pointer-events:none}
         .pricing-hero .c{position:relative;z-index:1}
-        .pricing-hero h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:600;letter-spacing:-1.5px;line-height:1.12;margin-bottom:20px}
+        .pricing-hero h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:600;letter-spacing:-2px;line-height:1.12;margin-bottom:20px}
         .pricing-hero h1 em{font-style:normal;color:#fff;font-weight:500}
         .pricing-hero p{font-size:1.05rem;color:var(--t3);max-width:520px;margin:0 auto 44px;line-height:1.7;font-weight:300}
         .toggle-wrap{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:10px}
@@ -259,7 +259,7 @@ export default async function PricingPage() {
         .compare-toggle summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:10px;padding:12px 22px;border:1px solid var(--bdr);border-radius:100px;background:var(--card);color:var(--t1);font-size:.86rem;font-weight:500;transition:border-color .2s,background .2s,color .2s;user-select:none}
         .compare-toggle summary::-webkit-details-marker{display:none}
         .compare-toggle summary:hover{border-color:var(--gold);color:var(--gold)}
-        .compare-toggle[open] summary{border-color:var(--gold);color:var(--gold);background:rgba(201,164,92,.04)}
+        .compare-toggle[open] summary{border-color:var(--gold);color:var(--gold);background:rgba(37,99,235,.04)}
         .compare-toggle .ct-arrow{display:inline-block;transition:transform .25s ease;width:14px;height:14px}
         .compare-toggle[open] .ct-arrow{transform:rotate(180deg)}
         .compare-toggle-wrap{display:flex;justify-content:center}

@@ -78,10 +78,10 @@ export default async function BlogPage({ searchParams }: { searchParams: Promise
   return (
     <>
       <style>{`
-.blog-hero{padding:160px 0 48px;text-align:center;position:relative;overflow:hidden}
+.blog-hero{padding:160px 0 80px;text-align:center;position:relative;overflow:hidden}
 .blog-hero::before{content:'';position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(37,99,235,.1),transparent 65%);pointer-events:none}
 .blog-hero .c{position:relative;z-index:1}
-.blog-hero h1{font-size:clamp(2.4rem,5vw,3.6rem);font-weight:600;letter-spacing:-2px;line-height:1.08;margin-bottom:16px;background:linear-gradient(180deg,#fff 30%,rgba(255,255,255,.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.blog-hero h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:600;letter-spacing:-2px;line-height:1.08;margin-bottom:16px;background:linear-gradient(180deg,#fff 30%,rgba(255,255,255,.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .blog-hero p{font-size:1rem;color:var(--t2);max-width:480px;margin:0 auto;line-height:1.75;font-weight:300}
 
 .cat-tabs{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;padding:0 0 48px}
