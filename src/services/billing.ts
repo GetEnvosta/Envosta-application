@@ -12,6 +12,7 @@
  * service is read-only.
  */
 import { createClient } from '@/lib/supabase-server';
+import { stripeAdmin } from '@/lib/stripe-admin';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -64,8 +65,7 @@ export async function getAccountSubscription(userId: string): Promise<any | null
   const customerId = await getStripeCustomerId(userId);
   if (!customerId) return null;
 
-  const supabase = await createClient();
-  const { data, error } = await (supabase.schema('stripe' as any) as any)
+  const { data, error } = await stripeAdmin()
     .from('subscriptions')
     .select('*')
     .eq('customer', customerId)
@@ -94,7 +94,7 @@ export async function getAccountSubscriptionWithProduct(userId: string): Promise
   const supabase = await createClient();
 
   // Find the first subscription_item's price.
-  const { data: items } = await (supabase.schema('stripe' as any) as any)
+  const { data: items } = await stripeAdmin()
     .from('subscription_items')
     .select('id, price')
     .eq('subscription', sub.id)
@@ -134,8 +134,7 @@ export async function getAccountSubscriptionWithProduct(userId: string): Promise
  * checkouts). Used on the dashboard.
  */
 export async function getAbandonedCheckoutCount(): Promise<number> {
-  const supabase = await createClient();
-  const { count } = await (supabase.schema('stripe' as any) as any)
+  const { count } = await stripeAdmin()
     .from('subscriptions')
     .select('id', { count: 'exact', head: true })
     .eq('status', 'incomplete');
@@ -148,7 +147,7 @@ export async function getAbandonedCheckoutCount(): Promise<number> {
  */
 export async function getAbandonedCheckouts(limit = 20) {
   const supabase = await createClient();
-  const { data } = await (supabase.schema('stripe' as any) as any)
+  const { data } = await stripeAdmin()
     .from('subscriptions')
     .select('id, customer, status, created, metadata')
     .eq('status', 'incomplete')
@@ -182,7 +181,7 @@ export async function getAbandonedCheckouts(limit = 20) {
  */
 export async function getAllSubscriptionsAdmin(limit = 200) {
   const supabase = await createClient();
-  const stripeSchema: any = supabase.schema('stripe' as any);
+  const stripeSchema: any = stripeAdmin();
 
   const { data } = await stripeSchema
     .from('subscriptions')
@@ -301,8 +300,7 @@ export async function getAccountInvoices(userId: string, limit = 20) {
   const customerId = await getStripeCustomerId(userId);
   if (!customerId) return [];
 
-  const supabase = await createClient();
-  const { data } = await (supabase.schema('stripe' as any) as any)
+  const { data } = await stripeAdmin()
     .from('invoices')
     .select('id, customer, subscription, status, paid, amount_paid, amount_due, currency, hosted_invoice_url, invoice_pdf, number, description, created, period_start, period_end, metadata')
     .eq('customer', customerId)
@@ -322,7 +320,7 @@ export async function getAccountInvoices(userId: string, limit = 20) {
  */
 export async function getAdminRecentInvoices(limit = 30) {
   const supabase = await createClient();
-  const { data } = await (supabase.schema('stripe' as any) as any)
+  const { data } = await stripeAdmin()
     .from('invoices')
     .select('id, customer, subscription, status, paid, amount_paid, amount_due, currency, hosted_invoice_url, invoice_pdf, number, description, created, metadata')
     .order('created', { ascending: false })
@@ -349,8 +347,7 @@ export async function getAdminRecentInvoices(limit = 30) {
  * Admin: paid + outstanding invoice counts (for dashboard cards).
  */
 export async function getAdminBillingStats() {
-  const supabase = await createClient();
-  const stripeSchema: any = supabase.schema('stripe' as any);
+  const stripeSchema: any = stripeAdmin();
   const [
     { count: paidInvoicesCount },
     { count: outstandingInvoicesCount },
@@ -374,8 +371,7 @@ export async function getAccountPaymentMethods(userId: string) {
   const customerId = await getStripeCustomerId(userId);
   if (!customerId) return [];
 
-  const supabase = await createClient();
-  const { data } = await (supabase.schema('stripe' as any) as any)
+  const { data } = await stripeAdmin()
     .from('payment_methods')
     .select('*')
     .eq('customer', customerId)
@@ -393,8 +389,7 @@ export async function getDefaultPaymentMethod(userId: string): Promise<any | nul
   const customerId = await getStripeCustomerId(userId);
   if (!customerId) return null;
 
-  const supabase = await createClient();
-  const stripeSchema: any = supabase.schema('stripe' as any);
+  const stripeSchema: any = stripeAdmin();
 
   // Try the flag first (Sync Engine recent versions).
   const { data: flagged } = await stripeSchema

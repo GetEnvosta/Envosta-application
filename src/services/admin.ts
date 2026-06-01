@@ -10,6 +10,7 @@
  * via `getAccountInvoices(userId)`.
  */
 import { createClient } from '@/lib/supabase-server';
+import { stripeAdmin } from '@/lib/stripe-admin';
 import { sanitizeSearchQuery } from '@/lib/sanitize';
 import {
   getAccountSubscriptionWithProduct,
@@ -118,7 +119,7 @@ export async function getAllCustomers(search?: string) {
     .filter((cid: any): cid is string => typeof cid === 'string' && cid.length > 0);
   let subStatusByCustomer = new Map<string, string>();
   if (customerIds.length > 0) {
-    const stripeSchema: any = (supabase as any).schema('stripe' as any);
+    const stripeSchema: any = stripeAdmin();
     const { data: subs } = await stripeSchema
       .from('subscriptions')
       .select('customer, status, created')

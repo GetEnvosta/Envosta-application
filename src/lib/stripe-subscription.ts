@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { stripeAdmin } from '@/lib/stripe-admin';
 
 /**
  * Shared helpers for the single-subscription-per-customer model.
@@ -45,8 +46,9 @@ export async function findHostingSubscription(
   if (!customerId) return null;
 
   // Pull alive subs from the Sync-Engine-mirrored stripe.subscriptions.
-  const { data: subs } = await supabase
-    .schema('stripe')
+  // Service-role (stripeAdmin) so this keeps working once RLS is on stripe.* —
+  // we already filtered to this user's customerId above.
+  const { data: subs } = await stripeAdmin()
     .from('subscriptions')
     .select('id, status, metadata')
     .eq('customer', customerId)

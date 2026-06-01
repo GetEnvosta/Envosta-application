@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase-server';
+import { stripeAdmin } from '@/lib/stripe-admin';
 import { sanitizeSearchQuery } from '@/lib/sanitize';
 
 /**
@@ -141,7 +142,7 @@ export async function getAllServices(filters?: { q?: string; status?: string; qu
 
   if (customerIds.length === 0) return sites;
 
-  const stripeSchema: any = (supabase as any).schema('stripe' as any);
+  const stripeSchema: any = stripeAdmin();
   const { data: subs } = await stripeSchema
     .from('subscriptions')
     .select('id, customer, status, created')
