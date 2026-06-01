@@ -33,7 +33,7 @@ export function GetStartedFlow() {
   // Trial only when no plan param at all (generic "Get Started" clicks)
   const isTrial = !planParam;
   // Don't pre-select a plan if they need to choose
-  const effectivePlan = needsPlanChoice ? undefined : (planParam ?? 'minimum');
+  const effectivePlan = needsPlanChoice ? undefined : planParam;
 
   if (checking) return <div style={{ minHeight: '100vh' }} />;
 
@@ -47,7 +47,7 @@ export function GetStartedFlow() {
                 Start your free trial
               </h1>
               <p style={{ fontSize: '.95rem', color: 'rgba(255,255,255,.45)', fontWeight: 300, maxWidth: 420, margin: '0 auto 16px' }}>
-                14 days free on the Minimum plan. We&apos;ll set up a temporary domain for you instantly.
+                14 days free on any plan you pick. We&apos;ll set up a temporary domain for you instantly.
               </p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
                 {['Free for 14 days', 'Instant setup', 'Cancel anytime'].map(text => (

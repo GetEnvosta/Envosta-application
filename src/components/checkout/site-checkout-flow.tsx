@@ -85,7 +85,7 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   // Public signup: Account only (if plan pre-selected) or Account → Plan
   // Every public signup auto-provisions a temp domain — no domain step
   // Dashboard: Plan → Domain (dashboard users can still pick domains)
-  const needsPlanStep = !isTrial && !initialPlan;
+  const needsPlanStep = !initialPlan;
   const publicSteps = needsPlanStep ? ['Account', 'Plan'] : ['Account'];
   const dashboardSteps = ['Plan', 'Domain'];
   const steps = mode === 'public' ? publicSteps : dashboardSteps;
@@ -392,11 +392,11 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
                     // Always auto-provision with temp domain
                     setDomainMode('temp');
                     setSelectedDomain('');
-                    if (isTrial || selectedPlan) {
-                      // Trial or plan pre-selected: go straight to checkout
+                    if (selectedPlan) {
+                      // Plan pre-selected (e.g. ?plan=growth): straight to checkout
                       handleCheckout();
                     } else {
-                      // No plan selected: go to plan picker
+                      // No plan picked yet (incl. generic trial): show the plan picker
                       setStep(planStepNum);
                     }
                   }}
