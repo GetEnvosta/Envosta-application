@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle, Pause, Flag, Trash2, RotateCcw, Mail, Lock, Server, AlertTriangle, CreditCard } from 'lucide-react';
+import { ArrowRight, CheckCircle, Pause, Flag, Trash2, RotateCcw, Mail, Lock, Server, AlertTriangle, CreditCard, Globe, RefreshCw, Clock, Shield } from 'lucide-react';
 
 /**
  * Reference panel that documents how the billing/site lifecycle, dunning,
@@ -104,6 +104,64 @@ export function LifecycleReference() {
         </ul>
       </section>
 
+      {/* ── Domain lifecycle states ──────────────────────── */}
+      <section className="card p-6">
+        <h2 className="text-sm font-semibold text-gray-900 mb-1">Domain lifecycle states</h2>
+        <p className="text-xs text-gray-500 mb-5">Domains live at OpenSRS; the <code className="text-[11px] font-mono">domains</code> row mirrors their state. Fully independent of hosting — a customer can hold many in parallel.</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StateCard color="blue" icon={Clock} title="pending" desc="Checkout cleared; the OpenSRS SW_REGISTER call is in flight. Flips to registered or failed." />
+          <StateCard color="emerald" icon={Globe} title="registered" desc="Live at OpenSRS, expiry_date set. The only state the renewal cron acts on." />
+          <StateCard color="red" icon={AlertTriangle} title="failed" desc="OpenSRS registration didn't complete. Surfaces under Health → Overview → Problem Domains; admin can retry." />
+        </div>
+        <p className="text-xs text-gray-400 mt-4">There is no separate <code className="text-[11px] font-mono">expired</code> status — expiry is handled by the renewal cron + the <code className="text-[11px] font-mono">auto_renew</code> flag, not a status flip.</p>
+      </section>
+
+      {/* ── Domain transitions ───────────────────────────── */}
+      <section className="card p-6">
+        <h2 className="text-sm font-semibold text-gray-900 mb-1">Domain transitions</h2>
+        <p className="text-xs text-gray-500 mb-5">How a domain moves between states.</p>
+
+        <div className="space-y-3">
+          <FlowRow from="(checkout)" to="pending" trigger="Stripe payment for a domain clears" detail="Webhook → /api/internal/opensrs/register-domain inserts the domains row as pending and calls OpenSRS SW_REGISTER." />
+          <FlowRow from="pending" to="registered" trigger="OpenSRS registration succeeds" detail="expiry_date computed, opensrs_domains mirror upserted, Domain Registered email sent." />
+          <FlowRow from="pending" to="failed" trigger="OpenSRS returns an error" detail="Error stored in metadata; appears in Health → Problem Domains." />
+          <FlowRow from="failed" to="registered" trigger="Admin retries registration" detail="Re-runs SW_REGISTER for the same domain (domain-retry-register)." />
+          <FlowRow from="registered" to="registered" trigger="Yearly renewal (cron)" detail="On a successful charge + OpenSRS renew, expiry_date is pushed out a year. Status doesn't change." />
+        </div>
+      </section>
+
+      {/* ── Domain renewals ──────────────────────────────── */}
+      <section className="card p-6">
+        <h2 className="text-sm font-semibold text-gray-900 mb-1">Domain renewals</h2>
+        <p className="text-xs text-gray-500 mb-5">Envosta drives renewals — <strong>not</strong> OpenSRS auto-renew. Registration deliberately sets the OpenSRS side to <code className="text-[11px] font-mono">auto_renew=0 / let_expire=1</code> so the daily cron is the single source of truth.</p>
+
+        <ol className="space-y-3">
+          <TimelineRow num={1} label="Daily sweep — process-domain-renewals (09:00 UTC)" detail="Pulls domains where status=registered, auto_renew=true, and expiry_date is within the renewal window (DOMAIN_RENEWAL_WINDOW_DAYS, default 7)." />
+          <TimelineRow num={2} label="Charge off-session" detail="A durable Vercel Workflow (renewDomain) charges the customer's saved card via Stripe (off-session PaymentIntent), idempotency-pinned per UTC day so a double-fire can't double-charge." />
+          <TimelineRow num={3} label="Renew at OpenSRS" detail="On a successful charge it calls OpenSRS renew, pushes expiry_date out a year, and updates the opensrs_domains mirror." />
+          <TimelineRow num={4} label="Outcomes" detail="renewed · charge_failed · opensrs_failed · skipped. Failures back off (RETRY_BACKOFF_HOURS) and retry next sweep; an in-progress flag guards against double-charge." />
+          <TimelineRow num={5} label="Expiry warnings" detail="The daily health-check cron emails the customer a Domain Expiry Warning at 30 / 14 / 7 / 1 days out." />
+        </ol>
+
+        <div className="mt-5 p-4 rounded-lg bg-blue-50 border border-blue-100">
+          <p className="text-xs text-blue-900"><strong>auto_renew is a customer toggle</strong> on <code className="text-[11px] font-mono">domains.auto_renew</code> — purely the cron filter. Turn it off and the domain simply isn't swept (it lapses at expiry). The OpenSRS-side flag stays off regardless.</p>
+        </div>
+      </section>
+
+      {/* ── Domain rules ─────────────────────────────────── */}
+      <section className="card p-6">
+        <h2 className="text-sm font-semibold text-gray-900 mb-1">Domain management rules</h2>
+        <p className="text-xs text-gray-500 mb-5">Per-domain controls and where their state lives.</p>
+
+        <ul className="space-y-3 text-sm text-gray-700">
+          <RuleRow icon={RefreshCw} title="Renewals are one-time charges, not subscriptions" detail="Unlike hosting, domains aren't Stripe subscriptions. The cron fires an annual off-session PaymentIntent per domain." />
+          <RuleRow icon={Shield} title="WHOIS privacy + transfer lock" detail="Toggled from the domain's Settings tab → /api/internal/opensrs (set_whois_privacy, set_registrar_lock), then mirrored to opensrs_domains." />
+          <RuleRow icon={Server} title="DNS is customer-managed; OpenSRS is source of truth" detail="opensrs_dns_records mirrors the zone; the reconcile-opensrs cron pulls upstream changes back in." />
+          <RuleRow icon={Lock} title="Transfer-out goes through support" detail="The EPP / auth code is never surfaced in the UI (it's the transfer secret). Customers request it via support." />
+        </ul>
+      </section>
+
       {/* ── Admin actions ────────────────────────────────── */}
       <section className="card p-6">
         <h2 className="text-sm font-semibold text-gray-900 mb-1">Admin actions</h2>
@@ -114,6 +172,8 @@ export function LifecycleReference() {
           <ActionRow icon={CreditCard} label="Plan products + prices" path="/admin/settings → Hosting Plans" detail="Set USD/CAD prices for monthly + yearly. Save triggers sync; 4 Stripe prices land under one product." />
           <ActionRow icon={Mail} label="Test any email" path="/admin/settings → Emails" detail="Preview + send any template to your own inbox." />
           <ActionRow icon={RotateCcw} label="Restore a flagged site" path="/admin/services?view=cleanup → Unflag" detail="Pulls site back to paused so customer can restart subscription." />
+          <ActionRow icon={RefreshCw} label="Retry a failed domain" path="/admin/domains → failed domain → Retry" detail="Re-runs the OpenSRS registration for a domain stuck in failed." />
+          <ActionRow icon={Globe} label="Domain / TLD pricing" path="/admin/settings → Domain TLDs" detail="Per-TLD register/renew prices (CAD + USD). The OpenSRS price-check button applies cost + 25%." />
         </ul>
       </section>
     </div>
