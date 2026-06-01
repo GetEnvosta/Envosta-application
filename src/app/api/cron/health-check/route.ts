@@ -14,6 +14,12 @@ export async function GET(req: Request) {
     }
   }
 
+  // Pause check + last-run stamp (managed in Settings → Crons). Fail-open.
+  const { guardCron } = await import('@/lib/crons');
+  if (!(await guardCron('health-check')).enabled) {
+    return NextResponse.json({ ok: true, skipped: 'cron paused' });
+  }
+
   const sb = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SECRET_KEY!,

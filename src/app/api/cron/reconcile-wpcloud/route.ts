@@ -82,6 +82,12 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Pause check + last-run stamp (managed in Settings → Crons). Fail-open.
+  const { guardCron } = await import('@/lib/crons');
+  if (!(await guardCron('reconcile-wpcloud')).enabled) {
+    return NextResponse.json({ ok: true, skipped: 'cron paused' });
+  }
+
   const supabase = sb();
   const client = createWpCloudClient();
 
