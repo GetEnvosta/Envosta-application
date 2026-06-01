@@ -10,6 +10,34 @@ export function LifecycleReference() {
   return (
     <div className="space-y-6">
 
+      {/* ── Lifecycle at a glance (site ↔ domain) ─────────── */}
+      <section className="card p-6">
+        <h2 className="text-sm font-semibold text-gray-900 mb-1">Lifecycle at a glance</h2>
+        <p className="text-xs text-gray-500 mb-5">One platform, two resource types. Sites and domains move through the same <strong>phases</strong> — they just carry different status labels. Specifics for each are in the sections below.</p>
+
+        <div className="overflow-hidden border border-gray-100 rounded-lg">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-100">
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phase</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Site status</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Domain status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              <PhaseRow phase="Setting up" color="blue" site="provisioning" domain="pending" />
+              <PhaseRow phase="Live" color="emerald" site="active" domain="registered" />
+              <PhaseRow phase="At risk" color="amber" site="paused" domain="auto_renew off → lapsing" />
+              <PhaseRow phase="Ending" color="red" site="flagged_for_deletion → deleted" domain="lapsed / released" />
+              <PhaseRow phase="Error" color="red" site="failed" domain="failed" />
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-gray-400 mt-4">
+          Domains have no DB status for <em>At risk</em> / <em>Ending</em> — those are conditions (auto_renew off, expiry passed); the row stays <code className="text-[11px] font-mono">registered</code> until cleaned up. The underlying statuses stay distinct on purpose (billing arc vs annual-renewal arc) — this table is just the shared vocabulary for reasoning across both.
+        </p>
+      </section>
+
       {/* ── Site states ───────────────────────────────────── */}
       <section className="card p-6">
         <h2 className="text-sm font-semibold text-gray-900 mb-1">Site lifecycle states</h2>
@@ -177,6 +205,24 @@ export function LifecycleReference() {
         </ul>
       </section>
     </div>
+  );
+}
+
+function PhaseRow({ phase, color, site, domain }: { phase: string; color: string; site: string; domain: string }) {
+  const dot: Record<string, string> = {
+    blue: 'bg-blue-500', emerald: 'bg-emerald-500', amber: 'bg-amber-500', red: 'bg-red-500', gray: 'bg-gray-400',
+  };
+  return (
+    <tr className="hover:bg-gray-50">
+      <td className="px-4 py-2.5">
+        <span className="inline-flex items-center gap-2 text-xs font-medium text-gray-900">
+          <span className={`w-2 h-2 rounded-full ${dot[color] ?? dot.gray}`} />
+          {phase}
+        </span>
+      </td>
+      <td className="px-4 py-2.5"><code className="text-xs font-mono text-gray-600">{site}</code></td>
+      <td className="px-4 py-2.5"><code className="text-xs font-mono text-gray-600">{domain}</code></td>
+    </tr>
   );
 }
 
