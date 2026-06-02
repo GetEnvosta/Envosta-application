@@ -354,7 +354,7 @@ export default async function PricingPage() {
                 <p className="p-card-tag">{tagline}</p>
 
                 <a
-                  href={`/get-started?plan=${plan.slug}&billing=annual`}
+                  href={`/get-started?plan=${plan.slug}&billing=annual&trial=1`}
                   className="p-cta"
                 >
                   Try for free
@@ -406,7 +406,7 @@ export default async function PricingPage() {
                       </div>
                     )}
                   </div>
-                  <a href={`/get-started?plan=${pm.slug}&billing=annual`} className="premium-cta">
+                  <a href={`/get-started?plan=${pm.slug}&billing=annual&trial=1`} className="premium-cta">
                     Get started
                     <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </a>
