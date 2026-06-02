@@ -28,10 +28,11 @@ export function GetStartedFlow() {
   const billing = (searchParams.get('billing') === 'annual' ? 'annual' : 'monthly') as 'monthly' | 'annual';
   const promo = searchParams.get('promo') ?? undefined;
 
+  const trialParam = searchParams.get('trial');
   // plan=choose means "show plan picker" (no pre-selection)
   const needsPlanChoice = planParam === 'choose';
-  // Trial only when no plan param at all (generic "Get Started" clicks)
-  const isTrial = !planParam;
+  // Trial when no plan param (generic "Get Started"), OR an explicit ?trial=1 on a plan link
+  const isTrial = !planParam || trialParam === '1' || trialParam === 'true';
   // Don't pre-select a plan if they need to choose
   const effectivePlan = needsPlanChoice ? undefined : planParam;
 

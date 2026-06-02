@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Save, Trash2, Check } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Trash2, Check, Copy } from 'lucide-react';
 import Link from 'next/link';
 
 export default function EditPlanPage({ params }: { params: Promise<{ id: string }> }) {
@@ -14,6 +14,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [planId, setPlanId] = useState('');
+  const [copied, setCopied] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -32,6 +33,12 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
 
   function update(field: string, value: any) {
     setPlan((prev: any) => ({ ...prev, [field]: value }));
+  }
+
+  function copyLink(text: string, key: string) {
+    navigator.clipboard?.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(''), 1500);
   }
 
   async function handleSave() {
@@ -128,6 +135,8 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
   if (loading) return <div className="animate-pulse space-y-4"><div className="h-8 w-48 bg-gray-200 rounded" /><div className="card p-6 space-y-3">{[1,2,3,4,5].map(i => <div key={i} className="h-10 bg-gray-100 rounded" />)}</div></div>;
   if (!plan) return <p className="text-gray-500">Plan not found.</p>;
 
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://envosta.com').replace(/\/$/, '');
+
   return (
     <div>
       <Link href="/admin/settings/plans" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-4">
@@ -162,6 +171,26 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
             </div>
           </div>
         </div>
+
+        {/* Direct signup links (hosting_plan only) */}
+        {plan.type === 'hosting_plan' && (
+          <div className="card p-6">
+            <h2 className="text-sm font-semibold text-gray-900 mb-1">Direct signup links</h2>
+            <p className="text-xs text-gray-500 mb-4">Share these to drop someone straight into signup for this plan.</p>
+            {[
+              { label: 'Pay now', k: 'pay', url: `${siteUrl}/get-started?plan=${plan.slug}` },
+              { label: 'Free trial (14d)', k: 'trial', url: `${siteUrl}/get-started?plan=${plan.slug}&trial=1` },
+            ].map(l => (
+              <div key={l.k} className="flex items-center gap-2 mb-2 last:mb-0">
+                <span className="text-xs font-medium text-gray-600 w-28 shrink-0">{l.label}</span>
+                <input readOnly value={l.url} onFocus={e => e.currentTarget.select()} className="input font-mono text-xs flex-1" />
+                <button type="button" onClick={() => copyLink(l.url, l.k)} className="btn-admin-secondary text-xs py-1.5 px-3 inline-flex items-center gap-1 shrink-0">
+                  {copied === l.k ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Copy</>}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Stripe — Billing */}
         <div className="card p-6">
