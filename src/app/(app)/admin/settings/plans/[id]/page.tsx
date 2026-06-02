@@ -299,6 +299,7 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
         <div className="card p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">wp.cloud — Infrastructure</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div><label className="label">Sites allowed</label><input type="number" min="1" className="input" value={plan.metadata?.sites_allowed ?? 1} onChange={e => update('metadata', { ...plan.metadata, sites_allowed: parseInt(e.target.value) || 1 })} /></div>
             <div><label className="label">Storage (GB)</label><input type="number" className="input" value={plan.metadata?.storage_gb ?? 25} onChange={e => update('metadata', { ...plan.metadata, storage_gb: parseInt(e.target.value) || 25 })} /></div>
             <div><label className="label">Default PHP Workers</label><input type="number" className="input" value={plan.metadata?.php_workers_default ?? 2} onChange={e => update('metadata', { ...plan.metadata, php_workers_default: parseInt(e.target.value) || 2 })} /></div>
             <div><label className="label">Max PHP Workers</label><input type="number" className="input" value={plan.metadata?.php_workers_included ?? 2} onChange={e => update('metadata', { ...plan.metadata, php_workers_included: parseInt(e.target.value) || 2 })} /></div>
