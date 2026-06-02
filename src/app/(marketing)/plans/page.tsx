@@ -117,10 +117,14 @@ const FEATURES_BY_SLUG: Record<string, string[]> = {
 };
 
 function getFeatures(plan: HostingPlan): string[] {
+  // Prefer the admin-edited list from the catalog (products.features).
+  if (Array.isArray(plan.features) && plan.features.length > 0) {
+    const fromDb = plan.features.filter((f): f is string => typeof f === 'string' && f.trim().length > 0);
+    if (fromDb.length > 0) return fromDb;
+  }
+  // Fallback to the hardcoded list by slug/name (until a plan has its own).
   const slug = (plan.slug || '').toLowerCase();
   const name = (plan.name || '').toLowerCase();
-  // Match by slug OR name containing the key, so plans with slugs like
-  // "envosta-standard" or "plan-growth" still hit the right list.
   for (const key of Object.keys(FEATURES_BY_SLUG)) {
     if (slug.includes(key) || name.includes(key)) return FEATURES_BY_SLUG[key];
   }

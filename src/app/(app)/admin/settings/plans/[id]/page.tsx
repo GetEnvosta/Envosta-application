@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Save, Trash2, Check, Copy } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Trash2, Check, Copy, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 export default function EditPlanPage({ params }: { params: Promise<{ id: string }> }) {
@@ -336,16 +336,37 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
         {/* Marketing — Plan Card Features (hosting_plan only) */}
         {plan.type === 'hosting_plan' && (
         <div className="card p-6">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Marketing — Plan Card Features</h2>
-          <textarea
-            className="input font-mono text-xs"
-            rows={6}
-            value={JSON.stringify(plan.features ?? [], null, 2)}
-            onChange={e => {
-              try { update('features', JSON.parse(e.target.value)); } catch {}
-            }}
-          />
-          <p className="text-xs text-gray-400 mt-1">JSON array of feature strings.</p>
+          <h2 className="text-sm font-semibold text-gray-900 mb-1">Marketing — Plan Card Features</h2>
+          <p className="text-xs text-gray-500 mb-4">Bullets shown on the public /plans card for this plan. Add, edit, or remove — order is preserved.</p>
+          <div className="space-y-2">
+            {(Array.isArray(plan.features) ? plan.features : []).map((f: string, i: number) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-gray-300 text-xs w-4 text-right shrink-0">{i + 1}</span>
+                <input
+                  className="input flex-1"
+                  value={f ?? ''}
+                  placeholder="Feature text…"
+                  onChange={e => {
+                    const next = [...(plan.features ?? [])];
+                    next[i] = e.target.value;
+                    update('features', next);
+                  }}
+                />
+                <button type="button" aria-label="Remove feature"
+                  onClick={() => update('features', (plan.features ?? []).filter((_: any, idx: number) => idx !== i))}
+                  className="p-1.5 text-gray-400 hover:text-red-600 shrink-0">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+            {(!Array.isArray(plan.features) || plan.features.length === 0) && (
+              <p className="text-xs text-gray-400">No custom features yet — the public card uses the default list until you add some.</p>
+            )}
+          </div>
+          <button type="button" onClick={() => update('features', [...(plan.features ?? []), ''])}
+            className="btn-admin-secondary text-xs py-1.5 px-3 inline-flex items-center gap-1 mt-3">
+            <Plus className="w-3.5 h-3.5" /> Add feature
+          </button>
         </div>
         )}
 
