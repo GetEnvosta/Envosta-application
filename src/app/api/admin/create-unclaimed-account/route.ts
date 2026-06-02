@@ -105,8 +105,10 @@ export async function POST(req: Request) {
     // Create a site if label provided
     let siteId = null;
     let subscriptionWarning: string | undefined;
+    let siteWarning: string | undefined;
+    let provisionWarning: string | undefined;
     if (siteLabel && plan) {
-      const { data: site } = await sb.from('sites').insert({
+      const { data: site, error: siteErr } = await sb.from('sites').insert({
         user_id: userId,
         product_id: plan.id,
         label: siteLabel,
@@ -122,7 +124,11 @@ export async function POST(req: Request) {
           ...(comp === true ? { comp: true } : {}),
         },
       }).select('id').single();
-      siteId = site?.id ?? null;
+      if (siteErr || !site) {
+        siteWarning = `Site row could not be created: ${siteErr?.message ?? 'unknown error'} — no site/billing/provisioning was set up.`;
+      } else {
+        siteId = site.id;
+      }
 
       // Pre-create Stripe sub (skip for comped sites — they have no Stripe billing)
       if (siteId && comp !== true) {
@@ -151,7 +157,7 @@ export async function POST(req: Request) {
           const origin = process.env.NEXT_PUBLIC_APP_URL
             ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
             : new URL(req.url).origin;
-          await fetch(`${origin}/api/internal/wpcloud/provision-site`, {
+          const provRes = await fetch(`${origin}/api/internal/wpcloud/provision-site`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -167,7 +173,11 @@ export async function POST(req: Request) {
               userId,
             }),
           });
+          if (!provRes.ok) {
+            provisionWarning = `wp.cloud provisioning didn't start (HTTP ${provRes.status}) — the retry cron will keep trying.`;
+          }
         } catch (e) {
+          provisionWarning = 'wp.cloud provisioning fire failed — the retry cron will keep trying.';
           console.error('create-unclaimed: provision-hosting fire failed (will retry via cron)', e);
         }
       }
@@ -216,6 +226,8 @@ export async function POST(req: Request) {
       claimToken,
       expiresAt: claimExpiresAt,
       ...(subscriptionWarning ? { subscriptionWarning } : {}),
+      ...(siteWarning ? { siteWarning } : {}),
+      ...(provisionWarning ? { provisionWarning } : {}),
     });
   } catch (e: any) {
     console.error('Create unclaimed account error:', e);

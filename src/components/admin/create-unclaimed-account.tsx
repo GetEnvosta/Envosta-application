@@ -118,6 +118,14 @@ export function CreateUnclaimedAccount() {
         <p className="text-sm text-gray-600">
           An email has been sent to <strong>{email}</strong> with a link to claim their account.
         </p>
+        {(result.siteWarning || result.subscriptionWarning || result.provisionWarning) && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 space-y-1">
+            <p className="font-medium">Heads up — some steps need attention:</p>
+            {result.siteWarning && <p>• {result.siteWarning}</p>}
+            {result.subscriptionWarning && <p>• Billing: {result.subscriptionWarning}</p>}
+            {result.provisionWarning && <p>• {result.provisionWarning}</p>}
+          </div>
+        )}
         <div className="bg-white rounded-lg border border-gray-200 px-3 py-2 flex items-center gap-2">
           <input type="text" readOnly value={result.claimUrl}
             className="flex-1 text-xs font-mono text-gray-600 bg-transparent outline-none" />
