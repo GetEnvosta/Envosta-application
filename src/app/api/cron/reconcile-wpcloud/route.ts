@@ -74,6 +74,20 @@ function toInt(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Strip plaintext credentials from a wp.cloud get-site payload before it is
+ * persisted into the mirror. get-site returns LIVE secrets (db_pass,
+ * site_api_key, smtp_pass, jetpack_blog_token) — these must never land at rest.
+ */
+function stripSecrets(detail: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(detail ?? {})) {
+    if (/pass|secret|token|api_key/i.test(k)) continue;
+    out[k] = v;
+  }
+  return out;
+}
+
 export async function GET(req: Request) {
   // ── Auth ──
   const authHeader = req.headers.get('authorization');
@@ -204,7 +218,7 @@ export async function GET(req: Request) {
             upstream_created_at: toIso(
               (detail?.created_at as unknown) ?? detail?.created,
             ),
-            upstream_payload: { getSite: detail },
+            upstream_payload: { getSite: stripSecrets(detail) },
             last_synced_at: nowIso,
             updated_at: nowIso,
           },
