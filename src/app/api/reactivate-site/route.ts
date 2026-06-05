@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
-import { findHostingSubscription, addSiteLineItem, resolvePlanPrice, resumeSubscription } from '@/lib/stripe-subscription';
+import { resolvePlanPrice } from '@/lib/stripe-subscription';
+import { resellerCouponForUser } from '@/lib/reseller';
 import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
@@ -90,87 +91,66 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Find or re-use existing hosting subscription
-    let hostingSub = await findHostingSubscription(supabase, user.id);
-    let newSubscriptionCreated = false;
+    // PER-SITE model: a cancelled site's subscription was cancelled with it,
+    // so reactivation always creates a NEW subscription dedicated to this
+    // site (there is no account-level sub to re-use or resume).
+    const newSubscriptionCreated = true;
 
-    if (!hostingSub?.stripe_subscription_id) {
-      // No active subscription — need to create a new one
-      // Get customer's Stripe ID
-      const { data: profile } = await supabase
-        .from('users')
-        .select('stripe_customer_id')
-        .eq('id', user.id)
-        .single();
+    const { data: profile } = await supabase
+      .from('users')
+      .select('stripe_customer_id')
+      .eq('id', user.id)
+      .single();
 
-      if (!profile?.stripe_customer_id) {
-        return NextResponse.json({ error: 'No payment method on file. Please add a payment method first.' }, { status: 400 });
-      }
-
-      // Create new subscription with this site's plan as the first item
-      const newSub = await stripe.subscriptions.create({
-        customer: profile.stripe_customer_id,
-        items: [{ price: priceId, metadata: { envosta_site_id: siteId } }],
-        payment_behavior: 'default_incomplete',
-        payment_settings: { save_default_payment_method: 'on_subscription' },
-        expand: ['latest_invoice.payment_intent'],
-        metadata: {
-          supabase_user_id: user.id,
-          subscription_type: 'hosting',
-        },
-      });
-
-      // Check if payment is needed
-      const invoice = newSub.latest_invoice as any;
-      const pi = invoice?.payment_intent as Stripe.PaymentIntent;
-
-      if (pi && pi.status === 'requires_payment_method') {
-        return NextResponse.json({
-          error: 'Payment required. Please update your payment method.',
-          requiresPayment: true,
-        }, { status: 402 });
-      }
-
-      hostingSub = { id: newSub.id, stripe_subscription_id: newSub.id, status: newSub.status };
-      newSubscriptionCreated = true;
-
-      // Link the site to the new subscription item
-      const firstItem = newSub.items.data[0];
-      await supabase.from('sites').update({
-        status: 'active',
-        product_id: productId,
-        stripe_subscription_item_id: firstItem.id,
-        metadata: {
-          ...meta,
-          reactivated_at: new Date().toISOString(),
-          reactivated_from: 'cancelled',
-        },
-      }).eq('id', siteId);
-    } else {
-      // Subscription exists — resume it if paused, then add the line item
-      if (hostingSub.status === 'paused') {
-        await resumeSubscription(stripe, hostingSub.stripe_subscription_id);
-        // Sync Engine will catch the resume on its next event.
-      }
-
-      const item = await addSiteLineItem(
-        stripe,
-        hostingSub.stripe_subscription_id,
-        priceId,
-        siteId,
-      );
-
-      await supabase.from('sites').update({
-        status: 'active',
-        product_id: productId,
-        stripe_subscription_item_id: item.id,
-        metadata: {
-          ...meta,
-          reactivated_at: new Date().toISOString(),
-          reactivated_from: 'cancelled',
-        },
-      }).eq('id', siteId);
+    if (!profile?.stripe_customer_id) {
+      return NextResponse.json({ error: 'No payment method on file. Please add a payment method first.' }, { status: 400 });
     }
+
+    const resellerCoupon = await resellerCouponForUser(supabase, stripe, user.id);
+    const newSub = await stripe.subscriptions.create({
+      customer: profile.stripe_customer_id,
+      items: [{ price: priceId, metadata: { envosta_site_id: siteId } }],
+      payment_behavior: 'default_incomplete',
+      payment_settings: { save_default_payment_method: 'on_subscription' },
+      expand: ['latest_invoice.payment_intent'],
+      ...(resellerCoupon ? { coupon: resellerCoupon } : {}),
+      metadata: {
+        supabase_user_id: user.id,
+        envosta_site_id: siteId,
+        subscription_type: 'hosting',
+        billing_period: 'monthly',
+      },
+    });
+
+    // If there's no usable default payment method, bail (and clean up the
+    // incomplete sub) so the customer can fix billing and retry.
+    const invoice = newSub.latest_invoice as any;
+    const pi = invoice?.payment_intent as Stripe.PaymentIntent;
+    if (pi && pi.status === 'requires_payment_method') {
+      try { await stripe.subscriptions.cancel(newSub.id); } catch { /* best-effort */ }
+      return NextResponse.json({
+        error: 'Payment required. Please update your payment method.',
+        requiresPayment: true,
+      }, { status: 402 });
+    }
+
+    // Link the reactivated site to its new subscription + clear deletion flags.
+    const firstItem = newSub.items.data[0];
+    const { recovery_deadline, cancelled_at, ...keptMeta } = meta;
+    await supabase.from('sites').update({
+      status: 'active',
+      product_id: productId,
+      stripe_subscription_id: newSub.id,
+      stripe_subscription_item_id: firstItem?.id ?? null,
+      flag_reason: null,
+      flagged_for_deletion_at: null,
+      paused_at: null,
+      metadata: {
+        ...keptMeta,
+        reactivated_at: new Date().toISOString(),
+        reactivated_from: 'cancelled',
+      },
+    }).eq('id', siteId);
 
     // Log it
     await recordAudit({

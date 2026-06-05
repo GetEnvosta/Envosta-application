@@ -4,21 +4,17 @@
  *
  * Body: { siteId, newUserId }
  *
- * Unlike /api/admin/assign-site-owner (which only flips sites.user_id and
- * leaves the OLD owner paying), this moves the billing too:
- *   1. Cap check on the new owner's plan (sites_allowed).
- *   2. ADD the site's line item to the new owner's subscription FIRST
- *      (create the sub if they have none; resume if paused) — so there is
- *      never a window where nobody is paying.
- *   3. Flip sites.user_id + stripe_subscription_item_id to the new owner.
- *   4. REMOVE the old line item from the previous owner's subscription
- *      (pauses their sub if it was their last site).
- *   5. Migrate site-scoped add-ons (decrement old owner's per-type quantity,
- *      increment new owner's) — best-effort, per-add-on isolated.
- *   6. Audit everything.
- *
- * Proration: Stripe `create_prorations` throughout (old owner credited,
- * new owner charged for the remainder of the cycle).
+ * PER-SITE model: each site has its OWN Stripe subscription. Transferring a
+ * site means:
+ *   1. CREATE a new subscription for the site under the NEW owner (charged
+ *      immediately) — so there is never a window where nobody is paying.
+ *      Aborts cleanly if the new owner's payment can't complete.
+ *   2. Recreate the site's active add-ons as items on the new subscription.
+ *   3. Flip sites.user_id + stripe_subscription_id + stripe_subscription_item_id
+ *      and repoint each site_addons row to its new Stripe item.
+ *   4. CANCEL the OLD subscription (prorated — the previous owner is credited
+ *      for the unused portion of the cycle); this also removes its add-on items.
+ *   5. Audit everything.
  *
  * The wp.cloud site itself is untouched — only ownership + billing move.
  * Admin-only. Cannot be exercised from local dev (no live Stripe) — verify
@@ -29,12 +25,7 @@ import { createClient as createServerClient } from '@/lib/supabase-server';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { isAdminRole } from '@/lib/roles';
-import {
-  findHostingSubscription,
-  addSiteLineItem,
-  removeSiteLineItem,
-  resumeSubscription,
-} from '@/lib/stripe-subscription';
+import { resellerCouponForUser } from '@/lib/reseller';
 import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
@@ -71,7 +62,7 @@ export async function POST(req: Request) {
   // ── Load the site ──
   const { data: site } = await sb
     .from('sites')
-    .select('id, user_id, label, product_id, stripe_subscription_item_id')
+    .select('id, user_id, label, product_id, stripe_subscription_id, stripe_subscription_item_id')
     .eq('id', siteId)
     .maybeSingle();
   if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 });
@@ -95,42 +86,21 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── Cap check on the new owner's plan ──
-  const { data: bSites } = await sb
-    .from('sites')
-    .select('id, product_id')
-    .eq('user_id', newUserId)
-    .not('status', 'in', '("cancelled","deleted","flagged_for_deletion")');
-  const bSitesUsed = bSites?.length ?? 0;
-  if (bSitesUsed > 0) {
-    const { data: bPlan } = await sb
-      .from('products')
-      .select('name, metadata')
-      .eq('id', bSites![0].product_id)
-      .maybeSingle();
-    const sitesAllowed = Number((bPlan?.metadata as any)?.sites_allowed ?? 1);
-    if (bSitesUsed >= sitesAllowed) {
-      return NextResponse.json(
-        { error: `New owner's ${bPlan?.name ?? 'current'} plan allows ${sitesAllowed} site(s); they already have ${bSitesUsed}. They must upgrade first.` },
-        { status: 409 },
-      );
-    }
-  }
-
   // ── Resolve the price + billing interval to move ──
+  // Prefer the site's current plan item (carries the exact price + interval);
+  // fall back to the plan product's price if the item is stale/missing.
+  const oldSubId = site.stripe_subscription_id as string | null;
   const oldItemId = site.stripe_subscription_item_id as string | null;
   let priceId: string | null = null;
   let interval: 'month' | 'year' = 'month';
-  let oldSubId: string | null = null;
 
   if (oldItemId) {
     try {
       const oldItem = await stripe.subscriptionItems.retrieve(oldItemId);
       priceId = oldItem.price?.id ?? null;
       interval = (oldItem.price?.recurring?.interval as any) === 'year' ? 'year' : 'month';
-      oldSubId = typeof oldItem.subscription === 'string' ? oldItem.subscription : null;
     } catch {
-      // Stale/missing item (e.g. already orphaned) — fall back to the plan price.
+      // Stale/missing item — fall back to the plan price below.
     }
   }
   if (!priceId) {
@@ -140,58 +110,50 @@ export async function POST(req: Request) {
       .eq('id', site.product_id)
       .maybeSingle();
     priceId = (planProduct?.stripe_price_id ?? planProduct?.stripe_price_id_yearly) as string | null;
+    if (planProduct?.stripe_price_id_yearly && !planProduct?.stripe_price_id) interval = 'year';
   }
   if (!priceId) {
     return NextResponse.json({ error: 'Could not resolve a Stripe price for this site (plan not synced?).' }, { status: 400 });
   }
 
-  // ── 1) ADD to the new owner first (no billing gap) ──
-  let newItemId: string;
+  // ── 1) Create the site's NEW subscription under the new owner ──
+  // (Charged immediately — there is never a window where nobody is paying.)
+  // Resellers get the flat platform discount on the new subscription too.
+  const resellerCoupon = await resellerCouponForUser(sb, stripe, newUserId);
+  let newSub: Stripe.Subscription;
   try {
-    const bSub = await findHostingSubscription(sb, newUserId);
-    if (bSub?.stripe_subscription_id) {
-      if (bSub.status === 'paused') await resumeSubscription(stripe, bSub.stripe_subscription_id);
-      const item = await addSiteLineItem(stripe, bSub.stripe_subscription_id, priceId, siteId);
-      newItemId = item.id;
-    } else {
-      const created = await stripe.subscriptions.create({
-        customer: newOwner.stripe_customer_id,
-        items: [{ price: priceId }],
-        payment_settings: { save_default_payment_method: 'on_subscription' },
-        metadata: { supabase_user_id: newUserId, subscription_type: 'hosting' },
-      });
-      newItemId = created.items.data[0].id;
-      await stripe.subscriptionItems.update(newItemId, { metadata: { envosta_site_id: siteId } });
-    }
+    newSub = await stripe.subscriptions.create({
+      customer: newOwner.stripe_customer_id,
+      items: [{ price: priceId, metadata: { envosta_site_id: siteId } }],
+      payment_settings: { save_default_payment_method: 'on_subscription' },
+      ...(resellerCoupon ? { coupon: resellerCoupon } : {}),
+      metadata: {
+        supabase_user_id: newUserId,
+        envosta_site_id: siteId,
+        subscription_type: 'hosting',
+        billing_period: interval === 'year' ? 'yearly' : 'monthly',
+      },
+    });
   } catch (e: any) {
     return NextResponse.json(
-      { error: `Failed to add the site to the new owner's subscription — transfer aborted, nothing changed: ${e?.message ?? e}` },
+      { error: `Failed to create the site's subscription under the new owner — transfer aborted, nothing changed: ${e?.message ?? e}` },
       { status: 502 },
     );
   }
+  const newSubId = newSub.id;
 
-  // ── 2) Flip ownership on the site row ──
-  await sb.from('sites').update({
-    user_id: newUserId,
-    stripe_subscription_item_id: newItemId,
-    updated_at: new Date().toISOString(),
-  }).eq('id', siteId);
-
-  // ── 3) Remove the old line item from the previous owner ──
-  let oldOwnerPaused = false;
-  let oldRemovalError: string | null = null;
-  if (oldItemId && oldSubId) {
-    try {
-      const res = await removeSiteLineItem(stripe, oldSubId, oldItemId);
-      oldOwnerPaused = res.subscriptionPaused;
-    } catch (e: any) {
-      // Site is already on the new owner; the old item lingering is a billing
-      // cleanup, not a blocker. Surface it loudly for manual follow-up.
-      oldRemovalError = e?.message ?? String(e);
-    }
+  // If the new owner's immediate charge couldn't complete, abort cleanly
+  // BEFORE flipping anything — the old owner keeps the site + billing.
+  if (newSub.status !== 'active' && newSub.status !== 'trialing') {
+    try { await stripe.subscriptions.cancel(newSubId); } catch { /* best-effort */ }
+    return NextResponse.json(
+      { error: `New owner's payment could not be completed (subscription ${newSub.status}). Transfer aborted, nothing changed.` },
+      { status: 402 },
+    );
   }
+  const newItemId = newSub.items.data[0]?.id ?? null;
 
-  // ── 4) Migrate site-scoped add-ons (best-effort, per add-on isolated) ──
+  // ── 2) Recreate active add-ons as items on the NEW subscription ──
   const { data: addonRows } = await sb
     .from('site_addons')
     .select('id, product_id, stripe_subscription_item_id, products:product_id(slug, name, stripe_price_id, stripe_price_id_yearly, stripe_price_id_cad, stripe_price_id_yearly_cad)')
@@ -203,53 +165,45 @@ export async function POST(req: Request) {
     const addon: any = (row as any).products ?? {};
     const slug = addon.slug ?? '(unknown)';
     try {
-      const oldAddonItemId = (row as any).stripe_subscription_item_id as string | null;
       const addonPriceId = pickAddonPrice(addon, interval);
       if (!addonPriceId) throw new Error('add-on has no synced Stripe price');
 
-      // Decrement / delete on the OLD owner.
-      if (oldAddonItemId) {
-        const { count } = await sb
-          .from('site_addons')
-          .select('id', { count: 'exact', head: true })
-          .eq('stripe_subscription_item_id', oldAddonItemId)
-          .eq('status', 'active')
-          .neq('id', (row as any).id);
-        if ((count ?? 0) > 0) {
-          const it = await stripe.subscriptionItems.retrieve(oldAddonItemId);
-          await stripe.subscriptionItems.update(oldAddonItemId, { quantity: Math.max(1, (it.quantity ?? 1) - 1) });
-        } else {
-          await stripe.subscriptionItems.del(oldAddonItemId);
-        }
-      }
-
-      // Increment / create on the NEW owner.
-      const bSub = await findHostingSubscription(sb, newUserId);
-      if (!bSub?.stripe_subscription_id) throw new Error('new owner has no subscription for the add-on');
-      const liveB = await stripe.subscriptions.retrieve(bSub.stripe_subscription_id);
-      const existing = (liveB.items?.data ?? []).find(i => i.price?.id === addonPriceId);
-      let newAddonItemId: string;
-      if (existing) {
-        const upd = await stripe.subscriptionItems.update(existing.id, { quantity: (existing.quantity ?? 0) + 1 });
-        newAddonItemId = upd.id;
-      } else {
-        const crt = await stripe.subscriptionItems.create({
-          subscription: bSub.stripe_subscription_id,
-          price: addonPriceId,
-          quantity: 1,
-          metadata: { envosta_addon_slug: slug, envosta_user_id: newUserId },
-        });
-        newAddonItemId = crt.id;
-      }
+      const created = await stripe.subscriptionItems.create({
+        subscription: newSubId,
+        price: addonPriceId,
+        quantity: 1,
+        metadata: { envosta_addon_slug: slug, envosta_user_id: newUserId, envosta_site_id: siteId },
+      });
 
       await sb.from('site_addons').update({
-        stripe_subscription_item_id: newAddonItemId,
+        stripe_subscription_item_id: created.id,
         updated_at: new Date().toISOString(),
       }).eq('id', (row as any).id);
 
       addonResults.push({ slug, moved: true });
     } catch (e: any) {
       addonResults.push({ slug, moved: false, error: e?.message ?? String(e) });
+    }
+  }
+
+  // ── 3) Flip ownership + per-site billing link on the site row ──
+  await sb.from('sites').update({
+    user_id: newUserId,
+    stripe_subscription_id: newSubId,
+    stripe_subscription_item_id: newItemId,
+    updated_at: new Date().toISOString(),
+  }).eq('id', siteId);
+
+  // ── 4) Cancel the OLD subscription (prorated credit to the old owner) ──
+  // Cancelling removes its plan item AND any lingering add-on items in one
+  // shot. Best-effort — the site is already on the new owner, so a failure
+  // here is a billing-cleanup follow-up, not a blocker.
+  let oldCancelError: string | null = null;
+  if (oldSubId) {
+    try {
+      await stripe.subscriptions.cancel(oldSubId, { prorate: true, invoice_now: true } as any);
+    } catch (e: any) {
+      oldCancelError = e?.message ?? String(e);
     }
   }
 
@@ -260,15 +214,15 @@ export async function POST(req: Request) {
     action: 'admin.site_transferred',
     resourceType: 'site',
     resourceId: siteId,
-    before: { user_id: oldUserId, stripe_subscription_item_id: oldItemId },
-    after: { user_id: newUserId, stripe_subscription_item_id: newItemId },
+    before: { user_id: oldUserId, stripe_subscription_id: oldSubId, stripe_subscription_item_id: oldItemId },
+    after: { user_id: newUserId, stripe_subscription_id: newSubId, stripe_subscription_item_id: newItemId },
     metadata: {
-      level: oldRemovalError || addonResults.some(a => !a.moved) ? 'warn' : 'info',
-      details: `Site "${site.label}" transferred${oldUserId ? ` from ${oldUserId}` : ''} to ${newOwner.email}. Billing moved (proration applied).`,
+      level: oldCancelError || addonResults.some(a => !a.moved) ? 'warn' : 'info',
+      details: `Site "${site.label}" transferred${oldUserId ? ` from ${oldUserId}` : ''} to ${newOwner.email}. New per-site subscription created; old subscription cancelled (prorated).`,
       old_owner: oldUserId,
       new_owner: newUserId,
-      old_owner_subscription_paused: oldOwnerPaused,
-      old_removal_error: oldRemovalError,
+      old_subscription_cancelled: !oldCancelError && !!oldSubId,
+      old_cancel_error: oldCancelError,
       addons: addonResults,
     },
   });
@@ -277,11 +231,12 @@ export async function POST(req: Request) {
     ok: true,
     siteId,
     newOwner: { id: newOwner.id, email: newOwner.email },
-    oldOwnerSubscriptionPaused: oldOwnerPaused,
-    oldRemovalError,
+    newSubscriptionId: newSubId,
+    oldSubscriptionCancelled: !oldCancelError && !!oldSubId,
+    oldCancelError,
     addons: addonResults,
-    warning: oldRemovalError
-      ? 'Site moved + new owner billed, but the OLD line item could not be removed — remove it manually in Stripe to stop double-billing the previous owner.'
+    warning: oldCancelError
+      ? 'Site moved + new owner billed, but the OLD subscription could not be cancelled — cancel it manually in Stripe to stop billing the previous owner.'
       : undefined,
   });
 }

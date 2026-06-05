@@ -125,9 +125,9 @@ export function LifecycleReference() {
         <p className="text-xs text-gray-500 mb-5">How hosting + domain subscriptions are structured per account.</p>
 
         <ul className="space-y-3 text-sm text-gray-700">
-          <RuleRow icon={Lock} title="One hosting subscription per user" detail="Account-centric model. findHostingSubscription() reads stripe.subscriptions (Sync Engine mirror) via users.stripe_customer_id. Adding a second site reuses the sub and adds a Stripe line item." />
-          <RuleRow icon={Server} title="Each site = one Stripe line item" detail="sites.stripe_subscription_item_id is the link. The parent subscription is looked up through the user (no per-site subscription FK)." />
-          <RuleRow icon={CheckCircle} title="Sites limited per plan" detail="products.metadata.sites_allowed (Minimum=1, Growth=5). Enforced in /api/create-site — returns 403 if cap reached." />
+          <RuleRow icon={Lock} title="One subscription per site" detail="Per-site model. Each site has its own Stripe subscription, linked via sites.stripe_subscription_id (Sync Engine mirror). getSiteSubscription() resolves it from the site row." />
+          <RuleRow icon={Server} title="Site plan = the subscription's single item" detail="sites.stripe_subscription_item_id points at the plan line item on the site's own subscription. Per-site add-ons are added as extra items alongside it; upgrading swaps that item's price." />
+          <RuleRow icon={CheckCircle} title="No account-level site cap" detail="Each site is billed on its own subscription, so there is no sites_allowed limit. Adding a site creates a new subscription; cancelling a site cancels its subscription." />
           <RuleRow icon={Mail} title="Domains are independent" detail="Domain renewals are managed separately as cron-based one-time charges. Customers can have many in parallel." />
         </ul>
       </section>

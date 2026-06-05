@@ -6,13 +6,11 @@
  * Body: { siteId: string, addonSlug: string }
  * Auth: regular user session (auth.uid()).
  *
- * Model — site-scoped add-ons:
- *   One Stripe Subscription per account; one Stripe SubscriptionItem per
- *   add-on TYPE with `quantity` = the number of the account's sites
- *   using that add-on; one `site_addons` row per (site, add-on) pairing.
- *   Adding an add-on to a site increments the Stripe item quantity (or
- *   creates the item at quantity 1 if no site uses it yet) and inserts /
- *   reactivates the `site_addons` row for that site.
+ * Model — site-scoped add-ons (per-site subscription):
+ *   Each site has its OWN Stripe subscription (sites.stripe_subscription_id).
+ *   An add-on is a SubscriptionItem on THAT subscription, quantity 1, billed
+ *   alongside the site's plan item. One `site_addons` row per (site, add-on)
+ *   pairing records the link to the Stripe item.
  *
  * Idempotency: keyed on (site_id, product_id). If an `active` row
  * already exists the call is a no-op success; a previously `cancelled`
@@ -22,7 +20,6 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { createClient } from '@supabase/supabase-js';
-import { getAccountSubscription } from '@/services/billing';
 import { recordAudit } from '@/lib/audit';
 import { applySiteAddonEffects } from '@/lib/addon-effects';
 
@@ -57,7 +54,7 @@ export async function POST(req: Request) {
   // ── Verify site ownership ───────────────────────────
   const { data: site } = await sbService
     .from('sites')
-    .select('id, user_id')
+    .select('id, user_id, stripe_subscription_id')
     .eq('id', siteId)
     .maybeSingle();
   if (!site) return NextResponse.json({ ok: false, error: 'Site not found.' }, { status: 404 });
@@ -91,15 +88,29 @@ export async function POST(req: Request) {
     });
   }
 
-  // ── Lookup user's active sub ────────────────────────
-  const sub = await getAccountSubscription(user.id);
-  if (!sub?.id) {
-    return NextResponse.json({ ok: false, error: 'No active hosting subscription found.' }, { status: 400 });
+  // ── Resolve this site's own subscription ────────────
+  const subId = (site as any).stripe_subscription_id as string | null;
+  if (!subId) {
+    return NextResponse.json({ ok: false, error: 'This site has no active subscription yet. Try again once it is live.' }, { status: 400 });
   }
 
-  // Pick the price ID matching the sub's billing period.
-  const subMeta: any = sub.metadata ?? {};
-  const wantYearly = subMeta.billing_period === 'yearly';
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
+
+  // Fetch the live sub (the Sync Engine mirror may lag a few seconds). The
+  // add-on becomes a SubscriptionItem on THIS SITE's subscription, billed
+  // alongside the plan item. Match the add-on price to the sub's billing
+  // interval so Stripe doesn't reject a mixed-interval item.
+  let liveSub: Stripe.Subscription;
+  try {
+    liveSub = await stripe.subscriptions.retrieve(subId);
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e?.message ?? 'Subscription not found in Stripe' }, { status: 500 });
+  }
+
+  const subInterval =
+    (liveSub.items?.data ?? []).map(i => i.price?.recurring?.interval).find(Boolean) ??
+    ((liveSub.metadata as any)?.billing_period === 'yearly' ? 'year' : 'month');
+  const wantYearly = subInterval === 'year';
   const priceId = wantYearly
     ? (addon.stripe_price_id_yearly ?? addon.stripe_price_id ?? addon.stripe_price_id_yearly_cad ?? addon.stripe_price_id_cad)
     : (addon.stripe_price_id ?? addon.stripe_price_id_cad ?? addon.stripe_price_id_yearly ?? addon.stripe_price_id_yearly_cad);
@@ -110,35 +121,24 @@ export async function POST(req: Request) {
     );
   }
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
-
-  // ── Stripe item management ──────────────────────────
-  // Fetch the live sub (Sync Engine mirror may lag a few seconds) and
-  // find the SubscriptionItem for this add-on TYPE (matched by priceId).
-  // If found → bump quantity by 1; if not → create it at quantity 1.
-  let liveSub: Stripe.Subscription;
-  try {
-    liveSub = await stripe.subscriptions.retrieve(sub.id);
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message ?? 'Subscription not found in Stripe' }, { status: 500 });
-  }
-
   let stripeItemId: string;
   try {
+    // One item per add-on TYPE on this site's sub (quantity always 1).
     const existingItem = (liveSub.items?.data ?? []).find(i => i.price?.id === priceId);
     if (existingItem) {
-      const updated = await stripe.subscriptionItems.update(existingItem.id, {
-        quantity: (existingItem.quantity ?? 0) + 1,
-      });
-      stripeItemId = updated.id;
+      if ((existingItem.quantity ?? 1) !== 1) {
+        await stripe.subscriptionItems.update(existingItem.id, { quantity: 1 });
+      }
+      stripeItemId = existingItem.id;
     } else {
       const created = await stripe.subscriptionItems.create({
-        subscription: sub.id,
+        subscription: subId,
         price: priceId,
         quantity: 1,
         metadata: {
           envosta_addon_slug: addonSlug,
           envosta_user_id: user.id,
+          envosta_site_id: siteId,
         },
       });
       stripeItemId = created.id;

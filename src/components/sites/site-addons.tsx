@@ -10,7 +10,7 @@
  * charged. Renders the interactive client below.
  */
 import { getActiveAddons, getSiteAddons } from '@/services/addons';
-import { getAccountSubscription } from '@/services/billing';
+import { getSiteBillingPeriod } from '@/services/billing';
 import { SiteAddonsClient, type SiteAddonRow } from './site-addons-client';
 
 interface AddonEffects {
@@ -47,17 +47,12 @@ function summarizeEffects(metadata: Record<string, any> | null | undefined): str
   return parts.length > 0 ? `→ ${parts.join(' · ')}` : null;
 }
 
-export async function SiteAddons({ siteId, userId }: { siteId: string; userId: string }) {
-  const [available, active, sub] = await Promise.all([
+export async function SiteAddons({ siteId }: { siteId: string; userId: string }) {
+  const [available, active, billingPeriod] = await Promise.all([
     getActiveAddons(),
     getSiteAddons(siteId),
-    getAccountSubscription(userId),
+    getSiteBillingPeriod(siteId),
   ]);
-
-  // Resolve billing period from the account sub (defaults to monthly).
-  const subMeta = (sub?.metadata ?? {}) as Record<string, unknown>;
-  const billingPeriod: 'monthly' | 'yearly' =
-    subMeta.billing_period === 'yearly' ? 'yearly' : 'monthly';
 
   const activeProductIds = new Set(active.map((a) => a.product_id));
 

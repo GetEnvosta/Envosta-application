@@ -131,12 +131,13 @@ export default function ResellersPage() {
       <section className="rs-section" style={{ paddingTop: 0 }}>
         <div className="c">
           <div className="rs-price-band">
-            <h2>Starts at $399 USD/mo · 50 sites</h2>
+            <h2>50% off every plan · billed per site</h2>
             <p>
-              Our Reseller tier starts at the same price as Growth — $399 USD/mo — but gives you 50
-              client sites instead of 25. That&apos;s about $8/site if you fill it. Need more than
-              50 sites or higher-traffic plans? We&apos;ll size a custom quote based on your
-              portfolio and the support level you want.
+              Resellers aren&apos;t boxed into a fixed tier. Run any plan — from Minimum to
+              Enterprise — at a flat 50% off list price, billed per site, with no cap on how many
+              you manage. Each client site is its own subscription, so you only pay for what&apos;s
+              live and can add or remove sites anytime. Managing a large portfolio? We&apos;ll size
+              a tailored arrangement.
             </p>
           </div>
         </div>

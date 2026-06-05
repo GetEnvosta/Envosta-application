@@ -3,24 +3,27 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
-import { findHostingSubscription, addSiteLineItem, resolvePlanPrice, resumeSubscription } from '@/lib/stripe-subscription';
+import { resolvePlanPrice } from '@/lib/stripe-subscription';
+import { resellerCouponForUser } from '@/lib/reseller';
 import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * User-facing endpoint: add a WordPress site to the customer's subscription.
+ * User-facing endpoint: add a WordPress site.
  *
- * Each site is a Stripe subscription line item. The user picks which plan
- * tier the site should be on (e.g. minimum, growth). The price is added
- * as a new line item on their existing hosting subscription.
+ * PER-SITE model: every site gets its OWN Stripe subscription (1 site : 1
+ * sub). Adding a site creates a brand-new subscription for the chosen plan,
+ * charged immediately to the customer's default payment method, and links
+ * the site via sites.stripe_subscription_id (+ stripe_subscription_item_id
+ * for the plan line item that per-site add-ons attach alongside).
  *
- * If the user has no subscription yet, they're directed to sign up first.
+ * There is no account-level "sites allowed" cap — each site is billed on
+ * its own, so a customer can run as many as they want.
  *
- * Post Stripe-Sync-Engine cutover: the local public.subscriptions table
- * was dropped — every read goes through stripe.* (the Sync Engine mirror)
- * via findHostingSubscription(). The webhook still fires asynchronously
- * for new subscriptions, but we don't wait on its local upsert.
+ * The Stripe Sync Engine mirrors the new sub into stripe.* asynchronously;
+ * the webhook (customer.subscription.created) also fires but provisioning
+ * there is a no-op once we've provisioned inline (guarded by wp_cloud_site_id).
  */
 
 export async function POST(req: Request) {
@@ -56,166 +59,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `Plan "${selectedPlan}" not found or not configured in Stripe` }, { status: 400 });
   }
 
-  // Enforce sites_allowed for the user's CURRENT plan (not the requested one — they
-  // can't escape the limit by passing a different planSlug; new sites always inherit
-  // the existing hosting subscription's plan if one exists).
-  const { data: existingSites } = await supabase
-    .from('sites')
-    .select('id, product_id')
-    .eq('user_id', user.id)
-    .not('status', 'in', '("cancelled","deleted","flagged_for_deletion")');
+  // Require a Stripe customer (payment method on file). Each site is its own
+  // subscription billed immediately, so we need a card to charge.
+  const { data: profile } = await supabase
+    .from('users')
+    .select('stripe_customer_id')
+    .eq('id', user.id)
+    .single();
 
-  const sitesUsed = existingSites?.length ?? 0;
-  if (sitesUsed > 0) {
-    // Use the plan of an existing site to determine the cap
-    const referencePlanId = existingSites![0].product_id;
-    const { data: refPlan } = await supabase
-      .from('products')
-      .select('name, metadata')
-      .eq('id', referencePlanId)
-      .maybeSingle();
-    const sitesAllowed = Number((refPlan?.metadata as any)?.sites_allowed ?? 1);
-    if (sitesUsed >= sitesAllowed) {
-      return NextResponse.json({
-        error: `Your ${refPlan?.name ?? 'current'} plan allows ${sitesAllowed} site${sitesAllowed === 1 ? '' : 's'}. You're using ${sitesUsed}. Upgrade to add more sites.`,
-      }, { status: 403 });
-    }
+  if (!profile?.stripe_customer_id) {
+    return NextResponse.json({
+      error: 'No payment method on file. Please add a payment method in billing settings.',
+    }, { status: 400 });
   }
 
-  // Find user's existing hosting subscription — or create one
-  let hostingSub = await findHostingSubscription(supabase, user.id);
-
-  if (!hostingSub?.stripe_subscription_id) {
-    // No active subscription — create a new one with this site as the first item
-    const { data: profile } = await supabase
-      .from('users')
-      .select('stripe_customer_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.stripe_customer_id) {
-      return NextResponse.json({
-        error: 'No payment method on file. Please add a payment method in billing settings.',
-      }, { status: 400 });
-    }
-
-    try {
-      const newSub = await stripe.subscriptions.create({
-        customer: profile.stripe_customer_id,
-        items: [{ price: plan.priceId }],
-        payment_settings: { save_default_payment_method: 'on_subscription' },
-        metadata: {
-          supabase_user_id: user.id,
-          subscription_type: 'hosting',
-        },
-      });
-
-      // Sync Engine mirrors the new sub into stripe.subscriptions on its
-      // next event poll; no local insert needed.
-      hostingSub = {
-        id: newSub.id,
-        stripe_subscription_id: newSub.id,
-        status: newSub.status,
-      };
-
-      // The first item is already on the subscription — grab its ID
-      const firstItem = newSub.items.data[0];
-
-      // Create the site record linked to this subscription item
-      const siteLabel = label.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 40) || 'site';
-      const { data: site, error: siteErr } = await supabase.from('sites').insert({
-        user_id: user.id,
-        product_id: plan.productId,
-        stripe_subscription_item_id: firstItem.id,
-        label: siteLabel,
-        status: 'provisioning',
-        server_region: region || 'dca',
-        metadata: { self_service: true, plan_slug: selectedPlan },
-      }).select('id').single();
-
-      if (siteErr) return NextResponse.json({ error: siteErr.message }, { status: 500 });
-
-      // Update Stripe item metadata with our site ID
-      await stripe.subscriptionItems.update(firstItem.id, {
-        metadata: { envosta_site_id: site.id },
-      });
-
-      // Trigger provisioning via Vercel internal route.
-      try {
-        const origin = process.env.NEXT_PUBLIC_APP_URL
-          ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
-          : new URL(req.url).origin;
-        const provRes = await fetch(`${origin}/api/internal/wpcloud/provision-site`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Internal-Token': process.env.INTERNAL_API_TOKEN ?? '',
-          },
-          body: JSON.stringify({
-            siteId: site.id,
-            serviceId: site.id,
-            label: siteLabel,
-            region: region || 'dca',
-            phpVersion: '8.4',
-            planId: plan.productId,
-            userId: user.id,
-          }),
-        });
-
-        await recordAudit({
-          actorId: user.id,
-          actorType: 'user',
-          action: 'site.created',
-          resourceType: 'site',
-          resourceId: site.id,
-          metadata: {
-            level: 'info',
-            details: `New subscription + site "${siteLabel}" on ${plan.planName} plan`,
-            plan: selectedPlan,
-            provisioned: provRes.ok,
-            new_subscription: true,
-          },
-        });
-
-        return NextResponse.json({
-          success: true,
-          siteId: site.id,
-          plan: plan.planName,
-          newSubscription: true,
-          warning: provRes.ok ? undefined : 'Site created but provisioning may need retry',
-        });
-      } catch (e: any) {
-        return NextResponse.json({
-          success: true,
-          siteId: site.id,
-          plan: plan.planName,
-          newSubscription: true,
-          warning: 'Site created but provisioning failed — please contact support',
-        });
-      }
-    } catch (stripeErr: any) {
-      console.error('Failed to create subscription:', stripeErr);
-      return NextResponse.json({
-        error: stripeErr.message?.includes('payment')
-          ? 'Payment failed. Please update your payment method and try again.'
-          : `Failed to create subscription: ${stripeErr.message}`,
-      }, { status: 400 });
-    }
-  }
-
-  // If subscription is paused (0 sites), resume it before adding the item
-  if (hostingSub.status === 'paused') {
-    try {
-      await resumeSubscription(stripe, hostingSub.stripe_subscription_id);
-      // Sync Engine will mirror the updated status; nothing local to flip.
-      console.log('Resumed paused subscription:', hostingSub.stripe_subscription_id);
-    } catch (e: any) {
-      console.error('Failed to resume subscription:', e);
-      return NextResponse.json({ error: 'Failed to resume subscription. Please contact support.' }, { status: 500 });
-    }
-  }
-
-  // Active subscription — add a new line item
+  // Create the site row first (status=provisioning). The Stripe sub is
+  // created next and stamped back onto the row; if Stripe fails we roll the
+  // row back so we never strand a site with no billing.
   const siteLabel = label.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 40) || 'site';
   const { data: site, error: siteErr } = await supabase.from('sites').insert({
     user_id: user.id,
@@ -226,30 +86,55 @@ export async function POST(req: Request) {
     metadata: { self_service: true, plan_slug: selectedPlan },
   }).select('id').single();
 
-  if (siteErr) return NextResponse.json({ error: siteErr.message }, { status: 500 });
+  if (siteErr || !site) {
+    return NextResponse.json({ error: siteErr?.message ?? 'Failed to create site' }, { status: 500 });
+  }
 
+  // Create this site's dedicated Stripe subscription. Resellers get a flat
+  // platform discount applied to every site subscription they own.
+  const resellerCoupon = await resellerCouponForUser(supabase, stripe, user.id);
+  let subscription: Stripe.Subscription;
   try {
-    const item = await addSiteLineItem(
-      stripe,
-      hostingSub.stripe_subscription_id,
-      plan.priceId,
-      site.id,
-    );
-
-    // Save the Stripe subscription item ID on the site
-    await supabase.from('sites').update({
-      stripe_subscription_item_id: item.id,
-    }).eq('id', site.id);
+    subscription = await stripe.subscriptions.create({
+      customer: profile.stripe_customer_id,
+      items: [{ price: plan.priceId, metadata: { envosta_site_id: site.id } }],
+      payment_settings: { save_default_payment_method: 'on_subscription' },
+      ...(resellerCoupon ? { coupon: resellerCoupon } : {}),
+      metadata: {
+        supabase_user_id: user.id,
+        envosta_site_id: site.id,
+        subscription_type: 'hosting',
+        billing_period: 'monthly',
+      },
+    });
   } catch (stripeErr: any) {
-    // If Stripe fails, clean up the site record
+    // Roll back the site row so we don't leave an unbilled orphan.
     await supabase.from('sites').delete().eq('id', site.id);
-    console.error('Failed to add line item:', stripeErr);
+    console.error('Failed to create per-site subscription:', stripeErr);
     return NextResponse.json({
-      error: stripeErr.message?.includes('interval')
-        ? 'Cannot mix billing intervals. Your subscription is monthly — choose a monthly plan.'
-        : `Failed to add site to subscription: ${stripeErr.message}`,
+      error: stripeErr.message?.includes('payment')
+        ? 'Payment failed. Please update your payment method and try again.'
+        : `Failed to create subscription: ${stripeErr.message}`,
     }, { status: 400 });
   }
+
+  // If the immediate charge couldn't complete (e.g. no usable card on file),
+  // don't strand a provisioning site — roll everything back.
+  if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+    try { await stripe.subscriptions.cancel(subscription.id); } catch { /* best-effort */ }
+    await supabase.from('sites').delete().eq('id', site.id);
+    return NextResponse.json({
+      error: 'Payment could not be completed. Please update your payment method and try again.',
+      requiresPayment: true,
+    }, { status: 402 });
+  }
+
+  // Link the site to its subscription.
+  const firstItem = subscription.items.data[0];
+  await supabase.from('sites').update({
+    stripe_subscription_id: subscription.id,
+    stripe_subscription_item_id: firstItem?.id ?? null,
+  }).eq('id', site.id);
 
   // Trigger wp.cloud provisioning via Vercel internal route.
   try {
@@ -281,9 +166,10 @@ export async function POST(req: Request) {
       resourceId: site.id,
       metadata: {
         level: 'info',
-        details: `Added site "${siteLabel}" on ${plan.planName} plan`,
+        details: `Added site "${siteLabel}" on ${plan.planName} plan (own subscription)`,
         plan: selectedPlan,
         provisioned: provRes.ok,
+        stripe_subscription_id: subscription.id,
       },
     });
 

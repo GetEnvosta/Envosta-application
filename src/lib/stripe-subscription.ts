@@ -2,14 +2,18 @@ import Stripe from 'stripe';
 import { stripeAdmin } from '@/lib/stripe-admin';
 
 /**
- * Shared helpers for the single-subscription-per-customer model.
+ * Shared helpers for the PER-SITE subscription model.
  *
- * Architecture:
- * - Each customer has ONE Stripe subscription for hosting
- * - Each WordPress site is a line item (subscription item) on that subscription
- * - Adding a site = adding a line item with the plan's price
- * - Upgrading a site = swapping its line item's price (Stripe prorates automatically)
- * - Removing a site = deleting the line item
+ * Architecture (post per-site cutover):
+ * - Each WordPress site has its OWN Stripe subscription (1 site : 1 sub).
+ * - The link is sites.stripe_subscription_id → stripe.subscriptions.id.
+ * - The site's plan is the single recurring item on that subscription;
+ *   sites.stripe_subscription_item_id points at it (and is the anchor that
+ *   per-site add-on items are added alongside).
+ * - Adding a site    = create a new subscription for it.
+ * - Upgrading a site  = swap that subscription's plan item price
+ *                       (Stripe prorates automatically).
+ * - Cancelling a site = cancel its subscription.
  *
  * Domain renewals are NOT Stripe Subscriptions — the daily cron fires
  * off-session PaymentIntents instead, so nothing here needs to filter
@@ -17,11 +21,8 @@ import { stripeAdmin } from '@/lib/stripe-admin';
  *
  * Data source:
  *   - public.subscriptions does not exist. The Stripe Sync Engine mirrors
- *     Stripe into the `stripe` schema continuously, so
- *     `findHostingSubscription` reads `stripe.subscriptions` via the
- *     user's stripe_customer_id.
- *   - The returned shape preserves `stripe_subscription_id` (alias of the
- *     stripe.subscriptions.id) so callers don't need to change.
+ *     Stripe into the `stripe` schema continuously, so getSiteSubscription
+ *     reads `stripe.subscriptions` via sites.stripe_subscription_id.
  */
 
 export interface HostingSubscriptionRef {
@@ -31,61 +32,32 @@ export interface HostingSubscriptionRef {
   status: string;
 }
 
-/** Find the user's hosting subscription from stripe.* (active, trialing, or paused). */
-export async function findHostingSubscription(
+/** Find a specific site's dedicated Stripe subscription (per-site model). */
+export async function getSiteSubscription(
   supabase: any,
-  userId: string,
-): Promise<HostingSubscriptionRef | null> {
-  // Resolve Stripe customer ID first.
-  const { data: profile } = await supabase
-    .from('users')
-    .select('stripe_customer_id')
-    .eq('id', userId)
-    .maybeSingle();
-  const customerId = profile?.stripe_customer_id;
-  if (!customerId) return null;
-
-  // Pull alive subs from the Sync-Engine-mirrored stripe.subscriptions.
-  // Service-role (stripeAdmin) so this keeps working once RLS is on stripe.* —
-  // we already filtered to this user's customerId above.
-  const { data: subs } = await stripeAdmin()
-    .from('subscriptions')
-    .select('id, status, metadata')
-    .eq('customer', customerId)
-    .in('status', ['active', 'trialing', 'paused'])
-    .order('created', { ascending: false });
-
-  // Domain renewals are not Stripe Subscriptions, so any live sub belongs
-  // to hosting. Defensive guard kept for legacy rows.
-  const hostingSub = (subs ?? []).find((s: any) => {
-    const meta = (s.metadata as any) ?? {};
-    return meta.type !== 'domain_renewal' && meta.is_domain_purchase !== 'true';
-  }) ?? (subs ?? [])[0];
-
-  if (!hostingSub) return null;
-
-  return {
-    id: hostingSub.id,
-    stripe_subscription_id: hostingSub.id,
-    status: hostingSub.status,
-  };
-}
-
-/** Add a site as a line item to an existing Stripe subscription. */
-export async function addSiteLineItem(
-  stripe: Stripe,
-  stripeSubscriptionId: string,
-  priceId: string,
   siteId: string,
-): Promise<Stripe.SubscriptionItem> {
-  const item = await stripe.subscriptionItems.create({
-    subscription: stripeSubscriptionId,
-    price: priceId,
-    quantity: 1,
-    metadata: { envosta_site_id: siteId },
-    proration_behavior: 'create_prorations',
-  });
-  return item;
+): Promise<HostingSubscriptionRef | null> {
+  const { data: site } = await supabase
+    .from('sites')
+    .select('stripe_subscription_id')
+    .eq('id', siteId)
+    .maybeSingle();
+  const subId = site?.stripe_subscription_id;
+  if (!subId) return null;
+
+  // Read live status from the Sync-Engine-mirrored stripe.subscriptions.
+  const { data: sub } = await stripeAdmin()
+    .from('subscriptions')
+    .select('id, status')
+    .eq('id', subId)
+    .maybeSingle();
+
+  // If the mirror hasn't caught up yet, still return the id we know about.
+  return {
+    id: subId,
+    stripe_subscription_id: subId,
+    status: (sub?.status as string) ?? 'unknown',
+  };
 }
 
 /** Swap a site's line item to a different plan price (upgrade/downgrade). */
@@ -99,50 +71,6 @@ export async function updateSiteLineItem(
     proration_behavior: 'create_prorations',
   });
   return item;
-}
-
-/** Remove a site's line item from the subscription.
- *  If it's the last item, pauses the subscription instead of cancelling it.
- *  This keeps the subscription object alive so adding a new site just resumes it.
- */
-export async function removeSiteLineItem(
-  stripe: Stripe,
-  stripeSubscriptionId: string,
-  stripeItemId: string,
-): Promise<{ removed: boolean; subscriptionPaused: boolean }> {
-  // Check how many items are on the subscription
-  const sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
-  const itemCount = sub.items.data.length;
-
-  if (itemCount <= 1) {
-    // Last item — remove it and pause the subscription (keep it alive at $0)
-    await stripe.subscriptionItems.del(stripeItemId, {
-      proration_behavior: 'create_prorations',
-    });
-
-    // Pause billing — subscription stays active but won't invoice
-    await stripe.subscriptions.update(stripeSubscriptionId, {
-      pause_collection: { behavior: 'void' },
-    });
-
-    return { removed: true, subscriptionPaused: true };
-  }
-
-  // Other items remain — just remove this one
-  await stripe.subscriptionItems.del(stripeItemId, {
-    proration_behavior: 'create_prorations',
-  });
-  return { removed: true, subscriptionPaused: false };
-}
-
-/** Resume a paused subscription (called when adding a new site to a paused sub). */
-export async function resumeSubscription(
-  stripe: Stripe,
-  stripeSubscriptionId: string,
-): Promise<void> {
-  await stripe.subscriptions.update(stripeSubscriptionId, {
-    pause_collection: '' as any, // Stripe API: set to empty to unpause
-  });
 }
 
 /** Resolve a plan slug + billing period to a Stripe price ID. */

@@ -6,11 +6,10 @@
  * Body: { siteId: string, addonSlug: string }
  * Auth: regular user session (auth.uid()).
  *
- * Model — site-scoped add-ons:
- *   One Stripe SubscriptionItem per add-on TYPE, `quantity` = the number
- *   of the account's sites using it. Removing an add-on from one site
- *   decrements that quantity; when the last site drops it the Stripe
- *   item is deleted outright. The (site, add-on) `site_addons` row is
+ * Model — site-scoped add-ons (per-site subscription):
+ *   Each site has its own Stripe subscription; an add-on is a
+ *   SubscriptionItem on it (quantity 1). Removing the add-on deletes that
+ *   SubscriptionItem outright. The (site, add-on) `site_addons` row is
  *   marked `cancelled` rather than hard-deleted (forensic trail).
  */
 import { NextResponse } from 'next/server';
@@ -82,32 +81,13 @@ export async function POST(req: Request) {
 
   const stripeItemId = addonRow.stripe_subscription_item_id;
 
-  // ── Count OTHER active rows sharing the same Stripe item ──
-  // These are other sites on the account still using this add-on TYPE;
-  // they determine whether the Stripe item is decremented or deleted.
-  let otherSitesUsing = 0;
-  if (stripeItemId) {
-    const { count } = await sbService
-      .from('site_addons')
-      .select('id', { count: 'exact', head: true })
-      .eq('stripe_subscription_item_id', stripeItemId)
-      .eq('status', 'active')
-      .neq('id', addonRow.id);
-    otherSitesUsing = count ?? 0;
-  }
-
-  // ── Stripe: decrement or delete the SubscriptionItem ──
+  // ── Stripe: delete the SubscriptionItem from this site's sub ──
+  // Per-site model: the item is exclusive to this site's subscription, so
+  // it's removed outright (the plan item keeps the subscription alive).
   if (stripeItemId) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
     try {
-      if (otherSitesUsing > 0) {
-        const item = await stripe.subscriptionItems.retrieve(stripeItemId);
-        const nextQty = Math.max(1, (item.quantity ?? 1) - 1);
-        await stripe.subscriptionItems.update(stripeItemId, { quantity: nextQty });
-      } else {
-        // Last site using this add-on TYPE → remove the item entirely.
-        await stripe.subscriptionItems.del(stripeItemId);
-      }
+      await stripe.subscriptionItems.del(stripeItemId);
     } catch (e: any) {
       return NextResponse.json({ ok: false, error: e?.message ?? 'Failed to update Stripe subscription' }, { status: 500 });
     }
@@ -132,7 +112,7 @@ export async function POST(req: Request) {
     metadata: {
       addon_slug: addonSlug,
       stripe_subscription_item_id: stripeItemId,
-      stripe_item_deleted: otherSitesUsing === 0,
+      stripe_item_deleted: !!stripeItemId,
     },
   });
 

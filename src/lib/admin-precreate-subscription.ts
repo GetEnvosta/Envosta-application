@@ -26,6 +26,7 @@
 
 import Stripe from 'stripe';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { resellerCouponForUser } from '@/lib/reseller';
 
 export interface PreCreateResult {
   ok: boolean;
@@ -101,15 +102,20 @@ export async function preCreateAdminSubscription(args: PreCreateArgs): Promise<P
       },
     };
 
+    // Resellers get a flat platform discount on every subscription; an
+    // admin-supplied couponCode takes precedence if both would apply.
+    const resellerCoupon = await resellerCouponForUser(sb, stripe, userId);
+    const effectiveCoupon = couponCode ?? resellerCoupon;
+
     let subscription: Stripe.Subscription;
     let couponWarning: string | undefined;
 
     // Try with coupon first; on error, retry without
-    if (couponCode) {
+    if (effectiveCoupon) {
       try {
-        subscription = await stripe.subscriptions.create({ ...baseParams, coupon: couponCode } as any);
+        subscription = await stripe.subscriptions.create({ ...baseParams, coupon: effectiveCoupon } as any);
       } catch (e: any) {
-        couponWarning = `Coupon "${couponCode}" rejected by Stripe (${e?.message ?? 'unknown'}); created subscription without coupon`;
+        couponWarning = `Coupon "${effectiveCoupon}" rejected by Stripe (${e?.message ?? 'unknown'}); created subscription without coupon`;
         console.error('preCreateAdminSubscription: coupon failed, retrying without —', e?.message);
         subscription = await stripe.subscriptions.create(baseParams);
       }

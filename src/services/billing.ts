@@ -1,12 +1,17 @@
 /**
- * Billing reads — account subscription, invoices, payment methods.
+ * Billing reads — subscriptions, invoices, payment methods.
  *
- * Account-centric model: every user has at most ONE active Stripe
- * subscription. The Supabase Stripe Sync Engine mirrors all Stripe data
- * into the `stripe` schema (stripe.subscriptions, stripe.invoices,
- * stripe.payment_methods, …). This service queries those directly via
- * `users.stripe_customer_id` — there is no longer a public.subscriptions
- * or public.invoices table.
+ * Per-site model: a user has ONE Stripe subscription PER SITE (1 site : 1
+ * sub), all under their single stripe_customer_id. The Supabase Stripe
+ * Sync Engine mirrors all Stripe data into the `stripe` schema
+ * (stripe.subscriptions, stripe.invoices, stripe.payment_methods, …); this
+ * service queries those directly via `users.stripe_customer_id` — there is
+ * no public.subscriptions / public.invoices table.
+ *
+ * getAccountSubscription returns the user's MOST RECENT live subscription —
+ * a convenience for "primary plan" displays only. To act on a specific
+ * site's billing, resolve its subscription via sites.stripe_subscription_id
+ * (see getSiteSubscription in lib/stripe-subscription.ts).
  *
  * Mutations still go through Stripe directly (via API routes). This
  * service is read-only.
@@ -52,14 +57,15 @@ async function getStripeCustomerId(userId: string): Promise<string | null> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SUBSCRIPTIONS — one per account
+// SUBSCRIPTIONS — one per SITE (this returns the most recent as "primary")
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Get the user's single active/trialing/past_due/paused subscription.
- * Returns null if none. Sorted by created DESC, limit 1 — Sync Engine
- * surfaces every sub, even cancelled, but the account model says only
- * one is alive at a time so this is the right pick.
+ * Get the user's MOST RECENT active/trialing/past_due/paused subscription.
+ * Returns null if none. Per-site model: a user may have many live subs
+ * (one per site); this returns the newest as a "primary plan" convenience
+ * for account-level displays. For a specific site's sub, use
+ * getSiteSubscription(siteId) in lib/stripe-subscription.ts.
  */
 export async function getAccountSubscription(userId: string): Promise<any | null> {
   const customerId = await getStripeCustomerId(userId);
@@ -70,15 +76,56 @@ export async function getAccountSubscription(userId: string): Promise<any | null
     .select('*')
     .eq('customer', customerId)
     .in('status', ACTIVE_SUB_STATUSES as any)
-    .order('created', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order('created', { ascending: false });
 
   if (error) {
     console.error('getAccountSubscription error:', error);
     return null;
   }
-  return data;
+
+  // Exclude domain-renewal subscriptions (a separate billing concern) so
+  // "primary plan" displays surface a HOSTING subscription, never a domain
+  // renewal. Returns null when the user has only non-hosting subs.
+  const hosting = ((data as any[]) ?? []).find((s) => {
+    const meta = (s.metadata as any) ?? {};
+    return meta.type !== 'domain_renewal' && meta.is_domain_purchase !== 'true';
+  });
+  return hosting ?? null;
+}
+
+/**
+ * Resolve the billing interval of a SPECIFIC site's subscription
+ * (per-site model). Used to show the correct add-on price column. Reads
+ * the sub's billing_period metadata, falling back to the plan item's
+ * recurring interval for legacy subs that predate the metadata stamp.
+ */
+export async function getSiteBillingPeriod(siteId: string): Promise<'monthly' | 'yearly'> {
+  const supabase = await createClient();
+  const { data: site } = await supabase
+    .from('sites')
+    .select('stripe_subscription_id')
+    .eq('id', siteId)
+    .maybeSingle();
+  const subId = site?.stripe_subscription_id;
+  if (!subId) return 'monthly';
+
+  const stripeSchema: any = stripeAdmin();
+  const { data: sub } = await stripeSchema
+    .from('subscriptions')
+    .select('metadata')
+    .eq('id', subId)
+    .maybeSingle();
+  if ((sub?.metadata as any)?.billing_period === 'yearly') return 'yearly';
+
+  const { data: items } = await stripeSchema
+    .from('subscription_items')
+    .select('price')
+    .eq('subscription', subId);
+  for (const it of (items as any[]) ?? []) {
+    const interval = it?.price && typeof it.price === 'object' ? (it.price as any)?.recurring?.interval : null;
+    if (interval === 'year') return 'yearly';
+  }
+  return 'monthly';
 }
 
 /**

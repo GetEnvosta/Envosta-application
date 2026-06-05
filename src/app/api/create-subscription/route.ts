@@ -4,11 +4,10 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
-// '@/lib/stripe-subscription' helpers (findHostingSubscription,
-// addSiteLineItem, resolvePlanPrice) are intentionally unused in this
-// file — the default signup path is one-site-per-subscription, so we
-// skip the line-item-collapse logic. Those helpers stay exported for
-// the future multi-site agency plan flow.
+import { resellerCouponForUser } from '@/lib/reseller';
+// Per-site model: signup always creates ONE subscription for the new
+// site (plan item + any bundled add-on items). There is no account-level
+// subscription to collapse line items into.
 
 export const dynamic = 'force-dynamic';
 
@@ -16,8 +15,8 @@ export const dynamic = 'force-dynamic';
  * POST — Create a Stripe subscription with incomplete status for embedded checkout.
  * Returns client_secret for PaymentElement confirmation.
  *
- * If the user already has an active hosting subscription, adds a new site
- * line item to that subscription instead of creating a new one.
+ * Per-site model: each purchase creates its own subscription (one site =
+ * one subscription). A customer can hold many concurrent hosting subs.
  *
  * For new signups: creates user first, then subscription.
  * For dashboard: uses existing auth.
@@ -161,16 +160,9 @@ export async function POST(req: Request) {
   }
 
   // ── Per-site subscription model ──────────────────────────────────
-  // Default behaviour today: every new site purchase creates its OWN
-  // Stripe subscription (one site = one subscription, mirrors how each
-  // domain is its own renewal sub). Customers can have many concurrent
-  // hosting subscriptions on a single account.
-  //
-  // The collapse-into-existing-subscription path (adding a new line
-  // item to an existing sub) is intentionally NOT used here — it stays
-  // available via lib/stripe-subscription.ts#addSiteLineItem so a
-  // future agency plan can opt back into multi-site-per-subscription
-  // billing without re-implementing it.
+  // Every new site purchase creates its OWN Stripe subscription (one
+  // site = one subscription, mirroring how each domain renewal is its
+  // own sub). A customer can hold many concurrent hosting subscriptions.
   // ───────────────────────────────────────────────────────────────────
 
   // Build subscription params. Admin-created accounts get their Stripe
@@ -210,6 +202,13 @@ export async function POST(req: Request) {
         (subParams as any).promotion_code = promos.data[0].id;
       }
     } catch { /* ignore */ }
+  }
+
+  // Reseller flat discount — applied only when no signup promo code took
+  // effect (Stripe rejects coupon + promotion_code together).
+  if (!(subParams as any).promotion_code) {
+    const resellerCoupon = await resellerCouponForUser(sb, stripe, userId);
+    if (resellerCoupon) (subParams as any).coupon = resellerCoupon;
   }
 
   const subscription = await stripe.subscriptions.create(subParams);

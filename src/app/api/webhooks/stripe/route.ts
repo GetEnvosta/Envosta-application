@@ -396,19 +396,24 @@ export async function POST(req: Request) {
           .maybeSingle();
 
         if (existingSite) {
+          // Always (re)assert the per-site subscription link; update the
+          // plan too if the item's price changed.
+          const patch: Record<string, unknown> = { stripe_subscription_id: sub.id };
           if (itemPlan && existingSite.product_id !== itemPlan.id) {
-            await supabase.from('sites').update({ product_id: itemPlan.id }).eq('id', existingSite.id);
+            patch.product_id = itemPlan.id;
             console.log('[stripe-webhook] site plan updated:', existingSite.id, '→', itemPlan.slug);
           }
+          await supabase.from('sites').update(patch).eq('id', existingSite.id);
         } else if (siteIdMeta) {
           await supabase
             .from('sites')
             .update({
+              stripe_subscription_id: sub.id,
               stripe_subscription_item_id: item.id,
               product_id: itemPlan?.id ?? null,
             })
             .eq('id', siteIdMeta);
-          console.log('[stripe-webhook] site linked to item:', siteIdMeta, '→', item.id);
+          console.log('[stripe-webhook] site linked to sub/item:', siteIdMeta, '→', sub.id, item.id);
         }
       }
 
@@ -455,6 +460,7 @@ export async function POST(req: Request) {
             await supabase
               .from('sites')
               .update({
+                stripe_subscription_id: sub.id,
                 stripe_subscription_item_id: firstItem?.id ?? null,
                 product_id: primaryPlan?.id ?? null,
               })
@@ -486,6 +492,7 @@ export async function POST(req: Request) {
             .insert({
               user_id: cust.id,
               product_id: primaryPlan?.id ?? null,
+              stripe_subscription_id: sub.id,
               stripe_subscription_item_id: firstItem?.id ?? null,
               label: `${name}-site`,
               status: 'provisioning',
@@ -589,10 +596,9 @@ export async function POST(req: Request) {
           // stripe_subscription_item_id. Non-fatal — wrapped so a
           // failure here never blocks provisioning.
           //
-          // This assumes the account-centric one-site-at-signup model:
-          // the bundle attaches to the single site created above. For a
-          // multi-site agency flow, add-on assignment would move to a
-          // post-signup step keyed by siteId.
+          // Per-site model: this signup subscription is for exactly one
+          // site, and the bundled add-on items attach to that site (svc)
+          // created above — matched to Stripe items by price.id.
           if (wasNewlyInserted) {
             try {
               const signupAddonSlugs = parseAddonSlugs((sub.metadata as any)?.addon_slugs);
@@ -689,13 +695,12 @@ export async function POST(req: Request) {
           ? new Date((sub as any).current_period_end * 1000).toISOString()
           : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-        const itemIds = items.map(i => i.id);
-
-        if (isPaused && itemIds.length > 0) {
+        if (isPaused) {
+          // Per-site model: this subscription maps to exactly one site.
           const { data: sitesToFlag } = await supabase
             .from('sites')
             .select('id, label, status, metadata, user_id')
-            .in('stripe_subscription_item_id', itemIds)
+            .eq('stripe_subscription_id', sub.id)
             .in('status', ['active', 'provisioning', 'paused']);
 
           let flagged = 0;
@@ -743,14 +748,14 @@ export async function POST(req: Request) {
             await sendEmail({ to: cust.email, ...email });
           }
           console.log(`[stripe-webhook] subscription paused: ${sub.id}, flagged ${flagged} site(s)`);
-        } else if (sub.status === 'active' && !sub.pause_collection && itemIds.length > 0) {
+        } else if (sub.status === 'active' && !sub.pause_collection) {
           // Resume → restore sites we flagged. Use the unsuspendSite
           // workflow with inline fallback for the same reliability story
           // as the pause path above.
           const { data: flagged } = await supabase
             .from('sites')
             .select('id, label, metadata')
-            .in('stripe_subscription_item_id', itemIds)
+            .eq('stripe_subscription_id', sub.id)
             .eq('status', 'cancelled')
             .eq('flag_reason', 'subscription_paused');
 
@@ -943,13 +948,12 @@ export async function POST(req: Request) {
         .maybeSingle();
 
       // Cascade to sites linked via stripe_subscription_item_id.
-      const itemIds = (sub.items?.data ?? []).map(i => i.id);
       let pausedSiteCount = 0;
-      if (cust && itemIds.length > 0) {
+      if (cust) {
         const { data: sites } = await supabase
           .from('sites')
           .select('id, label, status, user_id')
-          .in('stripe_subscription_item_id', itemIds)
+          .eq('stripe_subscription_id', sub.id)
           .in('status', ['active', 'provisioning']);
 
         // 14-day grace period before delete-expired-sites cron auto-deletes.

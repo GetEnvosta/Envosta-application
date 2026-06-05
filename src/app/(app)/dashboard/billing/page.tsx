@@ -1,5 +1,5 @@
 import { getEffectiveUserId } from '@/services/auth';
-import { getAccountInvoices, getAccountSubscriptionWithProduct } from '@/services/billing';
+import { getAccountInvoices } from '@/services/billing';
 import { formatCents, formatDate, statusColor } from '@/lib/utils';
 import { FileText, Download, Globe, ArrowUpRight, Plus } from 'lucide-react';
 import { PaymentMethodManager } from '@/components/billing/payment-method-manager';
@@ -16,7 +16,7 @@ export default async function BillingPage() {
   const supabase = await createClient();
 
   // Fetch invoices, sites with plan info, and account subscription in parallel
-  const [invoices, sitesResult, accountSub] = await Promise.all([
+  const [invoices, sitesResult] = await Promise.all([
     getAccountInvoices(userId!, 20),
     supabase
       .from('sites')
@@ -24,7 +24,6 @@ export default async function BillingPage() {
       .eq('user_id', userId!)
       .not('status', 'in', '("cancelled","deleted")')
       .order('created_at', { ascending: false }),
-    getAccountSubscriptionWithProduct(userId!),
   ]);
 
   const sites = sitesResult.data ?? [];
@@ -53,11 +52,9 @@ export default async function BillingPage() {
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Monthly Total</p>
               <p className="text-2xl font-bold text-gray-900 mt-0.5">{formatCents(monthlyTotal, 'usd')}<span className="text-sm font-normal text-gray-400">/mo</span></p>
-              {accountSub && (
+              {sites.length > 0 && (
                 <p className="text-[11px] text-gray-400 mt-1">
-                  Plan: <span className="text-gray-600 font-medium">{accountSub.product?.name ?? 'Hosting'}</span>
-                  <span className="mx-1.5">·</span>
-                  <span className={statusColor(accountSub.status)}>{accountSub.status}</span>
+                  {sites.length} {sites.length === 1 ? 'subscription' : 'subscriptions'} · one per site
                 </p>
               )}
             </div>

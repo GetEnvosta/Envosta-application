@@ -95,7 +95,7 @@ export function CustomSubscriptionForm({ userId, userEmail }: { userId: string; 
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1.5 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition-colors"
       >
-        <Sparkles className="w-3 h-3" /> Create custom subscription (Premium / Reseller)
+        <Sparkles className="w-3 h-3" /> Create custom subscription (Premium)
       </button>
     );
   }
@@ -130,7 +130,6 @@ export function CustomSubscriptionForm({ userId, userEmail }: { userId: string; 
           <label htmlFor="planSlug" className="block text-[11px] font-medium text-gray-600 mb-1">Plan</label>
           <select id="planSlug" name="planSlug" defaultValue="premium" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white">
             <option value="premium">Premium</option>
-            <option value="reseller">Reseller</option>
           </select>
         </div>
         <div>
