@@ -9,3 +9,9 @@ Thumbs.db
 .vscode/
 *.log
 supabase/.temp/
+
+# Build / cache artifacts (should not be tracked)
+tsconfig.tsbuildinfo
+*.pyc
+__pycache__/
+.claude/scheduled_tasks.lock
