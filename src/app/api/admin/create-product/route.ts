@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   const { type, name, slug, billing, price_cad } = await req.json();
 
   const metadata = type === 'hosting_plan'
-    ? { php_workers_default: 2, php_workers_included: 4, php_memory_mb: 512, storage_gb: 25, has_staging: true, has_backups: true, has_cdn: true, has_waf: true, onboarding_type: 'standard', support_type: 'tickets', sites_allowed: 1 }
+    ? { php_workers_default: 2, php_workers_included: 4, php_memory_mb: 512, storage_gb: 25, has_staging: true, has_backups: true, has_cdn: true, has_waf: true, onboarding_type: 'standard', support_type: 'tickets' }
     : {};
 
   const { data, error } = await supabase.from('products').insert({

@@ -22,7 +22,6 @@ export default function NewPlanPage() {
     default_php_workers: 4,
     max_php_workers: 4,
     php_memory_mb: 512,
-    sites_allowed: 1,
     domains_allowed: 1,
     has_staging: true,
     has_backups: true,
@@ -71,7 +70,6 @@ export default function NewPlanPage() {
         has_waf: plan.has_waf,
         onboarding_type: plan.onboarding_type,
         support_type: plan.support_type ?? 'tickets',
-        sites_allowed: plan.sites_allowed,
       },
     }).select('id').single();
 

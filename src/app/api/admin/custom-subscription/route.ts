@@ -2,12 +2,12 @@
  * POST /api/admin/custom-subscription
  *
  * Creates a bespoke Stripe Subscription for a customer at a custom price.
- * Used to onboard Premium and Reseller plan customers — both share the
- * pattern of "one Stripe Product, N per-customer Prices."
+ * Used to onboard bespoke Enterprise-priced customers — one Stripe Product,
+ * N per-customer Prices.
  *
  * Body: {
  *   userId:         string,            // target customer's public.users.id
- *   planSlug:       'premium' | 'reseller',
+ *   planSlug:       'enterprise',
  *   monthlyCents:   number,            // custom monthly price in cents
  *   yearlyCents?:   number,            // optional yearly price
  *   currency?:      'usd' | 'cad',     // default 'usd'
@@ -18,7 +18,7 @@
  *
  * Flow:
  *   1. Verify caller is admin.
- *   2. Lookup the plan row (premium or reseller) to get its
+ *   2. Lookup the plan row (enterprise) to get its
  *      stripe_product_id. If absent, error — admin must sync the plan
  *      to Stripe first via /admin/settings/plans first.
  *   3. Lookup the customer's stripe_customer_id. Create one if missing.
@@ -80,8 +80,8 @@ export async function POST(req: Request) {
   if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 });
   // Reseller is no longer a bespoke plan — resellers are a per-account flag
   // with a flat discount (see /api/admin/set-reseller + src/lib/reseller.ts).
-  if (!['premium'].includes(planSlug)) {
-    return NextResponse.json({ error: 'planSlug must be "premium" (resellers are now a per-account flag, not a plan)' }, { status: 400 });
+  if (!['enterprise'].includes(planSlug)) {
+    return NextResponse.json({ error: 'planSlug must be "enterprise" (resellers are now a per-account flag, not a plan)' }, { status: 400 });
   }
   if (!Number.isFinite(monthlyCents) || monthlyCents < 100) {
     return NextResponse.json({ error: 'monthlyCents must be >= 100' }, { status: 400 });
