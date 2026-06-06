@@ -123,10 +123,8 @@ export default function IntakePage() {
           if (Array.isArray(p.features) && p.features.length > 0) return p.features;
           const meta = p.metadata ?? {};
           const out: string[] = [];
-          const sites = meta.sites_allowed;
-          if (typeof sites === 'number') {
-            out.push(sites <= 1 ? '1 site' : `Up to ${sites} sites`);
-          }
+          const workers = meta.php_workers_included;
+          if (typeof workers === 'number') out.push(`Up to ${workers} PHP workers`);
           if (meta.storage_gb) out.push(`${meta.storage_gb} GB SSD`);
           out.push('Free SSL + CDN');
           if (meta.has_backups !== false) out.push('Daily backups & auto-updates');

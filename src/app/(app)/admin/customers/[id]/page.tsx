@@ -56,14 +56,6 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     ? (hostingPlan?.price_yearly_cad ?? (hostingPlan?.price_cad ? hostingPlan.price_cad * 12 : 0))
     : (hostingPlan?.price_cad ?? 0);
 
-  // How many sites this plan allows. Pulled from product metadata; falls back
-  // to the first site's own product metadata if the subscription hasn't
-  // resolved a hostingPlan yet.
-  const sitesAllowed: number =
-    (hostingPlan?.metadata as any)?.sites_allowed
-    ?? ((activeSites[0]?.products as any)?.metadata as any)?.sites_allowed
-    ?? null;
-  const sitesUsed = activeSites.length;
 
   // No annual domain sub total — the auto_renew flag per domain row is
   // the only signal we track here.
@@ -224,22 +216,6 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         <div className="section-card-header">
           <h2 className="section-card-title">Sites ({activeSites.length})</h2>
           <div className="ml-auto flex items-center gap-2">
-            {sitesAllowed != null && (
-              <span
-                className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                  sitesUsed >= sitesAllowed
-                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                }`}
-                title={
-                  sitesUsed >= sitesAllowed
-                    ? `Plan limit reached — upgrade for more sites`
-                    : `Plan allows ${sitesAllowed} site${sitesAllowed === 1 ? '' : 's'}`
-                }
-              >
-                {sitesUsed} <span className="opacity-50">of</span> {sitesAllowed} sites used
-              </span>
-            )}
             <AddSiteForCustomer customerId={user.id} />
           </div>
         </div>

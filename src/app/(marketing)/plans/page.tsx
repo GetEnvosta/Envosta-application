@@ -465,10 +465,10 @@ export default async function PricingPage() {
                   ))}
                 </tr>
                 <tr>
-                  <td>Sites included</td>
+                  <td>PHP workers</td>
                   {comparePlans.map((plan) => {
-                    const allowed = (plan.metadata as any)?.sites_allowed ?? 1;
-                    return <td key={plan.id}>{allowed === 1 ? '1' : `Up to ${allowed}`}</td>;
+                    const w = (plan.metadata as any)?.php_workers_included;
+                    return <td key={plan.id}>{w ? `Up to ${w}` : '—'}</td>;
                   })}
                 </tr>
                 <tr>

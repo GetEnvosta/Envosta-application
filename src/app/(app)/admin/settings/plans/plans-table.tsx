@@ -100,7 +100,7 @@ export function PlansTable({ plans }: { plans: PlanRow[] }) {
         <thead>
           <tr className="border-b border-gray-100 bg-gray-50/60">
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
-            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sites</th>
+            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Storage / Workers</th>
             <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly CAD</th>
             <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Yearly CAD</th>
             <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly USD</th>
@@ -112,7 +112,7 @@ export function PlansTable({ plans }: { plans: PlanRow[] }) {
         </thead>
         <tbody className="divide-y divide-gray-100">
           {plans.map(plan => {
-            const sites = plan.metadata?.sites_allowed ?? 1;
+            const specs = `${plan.metadata?.storage_gb ?? '?'} GB · ${plan.metadata?.php_workers_included ?? '?'}w`;
             const synced = Boolean(plan.stripe_product_id && plan.stripe_price_id);
             const showingSyncMsg = syncMsg?.id === plan.id;
             return (
@@ -121,7 +121,7 @@ export function PlansTable({ plans }: { plans: PlanRow[] }) {
                   <p className="font-medium text-gray-900">{plan.name}</p>
                   <p className="text-xs text-gray-500 mt-0.5 font-mono">{plan.slug}</p>
                 </td>
-                <td className="px-3 py-3.5 text-gray-700 tabular-nums">{sites}</td>
+                <td className="px-3 py-3.5 text-gray-700 tabular-nums">{specs}</td>
                 <td className="px-3 py-3.5">
                   <InlinePriceCell
                     value={plan.price_cad}
