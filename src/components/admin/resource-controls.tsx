@@ -12,7 +12,8 @@ interface Props {
   phpVersion?: string | null;
 }
 
-const WORKER_OPTIONS = [2, 4, 6, 8, 12, 30];
+// wp.cloud caps default_php_conns at 10 (higher only by special request).
+const WORKER_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const MEMORY_OPTIONS = [512, 1024, 1536, 2048];
 const STORAGE_OPTIONS = [10, 25, 50, 75, 100, 200, 400, 600, 800, 1000];
 const PHP_VERSION_OPTIONS = ['8.3', '8.4'];
@@ -151,11 +152,11 @@ export function ResourceControls({ siteId, wpCloudSiteId, config, planMetadata, 
           </label>
           <button
             onClick={() => setBursting(!bursting)}
-            className={`w-full input text-left ${bursting ? 'bg-green-50 border-green-300 text-green-700' : ''}`}
+            className={`w-full input text-left ${bursting ? 'bg-amber-50 border-amber-300 text-amber-700' : ''}`}
           >
-            {bursting ? '✓ Enabled' : 'Disabled'}
+            {bursting ? '✓ Enabled (+$250/mo)' : 'Disabled'}
           </button>
-          <p className="text-xs text-gray-400 mt-1">Auto-scales to 110+ workers</p>
+          <p className="text-xs text-amber-600 mt-1">Paid wp.cloud option — <strong>+$250/mo per site</strong>; auto-scales to 110+ workers.</p>
         </div>
       </div>
 

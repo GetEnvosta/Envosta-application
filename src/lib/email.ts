@@ -114,6 +114,31 @@ export function welcomeEmail(name: string, planName: string, loginUrl: string): 
   };
 }
 
+export function siteHandoffInviteEmail(ownerName: string, siteLabel: string, acceptUrl: string, expiresInDays: number): { subject: string; html: string } {
+  return {
+    subject: `${ownerName} wants to hand off a website to you`,
+    html: template(`
+      <h1>A website is being handed off to you</h1>
+      <p><strong>${ownerName}</strong> wants to transfer the site <strong>${siteLabel}</strong> to your Envosta account.</p>
+      <p>When you accept, you'll set up your own billing and the site moves to you — it stays live the whole time, nothing is rebuilt.</p>
+      <a href="${acceptUrl}" class="btn">Review &amp; accept</a>
+      <p style="font-size:13px;color:#888;">This link expires in ${expiresInDays} day${expiresInDays === 1 ? '' : 's'}. If you weren't expecting this, you can ignore this email.</p>
+    `),
+  };
+}
+
+export function siteHandoffAcceptedEmail(prevOwnerName: string, siteLabel: string, newOwnerName: string): { subject: string; html: string } {
+  return {
+    subject: `Your site "${siteLabel}" was handed off`,
+    html: template(`
+      <h1>Handoff complete</h1>
+      <p>Hey ${prevOwnerName}, the site <strong>${siteLabel}</strong> has been transferred to <strong>${newOwnerName}</strong>.</p>
+      <p>Billing for this site has moved to the new owner, and your subscription for it was cancelled with a prorated credit for the unused time.</p>
+      <p style="font-size:13px;color:#888;">If this wasn't expected, contact <a href="https://envosta.com/support">support</a> right away.</p>
+    `),
+  };
+}
+
 export function siteReadyEmail(name: string, siteName: string, siteUrl: string, wpAdminUrl: string): { subject: string; html: string } {
   return {
     subject: `Your site is live — ${siteName}`,

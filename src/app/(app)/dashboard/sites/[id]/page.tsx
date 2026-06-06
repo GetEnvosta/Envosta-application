@@ -17,6 +17,7 @@ import { SiteAccess } from '@/components/sites/site-access';
 import { SiteIp } from '@/components/sites/site-ip';
 import { SiteGuardrails } from '@/components/sites/site-guardrails';
 import { SiteAddons } from '@/components/sites/site-addons';
+import { SiteHandoffButton } from '@/components/sites/site-handoff-button';
 import { PhpVersionSelector } from '@/components/sites/php-version-selector';
 import { WpControls } from '@/components/sites/wp-controls';
 import { Tabs, type TabDef } from '@/components/ui/tabs';
@@ -265,6 +266,17 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
           {/* ═══ PLAN & RESOURCES ═══ */}
           <div className="card p-6 mb-6">
             <SiteGuardrails siteId={id} />
+          </div>
+
+          {/* ═══ TRANSFER OWNERSHIP ═══ */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 mb-6">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Transfer ownership</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Hand this site off to someone else — they set up billing and take over; the site stays live.</p>
+              </div>
+              <SiteHandoffButton siteId={site.id} siteName={site.label} />
+            </div>
           </div>
 
           {/* ═══ DANGER ZONE ═══ */}
