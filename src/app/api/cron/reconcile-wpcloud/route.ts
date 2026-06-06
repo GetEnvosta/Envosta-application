@@ -166,8 +166,22 @@ export async function GET(req: Request) {
           }
         }
 
-        const upstreamStatus =
-          (detail?.status as string | undefined) ?? null;
+        // wp.cloud's get-site does NOT return status / space_quota /
+        // space_used / created_at, and nests geo_affinity under `extra`.
+        // `reportedStatus` (authoritative health) is therefore always null
+        // today — kept for drift below. For the mirror we infer existence
+        // ('active' when get-site returned a real site) and pull geo from extra.
+        const reportedStatus = (detail?.status as string | undefined) ?? null;
+        const extra = (detail?.extra as any) ?? {};
+        const siteExists = !!(detail?.atomic_site_id ?? detail?.wpcom_blog_id);
+        const upstreamStatus = siteExists ? 'active' : null;
+        const geoAffinity =
+          (detail?.geo_affinity as string | undefined) ??
+          (extra?.meta?.geo_affinity as string | undefined) ??
+          (extra?.server_pool?.geo_affinity as string | undefined) ??
+          null;
+        const spaceQuotaGb = toInt(detail?.space_quota);
+        const upstreamCreatedAt = toIso((detail?.created_at as unknown) ?? detail?.created);
 
         // ── Read the existing mirror row to compare for drift ──
         const { data: prevMirror } = await supabase
@@ -185,60 +199,62 @@ export async function GET(req: Request) {
             null;
           return v != null && v !== '' ? Number(v) : null;
         })();
-        await supabase.from('wpcloud_sites').upsert(
-          {
-            upstream_id: wpId,
-            site_id: site.id,
-            wpcom_blog_id:
-              detail?.wpcom_blog_id != null
-                ? String(detail.wpcom_blog_id)
-                : detail?.blog_id != null
-                  ? String(detail.blog_id)
-                  : null,
-            primary_domain: sslDomain,
-            upstream_status: upstreamStatus,
-            php_version: (detail?.php_version as string | undefined) ?? null,
-            geo_affinity: (detail?.geo_affinity as string | undefined) ?? null,
-            space_quota_gb: toInt(detail?.space_quota),
-            space_used_mb:
-              spaceUsedMb != null && Number.isFinite(spaceUsedMb)
-                ? Math.round(spaceUsedMb)
+
+        // Always-present fields (reliably returned by get-site).
+        const mirrorRow: Record<string, unknown> = {
+          upstream_id: wpId,
+          site_id: site.id,
+          wpcom_blog_id:
+            detail?.wpcom_blog_id != null
+              ? String(detail.wpcom_blog_id)
+              : detail?.blog_id != null
+                ? String(detail.blog_id)
                 : null,
-            php_memory_mb: toInt(detail?.php_memory_limit),
-            php_workers: toInt(
-              (detail?.php_workers as unknown) ?? detail?.default_php_conns,
-            ),
-            burst_enabled:
-              detail?.burst_php_conns != null
-                ? Number(detail.burst_php_conns) > 0
-                : null,
-            ip_address: ipAddress,
-            ssl_status: sslStatus,
-            ssl_expires_at: sslExpiresAt,
-            upstream_created_at: toIso(
-              (detail?.created_at as unknown) ?? detail?.created,
-            ),
-            upstream_payload: { getSite: stripSecrets(detail) },
-            last_synced_at: nowIso,
-            updated_at: nowIso,
-          },
-          { onConflict: 'upstream_id' },
-        );
+          primary_domain: sslDomain,
+          php_version: (detail?.php_version as string | undefined) ?? null,
+          php_memory_mb: toInt(detail?.php_memory_limit),
+          php_workers: toInt(
+            (detail?.php_workers as unknown) ?? detail?.default_php_conns,
+          ),
+          burst_enabled:
+            detail?.burst_php_conns != null
+              ? Number(detail.burst_php_conns) > 0
+              : null,
+          upstream_payload: { getSite: stripSecrets(detail) },
+          last_synced_at: nowIso,
+          updated_at: nowIso,
+        };
+        // Maybe-missing fields — only write when we actually have a value, so a
+        // reconcile pass NEVER nulls out what provision / a prior sync set
+        // (get-site omits status/quota/usage/created_at and nests geo).
+        if (upstreamStatus != null) mirrorRow.upstream_status = upstreamStatus;
+        if (geoAffinity != null) mirrorRow.geo_affinity = geoAffinity;
+        if (spaceQuotaGb != null) mirrorRow.space_quota_gb = spaceQuotaGb;
+        if (spaceUsedMb != null && Number.isFinite(spaceUsedMb)) mirrorRow.space_used_mb = Math.round(spaceUsedMb);
+        if (ipAddress != null) mirrorRow.ip_address = ipAddress;
+        if (sslStatus != null) mirrorRow.ssl_status = sslStatus;
+        if (sslExpiresAt != null) mirrorRow.ssl_expires_at = sslExpiresAt;
+        if (upstreamCreatedAt != null) mirrorRow.upstream_created_at = upstreamCreatedAt;
+
+        await supabase.from('wpcloud_sites').upsert(mirrorRow, { onConflict: 'upstream_id' });
 
         // ── Drift detection ──
         // (a) status_mismatch — mirror's prior status changed, or our
         //     local sites.status disagrees with what wp.cloud reports.
-        const localExpected = mapUpstreamToLocalStatus(upstreamStatus);
+        // Uses reportedStatus (authoritative), NOT the inferred mirror value,
+        // so we never raise false drift from 'active'-by-existence. Dormant
+        // until a status-bearing wp.cloud endpoint is wired.
+        const localExpected = mapUpstreamToLocalStatus(reportedStatus);
         const mirrorChanged =
           prevMirror?.upstream_status != null &&
-          upstreamStatus != null &&
-          prevMirror.upstream_status !== upstreamStatus;
+          reportedStatus != null &&
+          prevMirror.upstream_status !== reportedStatus;
         const localDisagrees =
           localExpected != null &&
           site.status != null &&
           site.status !== localExpected;
 
-        if (upstreamStatus != null && (mirrorChanged || localDisagrees)) {
+        if (reportedStatus != null && (mirrorChanged || localDisagrees)) {
           await supabase.from('sync_drift').insert({
             sync_run_id: runId ?? null,
             provider: 'wpcloud',
@@ -247,7 +263,7 @@ export async function GET(req: Request) {
             drift_type: 'status_mismatch',
             details: {
               site_id: site.id,
-              upstream_status: upstreamStatus,
+              upstream_status: reportedStatus,
               previous_mirror_status: prevMirror?.upstream_status ?? null,
               local_site_status: site.status,
               expected_local_status: localExpected,
