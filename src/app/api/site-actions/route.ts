@@ -32,6 +32,9 @@ const INTERNAL_ACTIONS = new Set([
   'edge-cache',
   'defensive-mode',
   'wp-feature',
+  'sftp-credentials',
+  'reset-sftp-password',
+  'error-logs',
 ]);
 
 export async function POST(req: Request) {

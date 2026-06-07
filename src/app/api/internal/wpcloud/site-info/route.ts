@@ -594,6 +594,98 @@ async function handleWpFeature(siteId: string, feature: string, enabled: boolean
   }
 }
 
+/**
+ * SFTP credentials — list the site's SFTP/SSH users, auto-creating a default
+ * one if none exist so the customer always has access. Passwords are only
+ * set/revealed via reset-sftp-password. NOTE: the wp.cloud ssh-user path +
+ * body shapes are inferred from the documented surface — confirm on deploy.
+ */
+async function handleSftpCredentials(siteId: string) {
+  const client = createWpCloudClient();
+  const supabase = sb();
+  const { data: row } = await supabase
+    .from('sites')
+    .select('id, wp_cloud_site_id, user_id')
+    .eq('id', siteId)
+    .single();
+  if (!row?.wp_cloud_site_id) {
+    return NextResponse.json({ error: 'Site has no wp_cloud_site_id' }, { status: 400 });
+  }
+  try {
+    let { users } = await client.listSshUsers(row.wp_cloud_site_id);
+    if (!users || users.length === 0) {
+      // No SFTP user yet — create a default one (5+ chars, not all numbers).
+      const username = ('envosta_' + String(siteId).replace(/[^a-z0-9]/gi, '').slice(0, 8)).toLowerCase();
+      const tempPass = 'Env_' + crypto.randomUUID().replace(/-/g, '').slice(0, 18);
+      await client.createSshUser(row.wp_cloud_site_id, username, tempPass);
+      const relist = await client.listSshUsers(row.wp_cloud_site_id);
+      users = relist.users && relist.users.length ? relist.users : [{ username }];
+      await recordLog(supabase, {
+        userId: row.user_id, siteId: row.id,
+        action: 'hosting.sftp.user_created', message: `SFTP user ${username} created`,
+      });
+    }
+    return NextResponse.json({ users });
+  } catch (e) {
+    return wpErrorResponse(e);
+  }
+}
+
+/**
+ * Reset (or set) an SFTP user's password. The caller supplies the new
+ * password as `value`; we return ok and the UI reveals the value it sent.
+ */
+async function handleResetSftpPassword(siteId: string, username: unknown, value: unknown) {
+  const uname = typeof username === 'string' ? username : '';
+  if (!uname) return NextResponse.json({ error: 'username (key) is required' }, { status: 400 });
+  const newPass =
+    typeof value === 'string' && value.length >= 8
+      ? value
+      : 'Env_' + crypto.randomUUID().replace(/-/g, '').slice(0, 18);
+  const client = createWpCloudClient();
+  const supabase = sb();
+  const { data: row } = await supabase
+    .from('sites')
+    .select('id, wp_cloud_site_id, user_id')
+    .eq('id', siteId)
+    .single();
+  if (!row?.wp_cloud_site_id) {
+    return NextResponse.json({ error: 'Site has no wp_cloud_site_id' }, { status: 400 });
+  }
+  try {
+    await client.resetSshPassword(row.wp_cloud_site_id, uname, newPass);
+    await recordLog(supabase, {
+      userId: row.user_id, siteId: row.id,
+      action: 'hosting.sftp.password_reset', message: `SFTP password reset for ${uname}`,
+    });
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return wpErrorResponse(e);
+  }
+}
+
+/**
+ * Fetch the site's recent PHP error logs from wp.cloud.
+ */
+async function handleErrorLogs(siteId: string) {
+  const client = createWpCloudClient();
+  const supabase = sb();
+  const { data: row } = await supabase
+    .from('sites')
+    .select('id, wp_cloud_site_id')
+    .eq('id', siteId)
+    .single();
+  if (!row?.wp_cloud_site_id) {
+    return NextResponse.json({ error: 'Site has no wp_cloud_site_id' }, { status: 400 });
+  }
+  try {
+    const { logs } = await client.getErrorLogs(row.wp_cloud_site_id);
+    return NextResponse.json({ logs });
+  } catch (e) {
+    return wpErrorResponse(e);
+  }
+}
+
 function wpErrorResponse(e: unknown) {
   const isWp = e instanceof WpCloudError;
   const status = isWp ? e.status : 502;
@@ -696,6 +788,18 @@ async function dispatch(action: string, body: any): Promise<Response> {
         return NextResponse.json({ error: 'siteId and feature are required' }, { status: 400 });
       }
       return handleWpFeature(siteId, body.feature, body.enabled === true || body.enabled === 'true');
+
+    case 'sftp-credentials':
+      if (!siteId) return NextResponse.json({ error: 'siteId is required' }, { status: 400 });
+      return handleSftpCredentials(siteId);
+
+    case 'reset-sftp-password':
+      if (!siteId) return NextResponse.json({ error: 'siteId is required' }, { status: 400 });
+      return handleResetSftpPassword(siteId, body.key, body.value);
+
+    case 'error-logs':
+      if (!siteId) return NextResponse.json({ error: 'siteId is required' }, { status: 400 });
+      return handleErrorLogs(siteId);
 
     default:
       return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });

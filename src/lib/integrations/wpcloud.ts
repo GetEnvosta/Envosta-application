@@ -235,6 +235,23 @@ export interface WpCloudClient {
    */
   getDefensiveMode(siteId: string, domain: string): Promise<{ enabled: boolean; until: number | null; raw: unknown }>;
   setDefensiveMode(siteId: string, domain: string, until: number): Promise<void>;
+
+  /**
+   * SFTP/SSH user management. Maps to wp.cloud
+   * `/api/v1.0/ssh-user/{client}/{site}/{list|add|update}`.
+   * NOTE: the path segments + form-body field names follow the documented
+   * Atomic SSH surface but are UNVERIFIED against the live API — confirm on
+   * deploy (mirrors the edge-cache caveat above).
+   */
+  listSshUsers(siteId: string): Promise<{ users: unknown[]; raw: unknown }>;
+  createSshUser(siteId: string, username: string, password: string): Promise<void>;
+  resetSshPassword(siteId: string, username: string, password: string): Promise<void>;
+
+  /**
+   * Fetch a site's recent PHP error logs. Maps to
+   * `POST /api/v1.0/site-error-logs/{site}`. Returns the log text + raw body.
+   */
+  getErrorLogs(siteId: string): Promise<{ logs: string; raw: unknown }>;
 }
 
 // ─── Implementation ────────────────────────────────────────
@@ -684,6 +701,48 @@ export function createWpCloudClient(): WpCloudClient {
         { provider: 'wpcloud', method: 'POST', path, requestPayload },
         () => wpcloudFetch(env, 'POST', path, requestPayload),
       );
+    },
+
+    async listSshUsers(siteId) {
+      const path = `/api/v1.0/ssh-user/${env.client}/${siteId}/list`;
+      const raw = await withApiCallLogging<unknown>(
+        { provider: 'wpcloud', method: 'GET', path },
+        () => wpcloudFetch(env, 'GET', path),
+      );
+      const data = unwrap(raw);
+      const users = Array.isArray(data) ? data : (data?.users ?? data?.data ?? []);
+      return { users: Array.isArray(users) ? users : [], raw: data };
+    },
+
+    async createSshUser(siteId, username, password) {
+      const path = `/api/v1.0/ssh-user/${env.client}/${siteId}/add`;
+      // Password is sent to wp.cloud but NEVER written to the api_calls log.
+      await withApiCallLogging<unknown>(
+        { provider: 'wpcloud', method: 'POST', path, requestPayload: { user: username, pass: '[redacted]' } },
+        () => wpcloudFetch(env, 'POST', path, { user: username, pass: password }),
+      );
+    },
+
+    async resetSshPassword(siteId, username, password) {
+      const path = `/api/v1.0/ssh-user/${env.client}/${siteId}/update/${encodeURIComponent(username)}`;
+      await withApiCallLogging<unknown>(
+        { provider: 'wpcloud', method: 'POST', path, requestPayload: { pass: '[redacted]' } },
+        () => wpcloudFetch(env, 'POST', path, { pass: password }),
+      );
+    },
+
+    async getErrorLogs(siteId) {
+      const path = `/api/v1.0/site-error-logs/${siteId}`;
+      const raw = await withApiCallLogging<unknown>(
+        { provider: 'wpcloud', method: 'POST', path },
+        () => wpcloudFetch(env, 'POST', path),
+      );
+      const data = unwrap(raw);
+      let logs = '';
+      if (typeof data === 'string') logs = data;
+      else if (Array.isArray(data)) logs = data.map((l) => (typeof l === 'string' ? l : JSON.stringify(l))).join('\n');
+      else if (data && typeof data === 'object') logs = String(data.logs ?? data.log ?? data.output ?? JSON.stringify(data, null, 2));
+      return { logs: String(logs ?? ''), raw: data };
     },
   };
 }
