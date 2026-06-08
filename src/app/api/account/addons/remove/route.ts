@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   // ── Verify site ownership ───────────────────────────
   const { data: site } = await sbService
     .from('sites')
-    .select('id, user_id')
+    .select('id, user_id, wp_cloud_url, metadata')
     .eq('id', siteId)
     .maybeSingle();
   if (!site) return NextResponse.json({ ok: false, error: 'Site not found.' }, { status: 404 });
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
   // ── Lookup the add-on row ───────────────────────────
   const { data: addon } = await sbService
     .from('products')
-    .select('id, slug, type')
+    .select('id, slug, type, metadata')
     .eq('type', 'plan_addon')
     .eq('slug', addonSlug)
     .maybeSingle();
@@ -121,6 +121,22 @@ export async function POST(req: Request) {
   // active addons). If no other addons contribute the same field, the
   // value falls back to the plan default (e.g. php_workers: 4 → 2).
   const appliedConfig = await applySiteAddonEffects(siteId, user.id);
+
+  // Jetpack add-on removed: revert the site's Jetpack tier to the add-on's
+  // baseline (e.g. back to `free`). Best-effort + non-fatal.
+  const addonMeta = (addon as any).metadata ?? {};
+  if (addonMeta.jetpack_plan_slug && (site as any).wp_cloud_url) {
+    try {
+      const { jetpackPartnerProvision } = await import('@/lib/integrations/jetpack');
+      const localUser = ((site as any).metadata?.wp_admin_user as string | undefined) ?? user.email ?? '';
+      const revertSlug = (addonMeta.revert_slug as string | undefined) ?? 'free';
+      if (localUser) {
+        await jetpackPartnerProvision({ siteUrl: (site as any).wp_cloud_url, localUser, plan: revertSlug });
+      }
+    } catch (e) {
+      console.error('[addons/remove] jetpack revert failed (non-fatal):', e);
+    }
+  }
 
   return NextResponse.json({ ok: true, applied_config: appliedConfig });
 }

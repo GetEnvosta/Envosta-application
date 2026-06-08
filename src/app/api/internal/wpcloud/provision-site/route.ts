@@ -238,6 +238,7 @@ export async function POST(req: Request) {
   let hasCdn = true;
   let hasWaf = true;
   let hasStaging = true;
+  let jetpackPlanSlug = 'free';
 
   const planIdForLookup = site.product_id ?? body.planId ?? null;
   if (planIdForLookup) {
@@ -252,6 +253,7 @@ export async function POST(req: Request) {
       hasCdn = meta.has_cdn ?? true;
       hasWaf = meta.has_waf ?? true;
       hasStaging = meta.has_staging ?? true;
+      jetpackPlanSlug = meta.jetpack_plan_slug ?? 'free';
     }
   }
 
@@ -518,20 +520,47 @@ export async function POST(req: Request) {
   } catch (e) {
     softwareResults.akismet_unlock = { ok: false, error: String(e) };
   }
-  // Jetpack is pre-installed by wp.cloud — remove it. Envosta sites ship
-  // without Jetpack; wp.cloud's platform WAF/CDN/backups cover those needs.
-  try {
-    await client.manageSoftware(wpSiteIdStr, 'deactivate', 'plugin', 'jetpack');
-    await client.manageSoftware(wpSiteIdStr, 'delete', 'plugin', 'jetpack');
-    softwareResults.jetpack_removed = { ok: true };
-  } catch (e) {
-    softwareResults.jetpack_removed = { ok: false, error: String(e) };
+  // Jetpack handling. When the Jetpack partner integration is configured
+  // (JETPACK_PARTNER_ID/SECRET present), KEEP Jetpack — unlock it so the
+  // customer can manage it — and provision the plan's Jetpack tier (the
+  // `free` baseline; upgraded later by the Jetpack add-on) under our partner
+  // account. Otherwise fall back to the legacy "ship Jetpack-free" behaviour.
+  const jetpackConfigured = !!(process.env.JETPACK_PARTNER_ID && process.env.JETPACK_PARTNER_SECRET);
+  if (jetpackConfigured) {
+    try {
+      const r = await client.manageSoftware(wpSiteIdStr, 'unlock', 'plugin', 'jetpack');
+      softwareResults.jetpack_unlock = { ok: true, message: r.message };
+    } catch (e) {
+      softwareResults.jetpack_unlock = { ok: false, error: String(e) };
+    }
+    try {
+      const { jetpackPartnerProvision } = await import('@/lib/integrations/jetpack');
+      const jp = await jetpackPartnerProvision({
+        siteUrl: wpUrl ?? `https://${wpDomain}`,
+        localUser: adminUser,
+        plan: jetpackPlanSlug,
+      });
+      softwareResults.jetpack_provision = { ok: jp.ok, plan: jetpackPlanSlug, error: jp.error ?? null };
+    } catch (e) {
+      softwareResults.jetpack_provision = { ok: false, error: String(e) };
+    }
+  } else {
+    // Legacy: remove the wp.cloud-preinstalled Jetpack plugin.
+    try {
+      await client.manageSoftware(wpSiteIdStr, 'deactivate', 'plugin', 'jetpack');
+      await client.manageSoftware(wpSiteIdStr, 'delete', 'plugin', 'jetpack');
+      softwareResults.jetpack_removed = { ok: true };
+    } catch (e) {
+      softwareResults.jetpack_removed = { ok: false, error: String(e) };
+    }
   }
   await recordLog(sb, {
     userId: effectiveUserId,
     siteId: site.id,
     action: 'site.software.bootstrap',
-    message: 'parent theme + Akismet installed/unlocked, Jetpack removed',
+    message: jetpackConfigured
+      ? 'parent theme + Akismet installed; Jetpack kept + provisioned'
+      : 'parent theme + Akismet installed/unlocked, Jetpack removed',
     res: softwareResults,
   });
 

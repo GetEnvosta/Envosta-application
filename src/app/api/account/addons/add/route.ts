@@ -54,7 +54,7 @@ export async function POST(req: Request) {
   // ── Verify site ownership ───────────────────────────
   const { data: site } = await sbService
     .from('sites')
-    .select('id, user_id, stripe_subscription_id')
+    .select('id, user_id, stripe_subscription_id, wp_cloud_url, metadata')
     .eq('id', siteId)
     .maybeSingle();
   if (!site) return NextResponse.json({ ok: false, error: 'Site not found.' }, { status: 404 });
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
   // ── Lookup the add-on row ───────────────────────────
   const { data: addon } = await sbService
     .from('products')
-    .select('id, slug, name, type, is_active, stripe_price_id, stripe_price_id_yearly, stripe_price_id_cad, stripe_price_id_yearly_cad')
+    .select('id, slug, name, type, is_active, stripe_price_id, stripe_price_id_yearly, stripe_price_id_cad, stripe_price_id_yearly_cad, metadata')
     .eq('type', 'plan_addon')
     .eq('slug', addonSlug)
     .maybeSingle();
@@ -192,6 +192,22 @@ export async function POST(req: Request) {
   // config to wp.cloud and updates the local sites row. Failure is
   // audited but never propagated — reconcile-wpcloud catches drift.
   const appliedConfig = await applySiteAddonEffects(siteId, user.id);
+
+  // Jetpack add-on: provision the add-on's Jetpack tier (e.g. Jetpack
+  // Complete) under our partner account. Best-effort + non-fatal — the lib
+  // no-ops when partner creds aren't configured.
+  const addonMeta = (addon as any).metadata ?? {};
+  if (addonMeta.jetpack_plan_slug && (site as any).wp_cloud_url) {
+    try {
+      const { jetpackPartnerProvision } = await import('@/lib/integrations/jetpack');
+      const localUser = ((site as any).metadata?.wp_admin_user as string | undefined) ?? user.email ?? '';
+      if (localUser) {
+        await jetpackPartnerProvision({ siteUrl: (site as any).wp_cloud_url, localUser, plan: addonMeta.jetpack_plan_slug });
+      }
+    } catch (e) {
+      console.error('[addons/add] jetpack provision failed (non-fatal):', e);
+    }
+  }
 
   return NextResponse.json({
     ok: true,
