@@ -70,7 +70,12 @@ export async function POST(req: Request) {
       { auth: { persistSession: false } },
     );
     const { data: site } = await sbAdmin.from('sites').select('user_id').eq('id', body.siteId).maybeSingle();
-    if (site && site.user_id && site.user_id !== user.id) {
+    if (!site) {
+      return NextResponse.json({ error: 'Site not found' }, { status: 404 });
+    }
+    // Owner OR staff only. A different owner — or no owner at all
+    // (user_id null) — must be staff; never fall through to the action.
+    if (site.user_id !== user.id) {
       const { data: profile } = await sbAdmin.from('users').select('role').eq('id', user.id).maybeSingle();
       if (!isStaffRole(profile?.role)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
