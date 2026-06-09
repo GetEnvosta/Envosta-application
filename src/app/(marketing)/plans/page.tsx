@@ -234,7 +234,8 @@ export default async function PricingPage() {
         .premium-price-row{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
         .premium-price-row .currency{font-size:1.1rem;font-weight:500;color:var(--t1)}
         .premium-price-row .amount{font-size:2.6rem;font-weight:700;letter-spacing:-1.5px;color:var(--t1);font-variant-numeric:tabular-nums}
-        .premium-period{font-size:.84rem;color:var(--t3);font-weight:400;margin-bottom:8px}
+        .premium-period{font-size:.84rem;color:var(--t3);font-weight:400;margin-bottom:2px}
+        .premium-term{font-size:.72rem;color:var(--t3);font-weight:400;opacity:.85}
         .premium-annual-note{margin-bottom:28px;min-height:28px}
         .premium-cta{display:inline-flex;align-items:center;gap:10px;padding:14px 32px;font-size:.9rem;font-weight:600;letter-spacing:.3px;border-radius:12px;background:var(--gold);border:none;color:#fff;text-decoration:none;transition:background .2s,transform .15s;cursor:pointer}
         .premium-cta:hover{background:var(--gold-bright);transform:translateY(-1px)}
@@ -398,8 +399,10 @@ export default async function PricingPage() {
                     <span className="currency">$</span>
                     <span className="amount">{startingAt}</span>
                   </div>
-                  <div className="premium-period">USD per month · billed per site</div>
-                  <div className="premium-annual-note" />
+                  <div className="premium-period">USD per month</div>
+                  <div className="premium-annual-note">
+                    <span className="premium-term">On an annual term · billed per site</span>
+                  </div>
                   <a href="/contact" className="premium-cta">
                     Contact sales
                     <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -451,7 +454,7 @@ export default async function PricingPage() {
                 <tr>
                   <td>Price</td>
                   {comparePlans.map((plan) => (
-                    <td key={plan.id}>${dollars(plan.price_usd ?? plan.price_cad)} USD/mo</td>
+                    <td key={plan.id}>${Math.round((plan.price_usd ?? plan.price_cad ?? 0) / 100).toLocaleString('en-US')} USD/mo</td>
                   ))}
                 </tr>
                 <tr>
