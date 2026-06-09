@@ -520,19 +520,14 @@ export async function POST(req: Request) {
   } catch (e) {
     softwareResults.akismet_unlock = { ok: false, error: String(e) };
   }
-  // Jetpack handling. When the Jetpack partner integration is configured
-  // (JETPACK_PARTNER_ID/SECRET present), KEEP Jetpack — unlock it so the
-  // customer can manage it — and provision the plan's Jetpack tier (the
-  // `free` baseline; upgraded later by the Jetpack add-on) under our partner
-  // account. Otherwise fall back to the legacy "ship Jetpack-free" behaviour.
-  const jetpackConfigured = !!(process.env.JETPACK_PARTNER_ID && process.env.JETPACK_PARTNER_SECRET);
-  if (jetpackConfigured) {
-    try {
-      const r = await client.manageSoftware(wpSiteIdStr, 'unlock', 'plugin', 'jetpack');
-      softwareResults.jetpack_unlock = { ok: true, message: r.message };
-    } catch (e) {
-      softwareResults.jetpack_unlock = { ok: false, error: String(e) };
-    }
+  // Attach our Jetpack partner license (free tier → partner attribution) to
+  // the site, then REMOVE the Jetpack plugin. Envosta sites ship WITHOUT
+  // Jetpack running — customers opt in by installing it themselves. The
+  // partner license stays attached to the site/account, so a self-install
+  // connects under our partner (and in-dashboard upgrades route back to us).
+  // The license call is gated by the partner creds being present; the plugin
+  // is removed either way (matches current behaviour).
+  if (process.env.JETPACK_PARTNER_ID && process.env.JETPACK_PARTNER_SECRET) {
     try {
       const { jetpackPartnerProvision } = await import('@/lib/integrations/jetpack');
       const jp = await jetpackPartnerProvision({
@@ -540,27 +535,25 @@ export async function POST(req: Request) {
         localUser: adminUser,
         plan: jetpackPlanSlug,
       });
-      softwareResults.jetpack_provision = { ok: jp.ok, plan: jetpackPlanSlug, error: jp.error ?? null };
+      softwareResults.jetpack_license = { ok: jp.ok, plan: jetpackPlanSlug, error: jp.error ?? null };
     } catch (e) {
-      softwareResults.jetpack_provision = { ok: false, error: String(e) };
+      softwareResults.jetpack_license = { ok: false, error: String(e) };
     }
-  } else {
-    // Legacy: remove the wp.cloud-preinstalled Jetpack plugin.
-    try {
-      await client.manageSoftware(wpSiteIdStr, 'deactivate', 'plugin', 'jetpack');
-      await client.manageSoftware(wpSiteIdStr, 'delete', 'plugin', 'jetpack');
-      softwareResults.jetpack_removed = { ok: true };
-    } catch (e) {
-      softwareResults.jetpack_removed = { ok: false, error: String(e) };
-    }
+  }
+  // Remove the wp.cloud-preinstalled Jetpack plugin — customers install it
+  // themselves if they want it; the partner license above remains attached.
+  try {
+    await client.manageSoftware(wpSiteIdStr, 'deactivate', 'plugin', 'jetpack');
+    await client.manageSoftware(wpSiteIdStr, 'delete', 'plugin', 'jetpack');
+    softwareResults.jetpack_removed = { ok: true };
+  } catch (e) {
+    softwareResults.jetpack_removed = { ok: false, error: String(e) };
   }
   await recordLog(sb, {
     userId: effectiveUserId,
     siteId: site.id,
     action: 'site.software.bootstrap',
-    message: jetpackConfigured
-      ? 'parent theme + Akismet installed; Jetpack kept + provisioned'
-      : 'parent theme + Akismet installed/unlocked, Jetpack removed',
+    message: 'parent theme + Akismet installed; Jetpack license attached + plugin removed',
     res: softwareResults,
   });
 
