@@ -118,7 +118,10 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
         .eq('type', 'hosting_plan')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
-      const allPlans = (data as Plan[]) ?? [];
+      const allPlans = ((data as Plan[]) ?? [])
+        // Enterprise is sales-assisted + manually provisioned — it appears only
+        // on the marketing site, never in self-serve checkout.
+        .filter((p) => p.slug !== 'enterprise');
       setPlans(allPlans);
 
       // Pre-select plan from URL param

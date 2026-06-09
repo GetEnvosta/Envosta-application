@@ -46,6 +46,29 @@ export async function POST(req: Request) {
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false } });
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
 
+  // ── Block self-serve checkout of sales-only plans ──────────────
+  // Enterprise is custom-priced + manually provisioned by our team (the
+  // admin pre-creates its subscription). It must never be purchasable via
+  // this self-serve route, even with a hand-crafted priceId.
+  {
+    const { data: salesOnlyPlans } = await sb
+      .from('products')
+      .select('stripe_price_id, stripe_price_id_yearly, stripe_price_id_cad, stripe_price_id_yearly_cad')
+      .eq('type', 'hosting_plan')
+      .eq('slug', 'enterprise');
+    const blockedPriceIds = new Set(
+      (salesOnlyPlans ?? []).flatMap((p: any) => [
+        p.stripe_price_id, p.stripe_price_id_yearly, p.stripe_price_id_cad, p.stripe_price_id_yearly_cad,
+      ].filter(Boolean)),
+    );
+    if (blockedPriceIds.has(priceId)) {
+      return NextResponse.json(
+        { error: 'Enterprise is set up by our team — please contact sales to get started.' },
+        { status: 400 },
+      );
+    }
+  }
+
   // ── Resolve optional add-on bundle ─────────────────────────────
   // For each requested addonSlug, look up the products row and pick
   // the Stripe Price matching the billing period (yearly → monthly fallback).

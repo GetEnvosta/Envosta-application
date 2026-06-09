@@ -379,10 +379,6 @@ export default async function PricingPage() {
       {/* PREMIUM — full-width card, visually distinct */}
       {premiumPlan && (() => {
         const pm = premiumPlan;
-        const monthly = pm.price_usd ?? pm.price_cad ?? 0;
-        const yearly = pm.price_yearly_usd ?? pm.price_yearly_cad ?? 0;
-        const yearlyPerMonth = annualMonthly(yearly);
-        const savings = annualSavings(monthly, yearly);
         const features = getFeatures(pm);
         return (
           <section className="premium-section rv">
@@ -395,21 +391,12 @@ export default async function PricingPage() {
                     {pm.description || 'Everything in Growth plus dedicated infrastructure, a hands-on success team, and the tools and strategy to dominate your category.'}
                   </p>
                   <div className="premium-price-row">
-                    <span className="currency">$</span>
-                    <span className="amount price-val" data-monthly={dollars(monthly)} data-annual={yearlyPerMonth}>
-                      {yearly ? yearlyPerMonth : dollars(monthly)}
-                    </span>
+                    <span className="amount">Custom</span>
                   </div>
-                  <div className="premium-period">USD per month</div>
-                  <div className="premium-annual-note">
-                    {yearly > 0 && (
-                      <div className="annual-note">
-                        Billed annually · ${dollars(yearly)}/yr{savings ? ` · save ${savings}%` : ''}
-                      </div>
-                    )}
-                  </div>
-                  <a href={`/get-started?plan=${pm.slug}&billing=annual&trial=1`} className="premium-cta">
-                    Get started
+                  <div className="premium-period">Tailored to your needs · billed per site</div>
+                  <div className="premium-annual-note" />
+                  <a href="/contact" className="premium-cta">
+                    Contact sales
                     <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </a>
                 </div>
