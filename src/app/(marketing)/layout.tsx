@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { MarketingNav } from '@/components/marketing/nav';
 import { MarketingFooter } from '@/components/marketing/footer';
+import { getSocialLinks } from '@/lib/site-settings';
 import { CheckoutHeader } from '@/components/marketing/checkout-header';
 import './marketing.css';
 
@@ -60,14 +61,16 @@ const jsonLd = {
   },
 };
 
-export default function MarketingLayout({ children }: { children: React.ReactNode }) {
+export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
+  const socials = await getSocialLinks();
+  const ld = { ...jsonLd, sameAs: Object.values(socials).filter(Boolean) };
   return (
     <div className={`marketing-site ${inter.variable}`}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
       <MarketingNav />
       <CheckoutHeader />
       <main>{children}</main>
-      <MarketingFooter />
+      <MarketingFooter socials={socials} />
     </div>
   );
 }

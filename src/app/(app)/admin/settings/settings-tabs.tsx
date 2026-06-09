@@ -9,7 +9,7 @@
  */
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Server, Globe, Package, Briefcase, Plug, Percent, Mail, Clock } from 'lucide-react';
+import { Server, Globe, Package, Briefcase, Plug, Percent, Mail, Clock, Share2 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 type Tab = {
@@ -25,6 +25,7 @@ const TABS: Tab[] = [
   { href: '/admin/settings/services',     label: 'Services',      icon: Briefcase },
   { href: '/admin/settings/promotions',   label: 'Promotions',    icon: Percent },
   { href: '/admin/settings/emails',       label: 'Emails',        icon: Mail },
+  { href: '/admin/settings/social',       label: 'Social',        icon: Share2 },
   { href: '/admin/settings/integrations', label: 'Integrations',  icon: Plug },
   { href: '/admin/settings/crons',        label: 'Crons',         icon: Clock },
 ];

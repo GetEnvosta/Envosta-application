@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { SOCIAL_PLATFORMS, type SocialLinks } from '@/lib/social-platforms';
 
 // Mirrors nav.tsx — checkout flows hide the marketing footer too.
 const HIDE_ON = ['/get-started', '/buy-domain'];
@@ -61,15 +62,9 @@ const footerColumns = [
   },
 ];
 
-const socialLinks = [
-  { label: 'Twitter', icon: '𝕏' },
-  { label: 'LinkedIn', icon: 'in' },
-  { label: 'Facebook', icon: 'f' },
-  { label: 'YouTube', icon: '▶' },
-];
-
-export function MarketingFooter() {
+export function MarketingFooter({ socials = {} }: { socials?: SocialLinks }) {
   const pathname = usePathname();
+  const activeSocials = SOCIAL_PLATFORMS.filter((p) => socials[p.key]);
   if (HIDE_ON.some(p => pathname === p || pathname.startsWith(p + '/'))) return null;
 
   return (
@@ -85,24 +80,30 @@ export function MarketingFooter() {
               Hosting that starts with a consultation. Enterprise infrastructure,
               expert support, and hands-on onboarding.
             </p>
-            <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
-              {socialLinks.map(s => (
-                <a
-                  key={s.label}
-                  href="#"
-                  aria-label={s.label}
-                  style={{
-                    width: 32, height: 32, borderRadius: 8,
-                    background: 'var(--card)', border: '1px solid var(--bdr)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'var(--t3)', textDecoration: 'none', fontSize: '.75rem',
-                    transition: 'all .2s',
-                  }}
-                >
-                  {s.icon}
-                </a>
-              ))}
-            </div>
+            {activeSocials.length > 0 && (
+              <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
+                {activeSocials.map(p => (
+                  <a
+                    key={p.key}
+                    href={socials[p.key]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={p.label}
+                    style={{
+                      width: 32, height: 32, borderRadius: 8,
+                      background: 'var(--card)', border: '1px solid var(--bdr)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'var(--t3)', textDecoration: 'none',
+                      transition: 'all .2s',
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
+                      <path d={p.path} />
+                    </svg>
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
           {footerColumns.map(col => (
