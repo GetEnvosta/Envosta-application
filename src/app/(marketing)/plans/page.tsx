@@ -230,6 +230,7 @@ export default async function PricingPage() {
         .premium-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;color:var(--gold);margin-bottom:16px}
         .premium-info h3{font-size:clamp(1.8rem,3vw,2.4rem);font-weight:600;letter-spacing:-1px;line-height:1.15;margin-bottom:16px;color:var(--t1)}
         .premium-info .premium-desc{font-size:.95rem;color:var(--t2);font-weight:300;line-height:1.7;margin-bottom:28px}
+        .premium-starting{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--t3);margin-bottom:8px}
         .premium-price-row{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
         .premium-price-row .currency{font-size:1.1rem;font-weight:500;color:var(--t1)}
         .premium-price-row .amount{font-size:2.6rem;font-weight:700;letter-spacing:-1.5px;color:var(--t1);font-variant-numeric:tabular-nums}
@@ -379,6 +380,8 @@ export default async function PricingPage() {
       {/* PREMIUM — full-width card, visually distinct */}
       {premiumPlan && (() => {
         const pm = premiumPlan;
+        const monthly = pm.price_usd ?? pm.price_cad ?? 0;
+        const startingAt = Math.round(monthly / 100).toLocaleString('en-US');
         const features = getFeatures(pm);
         return (
           <section className="premium-section rv">
@@ -390,10 +393,12 @@ export default async function PricingPage() {
                   <p className="premium-desc">
                     {pm.description || 'Everything in Growth plus dedicated infrastructure, a hands-on success team, and the tools and strategy to dominate your category.'}
                   </p>
+                  <div className="premium-starting">Starting at</div>
                   <div className="premium-price-row">
-                    <span className="amount">Custom</span>
+                    <span className="currency">$</span>
+                    <span className="amount">{startingAt}</span>
                   </div>
-                  <div className="premium-period">Tailored to your needs · billed per site</div>
+                  <div className="premium-period">USD per month · billed per site</div>
                   <div className="premium-annual-note" />
                   <a href="/contact" className="premium-cta">
                     Contact sales
