@@ -54,7 +54,6 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   // Account (public mode only)
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   // hasAccount removed — go straight to form with "Sign in" link
@@ -77,9 +76,6 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
   const [checkoutError, setCheckoutError] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>(initialBilling ?? 'monthly');
-
-  // Onboarding
-  const [onboardingChoice, setOnboardingChoice] = useState<'self' | 'guided' | null>(null);
 
   // Steps:
   // Public signup: Account only (if plan pre-selected) or Account → Plan

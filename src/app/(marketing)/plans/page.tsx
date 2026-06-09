@@ -72,20 +72,20 @@ function check() {
  * are NOT repeated here, so each card reads as a clear value-add.
  */
 const FEATURES_BY_SLUG: Record<string, string[]> = {
-  // — MINIMUM (6 features, no site count) —
+  // — MINIMUM —
   minimum: [
     '25 GB SSD storage',
-    '2 PHP workers',
+    '3 PHP workers',
     'Email support · 24-hr response',
     'Self-serve admin dashboard',
     '1-click plugin & theme installs',
     'WordPress core + plugin auto-updates',
   ],
 
-  // — STANDARD (7 features, inherits Minimum) —
+  // — STANDARD (inherits Minimum) —
   standard: [
     'Everything in Minimum',
-    '50 GB SSD storage + 4 PHP workers',
+    '50 GB SSD storage + 5 PHP workers',
     'Guided onboarding call (60 min)',
     'Priority support · 4-hr response',
     'WooCommerce-ready provisioning',
@@ -93,26 +93,24 @@ const FEATURES_BY_SLUG: Record<string, string[]> = {
     'Monthly performance & SEO report',
   ],
 
-  // — GROWTH (7 features, inherits Standard) —
+  // — GROWTH (inherits Standard) —
   growth: [
     'Everything in Standard',
-    'Auto-scaling SSD + PHP workers + burst capacity',
+    '100 GB SSD storage + 8 PHP workers',
     'Done-with-you concierge onboarding',
     'Dedicated account manager + 24/7 emergency line',
-    'AI-powered SEO + content suite',
     'WooCommerce + subscriptions + Stripe integrations',
     'Quarterly site audits + strategy consultations',
   ],
 
-  // — PREMIUM (enterprise tier) —
-  premium: [
+  // — ENTERPRISE (custom-priced, inherits Growth) —
+  enterprise: [
     'Everything in Growth',
-    'Unlimited SSD + dedicated PHP worker pool',
+    'Dedicated success team + private Slack channel',
     'White-glove onboarding + full site build',
-    'Dedicated success team + Slack channel',
     'Custom integrations + API access',
-    'Multi-site management + staging environments',
-    'Monthly strategy calls + priority roadmap input',
+    'Custom resource scaling on request',
+    'Priority roadmap input + quarterly strategy calls',
   ],
 };
 
@@ -146,17 +144,17 @@ export default async function PricingPage() {
     .slice()
     .sort((a, b) => (a.price_usd ?? a.price_cad ?? 0) - (b.price_usd ?? b.price_cad ?? 0));
 
-  // Split into core plans (Minimum / Standard / Growth) and Premium.
+  // Split into core plans (Minimum / Standard / Growth) and Enterprise.
   // Reseller and anything else is hidden from the public pricing page.
   const plans = CORE_SLUGS
     .map((s) => allPlans.find((p) => p.slug === s))
     .filter(Boolean) as HostingPlan[];
-  const premiumPlan = allPlans.find((p) => p.slug === 'premium') ?? null;
+  const premiumPlan = allPlans.find((p) => p.slug === 'enterprise') ?? null;
 
   // Standard is always the featured (middle) card.
   const featuredSlug = 'standard';
 
-  // All plans shown in the comparison table (core + premium).
+  // All plans shown in the comparison table (core + enterprise).
   const comparePlans = premiumPlan ? [...plans, premiumPlan] : plans;
 
   const overallSavings = (() => {
@@ -391,7 +389,7 @@ export default async function PricingPage() {
             <div className="c">
               <div className="premium-wrap">
                 <div className="premium-info">
-                  <div className="premium-label">Premium Plan</div>
+                  <div className="premium-label">{pm.name}</div>
                   <h3>The full stack for brands that don&apos;t compromise</h3>
                   <p className="premium-desc">
                     {pm.description || 'Everything in Growth plus dedicated infrastructure, a hands-on success team, and the tools and strategy to dominate your category.'}

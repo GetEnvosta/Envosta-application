@@ -24,7 +24,7 @@ export function CustomSubscriptionForm({ userId, userEmail }: { userId: string; 
 
     const form = e.currentTarget;
     const data = new FormData(form);
-    const planSlug = String(data.get('planSlug') ?? 'premium');
+    const planSlug = String(data.get('planSlug') ?? 'enterprise');
     const currency = String(data.get('currency') ?? 'usd') as 'usd' | 'cad';
     const monthlyDollars = Number(data.get('monthlyDollars'));
     const yearlyDollarsRaw = String(data.get('yearlyDollars') ?? '').trim();
