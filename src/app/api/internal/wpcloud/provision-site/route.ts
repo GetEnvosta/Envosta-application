@@ -527,6 +527,7 @@ export async function POST(req: Request) {
   // connects under our partner (and in-dashboard upgrades route back to us).
   // The license call is gated by the partner creds being present; the plugin
   // is removed either way (matches current behaviour).
+  let jetpackAttribution: Record<string, unknown> | null = null;
   if (process.env.JETPACK_PARTNER_ID && process.env.JETPACK_PARTNER_SECRET) {
     try {
       const { jetpackPartnerProvision } = await import('@/lib/integrations/jetpack');
@@ -535,10 +536,11 @@ export async function POST(req: Request) {
         localUser: adminUser,
         plan: jetpackPlanSlug,
       });
-      softwareResults.jetpack_license = { ok: jp.ok, plan: jetpackPlanSlug, error: jp.error ?? null };
+      jetpackAttribution = { plan: jetpackPlanSlug, ok: jp.ok, error: jp.error ?? null, at: nowIso };
     } catch (e) {
-      softwareResults.jetpack_license = { ok: false, error: String(e) };
+      jetpackAttribution = { plan: jetpackPlanSlug, ok: false, error: String(e), at: nowIso };
     }
+    softwareResults.jetpack_license = jetpackAttribution;
   }
   // Remove the wp.cloud-preinstalled Jetpack plugin — customers install it
   // themselves if they want it; the partner license above remains attached.
@@ -548,6 +550,12 @@ export async function POST(req: Request) {
     softwareResults.jetpack_removed = { ok: true };
   } catch (e) {
     softwareResults.jetpack_removed = { ok: false, error: String(e) };
+  }
+  // Stamp the Jetpack license result onto the site so the admin panel shows it.
+  if (jetpackAttribution) {
+    await sb.from('sites').update({
+      metadata: { ...updatedMetadata, jetpack_attribution: jetpackAttribution },
+    }).eq('id', site.id);
   }
   await recordLog(sb, {
     userId: effectiveUserId,
