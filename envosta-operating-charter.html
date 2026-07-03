@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Envosta Operating Charter — V1.0 LOCKED</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-deep:#0A1929;
+    --navy-panel:#0F2438;
+    --navy-edge:#16334E;
+    --blueprint-line:rgba(96,143,190,.13);
+    --steel:#7FA6C9;
+    --steel-dim:#4E708F;
+    --paper:#E9F1F8;
+    --amber:#FFB627;
+    --amber-deep:#E09112;
+    --clay:#D64545;
+    --font-display:'Archivo',sans-serif;
+    --font-body:'Inter',sans-serif;
+    --font-mono:'IBM Plex Mono',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--navy-deep);
+    color:var(--paper);
+    font-family:var(--font-body);
+    font-size:15px;
+    line-height:1.55;
+    background-image:
+      linear-gradient(var(--blueprint-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--blueprint-line) 1px, transparent 1px);
+    background-size:44px 44px;
+    padding:28px 16px 60px;
+  }
+  .sheet{
+    max-width:1060px;
+    margin:0 auto;
+    border:2px solid var(--navy-edge);
+    outline:1px solid rgba(127,166,201,.22);
+    outline-offset:6px;
+    background:linear-gradient(180deg, rgba(15,36,56,.72), rgba(10,25,41,.86));
+    position:relative;
+    padding:0 0 0;
+  }
+  /* corner ticks like a drawing sheet */
+  .tick{position:absolute;width:14px;height:14px;border-color:var(--amber);border-style:solid}
+  .tick.tl{top:-8px;left:-8px;border-width:2px 0 0 2px}
+  .tick.tr{top:-8px;right:-8px;border-width:2px 2px 0 0}
+  .tick.bl{bottom:-8px;left:-8px;border-width:0 0 2px 2px}
+  .tick.br{bottom:-8px;right:-8px;border-width:0 2px 2px 0}
+
+  header{
+    display:flex;justify-content:space-between;align-items:flex-start;gap:24px;
+    padding:34px 40px 26px;border-bottom:1px solid var(--navy-edge);
+    flex-wrap:wrap;
+  }
+  .brand{font-family:var(--font-display);font-weight:800;font-size:15px;letter-spacing:.34em;color:var(--paper)}
+  .brand span{color:var(--amber)}
+  .doc-meta{font-family:var(--font-mono);font-size:11px;color:var(--steel);text-align:right;line-height:1.9}
+  .doc-meta b{color:var(--paper);font-weight:600}
+  .doc-meta .locked{color:var(--amber)}
+
+  .stamp{
+    position:absolute;top:96px;right:34px;
+    font-family:var(--font-display);font-weight:800;font-size:13px;letter-spacing:.22em;
+    color:var(--amber);border:2px solid var(--amber);border-radius:4px;
+    padding:8px 14px;transform:rotate(-7deg);opacity:.92;
+    box-shadow:0 0 0 3px rgba(255,182,39,.12);
+    background:rgba(10,25,41,.6);
+    z-index:2;
+  }
+
+  h1{
+    font-family:var(--font-display);font-weight:800;
+    font-size:clamp(26px,4.4vw,44px);line-height:1.12;letter-spacing:-.01em;
+    padding:40px 40px 8px;max-width:820px;
+  }
+  h1 em{font-style:normal;color:var(--amber)}
+  .subline{padding:0 40px 36px;color:var(--steel);max-width:720px;font-size:15px}
+
+  section{padding:30px 40px 36px;border-top:1px solid var(--navy-edge)}
+  .sec-label{
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.28em;color:var(--amber);
+    text-transform:uppercase;margin-bottom:6px;
+  }
+  .sec-title{font-family:var(--font-display);font-weight:700;font-size:21px;margin-bottom:18px}
+  .sec-note{color:var(--steel);font-size:13.5px;max-width:760px;margin-top:14px}
+  .sec-note b{color:var(--paper);font-weight:600}
+
+  /* ladder table */
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{
+    font-family:var(--font-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--steel);text-align:left;padding:0 14px 10px;border-bottom:1px solid var(--navy-edge);
+  }
+  td{padding:13px 14px;border-bottom:1px solid rgba(22,51,78,.6);vertical-align:top}
+  .tier-name{font-family:var(--font-display);font-weight:700;font-size:15px}
+  .mono{font-family:var(--font-mono);font-weight:500}
+  .num{font-family:var(--font-mono);font-weight:600;color:var(--paper)}
+  tr.hidden-tier td{color:var(--steel-dim)}
+  tr.hidden-tier .tier-name{color:var(--steel)}
+  tr.flagship{background:rgba(255,182,39,.06)}
+  tr.flagship td{border-bottom:1px solid rgba(255,182,39,.25);border-top:1px solid rgba(255,182,39,.25)}
+  tr.flagship .tier-name{color:var(--amber)}
+  .badge{
+    display:inline-block;font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;
+    border:1px solid var(--steel-dim);color:var(--steel);border-radius:3px;
+    padding:2px 7px;margin-left:8px;vertical-align:2px;
+  }
+  .badge.amber{border-color:var(--amber-deep);color:var(--amber)}
+
+  /* spine flow */
+  .spine{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch}
+  .node{
+    flex:1 1 140px;min-width:132px;
+    border:1px solid var(--navy-edge);background:rgba(15,36,56,.55);
+    padding:12px 12px 11px;position:relative;
+  }
+  .node::after{
+    content:'→';position:absolute;right:-11px;top:50%;transform:translateY(-50%);
+    color:var(--amber);font-family:var(--font-mono);font-size:13px;z-index:1;
+  }
+  .node:last-child::after{content:''}
+  .node .n-step{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;color:var(--amber);margin-bottom:5px}
+  .node .n-name{font-family:var(--font-display);font-weight:700;font-size:13.5px;margin-bottom:4px}
+  .node .n-desc{font-size:11.5px;color:var(--steel);line-height:1.45}
+  .spine-caption{margin-top:16px;font-size:13px;color:var(--steel)}
+  .spine-caption b{color:var(--amber);font-weight:600}
+
+  /* math cards */
+  .paths{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .path{border:1px solid var(--navy-edge);background:rgba(15,36,56,.55);padding:20px 20px 18px}
+  .path.rec{border-color:rgba(255,182,39,.45)}
+  .path h3{font-family:var(--font-display);font-weight:700;font-size:15px;margin-bottom:2px}
+  .path .p-tag{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;color:var(--steel);margin-bottom:12px}
+  .path.rec .p-tag{color:var(--amber)}
+  .p-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px dashed rgba(78,112,143,.35)}
+  .p-row span:last-child{font-family:var(--font-mono);font-weight:500}
+  .p-total{display:flex;justify-content:space-between;padding-top:12px;font-family:var(--font-display);font-weight:700;font-size:16px}
+  .p-total span:last-child{font-family:var(--font-mono);color:var(--amber)}
+  .p-sub{font-size:11.5px;color:var(--steel);margin-top:6px}
+
+  /* gates */
+  .gates{display:grid;gap:0;border-left:2px solid var(--navy-edge);margin-left:7px}
+  .gate{position:relative;padding:0 0 22px 26px}
+  .gate:last-child{padding-bottom:4px}
+  .gate::before{
+    content:'';position:absolute;left:-8px;top:4px;width:12px;height:12px;
+    background:var(--navy-deep);border:2px solid var(--amber);border-radius:50%;
+  }
+  .g-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:3px}
+  .g-num{font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;color:var(--amber)}
+  .g-title{font-family:var(--font-display);font-weight:700;font-size:15px}
+  .g-body{font-size:13.5px;color:var(--steel);max-width:780px}
+  .g-body b{color:var(--paper);font-weight:600}
+
+  .kill{
+    margin-top:26px;border:1px solid rgba(214,69,69,.5);background:rgba(214,69,69,.06);
+    padding:18px 20px;
+  }
+  .kill .k-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.24em;color:var(--clay);margin-bottom:8px}
+  .kill p{font-size:13.5px;margin-bottom:6px}
+  .kill p:last-child{margin-bottom:0}
+  .kill b{color:var(--clay);font-weight:600}
+
+  /* rules */
+  .rules{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .rule{border:1px solid var(--navy-edge);background:rgba(15,36,56,.55);padding:18px 18px 16px}
+  .rule .r-num{font-family:var(--font-mono);font-size:11px;color:var(--amber);letter-spacing:.18em;margin-bottom:8px}
+  .rule .r-text{font-size:13.5px}
+  .rule .r-text b{font-family:var(--font-display);font-weight:700;display:block;font-size:14.5px;margin-bottom:4px}
+
+  /* proof strip */
+  .proof{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .p-item{border-top:2px solid var(--amber-deep);padding-top:12px}
+  .p-item .p-co{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;color:var(--steel);margin-bottom:5px}
+  .p-item .p-fact{font-family:var(--font-display);font-weight:700;font-size:16px;margin-bottom:4px}
+  .p-item .p-mean{font-size:12.5px;color:var(--steel)}
+
+  /* title block */
+  .titleblock{
+    border-top:2px solid var(--navy-edge);
+    display:grid;grid-template-columns:2fr 1fr 1fr 1fr;
+    font-family:var(--font-mono);font-size:11px;
+  }
+  .tb-cell{padding:14px 18px;border-right:1px solid var(--navy-edge)}
+  .tb-cell:last-child{border-right:none}
+  .tb-cell .tb-k{color:var(--steel-dim);letter-spacing:.14em;font-size:9.5px;text-transform:uppercase;margin-bottom:4px}
+  .tb-cell .tb-v{color:var(--paper);font-weight:500}
+  .tb-cell .tb-v.amber{color:var(--amber)}
+
+  @media(max-width:820px){
+    body{padding:18px 10px 40px}
+    header,h1,.subline,section{padding-left:22px;padding-right:22px}
+    .paths,.rules,.proof{grid-template-columns:1fr}
+    .titleblock{grid-template-columns:1fr 1fr}
+    .tb-cell{border-bottom:1px solid var(--navy-edge)}
+    .stamp{position:static;display:inline-block;margin:18px 22px 0;transform:rotate(-3deg)}
+    .node::after{content:''}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .sheet{animation:settle .5s ease-out}
+    @keyframes settle{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <span class="tick tl"></span><span class="tick tr"></span><span class="tick bl"></span><span class="tick br"></span>
+
+  <header>
+    <div class="brand">ENVO<span>STA</span></div>
+    <div class="doc-meta">
+      DOC <b>ENV-CHT-001</b> · REV <b class="locked">1.4 LOCKED</b><br>
+      ISSUED <b>2026-07-02</b> · REVISION WINDOW OPENS <b>2027-07-02</b><br>
+      OWNER <b>KOLTYN — FOUNDER</b>
+    </div>
+  </header>
+
+  <div class="stamp">SET IN STONE · V1.4</div>
+
+  <h1>Hands-free hosting for chosen industries. <em>Twelve months, zero edits.</em></h1>
+  <p class="subline">Envosta is a white-glove managed hosting company that specializes by industry, built on the canonical stack — not pieced together. This charter is the single source of truth: every page, every rep script, every line of provisioning code conforms to this sheet. Rev 1.4 locks the offer layer; nothing changes before the revision window opens.</p>
+
+  <!-- PROMISE -->
+  <section>
+    <div class="sec-label">§1 — Who We Are · The Promise</div>
+    <div class="sec-title">A white-glove hosting company for the industries it chooses. The plan includes everything — the site, the SEO, the reviews — and the client never lifts a finger.</div>
+    <p class="sec-note"><b>The promise:</b> a trades business gets found on Google and never thinks about its website again. One number to call or text; changes handled, confirmation sent back. <b>SLAs:</b> acknowledge under 4 hours · Basic edits live under 2 business days · Business edits under 1 business day · site-down handled immediately. <b>The register:</b> luxury is demonstrated, never self-declared — white-glove onboarding, concierge line, flawless execution; we run and manage the client's entire online presence. <b>The provenance:</b> the canonical stack, not duct tape — WordPress (powers 40%+ of the web; the same software behind WhiteHouse.gov, NASA.gov, and Fortune-500 web properties) on wp.cloud (built by Automattic, WordPress's own maker — the infrastructure behind WordPress.com) with domains on Tucows/OpenSRS (the world's second-largest registrar, the same platform behind Shopify's domains). <b>Future-proof, demonstrated:</b> every Envosta site is built and maintained through an AI-native pipeline today — as AI advances, the dominant platform gets it first, and Envosta manages every step. <b>The roadmap:</b> construction trades now — stickiest, most reachable, highest ticket — then legal, then professional services. An industry qualifies only if it is local-intent, high-ticket, review-driven, and service-area shaped.</p>
+  </section>
+
+  <!-- LADDER -->
+  <section>
+    <div class="sec-label">§2 — The Hosting Plans · Frozen</div>
+    <div class="sec-title">Four hosting plans. No renames. No new plans. No price changes.</div>
+    <table>
+      <thead>
+        <tr><th>Plan</th><th>Visibility</th><th>Setup</th><th>Monthly</th><th>What it is</th><th>Recurring labor</th></tr>
+      </thead>
+      <tbody>
+        <tr class="hidden-tier">
+          <td class="tier-name">Minimum</td>
+          <td class="mono">Hidden — retention net</td>
+          <td class="num">—</td>
+          <td class="num">$36</td>
+          <td>Hosting + domain kept alive. Never advertised, never pitched. Downgrade catch only.</td>
+          <td class="mono">Zero</td>
+        </tr>
+        <tr>
+          <td class="tier-name">Basic</td>
+          <td class="mono">Public</td>
+          <td class="num">$1,500</td>
+          <td class="num">$297</td>
+          <td>Industry-specialized managed hosting on wp.cloud · custom Studio-built site migrated live · domain + branded email · GBP setup · click-to-call + quote forms · unlimited small edits · security, backups, uptime · monthly branded report.</td>
+          <td class="mono">Zero marketing labor</td>
+        </tr>
+        <tr>
+          <td class="tier-name">Business</td>
+          <td class="mono">Public</td>
+          <td class="num">$1,500</td>
+          <td class="num">$597</td>
+          <td>Everything in Basic + the marketing layer: automated SEO foundation · 2 ranking-targeted service-area pages/mo · review generation · citation management · ongoing GBP optimization · priority support.</td>
+          <td class="mono">Automated + QA pass</td>
+        </tr>
+        <tr class="flagship">
+          <td class="tier-name">Growth <span class="badge amber">12 SPOTS / TRADE</span></td>
+          <td class="mono">Public — capped</td>
+          <td class="num">$2,500</td>
+          <td class="num">$3,472</td>
+          <td>Everything in Business + 4 service-area pages/mo · active local SEO · reputation management · lead &amp; call tracking · dedicated account manager · <b>per-trade, per-city exclusivity</b>. All real ongoing work lives here.</td>
+          <td class="mono">All human labor</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="sec-note"><b>Annual prepay:</b> 13th month free — framed as a bonus month, never a discount. <b>COGS:</b> ≈ $10–15 per site per month all-in (wp.cloud + domain amortized + Claude API + QA minutes) → Basic runs ≈ 90%+ gross margin. That part is arithmetic, not projection.</p>
+  </section>
+
+  <!-- SPINE -->
+  <section>
+    <div class="sec-label">§3 — The Spine · Build Once</div>
+    <div class="sec-title">Signature to live site with one human touch per client per month.</div>
+    <div class="spine">
+      <div class="node"><div class="n-step">01</div><div class="n-name">Sign</div><div class="n-desc">Rep closes live on envosta.com or client self-serves. Intake form fires the queue.</div></div>
+      <div class="node"><div class="n-step">02</div><div class="n-name">OpenSRS</div><div class="n-desc">API registers domain in the client's name — Envosta keeps DNS &amp; management control. Branded email + SSL provisioned. Renewal notices go out under Envosta's brand.</div></div>
+      <div class="node"><div class="n-step">03</div><div class="n-name">wp.cloud</div><div class="n-desc">DNS pointed, site container provisioned on Automattic-partner infrastructure. Native security, backups, failover.</div></div>
+      <div class="node"><div class="n-step">04</div><div class="n-name">Studio + Claude</div><div class="n-desc">Site built locally in WP Studio via Claude MCP. Migration plugin pushes live.</div></div>
+      <div class="node"><div class="n-step">05</div><div class="n-name">GBP</div><div class="n-desc">Google Business Profile set up and optimized. Turnstile on every form. Uptime monitor armed.</div></div>
+      <div class="node"><div class="n-step">06</div><div class="n-name">Monthly Engine</div><div class="n-desc">Service-area pages generated per tier cadence. Branded report compiled automatically. No Jetpack, ever.</div></div>
+      <div class="node"><div class="n-step">07</div><div class="n-name">VA QA</div><div class="n-desc">The only recurring human touch: quality pass on pages + report before they ship.</div></div>
+    </div>
+    <p class="spine-caption"><b>Client owns, Envosta operates.</b> Domain in their name kills the hostage-holding red flag; the embedded spine keeps them anyway. <b>Not pieced together:</b> the world's dominant CMS, its maker's own infrastructure, and the registrar platform Shopify runs on — one stack, one number to call.</p>
+  </section>
+
+  <!-- MATH -->
+  <section>
+    <div class="sec-label">§4 — The Math to $50K / Month</div>
+    <div class="sec-title">Two valid shapes. Fill the twelve spots first; let the tail fall out naturally.</div>
+    <div class="paths">
+      <div class="path">
+        <h3>Path A — Volume Blend</h3>
+        <div class="p-tag">~100 CLIENTS · HEAVIER SUPPORT SURFACE</div>
+        <div class="p-row"><span>6 × Growth</span><span>$20,832</span></div>
+        <div class="p-row"><span>10 × Business</span><span>$5,970</span></div>
+        <div class="p-row"><span>84 × Basic</span><span>$24,948</span></div>
+        <div class="p-total"><span>MRR</span><span>$51,750</span></div>
+        <div class="p-sub">+ ≈ $150K in setup fees along the way</div>
+      </div>
+      <div class="path rec">
+        <h3>Path B — Anchor-Heavy</h3>
+        <div class="p-tag">26 CLIENTS · RECOMMENDED SKELETON</div>
+        <div class="p-row"><span>12 × Growth (full cap)</span><span>$41,664</span></div>
+        <div class="p-row"><span>14 × Business</span><span>$8,358</span></div>
+        <div class="p-row"><span>&nbsp;</span><span>&nbsp;</span></div>
+        <div class="p-total"><span>MRR</span><span>$50,022</span></div>
+        <div class="p-sub">4× fewer accounts, 4× fewer support surfaces · each sale heavier</div>
+      </div>
+    </div>
+    <p class="sec-note"><b>Churn tax:</b> at 3%/mo churn on $50K, $1,500 of MRR must be replaced every month, forever — budgeted from day one. Honest timeline to $50K MRR with founder-led sales plus 1–2 reps: <b>9–18 months.</b></p>
+  </section>
+
+  <!-- GATES -->
+  <section>
+    <div class="sec-label">§5 — The Gates · Sequence Is Law</div>
+    <div class="sec-title">Nothing scales until the gate before it is passed.</div>
+    <div class="gates">
+      <div class="gate">
+        <div class="g-head"><span class="g-num">GATE 0</span><span class="g-title">First 10 clients</span></div>
+        <p class="g-body">One trade (HVAC or roofing), one metro cluster, spine running end-to-end. Measure exactly three numbers: <b>true CAC · tickets per client per month · 90-day churn.</b> Nothing about the model changes before client 10.</p>
+      </div>
+      <div class="gate">
+        <div class="g-head"><span class="g-num">GATE 1</span><span class="g-title">$15K MRR</span></div>
+        <p class="g-body">First VA QA contractor. Every recurring process becomes a written SOP.</p>
+      </div>
+      <div class="gate">
+        <div class="g-head"><span class="g-num">GATE 2</span><span class="g-title">$50K MRR — the target</span></div>
+        <p class="g-body">Pass requirements: <b>churn ≤ 3%/mo · ≤ 1 ticket/client/mo · CAC paid back ≤ 4 months.</b> First real hire: ops lead.</p>
+      </div>
+      <div class="gate">
+        <div class="g-head"><span class="g-num">GATE 3</span><span class="g-title">$150K MRR</span></div>
+        <p class="g-body">Self-serve Basic signup goes live on envosta.com. Trade #2 opens with its own 12 Growth spots.</p>
+      </div>
+      <div class="gate">
+        <div class="g-head"><span class="g-num">GATE 4</span><span class="g-title">$400K MRR</span></div>
+        <p class="g-body">Self-serve must be <b>&gt; 50% of new MRR</b>, or headcount grows. Physics, not preference. The $1M/mo · 5-FTE shape is ≈ 3,000 self-serve Basic + 200 Business + capped Growth across trades: ops/QA lead · content-QA editor · Growth account manager · support lead · founder.</p>
+      </div>
+    </div>
+    <div class="kill">
+      <div class="k-label">KILL TRIGGERS — IMMEDIATE, NON-NEGOTIABLE</div>
+      <p><b>Churn &gt; 5%/mo for 2 consecutive months</b> → freeze all acquisition. Fix retention before selling one more account.</p>
+      <p><b>Tickets &gt; 2/client/mo</b> → freeze all promises and features. Fix the product until the number drops.</p>
+      <p><b>Any pricing or tier change inside 12 months</b> → does not exist. The ladder is frozen.</p>
+    </div>
+  </section>
+
+  <!-- RULES -->
+  <section>
+    <div class="sec-label">§6 — Standing Rules</div>
+    <div class="sec-title">Three rules that outrank every good idea.</div>
+    <div class="rules">
+      <div class="rule"><div class="r-num">RULE 01</div><div class="r-text"><b>Ladder, positioning, and roadmap are frozen until 2027-07-02.</b> Category (hosting) · differentiator (chosen industries) · register (white-glove, hands-free) · provenance (the canonical stack) · roadmap (construction → legal → professional services). Rev 1.4 is final — every hour saved from tinkering goes into selling.</div></div>
+      <div class="rule"><div class="r-num">RULE 02</div><div class="r-text"><b>Next 90 days: zero model edits.</b> All energy on the first 10 clients in the beachhead trade. The plan is finished; only the pipeline is empty.</div></div>
+      <div class="rule"><div class="r-num">RULE 03</div><div class="r-text"><b>One trade, one metro, until Gate 3.</b> Exclusivity is the moat only if it's honoured — 12 spots per trade means 12, and trade #2 waits its turn.</div></div>
+    </div>
+  </section>
+
+  <!-- PROOF -->
+  <section>
+    <div class="sec-label">§7 — External Proof</div>
+    <div class="sec-title">Every component is proven by someone bigger. Only CAC and churn are Envosta's to prove — Gate 0 proves both for under $10K.</div>
+    <div class="proof">
+      <div class="p-item">
+        <div class="p-co">TOWNSQUARE INTERACTIVE — THE REFERENCE MODEL</div>
+        <div class="p-fact">$73M/yr · 34% margin · ~300 staff</div>
+        <div class="p-mean">Subscription plans bundling hosting + site + SEO + reputation at ≈ $300/mo, 20,000+ subscribers. Envosta runs this exact plan structure — industry-specialized, at locked price points — with the spine replacing their 300 humans.</div>
+      </div>
+      <div class="p-item">
+        <div class="p-co">SERVICETITAN</div>
+        <div class="p-fact">$961M/yr · &gt;95% gross retention</div>
+        <div class="p-mean">Trades businesses pay recurring and stick once a service is embedded in operations.</div>
+      </div>
+      <div class="p-item">
+        <div class="p-co">SCORPION &amp; MARKET</div>
+        <div class="p-fact">Contractor SEO: $1.5K–$8K/mo</div>
+        <div class="p-mean">Growth at $3,472 with a genuine 12-spot cap is priced under the incumbents for the industry's recognized deliverable: service-area pages.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OFFER LAYER -->
+  <section>
+    <div class="sec-label">§8 — The Offer Layer · Hormozi / Brunson</div>
+    <div class="sec-title">Prices never move. The offer gets heavier.</div>
+    <p class="sec-note"><b>Client-financed acquisition:</b> setup fees ($1,500 / $1,500 / $2,500) repay CAC in under 30 days — never waived, never discounted, never split. <b>The guarantees:</b> Growth carries the Booked-Calls Make-Good — more booked calls in the first 6 months than the 6 months before, measured by the client's own call tracking, or we work free until they get there. Basic and Business carry the Deliverable Guarantee — every promised page, post, and report on time, or that month is free. No ranking, lead-count, or revenue promises, ever. <b>The wrapper:</b> Growth is pitched as the Local Domination Program with exactly five named bonuses; the Scorecard feeds an application funnel; declined applicants downsell to Business; cancellations downsell to Minimum. <b>Traffic:</b> Core Four in sequence — warm, cold, content, Dream 100 — paid ads only after Gate 2, and never as a client service. Full detail: ENVOSTA_OFFER_SPEC.md.</p>
+  </section>
+
+  <div class="titleblock">
+    <div class="tb-cell"><div class="tb-k">Document</div><div class="tb-v">Envosta Operating Charter</div></div>
+    <div class="tb-cell"><div class="tb-k">Revision</div><div class="tb-v amber">1.4 — LOCKED</div></div>
+    <div class="tb-cell"><div class="tb-k">Issued</div><div class="tb-v">2026-07-02</div></div>
+    <div class="tb-cell"><div class="tb-k">Signed</div><div class="tb-v">Koltyn — Founder</div></div>
+  </div>
+</div>
+</body>
+</html>
