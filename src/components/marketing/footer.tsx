@@ -28,17 +28,16 @@ const footerColumns = [
   {
     title: 'Hosting',
     links: [
-      { label: 'WordPress Hosting', href: '/pricing' },
-      { label: 'WooCommerce Hosting', href: '/pricing' },
-      { label: 'Enterprise Hosting', href: '/products' },
-      { label: 'Plans & Pricing', href: '/pricing' },
+      { label: 'Hosting Plans', href: '/plans' },
+      { label: 'Industries', href: '/industries' },
+      { label: 'The Stack', href: '/stack' },
+      { label: 'Get Your Scorecard', href: '/scorecard' },
     ],
   },
   {
     title: 'Company',
     links: [
-      { label: 'The Method', href: '/method' },
-      { label: 'Onboarding', href: '/onboarding' },
+      { label: 'Service Promise', href: '/service-promise' },
       { label: 'Careers', href: '/careers' },
       { label: 'Contact Us', href: '/support' },
     ],
@@ -48,7 +47,6 @@ const footerColumns = [
     links: [
       { label: 'Blog', href: '/blog' },
       { label: 'Support Center', href: '/support' },
-      { label: 'Products', href: '/products' },
     ],
   },
   {

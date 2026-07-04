@@ -1,0 +1,181 @@
+/* ============================================================================
+   ENVOSTA BRAND SYSTEM v2 — charter CLAUDE.md §5 (Rev 1.4)
+   Blueprint navy + amber. Archivo display / Inter body / IBM Plex Mono
+   numerals. Dark, precise, engineered — quiet luxury, zero clutter.
+
+   Scope: everything under `.mk2` (each rebuilt page wraps its content in
+   <div className="mk2">). Legacy pages keep marketing.css until they are
+   reworked; brand.css wins inside .mk2. When Phase 2 completes, the legacy
+   sheet's page-specific styles are retired.
+   ========================================================================= */
+
+:root {
+  --navy-deep: #0A1929;
+  --navy-panel: #0F2438;
+  --navy-edge: #16334E;
+  --blueprint-line: rgba(96, 143, 190, 0.13);
+  --steel: #7FA6C9;
+  --steel-dim: #4E708F;
+  --paper: #E9F1F8;
+  --amber: #FFB627;
+  --amber-deep: #E09112;
+  --clay: #D64545; /* warnings ONLY — sparse */
+
+  --font-display: var(--font-archivo), 'Archivo', sans-serif;
+  --font-body: var(--font-inter), 'Inter', sans-serif;
+  --font-mono: var(--font-plex-mono), 'IBM Plex Mono', monospace;
+}
+
+/* ── Base canvas ─────────────────────────────────────────────────────── */
+.mk2 {
+  background: var(--navy-deep);
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: 16px; /* mobile-first readable base */
+  line-height: 1.6;
+  background-image:
+    linear-gradient(var(--blueprint-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--blueprint-line) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+.mk2 *, .mk2 *::before, .mk2 *::after { box-sizing: border-box; }
+
+/* ── Type scale ──────────────────────────────────────────────────────── */
+.mk2 h1, .mk2 h2, .mk2 h3, .mk2 h4 {
+  font-family: var(--font-display);
+  color: var(--paper);
+  letter-spacing: -0.01em;
+  line-height: 1.12;
+  margin: 0;
+}
+.mk2 h1 { font-weight: 800; font-size: clamp(2rem, 5.2vw, 3.4rem); }
+.mk2 h2 { font-weight: 700; font-size: clamp(1.5rem, 3.4vw, 2.2rem); }
+.mk2 h3 { font-weight: 700; font-size: 1.15rem; }
+.mk2 p { margin: 0; color: var(--steel); }
+.mk2 h1 em, .mk2 h2 em { font-style: normal; color: var(--amber); }
+
+/* Every numeral/price/stat renders in Plex Mono (charter §5). */
+.mk2 .num, .mk2 .mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mono eyebrow labels — technical-drawing register. */
+.mk2 .eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+/* ── Layout primitives ───────────────────────────────────────────────── */
+.mk2 .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+.mk2 section { padding: 72px 0; }
+@media (min-width: 768px) { .mk2 section { padding: 96px 0; } }
+
+/* Technical-drawing panel (the workhorse card). */
+.mk2 .panel {
+  background: linear-gradient(180deg, rgba(15, 36, 56, 0.72), rgba(10, 25, 41, 0.86));
+  border: 1px solid var(--navy-edge);
+  border-radius: 4px;
+}
+.mk2 .panel--framed {
+  border-width: 2px;
+  outline: 1px solid rgba(127, 166, 201, 0.22);
+  outline-offset: 5px;
+}
+
+/* ── Buttons — one primary CTA per screen ────────────────────────────── */
+.mk2 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  border-radius: 4px;
+  padding: 15px 30px; /* ≥44px touch target */
+  min-height: 48px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  border: 1px solid transparent;
+}
+.mk2 .btn:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 2px;
+}
+.mk2 .btn--primary { background: var(--amber); color: #17202B; }
+.mk2 .btn--primary:hover { background: var(--amber-deep); }
+.mk2 .btn--ghost {
+  background: transparent;
+  color: var(--paper);
+  border-color: var(--navy-edge);
+}
+.mk2 .btn--ghost:hover { border-color: var(--steel-dim); }
+.mk2 .btn:active { transform: translateY(1px); }
+
+/* ── Forms (Scorecard funnel etc.) ───────────────────────────────────── */
+.mk2 label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--steel);
+  margin-bottom: 6px;
+}
+.mk2 input, .mk2 select, .mk2 textarea {
+  width: 100%;
+  background: var(--navy-deep);
+  border: 1px solid var(--navy-edge);
+  border-radius: 4px;
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  padding: 13px 15px; /* ≥44px touch target */
+  min-height: 48px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.mk2 textarea { min-height: 120px; resize: vertical; }
+.mk2 input::placeholder, .mk2 textarea::placeholder { color: var(--steel-dim); }
+.mk2 input:focus, .mk2 select:focus, .mk2 textarea:focus {
+  border-color: var(--amber);
+}
+.mk2 .field-error { color: var(--clay); font-size: 0.85rem; margin-top: 6px; }
+
+/* ── Tables (plan ladder / comparison) ───────────────────────────────── */
+.mk2 .table-scroll { overflow-x: auto; }
+.mk2 table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.mk2 th {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--steel);
+  text-align: left;
+  padding: 0 14px 10px;
+  border-bottom: 1px solid var(--navy-edge);
+}
+.mk2 td {
+  padding: 14px;
+  border-bottom: 1px solid rgba(22, 51, 78, 0.6);
+  vertical-align: top;
+  color: var(--paper);
+}
+
+/* ── Accessibility & motion ──────────────────────────────────────────── */
+.mk2 a { color: inherit; }
+.mk2 :focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+
+.mk2 .rise { opacity: 0; transform: translateY(10px); animation: mk2-rise 0.5s ease-out forwards; }
+@keyframes mk2-rise { to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .mk2 .rise { animation: none; opacity: 1; transform: none; }
+  .mk2 .btn { transition: none; }
+}

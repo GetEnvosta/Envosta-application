@@ -98,3 +98,54 @@ DB (Phase 2), production-data cleanup (products rows for addons/old plans,
 site_addons table, users.metadata.reseller — cutover task, OPEN_QUESTIONS
 #8/#9), `.claude/settings.local.json` Jetpack permission entries (local
 dev-harness file, not app code).
+
+## Phase 2 — Marketing site rework, hosting-first IA (2026-07-03)
+
+**Brand system (charter §5):** Archivo + IBM Plex Mono added via next/font;
+`brand.css` design system (blueprint navy #0A1929 / panel / edge, amber
+#FFB627 accent, paper text, clay for warnings only; blueprint grid texture,
+technical-drawing panels, mono eyebrows, 48px touch targets, visible focus,
+reduced-motion). Scoped under `.mk2` so unrebuilt legacy pages keep working
+until retired.
+
+**Pages built (all config-driven — zero pricing/industry literals):**
+- `/` homepage — identity line, Hook–Story–Offer, commodity-anchor kill
+  block, provenance strip (approved claims only), future-proof block (claim
+  #5 demonstrated form), service-promise strip, proof section with
+  `PROOF: pending real client data` marker (no fabricated content), CTA.
+- `/plans` — Basic/Business/Growth as stacked hosting layers, monthly price
+  leading + setup after, live Growth spot counts per industry, both locked
+  guarantees with conditions, the five Growth bonuses, "13th month free"
+  bonus framing, SLA strip. Hidden Minimum appears nowhere. `/pricing`
+  re-exports `/plans`.
+- `/industries` + `/[industry]/[city]` template — parameterized per
+  config; honest per-city exclusivity status; unknown industries 404;
+  `/hvac/calgary` + `/roofing/calgary` prerendered, other cities on demand.
+- `/scorecard` — Local Domination Scorecard opt-in (name, business,
+  industry, city, URL, phone) → thank-you state. Turnstile renders when
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY` set; `/api/scorecard` verifies
+  server-side when the secret is set, rate-limits per IP, lands leads as
+  `tickets` (type='scorecard') + sales email (Phase 6 moves to `leads`).
+- `/service-promise` — SLAs verbatim from config, five-step intake loop
+  visualized, covered-vs-quoted boundary.
+- `/stack` — duct-tape vs canonical story, all five approved provenance
+  claims with proof anchors, Calgary/founder-led/direct-partner facts.
+
+**IA + SEO:** nav/footer rebuilt to Hosting Plans · Industries · Service
+Promise · The Stack with "Get Your Scorecard" as the CTA (old checkout CTAs
+removed from chrome). Layout metadata + Organization JSON-LD rewritten
+hosting-first; JSON-LD offers now derive from `publicPlans()` (hidden
+Minimum excluded from structured data). Sitemap rebuilt: new IA + per-
+industry city pages from config; old-model pages removed.
+
+**Deprecated additionally:** `/products`, `/method`, `/onboarding` (old-
+model copy, now unlinked) → `/_deprecated/`.
+
+**Verification:** tsc clean; `next build` green (71 routes incl.
+/hvac/calgary + /roofing/calgary); preview-checked homepage, scorecard
+form, industry template (honest "12 of 12 spots open" status), unknown-
+industry 404; zero console errors.
+
+**Still old-model (Phase 3 scope):** `/get-started` self-serve checkout +
+`/intake`, `/contact`, `/domains`, `/buy-domain`, `/support`, blog seed
+content — the signup/intake rework replaces or re-skins these.
