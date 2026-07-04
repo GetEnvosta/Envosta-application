@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Staff access required' }, { status: 403 });
   }
 
-  const { name, email, phone, company, siteLabel, productId, expiresInDays, comp, couponCode } = await req.json();
+  const { name, email, phone, company, siteLabel, productId, expiresInDays, comp } = await req.json();
   if (!name || !email) return NextResponse.json({ error: 'name and email are required' }, { status: 400 });
   if (siteLabel && !productId) {
     return NextResponse.json({ error: 'productId is required when creating a site' }, { status: 400 });
@@ -81,8 +81,8 @@ export async function POST(req: Request) {
 
     const userId = authUser.user.id;
 
-    // Create user profile. Plan + coupon are baked into the pre-created
-    // Stripe subscription below, so we don't stamp them on user.metadata.
+    // Create user profile. The plan is baked into the pre-created
+    // Stripe subscription below, so we don't stamp it on user.metadata.
     const userMetadata: Record<string, any> = {
       signup_source: 'admin_unclaimed',
     };
@@ -141,7 +141,6 @@ export async function POST(req: Request) {
           siteId,
           callerUserId: user.id,
           signupSource: 'admin_unclaimed',
-          couponCode: couponCode ?? null,
         });
         if (!subResult.ok) {
           subscriptionWarning = subResult.warning ?? 'Subscription pre-creation failed';

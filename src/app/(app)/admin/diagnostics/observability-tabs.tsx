@@ -65,7 +65,7 @@ export async function ApiCallsTab({ sp }: { sp: SP }) {
         <input type="hidden" name="tab" value="api" />
         <select name="provider" defaultValue={sp.provider ?? ''} className="input w-auto">
           <option value="">All providers</option>
-          {['stripe', 'wpcloud', 'opensrs', 'jetpack', 'resend'].map((p) => (
+          {['stripe', 'wpcloud', 'opensrs', 'resend'].map((p) => (
             <option key={p} value={p}>{p}</option>
           ))}
         </select>

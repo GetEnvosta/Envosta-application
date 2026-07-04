@@ -67,8 +67,7 @@ export async function PUT(req: Request) {
   const planMaxStorage = Number(planMeta.storage_gb ?? 25);
   // Bursting is the PAID wp.cloud option (+$250/mo per site). Never auto-grant
   // it from plan metadata (e.g. auto_scaling) — that would let a customer
-  // self-enable a $250 charge for free. It's enabled only by an admin or via
-  // the paid Bursting add-on (addon-effects pushes burst on its own path).
+  // self-enable a $250 charge for free. It's enabled only by an admin.
   const planAllowsBursting = planMeta.bursting_enabled === true;
 
   const reqWorkers = php_workers != null ? Number(php_workers) : oldWorkers;

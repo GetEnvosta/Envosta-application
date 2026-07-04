@@ -78,10 +78,8 @@ export async function POST(req: Request) {
   const immediate = body.immediate !== false; // default true
 
   if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 });
-  // Reseller is no longer a bespoke plan — resellers are a per-account flag
-  // with a flat discount (see /api/admin/set-reseller + src/lib/reseller.ts).
   if (!['enterprise'].includes(planSlug)) {
-    return NextResponse.json({ error: 'planSlug must be "enterprise" (resellers are now a per-account flag, not a plan)' }, { status: 400 });
+    return NextResponse.json({ error: 'planSlug must be "enterprise"' }, { status: 400 });
   }
   if (!Number.isFinite(monthlyCents) || monthlyCents < 100) {
     return NextResponse.json({ error: 'monthlyCents must be >= 100' }, { status: 400 });

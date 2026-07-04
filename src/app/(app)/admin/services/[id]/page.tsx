@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { DeleteSiteButton } from '@/components/sites/delete-site-button';
 import { ResourceControls } from '@/components/admin/resource-controls';
 import { ReapplyPlanButton } from '@/components/admin/reapply-plan-button';
-import { JetpackStatus } from '@/components/admin/jetpack-status';
 import {
   ArrowLeft, ExternalLink, Globe, Layers, Package, Server, User, Wrench,
   HardDrive, Wifi, Clock, CreditCard, Cpu, Database, MapPin, Zap, Key, Terminal, Shield,
@@ -159,12 +158,6 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             <p className="text-xs text-gray-500">Push this site&apos;s current <strong>plan</strong> defaults to wp.cloud — use after a plan&apos;s resources changed.</p>
             <ReapplyPlanButton siteId={service.id} />
           </div>
-        </div>
-
-        {/* Jetpack partner license */}
-        <div className="p-6 border-b border-gray-100">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Jetpack</p>
-          <JetpackStatus siteId={service.id} initial={meta.jetpack_attribution} />
         </div>
 
         {/* Performance & Cache */}

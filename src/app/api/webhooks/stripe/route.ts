@@ -12,7 +12,6 @@
  *   - Flipping users.metadata.signup_status on payment success/failure
  *   - Sending transactional emails (welcome, paid, payment_failed, sites_paused)
  *   - Auto-registering domains via OpenSRS for new signups
- *   - Studio-request ticket creation (one-time checkout flow)
  *   - Stamping users.stripe_customer_id on customer.created
  *
  * Dedup: every event is recorded in `webhook_events`
@@ -49,26 +48,6 @@ import { suspendSite } from '@/app/workflows/suspend-site';
 import { unsuspendSite } from '@/app/workflows/unsuspend-site';
 import { cancelSite } from '@/app/workflows/cancel-site';
 import { registerDomain } from '@/app/workflows/register-domain';
-
-/**
- * Parse the `addon_slugs` metadata field stamped on hosting
- * Subscriptions by /api/create-subscription. Stored as a JSON-stringified
- * array of strings so a single Stripe metadata key can carry the whole
- * bundle without colliding with reserved characters. Falls back to a
- * comma-delimited string for any legacy / hand-edited subs.
- */
-function parseAddonSlugs(raw: unknown): string[] {
-  if (!raw || typeof raw !== 'string') return [];
-  const trimmed = raw.trim();
-  if (!trimmed) return [];
-  try {
-    const parsed = JSON.parse(trimmed);
-    if (Array.isArray(parsed)) return parsed.filter((s): s is string => typeof s === 'string' && s.length > 0);
-  } catch {
-    // Not JSON — fall through to comma-split fallback.
-  }
-  return trimmed.split(',').map(s => s.trim()).filter(Boolean);
-}
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -586,70 +565,6 @@ export async function POST(req: Request) {
             }
           }
 
-          // ── Write site_addons rows for the signup add-on bundle ──
-          // /api/create-subscription stamps metadata.addon_slugs and
-          // attaches the add-ons as Stripe line items, but it can't
-          // create site_addons rows because the site row doesn't exist
-          // yet at signup. Now that `svc` (the signup site) exists, we
-          // record one site_addons row per add-on slug, resolving the
-          // matching Stripe SubscriptionItem on this sub to capture its
-          // stripe_subscription_item_id. Non-fatal — wrapped so a
-          // failure here never blocks provisioning.
-          //
-          // Per-site model: this signup subscription is for exactly one
-          // site, and the bundled add-on items attach to that site (svc)
-          // created above — matched to Stripe items by price.id.
-          if (wasNewlyInserted) {
-            try {
-              const signupAddonSlugs = parseAddonSlugs((sub.metadata as any)?.addon_slugs);
-              if (signupAddonSlugs.length > 0) {
-                const { data: addonProducts } = await supabase
-                  .from('products')
-                  .select('id, slug, stripe_price_id, stripe_price_id_yearly, stripe_price_id_cad, stripe_price_id_yearly_cad')
-                  .eq('type', 'plan_addon')
-                  .in('slug', signupAddonSlugs);
-
-                const nowIso = new Date().toISOString();
-                for (const slug of signupAddonSlugs) {
-                  const product = (addonProducts ?? []).find((p: any) => p.slug === slug);
-                  if (!product) {
-                    console.warn('[stripe-webhook] addon slug has no product row:', slug);
-                    continue;
-                  }
-                  // Resolve the Stripe SubscriptionItem for this add-on by
-                  // matching the item's price.id against any of the
-                  // product's known price IDs (currency/period agnostic).
-                  const priceIds = [
-                    product.stripe_price_id,
-                    product.stripe_price_id_yearly,
-                    product.stripe_price_id_cad,
-                    product.stripe_price_id_yearly_cad,
-                  ].filter((x): x is string => typeof x === 'string' && x.length > 0);
-                  const matchedItem = items.find(it => it.price?.id && priceIds.includes(it.price.id));
-
-                  await supabase
-                    .from('site_addons')
-                    .upsert(
-                      {
-                        site_id: svc.id,
-                        product_id: product.id,
-                        quantity: 1,
-                        status: 'active',
-                        stripe_subscription_item_id: matchedItem?.id ?? null,
-                        enabled_at: nowIso,
-                        disabled_at: null,
-                        updated_at: nowIso,
-                      },
-                      { onConflict: 'site_id,product_id' },
-                    );
-                  console.log('[stripe-webhook] site_addon recorded:', svc.id, slug, matchedItem?.id ?? '(no stripe item)');
-                }
-              }
-            } catch (addonErr) {
-              console.error('[stripe-webhook] site_addons write failed (non-fatal):', addonErr);
-            }
-          }
-
           // ── Idempotent wp.cloud provisioning ──
           // Provisioning runs as a Vercel Workflow so the webhook returns
           // 200 to Stripe immediately. The workflow checkpoints each step
@@ -784,30 +699,6 @@ export async function POST(req: Request) {
         }
       }
 
-      // ── Add-on bundle audit ─────────────────────────────────────
-      // When /api/create-subscription bundles plan-addons onto the new
-      // sub (e.g. customer ticked an add-on at signup), the slug list is
-      // stamped as `metadata.addon_slugs` (JSON-string). Log it to the
-      // audit trail so operators can see what shipped with the sub.
-      // Per-slug side effects (wp.cloud manageSoftware, site-meta toggles)
-      // are applied by /api/account/addons/add via src/lib/addon-effects.ts.
-      const addonSlugs = parseAddonSlugs((sub.metadata as any)?.addon_slugs);
-      if (addonSlugs.length > 0) {
-        await recordAudit({
-          actorType: 'webhook',
-          action: 'subscription.addons.attached',
-          resourceType: 'subscription',
-          resourceId: sub.id,
-          metadata: {
-            stripe_subscription_id: sub.id,
-            stripe_customer_id: custStripeId,
-            user_id: cust.id,
-            event_type: event.type,
-            addon_slugs: addonSlugs,
-          },
-        });
-      }
-
       // Standalone domain purchases don't ride a Stripe Subscription —
       // they arrive as checkout.session.completed events handled in the
       // dedicated block below. Nothing to do here.
@@ -818,39 +709,8 @@ export async function POST(req: Request) {
       const session = event.data.object as Stripe.Checkout.Session;
       const metadata = (session.metadata ?? {}) as Record<string, string>;
 
-      // ── Studio request (one-time) ──
-      if (metadata.type === 'studio_request') {
-        const userId = metadata.supabase_user_id;
-        if (userId) {
-          const { data: ticket } = await supabase
-            .from('tickets')
-            .insert({
-              user_id: userId,
-              subject: metadata.studio_subject ?? 'Studio Request',
-              type: 'studio',
-              status: 'open',
-              priority: 'normal',
-              metadata: {
-                stripe_payment_id: session.payment_intent ?? session.id,
-                amount_cad: session.amount_total ?? 25000,
-              },
-            })
-            .select('id')
-            .single();
-
-          if (ticket && metadata.studio_message) {
-            await supabase.from('ticket_messages').insert({
-              ticket_id: ticket.id,
-              sender: 'customer',
-              message: metadata.studio_message,
-            });
-          }
-          console.log('[stripe-webhook] studio ticket created:', ticket?.id);
-        }
-      }
-
       // ── Domain registration (inline-checkout flow) ──
-      else if (metadata.product_type === 'domain_registration') {
+      if (metadata.product_type === 'domain_registration') {
         const domainName = (metadata.domain_name ?? '').toLowerCase();
         const years = Math.max(1, Math.min(10, parseInt(metadata.years ?? '1', 10) || 1));
         let userId = metadata.supabase_user_id ?? '';

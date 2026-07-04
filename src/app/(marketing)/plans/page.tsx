@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import PricingClient from './pricing-client';
 import { createClient } from '@/lib/supabase-server';
-import { DesignPackages } from '@/components/marketing/design-packages';
 
 export const metadata: Metadata = {
   title: 'Hosting Plans — Envosta Managed WordPress Hosting',
@@ -145,7 +144,7 @@ export default async function PricingPage() {
     .sort((a, b) => (a.price_usd ?? a.price_cad ?? 0) - (b.price_usd ?? b.price_cad ?? 0));
 
   // Split into core plans (Minimum / Standard / Growth) and Enterprise.
-  // Reseller and anything else is hidden from the public pricing page.
+  // Anything else is hidden from the public pricing page.
   const plans = CORE_SLUGS
     .map((s) => allPlans.find((p) => p.slug === s))
     .filter(Boolean) as HostingPlan[];
@@ -546,8 +545,6 @@ export default async function PricingPage() {
         </div>
       </div></section>
 
-      {/* MORE OPTIONS — design packages with email-quote CTAs */}
-      <DesignPackages />
 
       {/* Compare-every-feature section moved into the collapsible <details>
           underneath the pricing grid (replacing the old "Need a dedicated

@@ -23,7 +23,6 @@ export function CreateUnclaimedAccount() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [expiresInDays, setExpiresInDays] = useState(30);
   const [comp, setComp] = useState(false);
-  const [couponCode, setCouponCode] = useState('');
   const [creating, setCreating] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
@@ -72,7 +71,6 @@ export function CreateUnclaimedAccount() {
           productId: siteLabel.trim() ? productId : undefined,
           expiresInDays,
           comp,
-          couponCode: couponCode.trim() || null,
         }),
       });
       const data = await res.json();
@@ -95,7 +93,7 @@ export function CreateUnclaimedAccount() {
 
   function reset() {
     setName(''); setEmail(''); setPhone(''); setCompany(''); setSiteLabel('');
-    setExpiresInDays(30); setComp(false); setCouponCode('');
+    setExpiresInDays(30); setComp(false);
     setResult(null); setError(''); setOpen(false);
   }
 
@@ -214,25 +212,12 @@ export function CreateUnclaimedAccount() {
         </div>
       </div>
 
-      {/* Comp + coupon — collapsed under the main grid because they're rarely used */}
+      {/* Comp — collapsed under the main grid because it's rarely used */}
       <div className="border-t border-gray-200 pt-3 space-y-2">
         <label className="flex items-center gap-2 text-sm text-gray-700">
           <input type="checkbox" checked={comp} onChange={e => setComp(e.target.checked)} />
           Comp this site (no charge, no subscription)
         </label>
-        {!comp && (
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Coupon code (optional)</label>
-            <input
-              type="text"
-              value={couponCode}
-              onChange={e => setCouponCode(e.target.value)}
-              className={inputClass}
-              placeholder="LAUNCH100"
-            />
-            <p className="text-[10px] text-gray-400 mt-0.5">Applied at checkout when the customer claims</p>
-          </div>
-        )}
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}

@@ -272,19 +272,6 @@ async function pushResourceLimitsToWpCloud(ctx: PlanContext) {
 }
 
 // ───────────────────────────────────────────────────────────────────
-// STEP 4b — re-apply addon effects so any active addons (e.g. Power
-// Pack bumping php_workers above the new plan default) override the
-// plan defaults we just pushed in step 4. Idempotent — no-op when the
-// computed config matches the just-pushed config.
-// ───────────────────────────────────────────────────────────────────
-async function reapplyAddonEffects(input: UpdateSitePlanInput) {
-  'use step';
-  // Inline import to keep the workflow file boundary clean.
-  const { applySiteAddonEffects } = await import('@/lib/addon-effects');
-  return await applySiteAddonEffects(input.siteId, input.actorId);
-}
-
-// ───────────────────────────────────────────────────────────────────
 // STEP 5 — audit completion.
 // ───────────────────────────────────────────────────────────────────
 async function recordPlanChanged(
@@ -322,7 +309,6 @@ export async function updateSitePlan(input: UpdateSitePlanInput) {
   await swapStripeLineItem(ctx);
   await mirrorSitePlanLocally(input, ctx);
   const { pushed } = await pushResourceLimitsToWpCloud(ctx);
-  await reapplyAddonEffects(input);
   await recordPlanChanged(input, ctx, pushed);
 
   return {

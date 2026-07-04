@@ -39,12 +39,10 @@ interface Props {
   initialBilling?: 'monthly' | 'annual';
   /** Free trial mode: auto-selects Minimum plan, temp domain, 14-day trial */
   isTrial?: boolean;
-  /** Stripe promotion code to auto-apply at checkout */
-  promoCode?: string;
 }
 
 /* ── Component ── */
-export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBilling, isTrial, promoCode }: Props) {
+export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBilling, isTrial }: Props) {
   const supabase = createClient();
 
   /* State */
@@ -232,7 +230,6 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
           domainName: selectedDomain || undefined,
           billing: billingPeriod,
           trial: isTrial || false,
-          promoCode: promoCode || undefined,
           ...(mode === 'public' ? { name, email, password } : {}),
         }),
       });

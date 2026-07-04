@@ -17,7 +17,6 @@ import { ClaimLinkBanner } from '@/components/admin/claim-link-banner';
 import { ProvisionStatusBadge } from '@/components/admin/provision-status-badge';
 import { AddSiteForCustomer } from '@/components/admin/add-site-for-customer';
 import { CustomSubscriptionForm } from '@/components/admin/custom-subscription-form';
-import { ResellerToggle } from '@/components/admin/reseller-toggle';
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -123,7 +122,6 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               <p className="text-sm text-gray-500">{user.email}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <ResellerToggle userId={user.id} initialReseller={(user as any).metadata?.reseller === true} />
               {user.stripe_customer_id && (
                 <>
                   <ChargeCard customerId={id} customerName={user.full_name || user.email} />

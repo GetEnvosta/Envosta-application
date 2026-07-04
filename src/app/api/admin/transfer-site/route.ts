@@ -59,13 +59,12 @@ export async function POST(req: Request) {
     before: { user_id: result.oldUserId, stripe_subscription_id: result.oldSubscriptionId },
     after: { user_id: newUserId, stripe_subscription_id: result.newSubscriptionId },
     metadata: {
-      level: result.oldCancelError || result.addons?.some(a => !a.moved) ? 'warn' : 'info',
+      level: result.oldCancelError ? 'warn' : 'info',
       details: `Site "${result.siteLabel}" transferred to ${newOwner?.email ?? newUserId} (admin). New per-site subscription; old cancelled (prorated).`,
       old_owner: result.oldUserId,
       new_owner: newUserId,
       old_subscription_cancelled: result.oldSubscriptionCancelled,
       old_cancel_error: result.oldCancelError,
-      addons: result.addons,
     },
   });
 
@@ -76,7 +75,6 @@ export async function POST(req: Request) {
     newSubscriptionId: result.newSubscriptionId,
     oldSubscriptionCancelled: result.oldSubscriptionCancelled,
     oldCancelError: result.oldCancelError,
-    addons: result.addons,
     warning: result.warning,
   });
 }

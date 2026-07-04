@@ -4,7 +4,6 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
 import { resolvePlanPrice } from '@/lib/stripe-subscription';
-import { resellerCouponForUser } from '@/lib/reseller';
 import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
@@ -90,16 +89,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: siteErr?.message ?? 'Failed to create site' }, { status: 500 });
   }
 
-  // Create this site's dedicated Stripe subscription. Resellers get a flat
-  // platform discount applied to every site subscription they own.
-  const resellerCoupon = await resellerCouponForUser(supabase, stripe, user.id);
+  // Create this site's dedicated Stripe subscription. No coupons or
+  // discounts exist (charter §7).
   let subscription: Stripe.Subscription;
   try {
     subscription = await stripe.subscriptions.create({
       customer: profile.stripe_customer_id,
       items: [{ price: plan.priceId, metadata: { envosta_site_id: site.id } }],
       payment_settings: { save_default_payment_method: 'on_subscription' },
-      ...(resellerCoupon ? { coupon: resellerCoupon } : {}),
       metadata: {
         supabase_user_id: user.id,
         envosta_site_id: site.id,

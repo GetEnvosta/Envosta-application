@@ -11,8 +11,8 @@
  *    CDN, WAF, staging) via site-meta
  *  - Installs + unlocks the Envosta parent theme + Akismet so customers
  *    can manage them
- *  - Removes the Jetpack plugin that wp.cloud pre-installs (Envosta sites
- *    ship Jetpack-free)
+ *  - Removes the Jetpack plugin that wp.cloud pre-installs (Jetpack is
+ *    banned from the stack — every Envosta site ships Jetpack-free)
  *  - Auto-configures OpenSRS DNS for Envosta-registered domains
  *  - Sends site-ready / provisioning-failed transactional emails
  *  - Records the state change to `audit_log`
@@ -238,7 +238,6 @@ export async function POST(req: Request) {
   let hasCdn = true;
   let hasWaf = true;
   let hasStaging = true;
-  let jetpackPlanSlug = 'free';
 
   const planIdForLookup = site.product_id ?? body.planId ?? null;
   if (planIdForLookup) {
@@ -253,7 +252,6 @@ export async function POST(req: Request) {
       hasCdn = meta.has_cdn ?? true;
       hasWaf = meta.has_waf ?? true;
       hasStaging = meta.has_staging ?? true;
-      jetpackPlanSlug = meta.jetpack_plan_slug ?? 'free';
     }
   }
 
@@ -520,30 +518,8 @@ export async function POST(req: Request) {
   } catch (e) {
     softwareResults.akismet_unlock = { ok: false, error: String(e) };
   }
-  // Attach our Jetpack partner license (free tier → partner attribution) to
-  // the site, then REMOVE the Jetpack plugin. Envosta sites ship WITHOUT
-  // Jetpack running — customers opt in by installing it themselves. The
-  // partner license stays attached to the site/account, so a self-install
-  // connects under our partner (and in-dashboard upgrades route back to us).
-  // The license call is gated by the partner creds being present; the plugin
-  // is removed either way (matches current behaviour).
-  let jetpackAttribution: Record<string, unknown> | null = null;
-  if (process.env.JETPACK_PARTNER_ID && process.env.JETPACK_PARTNER_SECRET) {
-    try {
-      const { jetpackPartnerProvision } = await import('@/lib/integrations/jetpack');
-      const jp = await jetpackPartnerProvision({
-        siteUrl: wpUrl ?? `https://${wpDomain}`,
-        localUser: adminUser,
-        plan: jetpackPlanSlug,
-      });
-      jetpackAttribution = { plan: jetpackPlanSlug, ok: jp.ok, error: jp.error ?? null, at: nowIso };
-    } catch (e) {
-      jetpackAttribution = { plan: jetpackPlanSlug, ok: false, error: String(e), at: nowIso };
-    }
-    softwareResults.jetpack_license = jetpackAttribution;
-  }
-  // Remove the wp.cloud-preinstalled Jetpack plugin — customers install it
-  // themselves if they want it; the partner license above remains attached.
+  // Remove the wp.cloud-preinstalled Jetpack plugin — Jetpack is banned from
+  // the stack (charter §4): every Envosta site ships Jetpack-free.
   try {
     await client.manageSoftware(wpSiteIdStr, 'deactivate', 'plugin', 'jetpack');
     await client.manageSoftware(wpSiteIdStr, 'delete', 'plugin', 'jetpack');
@@ -551,17 +527,11 @@ export async function POST(req: Request) {
   } catch (e) {
     softwareResults.jetpack_removed = { ok: false, error: String(e) };
   }
-  // Stamp the Jetpack license result onto the site so the admin panel shows it.
-  if (jetpackAttribution) {
-    await sb.from('sites').update({
-      metadata: { ...updatedMetadata, jetpack_attribution: jetpackAttribution },
-    }).eq('id', site.id);
-  }
   await recordLog(sb, {
     userId: effectiveUserId,
     siteId: site.id,
     action: 'site.software.bootstrap',
-    message: 'parent theme + Akismet installed; Jetpack license attached + plugin removed',
+    message: 'parent theme + Akismet installed; Jetpack plugin removed',
     res: softwareResults,
   });
 

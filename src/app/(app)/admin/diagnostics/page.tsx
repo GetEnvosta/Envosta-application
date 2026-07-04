@@ -11,8 +11,8 @@
  *   audit     — audit_log                     (was /admin/audit)
  *   lifecycle — status lifecycle reference docs
  *
- * Promotions (coupons) and Emails moved out to /admin/settings. Admin-only:
- * the observability tabs read RLS-locked mirror tables via service role.
+ * Admin-only: the observability tabs read RLS-locked mirror tables via
+ * service role.
  */
 export const dynamic = 'force-dynamic';
 

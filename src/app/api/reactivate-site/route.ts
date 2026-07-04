@@ -4,7 +4,6 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
 import { resolvePlanPrice } from '@/lib/stripe-subscription';
-import { resellerCouponForUser } from '@/lib/reseller';
 import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
@@ -106,14 +105,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No payment method on file. Please add a payment method first.' }, { status: 400 });
     }
 
-    const resellerCoupon = await resellerCouponForUser(supabase, stripe, user.id);
     const newSub = await stripe.subscriptions.create({
       customer: profile.stripe_customer_id,
       items: [{ price: priceId, metadata: { envosta_site_id: siteId } }],
       payment_behavior: 'default_incomplete',
       payment_settings: { save_default_payment_method: 'on_subscription' },
       expand: ['latest_invoice.payment_intent'],
-      ...(resellerCoupon ? { coupon: resellerCoupon } : {}),
       metadata: {
         supabase_user_id: user.id,
         envosta_site_id: siteId,

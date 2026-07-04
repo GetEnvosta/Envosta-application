@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
   const { data: callerProfile } = await supabase.from('users').select('id, role').eq('id', user.id).single();
 
-  const { customerId, label, productId, comp, couponCode } = await req.json();
+  const { customerId, label, productId, comp } = await req.json();
   if (!customerId || !label || !productId) {
     return NextResponse.json({ error: 'customerId, label, and productId are required' }, { status: 400 });
   }
@@ -85,8 +85,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: siteErr?.message ?? 'Failed to create site row' }, { status: 500 });
   }
 
-  // Pre-create Stripe sub (skip for comped sites). The coupon is passed
-  // directly into stripe.subscriptions.create — no user.metadata stamp.
+  // Pre-create Stripe sub (skip for comped sites).
   let subscriptionWarning: string | undefined;
   if (comp !== true) {
     const { data: targetUser } = await sb.from('users').select('email, full_name').eq('id', customerId).maybeSingle();
@@ -100,7 +99,6 @@ export async function POST(req: Request) {
         siteId: site.id,
         callerUserId: user.id,
         signupSource: 'admin_added',
-        couponCode: couponCode ?? null,
       });
       if (!subResult.ok) {
         subscriptionWarning = subResult.warning ?? 'Subscription pre-creation failed';
@@ -149,7 +147,6 @@ export async function POST(req: Request) {
       target_user: customerId,
       plan_id: plan.id,
       comp: comp === true,
-      coupon_code: couponCode ?? null,
     },
   });
 

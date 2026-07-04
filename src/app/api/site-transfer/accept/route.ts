@@ -93,7 +93,6 @@ export async function POST(req: Request) {
       level: result.oldCancelError ? 'warn' : 'info',
       new_subscription_id: result.newSubscriptionId,
       old_cancel_error: result.oldCancelError,
-      addons: result.addons,
     },
   });
 

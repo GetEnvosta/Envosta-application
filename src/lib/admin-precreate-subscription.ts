@@ -26,7 +26,6 @@
 
 import Stripe from 'stripe';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { resellerCouponForUser } from '@/lib/reseller';
 
 export interface PreCreateResult {
   ok: boolean;
@@ -47,11 +46,10 @@ interface PreCreateArgs {
   siteId: string;
   callerUserId: string;
   signupSource: 'admin_unclaimed' | 'admin_added';
-  couponCode?: string | null;
 }
 
 export async function preCreateAdminSubscription(args: PreCreateArgs): Promise<PreCreateResult> {
-  const { sb, userId, userEmail, userFullName, productId, siteId, callerUserId, signupSource, couponCode } = args;
+  const { sb, userId, userEmail, userFullName, productId, siteId, callerUserId, signupSource } = args;
 
   try {
     if (!process.env.STRIPE_SECRET_KEY) {
@@ -102,26 +100,8 @@ export async function preCreateAdminSubscription(args: PreCreateArgs): Promise<P
       },
     };
 
-    // Resellers get a flat platform discount on every subscription; an
-    // admin-supplied couponCode takes precedence if both would apply.
-    const resellerCoupon = await resellerCouponForUser(sb, stripe, userId);
-    const effectiveCoupon = couponCode ?? resellerCoupon;
-
-    let subscription: Stripe.Subscription;
-    let couponWarning: string | undefined;
-
-    // Try with coupon first; on error, retry without
-    if (effectiveCoupon) {
-      try {
-        subscription = await stripe.subscriptions.create({ ...baseParams, coupon: effectiveCoupon } as any);
-      } catch (e: any) {
-        couponWarning = `Coupon "${effectiveCoupon}" rejected by Stripe (${e?.message ?? 'unknown'}); created subscription without coupon`;
-        console.error('preCreateAdminSubscription: coupon failed, retrying without —', e?.message);
-        subscription = await stripe.subscriptions.create(baseParams);
-      }
-    } else {
-      subscription = await stripe.subscriptions.create(baseParams);
-    }
+    // No coupons or discounts exist (charter §7).
+    const subscription: Stripe.Subscription = await stripe.subscriptions.create(baseParams);
 
     // 4. Capture client_secret — trial subs use pending_setup_intent
     const pendingSetup = (subscription as any).pending_setup_intent as Stripe.SetupIntent | null;
@@ -152,7 +132,6 @@ export async function preCreateAdminSubscription(args: PreCreateArgs): Promise<P
 
     return {
       ok: true,
-      warning: couponWarning,
       pendingSubscriptionId: subscription.id,
       pendingClientSecret: clientSecret ?? undefined,
       stripeSubscriptionItemId: firstItem?.id ?? null,

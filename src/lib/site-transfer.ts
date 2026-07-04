@@ -16,7 +16,6 @@
  */
 import type Stripe from 'stripe';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { resellerCouponForUser } from '@/lib/reseller';
 
 export interface SiteTransferResult {
   ok: boolean;
@@ -28,12 +27,12 @@ export interface SiteTransferResult {
   oldSubscriptionId?: string | null;
   oldSubscriptionCancelled?: boolean;
   oldCancelError?: string | null;
-  addons?: { slug: string; moved: boolean; error?: string }[];
   oldUserId?: string | null;
   siteLabel?: string | null;
   warning?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function pickAddonPrice(addon: any, interval: 'month' | 'year'): string | null {
   const yearly = interval === 'year';
   return yearly
@@ -95,14 +94,12 @@ export async function executeSiteTransfer(
   if (!priceId) return { ok: false, status: 400, error: 'Could not resolve a Stripe price for this site (plan not synced?).' };
 
   // ── 1) Create the site's NEW subscription under the new owner ──
-  const resellerCoupon = await resellerCouponForUser(sb, stripe, newUserId);
   let newSub: Stripe.Subscription;
   try {
     newSub = await stripe.subscriptions.create({
       customer: newOwner.stripe_customer_id,
       items: [{ price: priceId, metadata: { envosta_site_id: siteId } }],
       payment_settings: { save_default_payment_method: 'on_subscription' },
-      ...(resellerCoupon ? { coupon: resellerCoupon } : {}),
       metadata: {
         supabase_user_id: newUserId,
         envosta_site_id: siteId,
@@ -122,37 +119,7 @@ export async function executeSiteTransfer(
   }
   const newItemId = newSub.items.data[0]?.id ?? null;
 
-  // ── 2) Recreate active add-ons on the new subscription ──
-  const { data: addonRows } = await sb
-    .from('site_addons')
-    .select('id, product_id, stripe_subscription_item_id, products:product_id(slug, name, stripe_price_id, stripe_price_id_yearly, stripe_price_id_cad, stripe_price_id_yearly_cad)')
-    .eq('site_id', siteId)
-    .eq('status', 'active');
-
-  const addons: { slug: string; moved: boolean; error?: string }[] = [];
-  for (const row of addonRows ?? []) {
-    const addon: any = (row as any).products ?? {};
-    const slug = addon.slug ?? '(unknown)';
-    try {
-      const addonPriceId = pickAddonPrice(addon, interval);
-      if (!addonPriceId) throw new Error('add-on has no synced Stripe price');
-      const created = await stripe.subscriptionItems.create({
-        subscription: newSubId,
-        price: addonPriceId,
-        quantity: 1,
-        metadata: { envosta_addon_slug: slug, envosta_user_id: newUserId, envosta_site_id: siteId },
-      });
-      await sb.from('site_addons').update({
-        stripe_subscription_item_id: created.id,
-        updated_at: new Date().toISOString(),
-      }).eq('id', (row as any).id);
-      addons.push({ slug, moved: true });
-    } catch (e: any) {
-      addons.push({ slug, moved: false, error: e?.message ?? String(e) });
-    }
-  }
-
-  // ── 3) Flip ownership + per-site billing link ──
+  // ── 2) Flip ownership + per-site billing link ──
   await sb.from('sites').update({
     user_id: newUserId,
     stripe_subscription_id: newSubId,
@@ -178,7 +145,6 @@ export async function executeSiteTransfer(
     oldSubscriptionId: oldSubId,
     oldSubscriptionCancelled: !oldCancelError && !!oldSubId,
     oldCancelError,
-    addons,
     oldUserId,
     siteLabel: site.label as string | null,
     warning: oldCancelError

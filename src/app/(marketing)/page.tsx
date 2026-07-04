@@ -717,8 +717,8 @@ export default async function HomePage() {
               </div>
 
               <div className="int-fl int-fl-md int-d2 int-fa3" style={{ top: '88%', left: '42%' }}>
-                <img loading="lazy" src="/assets/Brands/JetPack.jpeg" alt="Jetpack" width="26" height="26" style={{ borderRadius: '6px' }} />
-                <div><div className="int-fl-name">Jetpack</div></div>
+                <img loading="lazy" src="/assets/Brands/Analytics.png" alt="Google Business Profile" width="26" height="26" style={{ borderRadius: '6px' }} />
+                <div><div className="int-fl-name">Google Business</div></div>
               </div>
 
               <div className="int-fl int-fl-md int-d2 int-fa6" style={{ top: '60%', left: '52%' }}>
@@ -773,7 +773,7 @@ export default async function HomePage() {
               </div>
 
               <div className="int-fl int-fl-sm int-d3 int-fa4" style={{ top: '74%', left: '44%' }}>
-                <img loading="lazy" src="/assets/Brands/JetPack.jpeg" alt="Jetpack" width="20" height="20" style={{ borderRadius: '5px' }} />
+                <img loading="lazy" src="/assets/Brands/Zapier.jpeg" alt="Calendly" width="20" height="20" style={{ borderRadius: '5px' }} />
                 <div><div className="int-fl-name">Calendly</div></div>
               </div>
 

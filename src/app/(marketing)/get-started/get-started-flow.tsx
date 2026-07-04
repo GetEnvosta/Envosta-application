@@ -26,7 +26,6 @@ export function GetStartedFlow() {
   }, []);
   const planParam = searchParams.get('plan')?.toLowerCase() ?? undefined;
   const billing = (searchParams.get('billing') === 'annual' ? 'annual' : 'monthly') as 'monthly' | 'annual';
-  const promo = searchParams.get('promo') ?? undefined;
 
   const trialParam = searchParams.get('trial');
   // plan=choose means "show plan picker" (no pre-selection)
@@ -75,7 +74,6 @@ export function GetStartedFlow() {
           initialPlan={effectivePlan}
           initialBilling={billing}
           isTrial={isTrial}
-          promoCode={promo}
         />
       </div>
     </div>

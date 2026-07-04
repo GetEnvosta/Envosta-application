@@ -16,7 +16,6 @@ import { ConnectedDomainSwitcher } from '@/components/sites/connected-domain-swi
 import { SiteAccess } from '@/components/sites/site-access';
 import { SiteIp } from '@/components/sites/site-ip';
 import { SiteGuardrails } from '@/components/sites/site-guardrails';
-import { SiteAddons } from '@/components/sites/site-addons';
 import { SiteHandoffButton } from '@/components/sites/site-handoff-button';
 import { PhpVersionSelector } from '@/components/sites/php-version-selector';
 import { WpControls } from '@/components/sites/wp-controls';
@@ -173,15 +172,12 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
     </div>
   );
 
-  const addonsPanel = <SiteAddons siteId={id} userId={userId} />;
-
   const tabs: TabDef[] = [
     { id: 'overview', label: 'Overview', icon: <LayoutGrid className="w-4 h-4" />, content: overviewPanel },
     { id: 'performance', label: 'Performance', icon: <Zap className="w-4 h-4" />, content: performancePanel },
     { id: 'wordpress', label: 'WordPress', icon: <Settings className="w-4 h-4" />, content: wordpressPanel },
     { id: 'backups', label: 'Backups', icon: <HardDrive className="w-4 h-4" />, content: backupsPanel },
     { id: 'access', label: 'Access', icon: <Key className="w-4 h-4" />, content: accessPanel },
-    { id: 'addons', label: 'Add-ons', icon: <Sparkles className="w-4 h-4" />, content: addonsPanel },
   ];
 
   return (

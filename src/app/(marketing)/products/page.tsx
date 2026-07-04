@@ -305,7 +305,7 @@ export default function ProductsPage() {
             <div className="mega-grid">
               <div>
                 <h3>Infrastructure you can trust</h3>
-                <p className="desc">wp.cloud is built and maintained by Automattic — the company behind WordPress.com, WooCommerce, and Jetpack. Every Envosta site runs on this platform, which means you get the same globally distributed infrastructure, automated scaling, and battle-tested security that powers millions of sites worldwide.</p>
+                <p className="desc">wp.cloud is built and maintained by Automattic — the company behind WordPress.com and WooCommerce. Every Envosta site runs on this platform, which means you get the same globally distributed infrastructure, automated scaling, and battle-tested security that powers millions of sites worldwide.</p>
                 <div className="mega-tags">
                   <span>wp.cloud by Automattic</span>
                   <span>Global Edge Network</span>

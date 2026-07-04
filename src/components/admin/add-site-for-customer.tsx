@@ -2,9 +2,8 @@
 
 /**
  * Inline admin action: add another site to an existing customer.
- * Supports both paid (regular plan) and comped (no-charge) sites, plus
- * an optional coupon code that will be applied at the customer's next
- * checkout. Posts to /api/admin/add-site-for-customer.
+ * Supports both paid (regular plan) and comped (no-charge) sites.
+ * Posts to /api/admin/add-site-for-customer.
  */
 
 import { useState, useEffect } from 'react';
@@ -24,7 +23,6 @@ export function AddSiteForCustomer({ customerId }: { customerId: string }) {
   const [productId, setProductId] = useState('');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [comp, setComp] = useState(false);
-  const [couponCode, setCouponCode] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -61,7 +59,6 @@ export function AddSiteForCustomer({ customerId }: { customerId: string }) {
           label: label.trim(),
           productId,
           comp,
-          couponCode: couponCode.trim() || null,
         }),
       });
       const data = await res.json();
@@ -132,19 +129,6 @@ export function AddSiteForCustomer({ customerId }: { customerId: string }) {
         <input type="checkbox" checked={comp} onChange={e => setComp(e.target.checked)} />
         Comp this site (no charge, no subscription)
       </label>
-      {!comp && (
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">Coupon code (optional)</label>
-          <input
-            type="text"
-            value={couponCode}
-            onChange={e => setCouponCode(e.target.value)}
-            className={inputClass}
-            placeholder="LAUNCH100"
-          />
-          <p className="text-[10px] text-gray-400 mt-0.5">Applied at customer's next checkout</p>
-        </div>
-      )}
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex justify-end">
         <button
