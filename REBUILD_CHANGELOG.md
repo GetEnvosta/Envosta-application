@@ -149,3 +149,56 @@ industry 404; zero console errors.
 **Still old-model (Phase 3 scope):** `/get-started` self-serve checkout +
 `/intake`, `/contact`, `/domains`, `/buy-domain`, `/support`, blog seed
 content — the signup/intake rework replaces or re-skins these.
+
+## Phase 3 — Signup & intake (2026-07-03)
+
+**One flow, two motions (`/signup`):**
+- Rep-assisted (live now): requires a logged-in staff session — "rep closes
+  live on envosta.com" (charter §4). Rep sessions are audit-logged.
+- Self-serve: the identical flow opens to the public when
+  `SELF_SERVE_ENABLED=true` (`src/config/flags.ts`) — built now, shipped
+  dark per Gate 3. Public visitors meanwhile see the rep-assisted explainer
+  routing to the Scorecard funnel.
+- Steps: plan (config; hidden Minimum unselectable by construction) →
+  monthly/annual toggle (annual = 12× monthly billed yearly, framed
+  strictly as the 13th-month-free bonus) → industry + city with LIVE
+  Growth exclusivity validation from the config ledger (open/reserved/
+  taken + spots remaining, re-validated server-side; 409 when a city is
+  taken) → client details + domain preference (register new / have one /
+  not sure) → order summary → Stripe Checkout.
+
+**Payment (`/api/signup-checkout`):** Stripe Checkout Session (subscription
+mode) charging the exact config numbers via inline `price_data` — pricing
+cannot drift from config; catalog Prices arrive with Phase 6's bootstrap
+(seam documented in the route). Setup fee rides the first invoice as a
+one-time line and has NO code path that omits, waives, or discounts it
+(offer spec Call 2). Gate enforced server-side (staff session or flag);
+non-staff callers additionally pass Turnstile once keys are configured
+(`src/lib/turnstile.ts`, shared with the Scorecard route). Rate-limited.
+
+**Intake → provisioning handoff (webhook):** on
+`checkout.session.completed` with `envosta_flow='signup_v2'`, the webhook
+writes the structured job record — client, plan, billing, industry, city,
+domain preference, contact, rep, Stripe ids — and fires the internal
+notification email. Pre–Phase 6 the queue is a `tickets` row
+(type='signup') whose metadata carries the exact future
+`provisioning_jobs` payload; Phase 6 swaps storage without changing the
+contract.
+
+**Downgrade path (brief Phase 3.4):** satisfied by the existing
+internal-only admin PlanSwitcher (admin → customer → site → plan) which
+can move a cancelling client to the hidden Minimum plan; nothing public
+links Minimum, and the new /signup flow cannot select it. The new-model
+`clients.plan_key` downgrade lands with Phases 6–7.
+
+**Old self-serve retired:** `/get-started` now redirects to `/scorecard`
+(self-serve returns at `/signup` behind the flag); old checkout components
+(get-started-flow, site-checkout-flow, embedded-checkout, both
+pricing-client files) + `/intake` page + `/api/intake` moved to
+`/_deprecated/`; auth-signup redirect, login link, and domains-page CTA
+repointed.
+
+**Verification:** tsc clean; build green (/signup dynamic + /signup/complete
++ /api/signup-checkout present); preview-verified — public `/signup` shows
+the gated explainer (flow markup absent), public POST to the checkout API
+returns 403 with no Stripe session created.

@@ -50,6 +50,24 @@ config flags and surfaced here — never resolved unilaterally.
     serves both surfaces (charter implies yes: `/dashboard` + `/admin` in the
     same app).
 
+## Phase 3 items for confirmation
+
+11. **Stripe wiring (brief Phase 3.5):** the signup checkout charges the
+    exact config numbers via inline `price_data` (no catalog objects, no
+    drift). Phase 6's bootstrap script creates catalog Products/Prices and
+    the route swaps to IDs. Confirm this is acceptable for the interim, and
+    confirm the Stripe account/mode before any live rep-assisted close
+    (Open Decision #3).
+12. **Annual prepay mechanics:** implemented per the handoff's bootstrap
+    definition — annual = 12× monthly billed yearly, framed as "13th month
+    free". If the intent is instead a literal 13-month first term (12×
+    price + one bonus month of coverage), say so — it changes the Stripe
+    term setup, not the price.
+13. **Before flipping SELF_SERVE_ENABLED at Gate 3:** add the Turnstile
+    widget to the /signup form (the API already enforces verification for
+    non-staff callers when the secret is configured) and re-run the
+    Phase 9 checklist on the flow.
+
 ## Proposed, not built
 
 - (empty — improvements spotted outside the brief's scope get parked here)

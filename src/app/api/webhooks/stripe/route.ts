@@ -40,6 +40,7 @@ import {
   invoicePaidEmail,
   paymentFailedEmail,
   sitesPausedEmail,
+  FROM_EMAIL,
 } from '@/lib/email';
 import { recordAudit } from '@/lib/audit';
 import { start } from 'workflow/api';
@@ -704,13 +705,100 @@ export async function POST(req: Request) {
       // dedicated block below. Nothing to do here.
     }
 
-    // ── checkout.session.completed (one-time payments) ──
+    // ── checkout.session.completed ──
     else if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       const metadata = (session.metadata ?? {}) as Record<string, string>;
 
+      // ── Signup intake (rebuild Phase 3.3): payment confirmed → write the
+      // structured provisioning job record + internal notification.
+      // Pre–Phase 6 the queue is a `tickets` row (type='signup') whose
+      // metadata carries the exact future `provisioning_jobs` payload; the
+      // spine (Phase 4/6) consumes it, and Phase 6 swaps storage to the
+      // dedicated table without changing this contract.
+      if (metadata.envosta_flow === 'signup_v2') {
+        const jobPayload = {
+          flow: 'signup_v2',
+          plan_key: metadata.plan_key ?? '',
+          billing: metadata.billing ?? 'monthly',
+          industry: metadata.industry ?? '',
+          city: metadata.city ?? '',
+          business: metadata.business ?? '',
+          contact_name: metadata.contact_name ?? '',
+          email: metadata.email ?? session.customer_details?.email ?? '',
+          phone: metadata.phone ?? '',
+          domain_pref: metadata.domain_pref ?? 'not_sure',
+          existing_domain: metadata.existing_domain ?? '',
+          rep_user_id: metadata.rep_user_id || null,
+          stripe_checkout_session_id: session.id,
+          stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null,
+          stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null,
+          amount_total_cents: session.amount_total ?? null,
+          currency: session.currency ?? null,
+        };
+
+        const { data: jobTicket, error: jobErr } = await supabase
+          .from('tickets')
+          .insert({
+            subject: `Signup: ${jobPayload.business} — ${jobPayload.plan_key}/${jobPayload.industry}/${jobPayload.city}`,
+            type: 'signup',
+            status: 'open',
+            priority: 'high',
+            metadata: { source: 'signup_v2', provisioning_job: jobPayload },
+          })
+          .select('id')
+          .single();
+        if (jobErr) {
+          console.error('[stripe-webhook] signup job write failed:', jobErr);
+        } else if (jobTicket) {
+          await supabase.from('ticket_messages').insert({
+            ticket_id: jobTicket.id,
+            sender: 'customer',
+            message:
+              `**New signup (payment confirmed)**\n\n` +
+              `Business: ${jobPayload.business}\nContact: ${jobPayload.contact_name} (${jobPayload.email} · ${jobPayload.phone})\n` +
+              `Plan: ${jobPayload.plan_key} (${jobPayload.billing})\nIndustry/City: ${jobPayload.industry} / ${jobPayload.city}\n` +
+              `Domain: ${jobPayload.domain_pref}${jobPayload.existing_domain ? ` (${jobPayload.existing_domain})` : ''}\n` +
+              `Rep: ${jobPayload.rep_user_id ?? 'self-serve'}\nStripe sub: ${jobPayload.stripe_subscription_id ?? '—'}`,
+          });
+          await recordAudit({
+            actorType: 'webhook',
+            action: 'signup.intake.created',
+            resourceType: 'ticket',
+            resourceId: jobTicket.id,
+            metadata: jobPayload,
+          });
+          // Internal notification (non-blocking).
+          try {
+            const RESEND_KEY = process.env.RESEND_API_KEY;
+            if (RESEND_KEY) {
+              await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  from: FROM_EMAIL,
+                  to: 'sales@envosta.com',
+                  subject: `New signup: ${jobPayload.business} — ${jobPayload.plan_key} (${jobPayload.industry}/${jobPayload.city})`,
+                  html: `<div style="font-family:-apple-system,sans-serif;max-width:560px;margin:0 auto;padding:20px">
+                    <h2 style="font-size:18px;font-weight:600;margin-bottom:16px">Signup confirmed — provisioning queue</h2>
+                    <div style="background:#f8f9fb;border-radius:8px;padding:16px;font-size:14px;color:#333;line-height:1.8">
+                      <strong>${jobPayload.business}</strong><br/>
+                      ${jobPayload.contact_name} · ${jobPayload.email} · ${jobPayload.phone}<br/>
+                      Plan: ${jobPayload.plan_key} (${jobPayload.billing}) · ${jobPayload.industry} / ${jobPayload.city}<br/>
+                      Domain: ${jobPayload.domain_pref}${jobPayload.existing_domain ? ` (${jobPayload.existing_domain})` : ''}
+                    </div>
+                    <p style="margin-top:16px;font-size:13px"><a href="https://my.envosta.com/admin/tickets/${jobTicket.id}" style="color:#2563EB">Open the job →</a></p>
+                  </div>`,
+                }),
+              });
+            }
+          } catch { /* non-blocking */ }
+          console.log('[stripe-webhook] signup intake job created:', jobTicket.id);
+        }
+      }
+
       // ── Domain registration (inline-checkout flow) ──
-      if (metadata.product_type === 'domain_registration') {
+      else if (metadata.product_type === 'domain_registration') {
         const domainName = (metadata.domain_name ?? '').toLowerCase();
         const years = Math.max(1, Math.min(10, parseInt(metadata.years ?? '1', 10) || 1));
         let userId = metadata.supabase_user_id ?? '';

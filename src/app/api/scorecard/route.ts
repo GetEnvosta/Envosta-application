@@ -13,26 +13,10 @@ import { createClient } from '@supabase/supabase-js';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { escapeHtml } from '@/lib/sanitize';
 import { FROM_EMAIL } from '@/lib/email';
+import { verifyTurnstile } from '@/lib/turnstile';
 import { getIndustry } from '@/config/industries';
 
 export const dynamic = 'force-dynamic';
-
-async function verifyTurnstile(token: string, ip: string): Promise<boolean> {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret) return true; // not configured yet — allow (rate limit still applies)
-  if (!token) return false;
-  try {
-    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret, response: token, remoteip: ip }),
-    });
-    const data = await res.json().catch(() => ({}));
-    return data?.success === true;
-  } catch {
-    return false;
-  }
-}
 
 export async function POST(req: Request) {
   const ip = getClientIp(req);

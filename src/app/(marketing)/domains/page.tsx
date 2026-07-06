@@ -143,7 +143,7 @@ export default async function DomainsPage() {
         <div className="c">
           <h2>Ready to claim your domain?</h2>
           <p>Search for available domains and register in seconds. Every domain includes free privacy protection.</p>
-          <Link href="/get-started" className="bp lg">Get Started</Link>
+          <Link href="/scorecard" className="bp lg">Get Started</Link>
         </div>
       </section>
     </>
