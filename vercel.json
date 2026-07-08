@@ -35,6 +35,10 @@
     {
       "path": "/api/cron/drift-alerter",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/monthly-engine",
+      "schedule": "0 8 1 * *"
     }
   ]
 }

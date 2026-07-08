@@ -1,22 +1,39 @@
-// lib/opensrs.ts — OpenSRS (Tucows) XML API client
+﻿// spine/opensrs.ts — OpenSRS (Tucows) XML API client for the automation
+// spine (adopted from the Rev 1.4 handoff's lib/opensrs.ts — rebuild brief
+// Phase 4.1 / Phase 6 "adopt, don't rewrite").
+//
+// Targets the NEW data model (0001_init.sql: domains/opensrs_events on the
+// dev project — Phase 6). The legacy client at src/lib/integrations/opensrs.ts
+// keeps serving the current production model until cutover.
+//
 // Docs: https://domains.opensrs.guide/docs (Domains & SSL API guide)
 // Auth: X-Username + X-Signature where signature = md5(md5(xml + key) + key)
 // Env: OPENSRS_USERNAME, OPENSRS_API_KEY, OPENSRS_ENV ('test' | 'live'),
-//      PROVISIONING_DRY_RUN ('true' blocks all live mutations)
+//      PROVISIONING_DRY_RUN (anything but 'false' blocks all live mutations)
 // IP allowlisting: your server IPs must be whitelisted in the OpenSRS RCP.
+//
+// Transfer-out on cancellation (charter §4 "client owns, Envosta operates"):
+// see runbooks/provisioning.md → "Domain transfer-out".
 
 import { createHash } from "crypto";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const HOSTS = {
   test: "https://horizon.opensrs.net:55443",
   live: "https://rr-n1-tor.opensrs.net:55443",
 } as const;
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, // server-only module; never ship client-side
-);
+// Lazy server-only client. Env fallbacks bridge the handoff's names to the
+// deploy's existing names (adoption-level adaptation, changelog Phase 4).
+let _sb: SupabaseClient | null = null;
+function supabaseClient(): SupabaseClient {
+  if (_sb) return _sb;
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
+  if (!url || !key) throw new Error("Supabase env missing for spine/opensrs");
+  _sb = createClient(url, key, { auth: { persistSession: false } });
+  return _sb;
+}
 
 const md5 = (s: string) => createHash("md5").update(s).digest("hex");
 
@@ -84,7 +101,7 @@ async function logEvent(params: {
   domainId?: string; action: string; request: unknown; response: unknown;
   success: boolean; dry: boolean;
 }) {
-  await supabase.from("opensrs_events").insert({
+  await supabaseClient().from("opensrs_events").insert({
     domain_id: params.domainId ?? null,
     action: params.action,
     request: params.request,   // NEVER include credentials/signature here
@@ -156,7 +173,7 @@ export async function registerDomain(opts: {
   const r = await send("SW_REGISTER", "DOMAIN", attrs);
   await logEvent({ domainId: opts.domainId, action: "sw_register", request: { domain: opts.domain }, response: { status: r.status, success: r.success }, success: r.success, dry: false });
 
-  await supabase.from("domains").update({
+  await supabaseClient().from("domains").update({
     status: r.success ? "registered" : "failed",
     nameservers: opts.nameservers,
     raw: { last_response_snippet: r.body.slice(0, 2000) },
@@ -181,7 +198,7 @@ export async function setNameservers(domainId: string, domain: string, nameserve
   const r = await send("advanced_update_nameservers", "NAMESERVER", attrs);
   await logEvent({ domainId, action: "advanced_update_nameservers", request: { domain, nameservers }, response: { status: r.status }, success: r.success, dry: false });
   if (r.success) {
-    await supabase.from("domains").update({ status: "dns_configured", nameservers }).eq("id", domainId);
+    await supabaseClient().from("domains").update({ status: "dns_configured", nameservers }).eq("id", domainId);
   }
   return { ok: r.success, dryRun: false as const };
 }

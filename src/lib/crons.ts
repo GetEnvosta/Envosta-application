@@ -32,6 +32,7 @@ export const CRONS: CronDef[] = [
   { name: 'cleanup-unclaimed', path: '/api/cron/cleanup-unclaimed', schedule: '0 5 * * *', scheduleHuman: 'Daily · 05:00 UTC', description: 'Removes stale unclaimed accounts.' },
   { name: 'health-check', path: '/api/cron/health-check', schedule: '0 6 * * *', scheduleHuman: 'Daily · 06:00 UTC', description: 'Daily site-sync health check; emails admin on issues and sends domain-expiry warnings.' },
   { name: 'process-domain-renewals', path: '/api/cron/process-domain-renewals', schedule: '0 9 * * *', scheduleHuman: 'Daily · 09:00 UTC', description: 'Charges and renews domains nearing expiry via OpenSRS.' },
+  { name: 'monthly-engine', path: '/api/cron/monthly-engine', schedule: '0 8 1 * *', scheduleHuman: 'Monthly · 1st, 08:00 UTC', description: 'Creates plan-cadence service-area-page tasks + the branded monthly report per active client, routed to VA QA (no-ops until the new schema is provisioned).' },
 ];
 
 export interface CronState {

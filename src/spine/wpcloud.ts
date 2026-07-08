@@ -9,12 +9,21 @@
 // Env: WPCLOUD_API_BASE, WPCLOUD_API_TOKEN, WPCLOUD_NAMESERVERS (csv),
 //      PROVISIONING_DRY_RUN
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, // server-only
-);
+// Lazy server-only client with env fallbacks to the deploy's existing names.
+// NOTE (Phase 6): the repo already has a PROVEN wp.cloud Atomic API client at
+// src/lib/integrations/wpcloud.ts with working endpoint paths — fold it into
+// this module when replacing the VERIFY markers below.
+let _sb: SupabaseClient | null = null;
+function supabaseClient(): SupabaseClient {
+  if (_sb) return _sb;
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
+  if (!url || !key) throw new Error("Supabase env missing for spine/wpcloud");
+  _sb = createClient(url, key, { auth: { persistSession: false } });
+  return _sb;
+}
 
 const BASE = process.env.WPCLOUD_API_BASE ?? ""; // e.g. from partner docs
 const dry = () => process.env.PROVISIONING_DRY_RUN !== "false";
@@ -33,7 +42,7 @@ async function call(path: string, method: "GET" | "POST" | "PUT" | "DELETE", bod
 }
 
 async function logEvent(siteId: string | null, action: string, request: unknown, response: unknown, success: boolean, isDry: boolean) {
-  await supabase.from("wpcloud_events").insert({
+  await supabaseClient().from("wpcloud_events").insert({
     site_id: siteId, action, request, response, success, dry_run: isDry,
   });
 }
@@ -47,14 +56,14 @@ export function wpcloudNameservers(): string[] {
 export async function createSite(opts: { siteRowId: string; clientId: string; primaryDomain: string }) {
   if (dry()) {
     await logEvent(opts.siteRowId, "create_site", { domain: opts.primaryDomain, dry: true }, { simulated: true }, true, true);
-    await supabase.from("sites").update({ status: "provisioned", primary_domain: opts.primaryDomain }).eq("id", opts.siteRowId);
+    await supabaseClient().from("sites").update({ status: "provisioned", primary_domain: opts.primaryDomain }).eq("id", opts.siteRowId);
     return { ok: true, dryRun: true as const };
   }
   // VERIFY endpoint + payload shape against wp.cloud partner docs:
   const r = await call(`/sites`, "POST", { domain: opts.primaryDomain });
   await logEvent(opts.siteRowId, "create_site", { domain: opts.primaryDomain }, r.json, r.ok, false);
   if (!r.ok) throw new Error(`wp.cloud create_site failed (${r.status})`);
-  await supabase.from("sites").update({
+  await supabaseClient().from("sites").update({
     status: "provisioned",
     wpcloud_site_id: String((r.json as any)?.id ?? (r.json as any)?.site_id ?? ""),
     primary_domain: opts.primaryDomain,
@@ -80,13 +89,13 @@ export async function mapDomain(siteRowId: string, wpcloudSiteId: string, domain
 export async function confirmSsl(siteRowId: string, wpcloudSiteId: string) {
   if (dry()) {
     await logEvent(siteRowId, "confirm_ssl", { dry: true }, { simulated: true }, true, true);
-    await supabase.from("sites").update({ ssl_active: true }).eq("id", siteRowId);
+    await supabaseClient().from("sites").update({ ssl_active: true }).eq("id", siteRowId);
     return { ok: true, dryRun: true as const };
   }
   // VERIFY endpoint:
   const r = await call(`/sites/${wpcloudSiteId}`, "GET");
   const ssl = Boolean((r.json as any)?.ssl_active ?? (r.json as any)?.ssl?.active);
   await logEvent(siteRowId, "confirm_ssl", {}, { ssl }, r.ok, false);
-  await supabase.from("sites").update({ ssl_active: ssl, raw: r.json }).eq("id", siteRowId);
+  await supabaseClient().from("sites").update({ ssl_active: ssl, raw: r.json }).eq("id", siteRowId);
   return { ok: ssl, dryRun: false as const };
 }

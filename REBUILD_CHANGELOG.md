@@ -202,3 +202,50 @@ repointed.
 + /api/signup-checkout present); preview-verified — public `/signup` shows
 the gated explainer (flow markup absent), public POST to the checkout API
 returns 403 with no Stripe session created.
+
+## Phase 4 — Automation spine scaffolding (2026-07-03)
+
+**Spine modules adopted (`src/spine/` — handoff's prebuilt modules, per
+"adopt, don't rewrite"):**
+- `opensrs.ts` — registrar client: register IN THE CLIENT'S NAME
+  (registrant = client legal details; Envosta = admin/tech + DNS control),
+  nameservers → wp.cloud, `PROVISIONING_DRY_RUN` blocks every live
+  mutation unless explicitly 'false', all calls logged to `opensrs_events`
+  (credentials never logged). Transfer-out procedure documented in the
+  provisioning runbook.
+- `wpcloud.ts` — site create / domain map / SSL confirm with the same
+  dry-run + `wpcloud_events` logging. `VERIFY` endpoint markers intact
+  (Koltyn-only item #3) with a pointer to the PROVEN production client at
+  `src/lib/integrations/wpcloud.ts` to fold in at Phase 6.
+- `provisioning.ts` — the idempotent, resumable orchestrator:
+  register_domain → configure_dns → create_site → map_domain → issue_ssl →
+  studio_build/gbp_setup/monitoring (manual: creates the task, blocks,
+  `resumeJob` continues) → go_live (stamps Growth `guarantee_start_at`).
+  Steps journal into `provisioning_jobs.steps`; re-runs skip completed
+  steps.
+- Adoption-level adaptations only (documented): lazy service-role client
+  with env fallbacks (`SUPABASE_URL`→`NEXT_PUBLIC_SUPABASE_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY`→`SUPABASE_SECRET_KEY`), imports repathed
+  `@/lib/*`→`@/spine/*`. All spine writes target the NEW schema (Phase 6
+  dev project); the legacy integrations keep running production until
+  cutover.
+
+**Monthly engine (new, brief 4.3):** `src/spine/monthly-engine.ts` +
+`/api/cron/monthly-engine` (vercel.json + cron registry: 1st of month,
+08:00 UTC). Per active client: service-area-page tasks at plan cadence
+READ FROM CONFIG (Business 2 / Growth 4) + the branded monthly-report
+template (site health, uptime, pages shipped, GBP/review stat fields) —
+all created status='planned' into the VA QA queue; nothing ships without
+sign-off. Idempotent per (client, period, deliverable). Pre–Phase 6 it
+no-ops with `schemaReady:false`, so the cron ships now and comes alive
+when the schema lands.
+
+**Runbooks (brief 4.4):** `runbooks/provisioning.md` (signup ticket → live
+in 9 steps, manual steps spelled out, Growth baseline-calls capture, the
+domain transfer-out procedure, failure escalation) and
+`runbooks/monthly-engine.md` (QA loop + status flow + per-type checklists
+with the forbidden-claims guardrails) — written for a VA to execute
+without Koltyn.
+
+**Verification:** tsc clean; build green; `/api/cron/monthly-engine` in the
+route manifest; cron registry + vercel.json in sync.
