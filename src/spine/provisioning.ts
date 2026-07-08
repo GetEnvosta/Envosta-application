@@ -1,8 +1,17 @@
-// lib/provisioning.ts — the automation spine orchestrator (charter §3)
+// spine/provisioning.ts — the automation spine orchestrator (charter §3)
 // Sign -> OpenSRS -> wp.cloud -> Studio build -> GBP -> monitoring -> live.
 // Idempotent + resumable: each step records into provisioning_jobs.steps and
 // re-running a job skips completed steps. Dry-run is global via env.
-// Run via: cron/queue worker calling runNextJob(), or per-job runJob(id).
+//
+// ⚠️ INTEGRATION POLICY (Phase 6): this file is the STEP CONTRACT from the
+// handoff, not the final runtime. Execution gets re-expressed on the
+// production-proven stack — the durable Vercel Workflows runtime
+// (`workflow` package, 'use workflow'/'use step', like
+// src/app/workflows/provision-site.ts) calling the PROVEN integration
+// clients (src/lib/integrations/wpcloud.ts — real Atomic API endpoints —
+// and src/lib/integrations/opensrs.ts). The step model, job journal, and
+// dry-run semantics here are kept; the naive in-process loop is not.
+// Never replace working production machinery with scaffolding.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { registerDomain, setNameservers } from "@/spine/opensrs";

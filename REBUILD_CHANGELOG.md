@@ -5,6 +5,34 @@ All rebuild work lives on the `rebuild` branch. `main` keeps serving production
 (my.envosta.com — live paying customers) untouched until the Phase 8 cutover
 checklist passes.
 
+## Standing integration policy — the handoff is the spec, not the app
+
+The months of production engineering are the foundation; the handoff's
+embedded modules are business-logic contracts layered ON it. Concretely:
+
+- **Deploy target stays Vercel** — vercel.json crons were extended (monthly
+  engine added), never replaced.
+- **Durable Vercel Workflows stay the execution backbone** — all 10
+  production workflows (`src/app/workflows/`: provision-site,
+  register-domain, renew-domain, cancel/suspend/unsuspend-site, update-dns,
+  update-site-plan, cancel-domain-renewal, notify-client) are untouched and
+  KEEP-class. At Phase 6 the spine orchestrator is re-expressed on this
+  runtime ('use workflow'/'use step'), keeping the handoff's step contract.
+- **Proven integration clients win over scaffolding** —
+  `src/lib/integrations/wpcloud.ts` (real Atomic API: sites, meta, edge
+  cache, defensive mode, SSH/SFTP, error logs, WP-CLI) and
+  `src/lib/integrations/opensrs.ts` (register/transfer/renew/DNS/lock/
+  privacy, live-tested) replace the spine's VERIFY placeholders at Phase 6
+  — never the reverse.
+- **The operational estate carries over**: Stripe webhook + Sync Engine
+  mirror pattern, reconcile-wpcloud/reconcile-opensrs + drift-alerter crons,
+  X-Internal-Token route pattern (Vercel-IP origination for wp.cloud),
+  audit log, api-call logger with secret redaction, rate limiting, email
+  layer, admin panel. Audit verdict: 96 KEEP of 165 routes.
+- What the handoff contributes: the frozen business config, the new data
+  model (dev project), dry-run discipline, the step/journal contract, and
+  the governance docs.
+
 ---
 
 ## Step 0 — Materialize handoff files (2026-07-03) · commit `cba6aed`
