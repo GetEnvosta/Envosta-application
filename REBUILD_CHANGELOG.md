@@ -249,3 +249,53 @@ without Koltyn.
 
 **Verification:** tsc clean; build green; `/api/cron/monthly-engine` in the
 route manifest; cron registry + vercel.json in sync.
+
+## Phase 5 — Gate dashboard + cleanup (2026-07-03)
+
+**Gate dashboard (`/admin/gates`, admin-only, in the admin nav):**
+- Thresholds/definitions live in `src/config/gates.ts` (charter §8
+  verbatim: Gates 0–4 with pass requirements + unlocks, the three kill
+  triggers, canonical metric definitions) — never hardcoded in components.
+- Live metrics from current production data, each labeled with its source:
+  MRR by plan (active sites × plan price), active clients, churn %/mo
+  (approximated from cancellations), tickets/client/mo, Growth spots per
+  industry from the config ledger.
+- Current-gate indicator + distance to the next gate; kill-trigger banners
+  fire red when churn > 5% or tickets > 2/client/mo, with the charter's
+  consequences spelled out.
+- CAC log: manual monthly entry (spend, hours × rate, closed clients) via
+  `/api/admin/cac-entry` into `platform_settings` KV (`cac:YYYY-MM`);
+  CAC + payback computed per the canonical definition (margin ≈ 90%,
+  charter §2 arithmetic, formula shown). Phase 6 migrates the log to
+  `cac_entries`.
+- Phase 7 swaps the reads to new-schema live views without changing the
+  page's shape.
+
+**Final violation sweep (Phase 5.3) — proof:**
+- `$49|$132|$517|Studio Lite|Studio Premium|Market Leader|Booked+|`
+  `jetpack_plan_slug|resellerCoupon|promotion_code` across `src/`:
+  **zero functional hits** — remaining matches are comments stating the
+  ban ("No coupons or discounts exist (charter §7)") and one WooCommerce
+  feature description inside old seed-blog fixture content (flagged below).
+- `jetpack` across `src/`: 28 occurrences / 7 files, ALL in the allowed
+  categories: (a) wp.cloud's own site-meta API key names
+  (`jetpack_backup`/`jetpack_waf` — the platform's native backup/WAF,
+  which the charter mandates using), (b) the provisioning code that
+  DELETES the Jetpack plugin from every site (the ban's enforcement),
+  (c) the security comment banning `jetpack_blog_token` from ever being
+  mirrored, (d) docs pointers. Zero Jetpack product/licensing/UI code
+  remains.
+- "Reseller" as a word survives only in OpenSRS/Tucows contexts: the
+  registrar's own "Reseller Control Panel" terminology and the
+  Tucows-mandated registration agreement text in /legal/terms (Envosta is
+  the "Reseller" party in Tucows's required contract language).
+
+**Deferred, needs Koltyn:**
+- Deleting `/_deprecated/` (Phase 5.2) — awaiting explicit confirmation of
+  the audit list; deprecate-before-delete stands until then.
+- Old seed-blog fixture content (`/api/admin/seed-blog`) still carries
+  old-model copy (free-trial CTAs, feature lists) — replace or retire the
+  fixture as part of the Phase 8 content pass.
+
+**Verification:** tsc clean; build green (`/admin/gates` +
+`/api/admin/cac-entry` in the manifest).

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import {
   LayoutDashboard, Users, Server, Globe, CreditCard,
-  Activity, LogOut, ArrowLeft, PenSquare, MessageSquare, Settings,
+  Activity, LogOut, ArrowLeft, PenSquare, MessageSquare, Settings, Milestone,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { canAccessAdminNav } from '@/lib/roles';
@@ -20,6 +20,7 @@ const allNav: NavItem[] = [
   // Billing now includes Reporting as the Revenue + Funnel tabs
   // (/admin/reporting redirects to /admin/billing?view=revenue).
   { name: 'Billing', href: '/admin/billing', icon: CreditCard },
+  { name: 'Gates', href: '/admin/gates', icon: Milestone },
   // Cleanup queue folded into /admin/services as a filter chip
   // (?view=cleanup). The standalone page was removed.
   { name: 'Health', href: '/admin/diagnostics', icon: Activity },

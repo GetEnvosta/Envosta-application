@@ -3,9 +3,7 @@
  *
  * Adds an additional site (paid or comped) to an existing customer's
  * account and fires wp.cloud provisioning. Comped sites get
- * metadata.comp = true so cleanup crons skip them; for paid sites with
- * a coupon, the code is stamped on the user's metadata so the
- * post-checkout flow can apply it.
+ * metadata.comp = true so cleanup crons skip them.
  */
 
 import { createClient } from '@supabase/supabase-js';
