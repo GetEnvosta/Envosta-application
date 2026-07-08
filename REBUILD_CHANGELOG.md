@@ -327,3 +327,40 @@ route manifest; cron registry + vercel.json in sync.
 
 **Verification:** tsc clean; build green (`/admin/gates` +
 `/api/admin/cac-entry` in the manifest).
+
+## Owner decision — A/B evaluation structure (2026-07-03, Koltyn in-session)
+
+Koltyn directed: **keep the marketing site exactly as it was; mount the
+Rev 1.4 site beside it for live comparison — he decides the winner.**
+This amends the brief's Phase 2 "rework in place" and pre-empts Phase 8's
+swap until his call.
+
+- **Old site restored at its original routes** (from the pre-rework commit
+  250f320, i.e. as-it-was minus Phase 1's banned-mechanics strip): homepage
+  (incl. its original host redirect: `/`→`/dashboard` on my.*/localhost),
+  plans/pricing, nav/footer, sitemap, layout metadata/JSON-LD, products,
+  method, onboarding, intake (+ its API), get-started self-serve checkout
+  (+ flow/checkout components), domains CTA, auth links.
+- **The entire Rev 1.4 site now lives under `/v2/*`**: `/v2`, `/v2/plans`,
+  `/v2/industries`, `/v2/[industry]/[city]` (hvac/roofing × calgary
+  prerendered), `/v2/scorecard`, `/v2/service-promise`, `/v2/stack`,
+  `/v2/signup` (+ complete). Self-contained `src/app/v2/layout.tsx` with
+  its own fonts, brand.css, mk2 chrome ("Rev 1.4 preview" tag), and
+  **noindex** — the v2 tree is out of the sitemap and invisible to search.
+  Internal links, canonicals, and the signup-checkout success/cancel URLs
+  all repointed to `/v2/*`. Shared backend (`/api/scorecard`,
+  `/api/signup-checkout`, webhook intake) unchanged.
+- **Evaluation setup:** the `rebuild` branch's Vercel preview deployment
+  serves both trees on one URL — old site at `/`, new site at `/v2` —
+  production untouched.
+- **Charter bookkeeping:** with the old site restored, old-model surfaces
+  (trials, self-serve checkout, old plan copy) are LIVE ON THE BRANCH
+  again by owner instruction; Phase 2's acceptance criteria apply to the
+  `/v2` tree until Koltyn picks a direction. Phase 8's cutover checklist
+  governs whichever direction wins.
+
+**Verification:** tsc clean; build green (74 routes — both trees);
+preview-verified: `/plans` renders the old page with the old nav,
+`/v2` renders the new site with v2 chrome and /v2-prefixed nav,
+root `/hvac/calgary` 404s (dynamic industry routes only under /v2),
+`/products` `/method` `/intake` `/get-started` all 200.

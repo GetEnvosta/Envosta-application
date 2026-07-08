@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: 'Industries We Host — Envosta',
   description:
     'Envosta only hosts the industries it chooses. Industry-specialized managed WordPress hosting with the site, SEO, and reviews built into every plan.',
-  alternates: { canonical: 'https://envosta.com/industries' },
+  alternates: { canonical: 'https://envosta.com/v2/industries' },
 };
 
 /** Launch metro (charter: one metro cluster until Gate 3). */
@@ -66,7 +66,7 @@ export default function IndustriesPage() {
                 <div className="svcs">
                   {industry.vocabulary.serviceExamples.slice(0, 4).join(' · ')}
                 </div>
-                <Link href={`/${industry.slug}/${LAUNCH_CITY.slug}`} className="btn btn--ghost">
+                <Link href={`/v2/${industry.slug}/${LAUNCH_CITY.slug}`} className="btn btn--ghost">
                   {industry.name} hosting in {LAUNCH_CITY.name} →
                 </Link>
               </div>

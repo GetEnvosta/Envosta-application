@@ -161,8 +161,8 @@ export async function POST(req: Request) {
     ],
     subscription_data: { metadata: intake },
     metadata: intake,
-    success_url: `${origin}/signup/complete?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/signup`,
+    success_url: `${origin}/v2/signup/complete?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}/v2/signup`,
   });
 
   if (repUserId) {

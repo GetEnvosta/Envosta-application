@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: 'The Stack — Why Envosta Hosting | Envosta',
   description:
     'Competitors piece together page builders, commodity hosting, and plugin sprawl. Envosta runs the canonical stack end to end: WordPress, wp.cloud by Automattic, and Tucows/OpenSRS domains.',
-  alternates: { canonical: 'https://envosta.com/stack' },
+  alternates: { canonical: 'https://envosta.com/v2/stack' },
 };
 
 export default function StackPage() {
@@ -165,7 +165,7 @@ export default function StackPage() {
               <span className="fact">Domains in the client&apos;s name</span>
             </div>
             <p style={{ marginTop: 24 }}>
-              <Link href="/plans" className="btn btn--primary">See the hosting plans</Link>
+              <Link href="/v2/plans" className="btn btn--primary">See the hosting plans</Link>
             </p>
           </div>
         </div>

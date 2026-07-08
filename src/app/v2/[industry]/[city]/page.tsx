@@ -41,7 +41,7 @@ export async function generateMetadata(
   return {
     title: `${industry.name} Website & Hosting in ${city} — Envosta`,
     description: `Industry-specialized managed hosting for ${industry.vocabulary.businessNoun}s in ${city}: the site, the local SEO, and the reviews — handled. One ${industry.vocabulary.businessNoun} per city.`,
-    alternates: { canonical: `https://envosta.com/${industry.slug}/${citySlug}` },
+    alternates: { canonical: `https://envosta.com/v2/${industry.slug}/${citySlug}` },
   };
 }
 
@@ -104,10 +104,10 @@ export default async function IndustryCityPage(
             engine that makes callers pick you.
           </p>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 32 }}>
-            <Link href="/scorecard" className="btn btn--primary">
+            <Link href="/v2/scorecard" className="btn btn--primary">
               {status === 'taken' ? 'Get the scorecard anyway' : `Check your ${city} scorecard`}
             </Link>
-            <Link href="/plans" className="btn btn--ghost">See the hosting plans</Link>
+            <Link href="/v2/plans" className="btn btn--ghost">See the hosting plans</Link>
           </div>
         </div>
       </section>
@@ -193,7 +193,7 @@ export default async function IndustryCityPage(
               The Local Domination Scorecard tears down the {city} search landscape for{' '}
               {industry.name.toLowerCase()}: who ranks, why, and what it takes to flip it.
             </p>
-            <Link href="/scorecard" className="btn btn--primary">Get your free scorecard</Link>
+            <Link href="/v2/scorecard" className="btn btn--primary">Get your free scorecard</Link>
           </div>
         </div>
       </section>

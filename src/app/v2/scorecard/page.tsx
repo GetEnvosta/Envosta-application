@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: 'Free Local Domination Scorecard — Envosta',
   description:
     'A free teardown of your search presence against every competitor in your city: who ranks, why, and what it takes to flip it. Built by hand, delivered in one business day.',
-  alternates: { canonical: 'https://envosta.com/scorecard' },
+  alternates: { canonical: 'https://envosta.com/v2/scorecard' },
 };
 
 export default function ScorecardPage() {

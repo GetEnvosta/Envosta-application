@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: 'The Service Promise — Envosta',
   description:
     'Exact commitments, not vibes: every request acknowledged in under 4 hours, edits live in 1–2 business days by plan, site-down handled immediately. One number, call or text.',
-  alternates: { canonical: 'https://envosta.com/service-promise' },
+  alternates: { canonical: 'https://envosta.com/v2/service-promise' },
 };
 
 export default function ServicePromisePage() {
@@ -124,7 +124,7 @@ export default function ServicePromisePage() {
             </div>
           </div>
           <p style={{ marginTop: 22, fontSize: '.9rem' }}>
-            <Link href="/plans" style={{ color: 'var(--amber)' }}>
+            <Link href="/v2/plans" style={{ color: 'var(--amber)' }}>
               See which plan carries which promise →
             </Link>
           </p>

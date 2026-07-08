@@ -57,7 +57,7 @@ export default async function SignupPage() {
                 scorecard of your city&apos;s search landscape. Get yours and we&apos;ll take it
                 from there.
               </p>
-              <Link href="/scorecard" className="btn btn--primary">Get your free scorecard</Link>
+              <Link href="/v2/scorecard" className="btn btn--primary">Get your free scorecard</Link>
             </div>
           </div>
         </section>

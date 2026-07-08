@@ -11,13 +11,11 @@ interface NavLink {
   badgePosition?: 'left' | 'right';
 }
 
-// Hosting-first IA (rebuild brief Phase 2): Hosting plans · Industries ·
-// Service promise · The Stack — CTA: Get your scorecard.
 const navLinks: NavLink[] = [
-  { label: 'Hosting Plans', href: '/plans' },
-  { label: 'Industries', href: '/industries' },
-  { label: 'Service Promise', href: '/service-promise' },
-  { label: 'The Stack', href: '/stack' },
+  { label: 'Products', href: '/products' },
+  { label: 'Domains', href: '/domains' },
+  { label: 'Support', href: '/support' },
+  { label: 'Pricing', href: '/pricing' },
 ];
 
 function LogoSvg() {
@@ -83,7 +81,7 @@ export function MarketingNav() {
           <div className="nc">
             <a href="https://my.envosta.com/auth/login" className="gh">Log in</a>
             <div className="block-button">
-              <Link href="/scorecard" className="bp">Get Your Scorecard</Link>
+              <Link href="/get-started" className="bp">Get Started</Link>
             </div>
           </div>
 
@@ -110,8 +108,8 @@ export function MarketingNav() {
           </Link>
         ))}
         <div style={{ marginTop: 'auto', paddingTop: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <Link href="/scorecard" onClick={() => setMobileOpen(false)} className="bp ghost lg" style={{ textAlign: 'center', width: '100%' }}>
-            Get Your Scorecard
+          <Link href="/get-started" onClick={() => setMobileOpen(false)} className="bp ghost lg" style={{ textAlign: 'center', width: '100%' }}>
+            Create a Website
           </Link>
           <a href="https://my.envosta.com/auth/login" onClick={() => setMobileOpen(false)}
             style={{ textAlign: 'center', padding: '14px 0', color: 'rgba(255,255,255,.6)', fontSize: '.95rem', textDecoration: 'none' }}>

@@ -181,7 +181,7 @@ function LoginForm() {
           <div className="mt-8 pt-6 border-t border-gray-100 text-center">
             <p className="text-sm text-gray-500">
               Don&apos;t have an account?{' '}
-              <a href="https://envosta.com/scorecard" className="text-blue-600 hover:text-blue-700 font-medium">
+              <a href="https://envosta.com/get-started" className="text-blue-600 hover:text-blue-700 font-medium">
                 Get started
               </a>
             </p>
