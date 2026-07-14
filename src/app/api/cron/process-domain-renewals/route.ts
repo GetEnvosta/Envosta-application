@@ -116,6 +116,47 @@ export async function GET(req: Request) {
   const backoffCutoff = new Date(Date.now() - RETRY_BACKOFF_HOURS * 3_600_000).toISOString();
   const now = new Date().toISOString();
 
+  // ── Invariant: THIS CRON is the sole renewer ────────────────────
+  // Registrations force OpenSRS auto-renew off, but transfers-in can
+  // arrive with it ON — leaving two renewers racing (OpenSRS bills the
+  // reseller account near expiry; we charge the customer inside our
+  // window → double-renew/double-charge). Enforce daily from the mirror:
+  // any domain we manage (domains.auto_renew=true) whose upstream mirror
+  // shows OpenSRS auto_renew=true gets it switched OFF at the registrar.
+  const invariantFixes: string[] = [];
+  try {
+    const { data: doubles } = await supabase
+      .from('opensrs_domains')
+      .select('upstream_id, domain_id, domains:domain_id(id, domain_name, auto_renew, status)')
+      .eq('auto_renew', true);
+    for (const row of doubles ?? []) {
+      const d: any = (row as any).domains;
+      if (!d || d.status !== 'registered' || d.auto_renew !== true) continue;
+      try {
+        await opensrs.setAutoRenew(d.domain_name, false);
+        await supabase
+          .from('opensrs_domains')
+          .update({ auto_renew: false, let_expire: true, last_synced_at: now })
+          .eq('domain_id', d.id);
+        invariantFixes.push(d.domain_name);
+        await recordAudit({
+          actorType: 'system',
+          action: 'domain.autorenew.invariant_enforced',
+          resourceType: 'domain',
+          resourceId: d.id,
+          metadata: {
+            domain: d.domain_name,
+            detail: 'OpenSRS-side auto-renew was ON while the renewal cron manages this domain — switched off to prevent double renewal.',
+          },
+        });
+      } catch (e) {
+        console.error('[domain-renewals] invariant enforcement failed for', d.domain_name, e);
+      }
+    }
+  } catch (e) {
+    console.error('[domain-renewals] invariant sweep error (non-fatal):', e);
+  }
+
   // ── Pull due domains ──
   const { data: dueDomains, error: dueErr } = await supabase
     .from('domains')
@@ -376,5 +417,6 @@ export async function GET(req: Request) {
     failed,
     skipped,
     outcomes,
+    autorenew_invariant_fixes: invariantFixes,
   });
 }
