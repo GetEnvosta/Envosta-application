@@ -76,9 +76,9 @@ export async function POST(req: Request) {
     }
     const { data: plan } = await sb.from('products').select('slug, metadata').eq('id', site.product_id).maybeSingle();
     const meta = (plan?.metadata as Record<string, any> | null) ?? {};
-    const workers = Number(meta.php_workers_default ?? 2);
+    const workers = Number(meta.php_workers_default ?? 3);
     const memory = Number(meta.php_memory_mb ?? 512);
-    const storage = Number(meta.storage_gb ?? 25);
+    const storage = Number(meta.storage_gb ?? 50);
     const bursting = meta.bursting_enabled === true; // paid option — off unless the plan says so
 
     // 1. Mirror to our DB.

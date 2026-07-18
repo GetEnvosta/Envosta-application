@@ -298,9 +298,9 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
         <div className="card p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">wp.cloud — Infrastructure</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div><label className="label">Storage (GB)</label><input type="number" className="input" value={plan.metadata?.storage_gb ?? 25} onChange={e => update('metadata', { ...plan.metadata, storage_gb: parseInt(e.target.value) || 25 })} /></div>
-            <div><label className="label">Default PHP Workers</label><input type="number" className="input" value={plan.metadata?.php_workers_default ?? 2} onChange={e => update('metadata', { ...plan.metadata, php_workers_default: parseInt(e.target.value) || 2 })} /></div>
-            <div><label className="label">Max PHP Workers</label><input type="number" className="input" value={plan.metadata?.php_workers_included ?? 2} onChange={e => update('metadata', { ...plan.metadata, php_workers_included: parseInt(e.target.value) || 2 })} /></div>
+            <div><label className="label">Storage (GB)</label><input type="number" className="input" value={plan.metadata?.storage_gb ?? 50} onChange={e => update('metadata', { ...plan.metadata, storage_gb: parseInt(e.target.value) || 50 })} /></div>
+            <div><label className="label">Default PHP Workers</label><input type="number" className="input" value={plan.metadata?.php_workers_default ?? 3} onChange={e => update('metadata', { ...plan.metadata, php_workers_default: parseInt(e.target.value) || 3 })} /></div>
+            <div><label className="label">Max PHP Workers</label><input type="number" className="input" value={plan.metadata?.php_workers_included ?? 3} onChange={e => update('metadata', { ...plan.metadata, php_workers_included: parseInt(e.target.value) || 3 })} /></div>
             <div><label className="label">PHP Memory (MB)</label><input type="number" className="input" value={plan.metadata?.php_memory_mb ?? 512} onChange={e => update('metadata', { ...plan.metadata, php_memory_mb: parseInt(e.target.value) || 512 })} /></div>
             <div>
               <label className="label">Onboarding Type</label>

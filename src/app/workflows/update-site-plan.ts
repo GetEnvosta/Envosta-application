@@ -129,8 +129,8 @@ async function loadSiteAndNewPlan(input: UpdateSitePlanInput): Promise<PlanConte
 
   const planMeta = (newPlan.metadata as Record<string, any> | null) ?? {};
   const config: PlanConfig = {
-    storage_gb: planMeta.storage_gb ?? 25,
-    php_workers: planMeta.php_workers_default ?? 2,
+    storage_gb: planMeta.storage_gb ?? 50,
+    php_workers: planMeta.php_workers_default ?? 3,
     php_memory_mb: planMeta.php_memory_mb ?? 512,
     has_backups: planMeta.has_backups ?? true,
     has_cdn: planMeta.has_cdn ?? true,

@@ -479,8 +479,8 @@ export async function POST(req: Request) {
               server_region: 'dca',
               domain_name: domainFromMeta,
               config: {
-                php_workers: planMeta.php_workers_default ?? 2,
-                storage_gb: planMeta.storage_gb ?? 25,
+                php_workers: planMeta.php_workers_default ?? 3,
+                storage_gb: planMeta.storage_gb ?? 50,
                 php_memory_mb: planMeta.php_memory_mb ?? 512,
               },
               metadata: {

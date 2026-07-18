@@ -134,8 +134,8 @@ export default async function AdLandingPage() {
               <div className="ad-card">
                 <h3>Ready to grow</h3>
                 <p>
-                  WooCommerce-ready hosting, lead-capture forms, and monthly reports as you scale —
-                  upgrade your plan whenever you&apos;re ready.
+                  WooCommerce-ready hosting and lead-capture forms when you need them — upgrade
+                  your plan whenever you&apos;re ready.
                 </p>
               </div>
             </div>

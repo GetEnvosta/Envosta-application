@@ -19,9 +19,9 @@ const STORAGE_OPTIONS = [10, 25, 50, 75, 100, 200, 400, 600, 800, 1000];
 const PHP_VERSION_OPTIONS = ['8.3', '8.4'];
 
 export function ResourceControls({ siteId, wpCloudSiteId, config, planMetadata, phpVersion }: Props) {
-  const [phpWorkers, setPhpWorkers] = useState(config?.php_workers ?? planMetadata?.php_workers_default ?? 2);
+  const [phpWorkers, setPhpWorkers] = useState(config?.php_workers ?? planMetadata?.php_workers_default ?? 3);
   const [phpMemory, setPhpMemory] = useState(config?.php_memory_mb ?? planMetadata?.php_memory_mb ?? 512);
-  const [storageGb, setStorageGb] = useState(config?.storage_gb ?? planMetadata?.storage_gb ?? 25);
+  const [storageGb, setStorageGb] = useState(config?.storage_gb ?? planMetadata?.storage_gb ?? 50);
   const [bursting, setBursting] = useState(config?.burst_php_conns === 1);
   const [phpVer, setPhpVer] = useState(() => {
     const v = phpVersion ?? '8.4';

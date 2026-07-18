@@ -108,7 +108,7 @@ export async function GET(req: Request) {
             status: 'active',
             user_id: null,
             server_region: wpSite.geo_affinity ?? 'dca',
-            config: { php_workers: 2, storage_gb: 25, php_memory_mb: 512 },
+            config: { php_workers: 3, storage_gb: 50, php_memory_mb: 512 },
             metadata: { orphaned: true, discovered_at: new Date().toISOString(), source: 'wp_cloud_sync' },
           });
         }

@@ -54,7 +54,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   const siteUrl = site.wp_cloud_url;
   const siteDomain = siteUrl?.replace(/^https?:\/\//, '') ?? '';
   const storageUsed = ((site as any).disk_usage_mb ?? 0) / 1024;
-  const storageTotal = config.storage_gb ?? 25;
+  const storageTotal = config.storage_gb ?? 50;
   const storagePct = Math.min(100, (storageUsed / storageTotal) * 100);
 
   const regions: Record<string, string> = { dca: 'US East', bur: 'US West', dfw: 'US Central', ams: 'EU West' };

@@ -245,8 +245,8 @@ export async function POST(req: Request) {
     if (plan) {
       const meta = (plan.metadata as any) ?? {};
       planSlug = plan.slug ?? 'minimum';
-      storageGb = meta.storage_gb ?? 25;
-      defaultWorkers = meta.php_workers_default ?? 2;
+      storageGb = meta.storage_gb ?? 50;
+      defaultWorkers = meta.php_workers_default ?? 3;
       phpMemory = meta.php_memory_mb ?? 512;
       hasBackups = meta.has_backups ?? true;
       hasCdn = meta.has_cdn ?? true;

@@ -70,11 +70,15 @@ function check() {
  * backups, WAF, uptime SLA, free migration) live in the bottom grid and
  * are NOT repeated here, so each card reads as a clear value-add.
  */
+// Every plan runs the SAME infrastructure spec (50 GB SSD, 3 PHP workers —
+// one provisioning profile). Tiers differ by service level only, and the
+// promises stay deliberately light: hosting-first, minimal standing labor.
+// The DB list (products.features, editable in Settings → Plans) always
+// overrides these fallbacks.
 const FEATURES_BY_SLUG: Record<string, string[]> = {
   // — MINIMUM —
   minimum: [
-    '25 GB SSD storage',
-    '3 PHP workers',
+    '50 GB SSD storage · 3 PHP workers',
     'Email support · 24-hr response',
     'Self-serve admin dashboard',
     '1-click plugin & theme installs',
@@ -84,32 +88,26 @@ const FEATURES_BY_SLUG: Record<string, string[]> = {
   // — STANDARD (inherits Minimum) —
   standard: [
     'Everything in Minimum',
-    '50 GB SSD storage + 5 PHP workers',
     'Guided onboarding call (60 min)',
     'Priority support · 4-hr response',
     'WooCommerce-ready provisioning',
     'Lead capture forms + Google Analytics',
-    'Monthly performance & SEO report',
   ],
 
   // — GROWTH (inherits Standard) —
   growth: [
     'Everything in Standard',
-    '100 GB SSD storage + 8 PHP workers',
-    'Done-with-you concierge onboarding',
-    'Dedicated account manager + 24/7 emergency line',
+    'Hands-on onboarding + site setup',
+    'First-in-queue support',
     'WooCommerce + subscriptions + Stripe integrations',
-    'Quarterly site audits + strategy consultations',
   ],
 
   // — ENTERPRISE (custom-priced, inherits Growth) —
   enterprise: [
     'Everything in Growth',
-    'Dedicated success team + private Slack channel',
     'White-glove onboarding + full site build',
     'Custom integrations + API access',
     'Custom resource scaling on request',
-    'Priority roadmap input + quarterly strategy calls',
   ],
 };
 

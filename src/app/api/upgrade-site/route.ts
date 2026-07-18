@@ -83,8 +83,8 @@ export async function POST(req: Request) {
   // Build new resource config from plan metadata (shared by both
   // workflow + inline paths so the response shape stays stable).
   const newConfig = {
-    storage_gb: planMeta.storage_gb ?? 25,
-    php_workers: planMeta.php_workers_default ?? 2,
+    storage_gb: planMeta.storage_gb ?? 50,
+    php_workers: planMeta.php_workers_default ?? 3,
     php_memory_mb: planMeta.php_memory_mb ?? 512,
     has_backups: planMeta.has_backups ?? true,
     has_cdn: planMeta.has_cdn ?? true,

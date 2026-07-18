@@ -114,10 +114,10 @@ export async function POST(req: Request) {
         label: siteLabel,
         status: 'provisioning',
         server_region: 'dca',
-        config: { php_workers: 2, storage_gb: 25, php_memory_mb: 512 },
+        config: { php_workers: 3, storage_gb: 50, php_memory_mb: 512 },
         bursting_enabled: false,
-        max_php_workers: 2,
-        max_ssd_gb: 25,
+        max_php_workers: 3,
+        max_ssd_gb: 50,
         metadata: {
           unclaimed: true,
           created_by_admin: user.id,

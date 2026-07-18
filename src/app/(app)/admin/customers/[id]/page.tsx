@@ -258,7 +258,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                               <Zap className="w-3 h-3" /> {planMeta.php_workers_default ?? (s.config as any)?.php_workers ?? 2}w
                             </span>
                             <span className="text-[11px] text-gray-400 inline-flex items-center gap-1">
-                              <HardDrive className="w-3 h-3" /> {planMeta.storage_gb ?? (s.config as any)?.storage_gb ?? 25}GB
+                              <HardDrive className="w-3 h-3" /> {planMeta.storage_gb ?? (s.config as any)?.storage_gb ?? 50}GB
                             </span>
                           </>
                         )}

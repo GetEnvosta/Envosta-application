@@ -25,8 +25,8 @@ export async function GET() {
       price: p.price_cad ? p.price_cad / 100 : 0,
       productId: p.id,
       features: {
-        storage_gb: meta.storage_gb ?? 25,
-        php_workers: meta.php_workers_default ?? 2,
+        storage_gb: meta.storage_gb ?? 50,
+        php_workers: meta.php_workers_default ?? 3,
         php_memory_mb: meta.php_memory_mb ?? 512,
         has_backups: meta.has_backups ?? true,
         has_cdn: meta.has_cdn ?? true,
