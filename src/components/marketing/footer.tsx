@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SOCIAL_PLATFORMS, type SocialLinks } from '@/lib/social-platforms';
 
-// Mirrors nav.tsx — checkout flows hide the marketing footer too.
-const HIDE_ON = ['/get-started', '/buy-domain'];
+// Mirrors nav.tsx — checkout flows + the /start ad lander hide the
+// marketing footer too.
+const HIDE_ON = ['/get-started', '/buy-domain', '/start'];
 
 function LogoSvg() {
   return (

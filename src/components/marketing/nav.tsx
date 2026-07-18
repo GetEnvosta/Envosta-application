@@ -36,8 +36,9 @@ function LogoSvg() {
 }
 
 // Checkout flows live in (marketing) for code-org reasons but should NOT
-// inherit the marketing nav — distraction-free funnel.
-const HIDE_ON = ['/get-started', '/buy-domain'];
+// inherit the marketing nav — distraction-free funnel. /start is the paid
+// -social ad lander: same rule, one conversion path.
+const HIDE_ON = ['/get-started', '/buy-domain', '/start'];
 
 export function MarketingNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
