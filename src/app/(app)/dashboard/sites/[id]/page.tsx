@@ -36,7 +36,7 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
 
   // Get the plan name for this site
   const supabase = await createClient();
-  let planName = 'Minimum';
+  let planName = 'Hosting';
   if ((site as any).product_id) {
     const { data: plan } = await supabase
       .from('products')

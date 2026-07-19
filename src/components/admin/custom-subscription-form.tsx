@@ -134,9 +134,9 @@ export function CustomSubscriptionForm({ userId, userEmail }: { userId: string; 
         </div>
         <div>
           <label htmlFor="currency" className="block text-[11px] font-medium text-gray-600 mb-1">Currency</label>
-          <select id="currency" name="currency" defaultValue="cad" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white">
-            <option value="cad">CAD</option>
+          <select id="currency" name="currency" defaultValue="usd" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white">
             <option value="usd">USD</option>
+            <option value="cad">CAD</option>
           </select>
         </div>
       </div>

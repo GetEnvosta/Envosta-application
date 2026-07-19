@@ -229,11 +229,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Site has no user_id and userId was not provided' }, { status: 400 });
   }
 
-  // ── Resolve plan tier configuration ────────────────────────────
-  let storageGb = 25;
-  let defaultWorkers = 2;
+  // ── Resolve plan tier configuration (one-spec defaults) ────────
+  let storageGb = 50;
+  let defaultWorkers = 3;
   let phpMemory = 512;
-  let planSlug = 'minimum';
+  let planSlug = 'standard';
   let hasBackups = true;
   let hasCdn = true;
   let hasWaf = true;

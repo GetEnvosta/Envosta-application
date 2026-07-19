@@ -51,9 +51,10 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const hostingPlan = primaryHostingSub?.products as any;
   const hostingPeriod: string = primaryHostingSub?.billing_period ?? 'monthly';
   const periodLabel = hostingPeriod === 'yearly' ? '/yr' : '/mo';
+  // USD — the currency subscriptions actually charge.
   const hostingPrice = hostingPeriod === 'yearly'
-    ? (hostingPlan?.price_yearly_cad ?? (hostingPlan?.price_cad ? hostingPlan.price_cad * 12 : 0))
-    : (hostingPlan?.price_cad ?? 0);
+    ? (hostingPlan?.price_yearly_usd ?? (hostingPlan?.price_usd ? hostingPlan.price_usd * 12 : 0))
+    : (hostingPlan?.price_usd ?? 0);
 
 
   // No annual domain sub total — the auto_renew flag per domain row is
@@ -174,7 +175,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                   </span>
                 )}
                 <span className="text-sm font-semibold text-gray-900">
-                  {formatCents(hostingPrice, 'cad')}{periodLabel}
+                  {formatCents(hostingPrice, 'usd')}{periodLabel}
                 </span>
                 {sub.stripe_subscription_id && (
                   <a

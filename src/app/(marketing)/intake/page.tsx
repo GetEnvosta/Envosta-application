@@ -105,11 +105,12 @@ export default function IntakePage() {
       .eq('type', 'hosting_plan')
       .eq('is_active', true)
       .then(({ data }) => {
-        // Sort by CAD price so order is deterministic regardless of the
-        // sort_order field state in the DB.
+        // Sellable plans only: Minimum is the hidden internal option and
+        // Enterprise is sales-desk-only — neither belongs on the rep form.
+        // Sort by USD (the currency every charge uses).
         const rows = ((data ?? []) as any[])
-          .slice()
-          .sort((a, b) => (a.price_cad ?? a.price_usd ?? 0) - (b.price_cad ?? b.price_usd ?? 0));
+          .filter((p) => p.slug !== 'minimum' && p.slug !== 'enterprise')
+          .sort((a, b) => (a.price_usd ?? a.price_cad ?? 0) - (b.price_usd ?? b.price_cad ?? 0));
         const featuredSlug = rows.length >= 3
           ? rows[Math.floor(rows.length / 2)]?.slug
           : rows[rows.length - 1]?.slug;

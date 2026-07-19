@@ -42,24 +42,24 @@ export async function POST(req: Request) {
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false } });
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' as any });
 
-  // ── Block self-serve checkout of sales-only plans ──────────────
-  // Enterprise is custom-priced + manually provisioned by our team (the
-  // admin pre-creates its subscription). It must never be purchasable via
-  // this self-serve route, even with a hand-crafted priceId.
+  // ── Block self-serve checkout of non-public plans ──────────────
+  // Enterprise is sales-only (admin pre-creates its subscription) and
+  // Minimum is the hidden internal/retention plan. Neither may be
+  // purchased via this route, even with a hand-crafted priceId.
   {
-    const { data: salesOnlyPlans } = await sb
+    const { data: gatedPlans } = await sb
       .from('products')
-      .select('stripe_price_id, stripe_price_id_yearly, stripe_price_id_cad, stripe_price_id_yearly_cad')
+      .select('slug, stripe_price_id, stripe_price_id_yearly, stripe_price_id_cad, stripe_price_id_yearly_cad')
       .eq('type', 'hosting_plan')
-      .eq('slug', 'enterprise');
+      .in('slug', ['enterprise', 'minimum']);
     const blockedPriceIds = new Set(
-      (salesOnlyPlans ?? []).flatMap((p: any) => [
+      (gatedPlans ?? []).flatMap((p: any) => [
         p.stripe_price_id, p.stripe_price_id_yearly, p.stripe_price_id_cad, p.stripe_price_id_yearly_cad,
       ].filter(Boolean)),
     );
     if (blockedPriceIds.has(priceId)) {
       return NextResponse.json(
-        { error: 'Enterprise is set up by our team — please contact sales to get started.' },
+        { error: 'That plan is not available for self-serve checkout — contact us and we will set you up.' },
         { status: 400 },
       );
     }

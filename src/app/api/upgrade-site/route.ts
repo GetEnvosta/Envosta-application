@@ -54,6 +54,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'This site is not linked to a subscription line item. Contact support.' }, { status: 400 });
   }
 
+  // Self-serve plan changes are limited to the public sellable plans.
+  // Minimum (internal/retention) and Enterprise (sales-only) are admin paths.
+  if (newPlanSlug === 'minimum' || newPlanSlug === 'enterprise') {
+    return NextResponse.json(
+      { error: newPlanSlug === 'enterprise' ? 'Enterprise is set up by our team — contact sales.' : 'That plan is not available.' },
+      { status: 400 },
+    );
+  }
+
   // Resolve the new plan
   const newPlan = await resolvePlanPrice(supabase, newPlanSlug);
   if (!newPlan) {

@@ -217,8 +217,8 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
                 <div className="px-4 py-3 text-sm font-medium text-gray-700">One-Time</div>
                 <div className="px-4 py-2"><input className="input font-mono text-xs" value={plan.stripe_price_id ?? ''} onChange={e => update('stripe_price_id', e.target.value)} placeholder="price_..." /></div>
                 <div className="px-4 py-2 flex items-center gap-2">
-                  <input type="number" className="input w-28" value={plan.price_cad} onChange={e => update('price_cad', parseInt(e.target.value) || 0)} />
-                  <span className="text-xs text-gray-400 whitespace-nowrap">{plan.price_cad > 0 ? `$${(plan.price_cad / 100).toFixed(2)}` : '—'}</span>
+                  <input type="number" className="input w-28" value={plan.price_usd ?? 0} onChange={e => update('price_usd', parseInt(e.target.value) || 0)} />
+                  <span className="text-xs text-gray-400 whitespace-nowrap">{(plan.price_usd ?? 0) > 0 ? `$${((plan.price_usd ?? 0) / 100).toFixed(2)}` : '—'}</span>
                 </div>
               </div>
             </div>
@@ -236,8 +236,8 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
                     <div className="px-4 py-3 text-sm font-medium text-gray-700">Monthly</div>
                     <div className="px-4 py-2"><input className="input font-mono text-xs" value={plan.stripe_price_id ?? ''} onChange={e => update('stripe_price_id', e.target.value)} placeholder="price_..." /></div>
                     <div className="px-4 py-2 flex items-center gap-2">
-                      <input type="number" className="input w-28" value={plan.price_cad} onChange={e => update('price_cad', parseInt(e.target.value) || 0)} />
-                      <span className="text-xs text-gray-400 whitespace-nowrap">{plan.price_cad > 0 ? `$${(plan.price_cad / 100).toFixed(2)}/mo` : '—'}</span>
+                      <input type="number" className="input w-28" value={plan.price_usd ?? 0} onChange={e => update('price_usd', parseInt(e.target.value) || 0)} />
+                      <span className="text-xs text-gray-400 whitespace-nowrap">{(plan.price_usd ?? 0) > 0 ? `$${((plan.price_usd ?? 0) / 100).toFixed(2)}/mo` : '—'}</span>
                     </div>
                   </div>
                 )}
@@ -253,14 +253,14 @@ export default function EditPlanPage({ params }: { params: Promise<{ id: string 
                   </div>
                   <div className="px-4 py-2 flex items-center gap-2">
                     <input type="number" className="input w-28"
-                      value={plan.billing === 'yearly' ? (plan.price_cad ?? 0) : (plan.price_yearly_cad ?? 0)}
+                      value={plan.billing === 'yearly' ? (plan.price_usd ?? 0) : (plan.price_yearly_usd ?? 0)}
                       onChange={e => {
                         const v = parseInt(e.target.value) || 0;
-                        plan.billing === 'yearly' ? update('price_cad', v) : update('price_yearly_cad', v);
+                        plan.billing === 'yearly' ? update('price_usd', v) : update('price_yearly_usd', v);
                       }}
                     />
                     <span className="text-xs text-gray-400 whitespace-nowrap">
-                      {(() => { const yr = plan.billing === 'yearly' ? plan.price_cad : plan.price_yearly_cad; return yr > 0 ? `$${(yr / 100).toFixed(2)}/yr` : '—'; })()}
+                      {(() => { const yr = (plan.billing === 'yearly' ? plan.price_usd : plan.price_yearly_usd) ?? 0; return yr > 0 ? `$${(yr / 100).toFixed(2)}/yr` : '—'; })()}
                     </span>
                   </div>
                 </div>

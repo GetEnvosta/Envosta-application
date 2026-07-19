@@ -4,25 +4,28 @@ import { createClient } from '@/lib/supabase-server';
 export const dynamic = 'force-dynamic';
 
 /**
- * GET — Returns all active hosting plan tiers with their resource configs.
- * Used by the site plan selector to show available plans and features.
+ * GET — Returns the PUBLIC sellable hosting plans with their resource
+ * configs (customer-facing plan selectors). Minimum (hidden internal) and
+ * Enterprise (sales-only) never appear here; admin tools query products
+ * directly. Prices are USD — the currency every charge actually uses.
  */
 export async function GET() {
   const supabase = await createClient();
 
   const { data: products } = await supabase
     .from('products')
-    .select('id, slug, name, price_cad, metadata')
+    .select('id, slug, name, price_usd, metadata')
     .eq('type', 'hosting_plan')
     .eq('is_active', true)
-    .order('price_cad', { ascending: true });
+    .not('slug', 'in', '("minimum","enterprise")')
+    .order('price_usd', { ascending: true });
 
   const plans = (products ?? []).map((p: any) => {
     const meta = (p.metadata as any) ?? {};
     return {
       slug: p.slug,
       name: p.name,
-      price: p.price_cad ? p.price_cad / 100 : 0,
+      price: p.price_usd ? p.price_usd / 100 : 0,
       productId: p.id,
       features: {
         storage_gb: meta.storage_gb ?? 50,

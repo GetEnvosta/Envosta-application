@@ -49,8 +49,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Site name is required' }, { status: 400 });
   }
 
-  // Default to minimum plan if not specified
-  const selectedPlan = planSlug || 'minimum';
+  // Default to the entry public plan. Self-serve may never select the
+  // hidden Minimum (internal/retention) or Enterprise (sales-only).
+  const selectedPlan = planSlug || 'standard';
+  if (selectedPlan === 'minimum' || selectedPlan === 'enterprise') {
+    return NextResponse.json(
+      { error: selectedPlan === 'enterprise' ? 'Enterprise is set up by our team — contact sales.' : 'That plan is not available.' },
+      { status: 400 },
+    );
+  }
 
   // Resolve the plan to a Stripe price
   const plan = await resolvePlanPrice(supabase, selectedPlan);

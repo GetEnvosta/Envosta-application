@@ -20,7 +20,7 @@ export default async function BillingPage() {
     getAccountInvoices(userId!, 20),
     supabase
       .from('sites')
-      .select('id, label, status, product_id, stripe_subscription_item_id, products(name, slug, price_cad)')
+      .select('id, label, status, product_id, stripe_subscription_item_id, products(name, slug, price_usd)')
       .eq('user_id', userId!)
       .not('status', 'in', '("cancelled","deleted")')
       .order('created_at', { ascending: false }),
@@ -33,7 +33,8 @@ export default async function BillingPage() {
   // them via the domains table, not via Stripe sub rows.
 
   // Calculate totals
-  const sitesTotal = sites.reduce((sum: number, s: any) => sum + ((s.products as any)?.price_cad ?? 0), 0);
+  // USD — the currency every subscription actually charges.
+  const sitesTotal = sites.reduce((sum: number, s: any) => sum + ((s.products as any)?.price_usd ?? 0), 0);
   const monthlyTotal = sitesTotal;
 
   return (
@@ -74,7 +75,7 @@ export default async function BillingPage() {
               </div>
               {sites.map((site: any) => {
                 const plan = site.products as any;
-                const price = plan?.price_cad ?? 0;
+                const price = plan?.price_usd ?? 0;
                 return (
                   <div key={site.id} className="px-6 py-3.5 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
                     <div className="flex items-center gap-3">

@@ -19,7 +19,7 @@ export default function AddSitePage() {
 
   const [label, setLabel] = useState('');
   const [region, setRegion] = useState('dca');
-  const [selectedPlan, setSelectedPlan] = useState('minimum');
+  const [selectedPlan, setSelectedPlan] = useState('standard');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
@@ -50,12 +50,14 @@ export default function AddSitePage() {
         .single();
       setHasPaymentMethod(!!profile?.stripe_customer_id);
 
-      // Load available hosting plans
+      // Load the public sellable plans (hidden Minimum + sales-only
+      // Enterprise are admin paths, never customer-pickable).
       const { data: planRows } = await supabase
         .from('products')
         .select('slug, name, price_usd, features, metadata')
         .eq('type', 'hosting_plan')
         .eq('is_active', true)
+        .not('slug', 'in', '("minimum","enterprise")')
         .order('price_usd', { ascending: true });
 
       setPlans((planRows ?? []).map((p: any) => ({

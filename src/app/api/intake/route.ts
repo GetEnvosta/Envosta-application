@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     if (!timeline || typeof timeline !== 'string') {
       return NextResponse.json({ error: 'Timeline is required' }, { status: 400 });
     }
-    if (closedOnSpot && (!plan || !['minimum', 'growth'].includes(plan))) {
+    if (closedOnSpot && (!plan || !['standard', 'growth'].includes(plan))) {
       return NextResponse.json({ error: 'Please select a hosting plan' }, { status: 400 });
     }
     if (closedOnSpot && billing && !['monthly', 'annual'].includes(billing)) {
