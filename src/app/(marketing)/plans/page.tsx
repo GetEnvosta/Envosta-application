@@ -85,18 +85,19 @@ const FEATURES_BY_SLUG: Record<string, string[]> = {
     'WordPress core + plugin auto-updates',
   ],
 
-  // — STANDARD (inherits Minimum) —
+  // — BUSINESS (slug: standard) — the entry public plan —
   standard: [
-    'Everything in Minimum',
+    '50 GB SSD storage · 3 PHP workers',
     'Guided onboarding call (60 min)',
     'Priority support · 4-hr response',
     'WooCommerce-ready provisioning',
     'Lead capture forms + Google Analytics',
+    'WordPress core + plugin auto-updates',
   ],
 
-  // — GROWTH (inherits Standard) —
+  // — GROWTH (inherits Business) —
   growth: [
-    'Everything in Standard',
+    'Everything in Business',
     'Hands-on onboarding + site setup',
     'First-in-queue support',
     'WooCommerce + subscriptions + Stripe integrations',
@@ -126,8 +127,10 @@ function getFeatures(plan: HostingPlan): string[] {
   return [];
 }
 
-/** Slugs shown in the core 3-column pricing grid (order matters). */
-const CORE_SLUGS = ['minimum', 'standard', 'growth'];
+/** Slugs shown in the core pricing grid (order matters). Minimum is the
+ * HIDDEN option plan — internal/retention only, never rendered publicly.
+ * Visible ladder: Business (standard) · Growth · Enterprise (band below). */
+const CORE_SLUGS = ['standard', 'growth'];
 
 export default async function PricingPage() {
   const supabase = await createClient();
@@ -179,7 +182,7 @@ export default async function PricingPage() {
         .toggle.on{background:var(--gold);border-color:var(--gold)}.toggle.on::after{transform:translateX(24px)}
         .save-badge{display:inline-block;background:rgba(34,197,94,.12);color:#22c55e;font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:100px;margin-left:4px}
         .pricing-grid{padding:0 0 100px}
-        .pricing-grid .c{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1200px;margin:0 auto;align-items:stretch}
+        .pricing-grid .c{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;max-width:860px;margin:0 auto;align-items:stretch}
 
         /* — Card shell — */
         .p-card{background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:40px 36px 32px;position:relative;display:flex;flex-direction:column;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}

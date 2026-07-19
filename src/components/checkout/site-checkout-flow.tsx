@@ -117,9 +117,9 @@ export function SiteCheckoutFlow({ mode, initialPlan, initialDomain, initialBill
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
       const allPlans = ((data as Plan[]) ?? [])
-        // Enterprise is sales-assisted + manually provisioned — it appears only
-        // on the marketing site, never in self-serve checkout.
-        .filter((p) => p.slug !== 'enterprise');
+        // Enterprise is sales-assisted (never self-serve) and Minimum is the
+        // hidden internal/retention option — neither appears in the picker.
+        .filter((p) => p.slug !== 'enterprise' && p.slug !== 'minimum');
       setPlans(allPlans);
 
       // Pre-select plan from URL param

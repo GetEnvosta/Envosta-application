@@ -32,7 +32,8 @@ export default async function AdLandingPage() {
     .from('products')
     .select('slug, price_usd, price_cad')
     .eq('type', 'hosting_plan')
-    .eq('is_active', true);
+    .eq('is_active', true)
+    .neq('slug', 'minimum'); // hidden internal plan — never the public price anchor
   const cheapest = (plans ?? [])
     .map((p: any) => p.price_usd ?? p.price_cad ?? null)
     .filter((c: number | null): c is number => c != null)
