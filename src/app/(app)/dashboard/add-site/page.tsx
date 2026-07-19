@@ -13,13 +13,40 @@ interface PlanOption {
   features: string[];
 }
 
+/**
+ * Value-stack copy per plan (outcome-led, honest — no invented promises).
+ * DB `products.features` overrides these when set (Settings → Plans).
+ */
+const PLAN_MARKETING: Record<string, { hook: string; badge?: string; stackIntro?: string; stack: string[] }> = {
+  standard: {
+    hook: 'Everything you need to get online — and stay online.',
+    stack: [
+      'Your site handled — updates, security & speed managed for you',
+      'Daily backups + free SSL on the infrastructure behind WordPress.com',
+      'WooCommerce-ready — start selling whenever you want',
+      'Lead-capture forms + Google Analytics wired in',
+      'Priority support · 4-hour response',
+    ],
+  },
+  growth: {
+    hook: 'For sites that make you money.',
+    badge: 'MOST POPULAR',
+    stackIntro: 'Everything in Business, plus:',
+    stack: [
+      'Hands-on onboarding — we set it up with you',
+      'First-in-queue support — skip the line, every time',
+      'WooCommerce + subscriptions + Stripe — built to take payments',
+    ],
+  },
+};
+
 export default function AddSitePage() {
   const router = useRouter();
   const supabase = createClient();
 
   const [label, setLabel] = useState('');
   const [region, setRegion] = useState('dca');
-  const [selectedPlan, setSelectedPlan] = useState('standard');
+  const [selectedPlan, setSelectedPlan] = useState('growth');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
@@ -97,12 +124,15 @@ export default function AddSitePage() {
     }
   }
 
+  const activePlan = plans.find((p) => p.slug === selectedPlan) ?? null;
+
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-xl font-semibold text-gray-900">Add a Site</h1>
+        <h1 className="text-xl font-semibold text-gray-900">Launch your next site</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Each site is billed as its own line item on your subscription.
+          Live in minutes on the same infrastructure behind WordPress.com — set up, secured, and
+          managed for you.
         </p>
       </div>
 
@@ -127,46 +157,70 @@ export default function AddSitePage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Plan selector */}
+          {/* Plan selector — value-stacked, anchor on Growth */}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-3">
-              Choose a plan for this site
+              Pick how much you want handled
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {plans.map((plan) => (
-                <button
-                  key={plan.slug}
-                  type="button"
-                  onClick={() => setSelectedPlan(plan.slug)}
-                  disabled={creating}
-                  className={`relative text-left border rounded-xl p-4 transition-all ${
-                    selectedPlan === plan.slug
-                      ? 'border-blue-500 bg-blue-50/50 ring-1 ring-blue-500'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
-                  } disabled:opacity-50`}
-                >
-                  {selectedPlan === plan.slug && (
-                    <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
-                      <Check className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                  <p className="text-sm font-semibold text-gray-900">{plan.name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    ${plan.price}/mo per site
-                  </p>
-                  {plan.features.length > 0 && (
-                    <ul className="mt-2 space-y-1">
-                      {plan.features.slice(0, 3).map((f: string, i: number) => (
-                        <li key={i} className="text-xs text-gray-600 flex items-center gap-1.5">
-                          <Check className="w-3 h-3 text-green-600 flex-shrink-0" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {plans.map((plan) => {
+                const mk = PLAN_MARKETING[plan.slug];
+                const isSelected = selectedPlan === plan.slug;
+                const stack = plan.features.length > 0 ? plan.features : (mk?.stack ?? []);
+                return (
+                  <button
+                    key={plan.slug}
+                    type="button"
+                    onClick={() => setSelectedPlan(plan.slug)}
+                    disabled={creating}
+                    className={`relative text-left border rounded-2xl p-5 transition-all flex flex-col ${
+                      isSelected
+                        ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-600 shadow-sm'
+                        : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                    } disabled:opacity-50`}
+                  >
+                    {mk?.badge && (
+                      <span className="absolute -top-2.5 left-5 text-[10px] font-bold tracking-wider text-white bg-blue-600 rounded-full px-2.5 py-0.5">
+                        {mk.badge}
+                      </span>
+                    )}
+                    {isSelected && (
+                      <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                    <p className="text-sm font-semibold text-gray-900">{plan.name}</p>
+                    {mk?.hook && (
+                      <p className="text-xs text-gray-600 mt-0.5 pr-6">{mk.hook}</p>
+                    )}
+                    <p className="mt-3">
+                      <span className="text-2xl font-bold text-gray-900">${plan.price}</span>
+                      <span className="text-xs text-gray-500 font-normal"> USD/mo · cancel anytime</span>
+                    </p>
+                    {mk?.stackIntro && (
+                      <p className="mt-3 text-[11px] font-semibold text-blue-700 uppercase tracking-wide">{mk.stackIntro}</p>
+                    )}
+                    <ul className={`${mk?.stackIntro ? 'mt-1.5' : 'mt-3'} space-y-1.5 flex-1`}>
+                      {stack.map((f: string, i: number) => (
+                        <li key={i} className="text-xs text-gray-700 flex items-start gap-1.5 leading-relaxed">
+                          <Check className="w-3.5 h-3.5 text-green-600 flex-shrink-0 mt-px" />
                           {f}
                         </li>
                       ))}
                     </ul>
-                  )}
-                </button>
-              ))}
+                    <p className={`mt-4 text-xs font-semibold ${isSelected ? 'text-blue-700' : 'text-gray-400'}`}>
+                      {isSelected ? '✓ Selected' : 'Select this plan'}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
+            {/* Risk reversal — factual, no theater */}
+            <p className="mt-3 text-[11px] text-gray-500 leading-relaxed">
+              Every site runs on wp.cloud — infrastructure built by Automattic, the makers of
+              WordPress. No contracts, cancel anytime, and your content and domain are always
+              yours.
+            </p>
           </div>
 
           <div className="bg-white border border-gray-200 rounded-xl p-6">
@@ -231,11 +285,29 @@ export default function AddSitePage() {
               className="mt-6 w-full btn-primary inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {creating ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Creating your site...</>
+                <><Loader2 className="w-4 h-4 animate-spin" /> Launching your site...</>
               ) : (
-                <><Rocket className="w-4 h-4" /> Create Site <ArrowRight className="w-4 h-4" /></>
+                <>
+                  <Rocket className="w-4 h-4" />
+                  Launch This Site{activePlan ? ` — $${activePlan.price}/mo` : ''}
+                  <ArrowRight className="w-4 h-4" />
+                </>
               )}
             </button>
+
+            {/* What happens next — zero mystery */}
+            <div className="mt-5 pt-4 border-t border-gray-100 grid grid-cols-3 gap-3">
+              {[
+                ['1', 'We provision your site on wp.cloud'],
+                ['2', 'Temporary domain live in minutes'],
+                ['3', 'Connect your own domain anytime'],
+              ].map(([n, step]) => (
+                <div key={n} className="flex items-start gap-2">
+                  <span className="w-4 h-4 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-px">{n}</span>
+                  <span className="text-[11px] text-gray-500 leading-snug">{step}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

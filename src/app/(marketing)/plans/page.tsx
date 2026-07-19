@@ -151,8 +151,8 @@ export default async function PricingPage() {
     .filter(Boolean) as HostingPlan[];
   const premiumPlan = allPlans.find((p) => p.slug === 'enterprise') ?? null;
 
-  // Standard is always the featured (middle) card.
-  const featuredSlug = 'standard';
+  // Growth is the featured (middle) card of Business · Growth · Enterprise.
+  const featuredSlug = 'growth';
 
   // All plans shown in the comparison table (core + enterprise).
   const comparePlans = premiumPlan ? [...plans, premiumPlan] : plans;
@@ -182,7 +182,7 @@ export default async function PricingPage() {
         .toggle.on{background:var(--gold);border-color:var(--gold)}.toggle.on::after{transform:translateX(24px)}
         .save-badge{display:inline-block;background:rgba(34,197,94,.12);color:#22c55e;font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:100px;margin-left:4px}
         .pricing-grid{padding:0 0 100px}
-        .pricing-grid .c{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;max-width:860px;margin:0 auto;align-items:stretch}
+        .pricing-grid .c{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1200px;margin:0 auto;align-items:stretch}
 
         /* — Card shell — */
         .p-card{background:var(--card);border:1px solid var(--bdr);border-radius:20px;padding:40px 36px 32px;position:relative;display:flex;flex-direction:column;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
@@ -312,16 +312,17 @@ export default async function PricingPage() {
         </div>
       </section>
 
-      {/* PRICING CARDS — 3 core plans */}
+      {/* PRICING CARDS — Business · Growth · Enterprise */}
       <section className="pricing-grid rv">
         <div className="c">
-          {plans.length === 0 && (
+          {comparePlans.length === 0 && (
             <p style={{ textAlign: 'center', color: 'var(--t3)', gridColumn: '1 / -1' }}>
               Plans are being updated — please check back shortly.
             </p>
           )}
-          {plans.map((plan, idx) => {
+          {comparePlans.map((plan, idx) => {
             const isFeatured = plan.slug === featuredSlug;
+            const isEnterprise = plan.slug === 'enterprise';
             const monthly = plan.price_usd ?? plan.price_cad ?? 0;
             const yearly = plan.price_yearly_usd ?? plan.price_yearly_cad ?? 0;
             const yearlyDisplayPerMonth = annualMonthly(yearly);
@@ -330,25 +331,26 @@ export default async function PricingPage() {
             const tagline = plan.description
               || (idx === 0
                 ? 'Get online today with a fast, secure WordPress site that just works. No servers to manage, no plugins to babysit, no hosting decisions to second-guess.'
-                : idx === plans.length - 1
-                  ? 'For businesses ready to compound. More sites, AI-powered SEO, priority support, and the growth tools you need — without paying enterprise prices.'
-                  : 'A hands-on launchpad for growing businesses. Priority support, WooCommerce-ready, and monthly reporting to keep you on track.');
+                : isEnterprise
+                  ? 'Bespoke hosting for high-traffic flagship sites — set up personally by our team.'
+                  : 'For businesses ready to compound. Priority support, WooCommerce-ready, and the growth tools you need.');
             return (
               <div key={plan.id} className={isFeatured ? 'p-card featured' : 'p-card'}>
                 <h3 className="p-card-name">{plan.name}</h3>
+                {isEnterprise && <div className="premium-starting">Starting at</div>}
                 <div className="p-card-price">
                   <span className="currency">$</span>
                   <span
                     className="amount price-val"
                     data-monthly={dollars(monthly)}
-                    data-annual={yearlyDisplayPerMonth}
+                    data-annual={isEnterprise ? dollars(monthly) : yearlyDisplayPerMonth}
                   >
-                    {yearly ? yearlyDisplayPerMonth : dollars(monthly)}
+                    {isEnterprise ? dollars(monthly) : yearly ? yearlyDisplayPerMonth : dollars(monthly)}
                   </span>
                 </div>
-                <div className="p-card-period">USD per month</div>
+                <div className="p-card-period">{isEnterprise ? 'USD per month · custom-priced' : 'USD per month'}</div>
                 <div className="annual-note-slot">
-                  {yearly > 0 && (
+                  {!isEnterprise && yearly > 0 && (
                     <div className="annual-note">
                       Billed annually · ${dollars(yearly)}/yr{savings ? ` · save ${savings}%` : ''}
                     </div>
@@ -357,12 +359,18 @@ export default async function PricingPage() {
 
                 <p className="p-card-tag">{tagline}</p>
 
-                <a
-                  href={`/get-started?plan=${plan.slug}&billing=annual&trial=1`}
-                  className="p-cta"
-                >
-                  Try for free
-                </a>
+                {isEnterprise ? (
+                  <a href="/contact" className="p-cta">
+                    Contact Sales
+                  </a>
+                ) : (
+                  <a
+                    href={`/get-started?plan=${plan.slug}&billing=annual&trial=1`}
+                    className="p-cta"
+                  >
+                    Try for free
+                  </a>
+                )}
 
                 <div className="p-card-highlights">
                   <div className="p-card-highlights-label">Highlights</div>
@@ -378,58 +386,7 @@ export default async function PricingPage() {
         </div>
       </section>
 
-      {/* PREMIUM — full-width card, visually distinct */}
-      {premiumPlan && (() => {
-        const pm = premiumPlan;
-        const monthly = pm.price_usd ?? pm.price_cad ?? 0;
-        const startingAt = Math.round(monthly / 100).toLocaleString('en-US');
-        const features = getFeatures(pm);
-        return (
-          <section className="premium-section rv">
-            <div className="c">
-              <div className="premium-wrap">
-                <div className="premium-info">
-                  <div className="premium-label">{pm.name}</div>
-                  <h3>The full stack for brands that don&apos;t compromise</h3>
-                  <p className="premium-desc">
-                    {pm.description || 'Everything in Growth plus dedicated infrastructure, a hands-on success team, and the tools and strategy to dominate your category.'}
-                  </p>
-                  <div className="premium-starting">Starting at</div>
-                  <div className="premium-price-row">
-                    <span className="currency">$</span>
-                    <span className="amount">{startingAt}</span>
-                  </div>
-                  <div className="premium-period">USD per month</div>
-                  <div className="premium-annual-note">
-                    <span className="premium-term">On an annual term · billed per site</span>
-                  </div>
-                  <a href="/contact" className="premium-cta">
-                    Contact sales
-                    <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </a>
-                </div>
-                <div className="premium-features">
-                  <div className="premium-features-label">Everything you get</div>
-                  <ul>
-                    {features.map((f, i) => (
-                      <li key={i}>
-                        <span className="ck-wrap">
-                          <svg className="ck" viewBox="0 0 12 12" fill="none">
-                            <path d="M2.5 6.5l2.5 2.5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </span>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </section>
-        );
-      })()}
-
-      {/* Comparison table — all 4 plans */}
+      {/* Comparison table — the three public plans */}
       <section className="pricing-grid" style={{ padding: '0 0 60px' }}>
         <details className="compare-toggle">
           <summary>
