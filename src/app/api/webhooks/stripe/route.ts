@@ -710,12 +710,8 @@ export async function POST(req: Request) {
       const session = event.data.object as Stripe.Checkout.Session;
       const metadata = (session.metadata ?? {}) as Record<string, string>;
 
-      // ── Signup intake (rebuild Phase 3.3): payment confirmed → write the
-      // structured provisioning job record + internal notification.
-      // Pre–Phase 6 the queue is a `tickets` row (type='signup') whose
-      // metadata carries the exact future `provisioning_jobs` payload; the
-      // spine (Phase 4/6) consumes it, and Phase 6 swaps storage to the
-      // dedicated table without changing this contract.
+      // ── Signup intake (retired /v2 rep flow): kept dormant-safe — no
+      // active surface stamps envosta_flow='signup_v2' anymore.
       if (metadata.envosta_flow === 'signup_v2') {
         const jobPayload = {
           flow: 'signup_v2',

@@ -14,7 +14,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { AlertTriangle, CheckCircle2, Circle } from 'lucide-react';
 import { GATES, KILL_TRIGGERS, METRIC_DEFINITIONS } from '@/config/gates';
-import { activeIndustries, spotsRemaining } from '@/config/industries';
 import { CacEntryForm } from '@/components/admin/cac-entry-form';
 
 export const dynamic = 'force-dynamic';
@@ -92,8 +91,6 @@ export default async function GatesPage() {
   const ticketTrigger = KILL_TRIGGERS.find((k) => k.key === 'tickets')!;
   const churnBreached = churnPct > (churnTrigger.threshold ?? Infinity);
   const ticketsBreached = ticketsPerClient > (ticketTrigger.threshold ?? Infinity);
-
-  const industries = activeIndustries();
 
   return (
     <div>
@@ -179,14 +176,6 @@ export default async function GatesPage() {
               )}
             </tbody>
           </table>
-          <h2 className="text-sm font-semibold text-gray-900 mt-6 mb-3">Growth spots remaining (config ledger)</h2>
-          <div className="flex flex-wrap gap-2">
-            {industries.map((i) => (
-              <span key={i.slug} className="inline-flex items-center gap-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full px-3 py-1.5">
-                {i.name}: {spotsRemaining(i.slug)} of {i.growthCap}
-              </span>
-            ))}
-          </div>
         </div>
 
         {/* ── Gate ladder ── */}
