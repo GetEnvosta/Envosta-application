@@ -195,6 +195,15 @@ export default async function PricingPage() {
 
         /* — Header: balanced name + price hierarchy — */
         .p-card-name{font-size:1.5rem;font-weight:600;color:var(--t1);letter-spacing:-.5px;line-height:1.2;margin-bottom:14px}
+        /* ── Enterprise — the approval-only tier. Quiet-premium: elevated,
+           finer border, gold accents, no trial language. Business + Growth
+           remain the conversion path; this card signals exclusivity. ── */
+        .p-card.enterprise{background:linear-gradient(165deg,rgba(255,255,255,.055),var(--card) 48%);border-color:rgba(255,255,255,.18);box-shadow:0 24px 60px -36px rgba(0,0,0,.85)}
+        .p-card.enterprise::before{content:'By Approval Only';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--bg);color:var(--t1);font-size:.62rem;font-weight:600;padding:5px 16px;border-radius:100px;letter-spacing:2px;text-transform:uppercase;border:1px solid rgba(255,255,255,.28);white-space:nowrap}
+        .p-card.enterprise .p-card-name{background:linear-gradient(90deg,#fff,rgba(255,255,255,.55));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+        .p-card.enterprise .p-cta{border-color:var(--gold);color:var(--gold-bright, var(--gold))}
+        .p-card.enterprise .p-cta:hover{background:var(--gold);border-color:var(--gold);color:#fff}
+        .ent-approval{font-size:.7rem;color:var(--t3);text-align:center;margin-top:10px;letter-spacing:.3px}
         .p-card-price{display:flex;align-items:baseline;gap:4px;line-height:1;margin-bottom:6px}
         .p-card-price .currency{font-size:1.25rem;font-weight:500;color:var(--t1);letter-spacing:-.3px}
         .p-card-price .amount{font-size:2.85rem;font-weight:700;letter-spacing:-1.8px;line-height:1;color:var(--t1);font-variant-numeric:tabular-nums}
@@ -335,7 +344,7 @@ export default async function PricingPage() {
                   ? 'Bespoke hosting for high-traffic flagship sites — set up personally by our team.'
                   : 'For businesses ready to compound. Priority support, WooCommerce-ready, and the growth tools you need.');
             return (
-              <div key={plan.id} className={isFeatured ? 'p-card featured' : 'p-card'}>
+              <div key={plan.id} className={isEnterprise ? 'p-card enterprise' : isFeatured ? 'p-card featured' : 'p-card'}>
                 <h3 className="p-card-name">{plan.name}</h3>
                 {isEnterprise && <div className="premium-starting">Starting at</div>}
                 <div className="p-card-price">
@@ -348,7 +357,7 @@ export default async function PricingPage() {
                     {isEnterprise ? dollars(monthly) : yearly ? yearlyDisplayPerMonth : dollars(monthly)}
                   </span>
                 </div>
-                <div className="p-card-period">{isEnterprise ? 'USD per month · custom-priced' : 'USD per month'}</div>
+                <div className="p-card-period">{isEnterprise ? 'USD per month · custom engagement' : 'USD per month'}</div>
                 <div className="annual-note-slot">
                   {!isEnterprise && yearly > 0 && (
                     <div className="annual-note">
@@ -360,9 +369,12 @@ export default async function PricingPage() {
                 <p className="p-card-tag">{tagline}</p>
 
                 {isEnterprise ? (
-                  <a href="/contact" className="p-cta">
-                    Contact Sales
-                  </a>
+                  <>
+                    <a href="/contact" className="p-cta">
+                      Contact Sales
+                    </a>
+                    <div className="ent-approval">Limited engagements · every request is reviewed by our senior team</div>
+                  </>
                 ) : (
                   <a
                     href={`/get-started?plan=${plan.slug}&billing=annual&trial=1`}
@@ -373,7 +385,7 @@ export default async function PricingPage() {
                 )}
 
                 <div className="p-card-highlights">
-                  <div className="p-card-highlights-label">Highlights</div>
+                  <div className="p-card-highlights-label">{isEnterprise ? 'The white-glove standard' : 'Highlights'}</div>
                   <ul>
                     {features.map((f, i) => (
                       <li key={i}>{check()}{f}</li>
