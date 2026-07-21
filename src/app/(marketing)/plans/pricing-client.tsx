@@ -52,6 +52,16 @@ export default function PricingClient() {
 
     toggle?.addEventListener('click', toggleBilling);
 
+    // Keyboard support — the toggle is a role="switch" div, so Space/Enter
+    // must flip it too (click alone fails keyboard users).
+    const onToggleKey = (e: KeyboardEvent) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        toggleBilling();
+      }
+    };
+    toggle?.addEventListener('keydown', onToggleKey);
+
     // FAQ accordion
     const faqQuestions = document.querySelectorAll('.faq-q');
     const faqHandler = (e: Event) => {
